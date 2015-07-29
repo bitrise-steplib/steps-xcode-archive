@@ -1,0 +1,11 @@
+format_version: 0.9.5
+default_step_lib_source: https://bitbucket.org/bitrise-team/bitrise-new-steps-spec
+workflows:
+  archive:
+    steps:
+    - path::./:
+        title: Step Test
+        inputs:
+        - workdir: $XCODE_WORKD_DIR
+        - project_path: $XCODE_PROJECT_FILE
+        - scheme: $XCODE_PROJECT_SCHEME
