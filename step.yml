@@ -1,7 +1,7 @@
 title: "NEW Xcode Archive"
 summary: Runs Xcode's `archive` action.
 website: https://github.com/bitrise-io/steps-new-xcode-archive
-fork_url: https://github.com/bitrise-io/steps-new-xcode-archive
+source_code_url: https://github.com/bitrise-io/steps-new-xcode-archive
 source:
   git: https://github.com/bitrise-io/steps-new-xcode-archive.git
 host_os_tags:
