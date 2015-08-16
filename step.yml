@@ -35,11 +35,11 @@ inputs:
         You can leave it empty to don't change it.
       is_required: false
       is_expand: true
-  - archive_path:
+  - build_path:
     opts:
-      title: "Xcode archive path"
+      title: "Xcode build path"
       description: |
-        Generate the Xcode archive to this path
+        Generate the Xcode archive and ipa to this path.
       is_required: false
       is_expand: true
 outputs: []

@@ -25,12 +25,12 @@ else
 	exit 1
 fi
 
-if [ -z "${archive_path}" ] ; then
-	archive_path="./build/${scheme}.xcarchive"
+if [ -z "${build_path}" ] ; then
+	build_path="./build"
 fi
-if [ -z "${ipa_path}" ] ; then
-	ipa_path="./build/${scheme}.ipa"
-fi
+archive_path="${build_path}/${scheme}.xcarchive"
+ipa_path="${build_path}/${scheme}.ipa"
+
 if [ -z "${workdir}" ] ; then
 	workdir="$(pwd)"
 fi
@@ -94,7 +94,7 @@ for a_emb_path in $(find "${archive_path}/Products/Applications" -type f -ipath 
 do
 	echo " * embedded.mobileprovision: ${a_emb_path}"
 	if [ ! -z "${embedded_mobile_prov_path}" ] ; then
-		finalcleanup "More than one \`embedded.mobileprovision\` found in \`${ARCHIVE_PATH}/Products/Applications/*.app\`"
+		finalcleanup "More than one \`embedded.mobileprovision\` found in \`${archive_path}/Products/Applications/*.app\`"
 		exit 1
 	fi
 	embedded_mobile_prov_path="${a_emb_path}"
@@ -102,7 +102,7 @@ done
 unset IFS
 
 if [ -z "${embedded_mobile_prov_path}" ] ; then
-	finalcleanup "No \`embedded.mobileprovision\` found in \`${ARCHIVE_PATH}/Products/Applications/*.app\`"
+	finalcleanup "No \`embedded.mobileprovision\` found in \`${archive_path}/Products/Applications/*.app\`"
 	exit 1
 fi
 
