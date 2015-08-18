@@ -2,8 +2,7 @@ title: "NEW Xcode Archive"
 summary: Runs Xcode's `archive` action.
 website: https://github.com/bitrise-io/steps-new-xcode-archive
 source_code_url: https://github.com/bitrise-io/steps-new-xcode-archive
-source:
-  git: https://github.com/bitrise-io/steps-new-xcode-archive.git
+support_url: https://github.com/bitrise-io/steps-new-xcode-archive/issues
 host_os_tags:
   - "osx-10.10"
 project_type_tags:
@@ -12,6 +11,11 @@ type_tags:
   - build
   - xcode
 is_requires_admin_user: false
+is_always_run: false
+is_skippable: false
+dependencies:
+  - manager: _
+    name: xcode
 inputs:
   - project_path:
     opts:
@@ -35,11 +39,15 @@ inputs:
         You can leave it empty to don't change it.
       is_required: false
       is_expand: true
-  - build_path:
+  - output_dir: "./build"
     opts:
-      title: "Xcode build path"
+      title: "Output directory path"
       description: |
-        Generate the Xcode archive and ipa to this path.
+        This directory will contain the generated Xcode archive (.xcarchive)
+        and the .ipa file.
       is_required: false
       is_expand: true
-outputs: []
+outputs:
+  - BITRISE_IPA_PATH:
+    opts:
+      title: The created .ipa file's path

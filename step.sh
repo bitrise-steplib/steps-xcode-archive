@@ -14,6 +14,11 @@ if [ -z "${scheme}" ] ; then
 	exit 1
 fi
 
+if [ -z "${output_dir}" ] ; then
+	echo "[!] Missing required input: output_dir"
+	exit 1
+fi
+
 #
 # Project-or-Workspace flag
 if [[ "${project_path}" == *".xcodeproj" ]]; then
@@ -25,11 +30,14 @@ else
 	exit 1
 fi
 
-if [ -z "${build_path}" ] ; then
-	build_path="./build"
-fi
-archive_path="${build_path}/${scheme}.xcarchive"
-ipa_path="${build_path}/${scheme}.ipa"
+# abs out dir pth
+mkdir -p "${output_dir}"
+cd "${output_dir}"
+output_dir="$(pwd)"
+cd -
+
+archive_path="${output_dir}/${scheme}.xcarchive"
+ipa_path="${output_dir}/${scheme}.ipa"
 
 if [ -z "${workdir}" ] ; then
 	workdir="$(pwd)"
@@ -41,10 +49,12 @@ echo " * CONFIG_xcode_project_action: ${CONFIG_xcode_project_action}"
 echo " * project_path: ${project_path}"
 echo " * scheme: ${scheme}"
 echo " * workdir: ${workdir}"
+echo " * output_dir: ${output_dir}"
 echo " * archive_path: ${archive_path}"
 echo " * ipa_path: ${ipa_path}"
 
 if [ ! -z "${workdir}" ] ; then
+	echo
 	echo " -> Switching to working directory: ${workdir}"
 	cd "${workdir}"
 fi
@@ -66,7 +76,6 @@ function finalcleanup {
 
 #
 # Main
-set -v
 
 #
 # Bit of cleanup
@@ -75,6 +84,8 @@ if [ -f "${ipa_path}" ] ; then
 	rm "${ipa_path}"
 fi
 
+set -v
+
 #
 # Create the Archive with Xcode Command Line tools
 xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
@@ -82,6 +93,7 @@ xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
 	clean archive -archivePath "${archive_path}" \
 	-verbose
 
+set +v
 
 #
 # Get the name of the profile which was used for creating the archive
@@ -115,6 +127,8 @@ fi
 
 echo " (i) Found Profile Name for signing: ${profile_name}"
 
+set -v
+
 #
 # Use the Provisioning Profile name to export the IPA
 xcodebuild -exportArchive \
@@ -123,6 +137,10 @@ xcodebuild -exportArchive \
 	-exportPath "${ipa_path}" \
 	-exportProvisioningProfile "${profile_name}"
 
-echo " (i) The exported IPA is now available at: ${ipa_path}"
+set +v
+
+echo " (i) The IPA is now available at: ${ipa_path}"
+envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
+echo ' (i) The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
 
 exit 0
