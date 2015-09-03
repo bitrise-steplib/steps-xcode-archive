@@ -101,8 +101,10 @@ set +v
 #     It should contain a .app folder in the xcarchive folder
 #     under the Products/Applications folder
 embedded_mobile_prov_path=""
+
+# We need -maxdepth 2 because of the `*.app` directory
 IFS=$'\n'
-for a_emb_path in $(find "${archive_path}/Products/Applications" -type f -ipath '*.app/embedded.mobileprovision')
+for a_emb_path in $(find "${archive_path}/Products/Applications" -type f -maxdepth 2 -ipath '*.app/embedded.mobileprovision')
 do
 	echo " * embedded.mobileprovision: ${a_emb_path}"
 	if [ ! -z "${embedded_mobile_prov_path}" ] ; then
