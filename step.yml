@@ -29,7 +29,7 @@ inputs:
       is_required: false
       is_expand: true
       is_dont_change_value: false
-  - project_path: $BITRISE_PROJECT_PATH​
+  - project_path: $BITRISE_PROJECT_PATH
     opts:
       title: "Project (or Workspace) path"
       summary: ""
