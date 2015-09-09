@@ -19,7 +19,17 @@ dependencies:
     name: xcode
 run_if: ""
 inputs:
-  - project_path: ${BITRISE_PROJECT_PATH​}
+  - workdir: $BITRISE_SOURCE_DIR
+    opts:
+      title: "Working directory"
+      summary: ""
+      description: |
+        Working directory of the step.
+        You can leave it empty to don't change it.
+      is_required: false
+      is_expand: true
+      is_dont_change_value: false
+  - project_path: $BITRISE_PROJECT_PATH​
     opts:
       title: "Project (or Workspace) path"
       summary: ""
@@ -28,23 +38,13 @@ inputs:
       is_required: true
       is_expand: true
       is_dont_change_value: false
-  - scheme: ${BITRISE_SCHEME}
+  - scheme: $BITRISE_SCHEME
     opts:
       title: "Scheme name"
       summary: ""
       description: |
         The Scheme to use.
       is_required: true
-      is_expand: true
-      is_dont_change_value: false
-  - workdir: ${BITRISE_SOURCE_DIR}
-    opts:
-      title: "Working directory"
-      summary: ""
-      description: |
-        Working directory of the step.
-        You can leave it empty to don't change it.
-      is_required: false
       is_expand: true
       is_dont_change_value: false
   - output_dir: "./build"
