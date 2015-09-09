@@ -38,6 +38,7 @@ cd -
 
 archive_path="${output_dir}/${scheme}.xcarchive"
 ipa_path="${output_dir}/${scheme}.ipa"
+dsym_zip_path="${output_dir}/${scheme}.dSYM.zip"
 
 if [ -z "${workdir}" ] ; then
 	workdir="$(pwd)"
@@ -52,6 +53,7 @@ echo " * workdir: ${workdir}"
 echo " * output_dir: ${output_dir}"
 echo " * archive_path: ${archive_path}"
 echo " * ipa_path: ${ipa_path}"
+echo " * dsym_zip_path: ${dsym_zip_path}"
 
 if [ ! -z "${workdir}" ] ; then
 	echo
@@ -144,5 +146,61 @@ set +v
 echo " (i) The IPA is now available at: ${ipa_path}"
 envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
 echo ' (i) The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
+
+set -v
+
+
+#
+# dSYM handling
+# get the .app.dSYM folders from the dSYMs archive folder
+archive_dsyms_folder="${archive_path}/dSYMs"
+ls "${archive_dsyms_folder}"
+app_dsym_count=0
+app_dsym_path=""
+
+IFS=$'\n'
+for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.app.dSYM") ; do
+  echo " (i) .app.dSYM found: ${a_app_dsym}"
+  app_dsym_count=$[app_dsym_count + 1]
+  app_dsym_path="${a_app_dsym}"
+  echo " (i) app_dsym_count: $app_dsym_count"
+done
+unset IFS
+
+echo " (i) Found dSYM count: ${app_dsym_count}"
+if [ ${app_dsym_count} -eq 1 ] ; then
+  echo "* dSYM found at: ${app_dsym_path}"
+  if [ -d "${app_dsym_path}" ] ; then
+    export DSYM_PATH="${app_dsym_path}"
+  else
+    echo "* (i) *Found dSYM path is not a directory!*"
+  fi
+else
+  if [ ${app_dsym_count} -eq 0 ] ; then
+    echo "* (i) **No dSYM found!** To generate debug symbols (dSYM) go to your Xcode Project's Settings - *Build Settings - Debug Information Format* and set it to *DWARF with dSYM File*."
+  else
+    echo "* (i) *More than one dSYM found!*"
+  fi
+fi
+
+# Generate dSym zip
+if [[ ! -z "${DSYM_PATH}" && -d "${DSYM_PATH}" ]] ; then
+  echo "Generating zip for dSym"
+
+  dsym_parent_folder=$( dirname "${DSYM_PATH}" )
+  dsym_fold_name=$( basename "${DSYM_PATH}" )
+  # cd into dSYM parent to not to store full
+  #  paths in the ZIP
+  cd "${dsym_parent_folder}"
+  /usr/bin/zip -rTy \
+    "${dsym_zip_path}" \
+    "${dsym_fold_name}"
+
+	echo " (i) The IPA is now available at: ${dsym_zip_path}"
+	envman add --key BITRISE_DSYM_PATH --value "${dsym_zip_path}"
+	echo ' (i) The IPA path is now available in the Environment Variable: $BITRISE_DSYM_PATH'
+else
+	echo " (!) No dSYM found (or not a directory: ${DSYM_PATH})"
+fi
 
 exit 0
