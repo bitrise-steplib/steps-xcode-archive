@@ -47,7 +47,7 @@ inputs:
       is_required: true
       is_expand: true
       is_dont_change_value: false
-  - output_dir: "./build"
+  - output_dir: "$BITRISE_DEPLOY_DIR"
     opts:
       title: "Output directory path"
       summary: ""
