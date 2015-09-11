@@ -196,9 +196,9 @@ if [[ ! -z "${DSYM_PATH}" && -d "${DSYM_PATH}" ]] ; then
     "${dsym_zip_path}" \
     "${dsym_fold_name}"
 
-	echo " (i) The IPA is now available at: ${dsym_zip_path}"
+	echo " (i) The dSYM is now available at: ${dsym_zip_path}"
 	envman add --key BITRISE_DSYM_PATH --value "${dsym_zip_path}"
-	echo ' (i) The IPA path is now available in the Environment Variable: $BITRISE_DSYM_PATH'
+	echo ' (i) The dSYM path is now available in the Environment Variable: $BITRISE_DSYM_PATH'
 else
 	echo " (!) No dSYM found (or not a directory: ${DSYM_PATH})"
 fi
