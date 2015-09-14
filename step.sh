@@ -54,6 +54,7 @@ echo " * output_dir: ${output_dir}"
 echo " * archive_path: ${archive_path}"
 echo " * ipa_path: ${ipa_path}"
 echo " * dsym_zip_path: ${dsym_zip_path}"
+echo " * is_force_code_sign: ${is_force_code_sign}"
 
 if [ ! -z "${workdir}" ] ; then
 	echo
@@ -86,14 +87,25 @@ if [ -f "${ipa_path}" ] ; then
 	rm "${ipa_path}"
 fi
 
-set -v
-
 #
 # Create the Archive with Xcode Command Line tools
-xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
-	-scheme "${scheme}" \
-	clean archive -archivePath "${archive_path}" \
-	-verbose
+if [[ "${is_force_code_sign}" == "yes" ]] ; then
+	echo " (!) Using Force Code Signing mode!"
+
+	set -v
+	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
+		-scheme "${scheme}" \
+		clean archive -archivePath "${archive_path}" \
+		-verbose \
+		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
+		CODE_SIGN_IDENTITY="${BITRISE_CODE_SIGN_IDENTITY}"
+else
+	set -v
+	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
+		-scheme "${scheme}" \
+		clean archive -archivePath "${archive_path}" \
+		-verbose
+fi
 
 set +v
 

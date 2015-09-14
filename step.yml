@@ -57,6 +57,23 @@ inputs:
       is_required: false
       is_expand: true
       is_dont_change_value: false
+  - is_force_code_sign: "no"
+    opts:
+      title: "Use force code signing attributes?"
+      description: |-
+        If set to "yes" then it'll use the `PROVISIONING_PROFILE` (set
+        to the value of the `$BITRISE_PROVISIONING_PROFILE_ID` environment)
+        and `CODE_SIGN_IDENTITY` (set to the value
+        of the `$BITRISE_CODE_SIGN_IDENTITY` environment)
+        Xcode Command Line parameters,
+        for force the use of specified Certificate and Provisioning Profile,
+        to the ones
+      value_options:
+        - "yes"
+        - "no"
+      is_required: true
+      is_expand: false
+      is_dont_change_value: false
 outputs:
   - BITRISE_IPA_PATH:
     opts:
