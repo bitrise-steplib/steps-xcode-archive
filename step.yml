@@ -76,6 +76,18 @@ inputs:
       is_required: true
       is_expand: false
       is_dont_change_value: false
+  - export_options_path:
+    opts:
+      title: "Export options path"
+      description: |-
+        Used if Xcode version > 6 .
+
+        Specifies a path to a plist file that configures archive exporting.
+        If empty, step generates these options based on provisioning profile,
+        with default values.
+      is_required: true
+      is_expand: false
+      is_dont_change_value: false
 outputs:
   - BITRISE_IPA_PATH:
     opts:
