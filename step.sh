@@ -195,9 +195,13 @@ else
 
 	if [ -z "${export_options_path}" ] ; then
 		export_options_path="${output_dir}/export_options.plist"
-		ruby "${THIS_SCRIPT_DIR}/generate_export_options.rb" \
+		curr_pwd="$(pwd)"
+		cd "${THIS_SCRIPT_DIR}"
+		bundle install
+		bundle exec ruby "./generate_export_options.rb" \
 			-o "${export_options_path}" \
 			-a "${archive_path}"
+		cd "${curr_pwd}"
 	fi
 
 	#
