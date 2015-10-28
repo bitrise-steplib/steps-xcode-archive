@@ -47,7 +47,7 @@ def export_method(mobileprovision_content)
     return 'enterprise' if !mobileprovision_content['ProvisionsAllDevices'].nil? && (mobileprovision_content['ProvisionsAllDevices'] == true || mobileprovision_content['ProvisionsAllDevices'] == 'true')
     return 'app-store'
   end
-  'development'
+  return 'development'
 end
 
 # -----------------------
