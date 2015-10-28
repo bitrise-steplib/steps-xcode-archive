@@ -94,5 +94,8 @@ export_options = {}
 export_options[:method] = method unless method.nil?
 
 puts
-puts export_options
-export_options.save_plist(options[:export_options_path])
+puts " (i) export_options: #{export_options}"
+plist_content = Plist::Emit.dump(export_options)
+puts " (i) plist_content: #{plist_content}"
+puts " (i) saving into file: #{options[:export_options_path]}"
+File.write(options[:export_options_path], plist_content)
