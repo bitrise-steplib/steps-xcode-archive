@@ -241,8 +241,6 @@ echo " (i) The IPA is now available at: ${ipa_path}"
 envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
 echo ' (i) The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
 
-set -v
-
 
 #
 # dSYM handling
