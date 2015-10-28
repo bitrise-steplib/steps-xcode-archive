@@ -191,11 +191,10 @@ if [[ "${xcode_major_version}" == "6" ]] ; then
 		-exportPath "${ipa_path}" \
 		-exportProvisioningProfile "${profile_name}"
 else
-	set -x
-
 	echo " (i) Using Xcode 7 'exportOptionsPlist' option"
 
 	if [ -z "${export_options_path}" ] ; then
+		set -x
 		export_options_path="${output_dir}/export_options.plist"
 		curr_pwd="$(pwd)"
 		cd "${THIS_SCRIPT_DIR}"
@@ -204,12 +203,12 @@ else
 			-o "${export_options_path}" \
 			-a "${archive_path}"
 		cd "${curr_pwd}"
+		set +x
 	fi
 
 
 	#
 	# Export the IPA
-
 	echo "Content of exportOptionsPlist file:"
 	cat "${export_options_path}"
 
@@ -225,8 +224,9 @@ else
 		echo "=> Applying RVM 'fix'"
 		[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 		rvm use system
-		set -x
 	fi
+
+	set -x
 
 	xcodebuild -exportArchive \
 		-archivePath "${archive_path}" \
