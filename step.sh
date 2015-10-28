@@ -191,7 +191,7 @@ if [[ "${xcode_major_version}" == "6" ]] ; then
 		-exportPath "${ipa_path}" \
 		-exportProvisioningProfile "${profile_name}"
 else
-	set -v
+	set -x
 
 	echo " (i) Using Xcode 7 'exportOptionsPlist' option"
 
@@ -215,6 +215,7 @@ else
 fi
 
 set +v
+set +x
 
 echo " (i) The IPA is now available at: ${ipa_path}"
 envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
