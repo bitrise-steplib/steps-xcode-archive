@@ -2,20 +2,6 @@
 
 THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-#
-# Because of an RVM issue which conflicts with `xcodebuild`'s new
-#  `-exportOptionsPlist` option
-# link: https://github.com/bitrise-io/steps-xcode-archive/issues/13
-command_exists () {
-	command -v "$1" >/dev/null 2>&1 ;
-}
-if command_exists rvm ; then
-	echo "=> Applying RVM 'fix'"
-	[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
-	rvm use system
-fi
-
-
 set -e
 
 
@@ -226,6 +212,19 @@ else
 
 	echo "Content of exportOptionsPlist file:"
 	cat "${export_options_path}"
+
+	#
+	# Because of an RVM issue which conflicts with `xcodebuild`'s new
+	#  `-exportOptionsPlist` option
+	# link: https://github.com/bitrise-io/steps-xcode-archive/issues/13
+	command_exists () {
+		command -v "$1" >/dev/null 2>&1 ;
+	}
+	if command_exists rvm ; then
+		echo "=> Applying RVM 'fix'"
+		[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+		rvm use system
+	fi
 
 	xcodebuild -exportArchive \
 		-archivePath "${archive_path}" \
