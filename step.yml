@@ -88,6 +88,15 @@ inputs:
       is_required: true
       is_expand: false
       is_dont_change_value: false
+  - is_clean_build: "yes"
+    opts:
+      title: "Do a clean Xcode build before the archive?"
+      value_options:
+        - "yes"
+        - "no"
+      is_required: true
+      is_expand: true
+      is_dont_change_value: false
 outputs:
   - BITRISE_IPA_PATH:
     opts:

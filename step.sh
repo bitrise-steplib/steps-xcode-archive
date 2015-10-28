@@ -71,6 +71,8 @@ fi
 
 #
 # Print configs
+echo
+echo "========== Configs =========="
 echo " * CONFIG_xcode_project_action: ${CONFIG_xcode_project_action}"
 echo " * project_path: ${project_path}"
 echo " * scheme: ${scheme}"
@@ -80,6 +82,7 @@ echo " * archive_path: ${archive_path}"
 echo " * ipa_path: ${ipa_path}"
 echo " * dsym_zip_path: ${dsym_zip_path}"
 echo " * is_force_code_sign: ${is_force_code_sign}"
+echo " * is_clean_build: ${is_clean_build}"
 
 if [ ! -z "${export_options_path}" ] ; then
 	echo " * export_options_path: ${export_options_path}"
@@ -89,6 +92,11 @@ if [ ! -z "${workdir}" ] ; then
 	echo
 	echo " -> Switching to working directory: ${workdir}"
 	cd "${workdir}"
+fi
+
+clean_build_param=''
+if [[ "${is_clean_build}" == "yes" ]] ; then
+	clean_build_param='clean'
 fi
 
 
@@ -124,7 +132,7 @@ if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	set -v
 	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
-		clean archive -archivePath "${archive_path}" \
+		${clean_build_param} archive -archivePath "${archive_path}" \
 		-verbose \
 		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
 		CODE_SIGN_IDENTITY="${BITRISE_CODE_SIGN_IDENTITY}"
@@ -132,7 +140,7 @@ else
 	set -v
 	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
-		clean archive -archivePath "${archive_path}" \
+		${clean_build_param} archive -archivePath "${archive_path}" \
 		-verbose
 fi
 
