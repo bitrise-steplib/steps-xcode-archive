@@ -18,7 +18,7 @@ def collect_provision_info(archive_path)
   fail_with_message('No mobileprovision_path found') if mobileprovision_path.nil?
 
   content = {}
-  plist = Plist.parse_xml(`security cms -D -i #{mobileprovision_path}`)
+  plist = Plist.parse_xml(`security cms -D -i "#{mobileprovision_path}"`)
 
   plist.each do |key, value|
     next if key == 'DeveloperCertificates'
