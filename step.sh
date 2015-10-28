@@ -221,9 +221,11 @@ else
 		command -v "$1" >/dev/null 2>&1 ;
 	}
 	if command_exists rvm ; then
+		set +x
 		echo "=> Applying RVM 'fix'"
 		[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 		rvm use system
+		set -x
 	fi
 
 	xcodebuild -exportArchive \
