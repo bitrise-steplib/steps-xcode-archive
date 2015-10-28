@@ -206,8 +206,13 @@ else
 		cd "${curr_pwd}"
 	fi
 
+
 	#
 	# Export the IPA
+
+	echo "Content of exportOptionsPlist file:"
+	cat "${export_options_path}"
+
 	xcodebuild -exportArchive \
 		-archivePath "${archive_path}" \
 		-exportPath "${output_dir}" \
