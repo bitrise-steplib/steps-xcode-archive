@@ -193,6 +193,8 @@ if [[ "${xcode_major_version}" == "6" ]] ; then
 else
 	set -v
 
+	echo " (i) Using Xcode 7 'exportOptionsPlist' option"
+
 	if [ -z "${export_options_path}" ] ; then
 		export_options_path="${output_dir}/export_options.plist"
 		curr_pwd="$(pwd)"
