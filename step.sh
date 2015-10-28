@@ -1,6 +1,26 @@
 #!/bin/bash
 
+THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 set -e
+
+
+#
+# Detect Xcode major version
+xcode_major_version=""
+major_version_regex="Xcode ([0-9]).[0-9]"
+out=$(xcodebuild -version)
+if [[ "${out}" =~ ${major_version_regex} ]] ; then
+	xcode_major_version="${BASH_REMATCH[1]}"
+fi
+
+if [ ! "${xcode_major_version}" == "7" ] && [ ! "${xcode_major_version}" == "6" ] ; then
+	echo "Invalid xcode major version: ${xcode_major_version}"
+	exit 1
+fi
+
+echo "(i) xcode_major_version: ${xcode_major_version}"
+
 
 #
 # Required parameters
@@ -17,6 +37,11 @@ fi
 if [ -z "${output_dir}" ] ; then
 	echo "[!] Missing required input: output_dir"
 	exit 1
+fi
+
+if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; then
+	echo "(!) xcode_major_version = 6, export_options_path only used if xcode_major_version > 6"
+	export_options_path=""
 fi
 
 #
@@ -55,6 +80,10 @@ echo " * archive_path: ${archive_path}"
 echo " * ipa_path: ${ipa_path}"
 echo " * dsym_zip_path: ${dsym_zip_path}"
 echo " * is_force_code_sign: ${is_force_code_sign}"
+
+if [ ! -z "${export_options_path}" ] ; then
+	echo " * export_options_path: ${export_options_path}"
+fi
 
 if [ ! -z "${workdir}" ] ; then
 	echo
@@ -109,49 +138,67 @@ fi
 
 set +v
 
-#
-# Get the name of the profile which was used for creating the archive
-# --> Search for embedded.mobileprovision in the xcarchive.
-#     It should contain a .app folder in the xcarchive folder
-#     under the Products/Applications folder
-embedded_mobile_prov_path=""
+if [[ "${xcode_major_version}" == "6" ]] ; then
+	#
+	# Get the name of the profile which was used for creating the archive
+	# --> Search for embedded.mobileprovision in the xcarchive.
+	#     It should contain a .app folder in the xcarchive folder
+	#     under the Products/Applications folder
+	embedded_mobile_prov_path=""
 
-# We need -maxdepth 2 because of the `*.app` directory
-IFS=$'\n'
-for a_emb_path in $(find "${archive_path}/Products/Applications" -type f -maxdepth 2 -ipath '*.app/embedded.mobileprovision')
-do
-	echo " * embedded.mobileprovision: ${a_emb_path}"
-	if [ ! -z "${embedded_mobile_prov_path}" ] ; then
-		finalcleanup "More than one \`embedded.mobileprovision\` found in \`${archive_path}/Products/Applications/*.app\`"
+	# We need -maxdepth 2 because of the `*.app` directory
+	IFS=$'\n'
+	for a_emb_path in $(find "${archive_path}/Products/Applications" -type f -maxdepth 2 -ipath '*.app/embedded.mobileprovision')
+	do
+		echo " * embedded.mobileprovision: ${a_emb_path}"
+		if [ ! -z "${embedded_mobile_prov_path}" ] ; then
+			finalcleanup "More than one \`embedded.mobileprovision\` found in \`${archive_path}/Products/Applications/*.app\`"
+			exit 1
+		fi
+		embedded_mobile_prov_path="${a_emb_path}"
+	done
+	unset IFS
+
+	if [ -z "${embedded_mobile_prov_path}" ] ; then
+		finalcleanup "No \`embedded.mobileprovision\` found in \`${archive_path}/Products/Applications/*.app\`"
 		exit 1
 	fi
-	embedded_mobile_prov_path="${a_emb_path}"
-done
-unset IFS
 
-if [ -z "${embedded_mobile_prov_path}" ] ; then
-	finalcleanup "No \`embedded.mobileprovision\` found in \`${archive_path}/Products/Applications/*.app\`"
-	exit 1
+	#
+	# We have the mobileprovision file - let's get the Profile name from it
+	profile_name=`/usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin <<< $(security cms -D -i "${embedded_mobile_prov_path}")`
+	if [ $? -ne 0 ] ; then
+		finalcleanup "Missing embedded mobileprovision in xcarchive"
+	fi
+
+	echo " (i) Found Profile Name for signing: ${profile_name}"
+
+	set -v
+
+	#
+	# Use the Provisioning Profile name to export the IPA
+	xcodebuild -exportArchive \
+		-exportFormat ipa \
+		-archivePath "${archive_path}" \
+		-exportPath "${ipa_path}" \
+		-exportProvisioningProfile "${profile_name}"
+else
+	set -v
+
+	if [ -z "${export_options_path}" ] ; then
+		export_options_path="${output_dir}/export_options.plist"
+		ruby "${THIS_SCRIPT_DIR}/generate_export_options.rb" \
+			-o "${export_options_path}" \
+			-a "${archive_path}"
+	fi
+
+	#
+	# Export the IPA
+	xcodebuild -exportArchive \
+		-archivePath "${archive_path}" \
+		-exportPath "${output_dir}" \
+		-exportOptionsPlist "${export_options_path}"
 fi
-
-#
-# We have the mobileprovision file - let's get the Profile name from it
-profile_name=`/usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin <<< $(security cms -D -i "${embedded_mobile_prov_path}")`
-if [ $? -ne 0 ] ; then
-	finalcleanup "Missing embedded mobileprovision in xcarchive"
-fi
-
-echo " (i) Found Profile Name for signing: ${profile_name}"
-
-set -v
-
-#
-# Use the Provisioning Profile name to export the IPA
-xcodebuild -exportArchive \
-	-exportFormat ipa \
-	-archivePath "${archive_path}" \
-	-exportPath "${ipa_path}" \
-	-exportProvisioningProfile "${profile_name}"
 
 set +v
 
