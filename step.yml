@@ -96,7 +96,7 @@ inputs:
 
         Call xcodebuild -help for available export options.
       is_required: false
-      is_expand: false
+      is_expand: true
       is_dont_change_value: false
   - is_clean_build: "yes"
     opts:
