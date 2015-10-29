@@ -80,12 +80,22 @@ inputs:
     opts:
       title: "Export options path"
       description: |-
-        Used if Xcode version > 6 .
+        Used for Xcode version 7 and above.
 
         Specifies a path to a plist file that configures archive exporting.
         If empty, step generates these options based on provisioning profile,
         with default values.
-      is_required: true
+
+        Auto generated export options available for export methods:
+        - app-store
+        - ad-hoc
+        - enterprise
+        - development
+
+        If step doesn't find export method based on provisioning profile, development will be use.
+
+        Call xcodebuild -help for available export options.
+      is_required: false
       is_expand: false
       is_dont_change_value: false
   - is_clean_build: "yes"
