@@ -40,12 +40,19 @@ def collect_provision_info(archive_path)
 end
 
 def export_method(mobileprovision_content)
-  # if ProvisionedDevices: !nil -> Development
-  # if ProvisionedDevices: nil & "ProvisionsAllDevices": "true" -> Enterprise
-  # if ProvisionedDevices: nil & ProvisionsAllDevices: nil -> AppStore
+  # if ProvisionedDevices: !nil & "get-task-allow": true -> development
+  # if ProvisionedDevices: !nil & "get-task-allow": false -> ad-hoc
+  # if ProvisionedDevices: nil & "ProvisionsAllDevices": "true" -> enterprise
+  # if ProvisionedDevices: nil & ProvisionsAllDevices: nil -> app-store
   if mobileprovision_content['ProvisionedDevices'].nil?
     return 'enterprise' if !mobileprovision_content['ProvisionsAllDevices'].nil? && (mobileprovision_content['ProvisionsAllDevices'] == true || mobileprovision_content['ProvisionsAllDevices'] == 'true')
     return 'app-store'
+  else
+    unless mobileprovision_content['Entitlements'].nil?
+      entitlements = mobileprovision_content['Entitlements']
+      return 'development' if !entitlements['get-task-allow'].nil? && (entitlements['get-task-allow'] == true || entitlements['get-task-allow'] == 'true')
+      return 'ad-hoc'
+    end
   end
   return 'development'
 end
