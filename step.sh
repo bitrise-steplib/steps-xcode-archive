@@ -237,9 +237,17 @@ fi
 set +v
 set +x
 
-echo " (i) The IPA is now available at: ${ipa_path}"
-envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
-echo ' (i) The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
+
+#
+# Export *.ipa path
+set -x
+curr_pwd="$(pwd)"
+cd "${THIS_SCRIPT_DIR}"
+bundle exec ruby "${THIS_SCRIPT_DIR}/export_ipa.rb" \
+	"${archive_path}" \
+	"${output_dir}"
+cd "${curr_pwd}"
+set +x
 
 
 #
