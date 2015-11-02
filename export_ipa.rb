@@ -20,15 +20,7 @@ fail_with_message('No archive_path specified') unless archive_path
 fail_with_message('No output_dir specified') unless output_dir
 
 info_plist_path = File.join(archive_path, 'Info.plist')
-unless File.exist?(info_plist_path)
-  puts '(!) No Info.plist found, search for other plist'
-  info_plist_paths = Dir[archive_path, '*.plist']
-  fail_with_message('More then 1 plist found') unless info_plist_paths.nil? || info_plist_paths.count == 1
-
-  info_plist_path = info_plist_paths.first
-end
-
-fail_with_message('No Info.plist found') unless info_plist_path
+fail_with_message('No Info.plist found') unless File.exist?(info_plist_path)
 
 infos = Plist.parse_xml(info_plist_path)
 fail_with_message('Failed to read ipa name') if infos.nil? || infos['Name'].nil?
