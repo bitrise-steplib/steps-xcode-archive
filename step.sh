@@ -228,26 +228,57 @@ else
 
 	set -x
 
+	tmp_dir=$(mktemp -d)
+
 	xcodebuild -exportArchive \
 		-archivePath "${archive_path}" \
-		-exportPath "${output_dir}" \
+		-exportPath "${tmp_dir}" \
 		-exportOptionsPlist "${export_options_path}"
+
+	set +x
+
+	# Searching for ipa
+	exported_ipa_path=""
+	IFS=$'\n'
+	for a_file_path in $(find "${tmp_dir}" -maxdepth 1 -mindepth 1)
+	do
+		filename=$(basename "$a_file_path")
+		echo " -> moving file: ${a_file_path} to ${output_dir}"
+
+		mv "${a_file_path}" "${output_dir}"
+
+		regex=".*.ipa"
+		if [[ "${filename}" =~ $regex ]]; then
+			if [[ -z "${exported_ipa_path}" ]] ; then
+				exported_ipa_path="${output_dir}/${filename}"
+			else
+				echo " (!) More then ipa file found"
+			fi
+		fi
+	done
+	unset IFS
+
+	if [[ -z "${exported_ipa_path}" ]] ; then
+		echo " (!) No ipa file found"
+		exit 1
+	fi
+
+	if [ ! -e "${exported_ipa_path}" ] ; then
+		echo " (!) Failed to move ipa to output dir"
+		exit 1
+	fi
+
+	ipa_path="${exported_ipa_path}"
 fi
 
 set +v
-set +x
 
 
 #
 # Export *.ipa path
-set -x
-curr_pwd="$(pwd)"
-cd "${THIS_SCRIPT_DIR}"
-bundle exec ruby "${THIS_SCRIPT_DIR}/export_ipa.rb" \
-	"${archive_path}" \
-	"${output_dir}"
-cd "${curr_pwd}"
-set +x
+echo " (i) The IPA is now available at: ${ipa_path}"
+envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
+echo ' (i) The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
 
 
 #
