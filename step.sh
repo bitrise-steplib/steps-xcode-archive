@@ -228,7 +228,7 @@ else
 
 	set -x
 
-	tmp_dir=$(mktemp -d)
+	tmp_dir=$(mktemp -d -t bitrise-xcarchive)
 
 	xcodebuild -exportArchive \
 		-archivePath "${archive_path}" \
