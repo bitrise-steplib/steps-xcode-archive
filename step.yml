@@ -107,6 +107,15 @@ inputs:
       is_required: true
       is_expand: true
       is_dont_change_value: false
+  - build_tool: "xctool"
+    opts:
+      title: "Build tool"
+      value_options:
+      - "xctool"
+      - "xcodebuild"
+      is_required: true
+      is_expand: false
+      is_dont_change_value: false
 outputs:
   - BITRISE_IPA_PATH:
     opts:
