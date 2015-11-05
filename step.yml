@@ -51,7 +51,7 @@ inputs:
       is_required: true
       is_expand: true
       is_dont_change_value: false
-  - configuration: "Release"
+  - configuration: 
     opts: 
       title: "Configuration name"
       summary: ""
