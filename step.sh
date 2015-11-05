@@ -146,21 +146,26 @@ fi
 if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	echo " (!) Using Force Code Signing mode!"
 
-	set -v
-	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
-		-scheme "${scheme}" \
-		${xcode_configuration} \
+	echo
+	echo
+	
+	set -x
+	${build_tool} ${CONFIG_xcode_project_action} "${project_path}" \
+		-scheme "${scheme}" ${xcode_configuration} \
 		${clean_build_param} archive -archivePath "${archive_path}" \
 		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
 		CODE_SIGN_IDENTITY="${BITRISE_CODE_SIGN_IDENTITY}"
 else
-	set -v
-	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
-		-scheme "${scheme}" \
-		${xcode_configuration} \
+	echo
+	echo
+
+	set -x
+	${build_tool} ${CONFIG_xcode_project_action} "${project_path}" \
+		-scheme "${scheme}" ${xcode_configuration} \
 		${clean_build_param} archive -archivePath "${archive_path}"
 fi
 
+set +x
 set +v
 
 echo
