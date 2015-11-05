@@ -17,8 +17,10 @@ is_requires_admin_user: false
 is_always_run: false
 is_skippable: false
 dependencies:
-  - manager: _
-    name: xcode
+- manager: _
+  name: xcode
+- manager: brew
+  name: xctool
 run_if: ""
 inputs:
   - workdir: $BITRISE_SOURCE_DIR
