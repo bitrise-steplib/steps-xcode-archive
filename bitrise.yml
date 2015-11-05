@@ -6,7 +6,6 @@ app:
   # define these in your .bitrise.secrets.yml
   - BITRISE_PROJECT_PATH:
   - BITRISE_SCHEME:
-  - BITRISE_CONFIGURATION:
   # optional
   - BITRISE_SOURCE_DIR:
   - BITRISE_DEPLOY_DIR:
