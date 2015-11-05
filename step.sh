@@ -39,6 +39,7 @@ if [ -z "${output_dir}" ] ; then
 	exit 1
 fi
 
+
 if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; then
 	echo "(!) xcode_major_version = 6, export_options_path only used if xcode_major_version > 6"
 	export_options_path=""
@@ -92,6 +93,7 @@ echo " * ipa_path: ${ipa_path}"
 echo " * dsym_zip_path: ${dsym_zip_path}"
 echo " * is_force_code_sign: ${is_force_code_sign}"
 echo " * is_clean_build: ${is_clean_build}"
+echo " * configuration: ${configuration}"
 
 if [ ! -z "${export_options_path}" ] ; then
 	echo " * export_options_path: ${export_options_path}"
@@ -102,6 +104,12 @@ if [ ! -z "${workdir}" ] ; then
 	echo " -> Switching to working directory: ${workdir}"
 	cd "${workdir}"
 fi
+
+xcode_configuration=''
+if [ ! -z "${configuration}" ] ; then
+	xcode_configuration="-configuration ${configuration}"
+fi
+
 
 clean_build_param=''
 if [[ "${is_clean_build}" == "yes" ]] ; then
@@ -141,6 +149,7 @@ if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	set -v
 	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
+		${xcode_configuration} \
 		${clean_build_param} archive -archivePath "${archive_path}" \
 		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
 		CODE_SIGN_IDENTITY="${BITRISE_CODE_SIGN_IDENTITY}"
@@ -148,6 +157,7 @@ else
 	set -v
 	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
+		${xcode_configuration} \
 		${clean_build_param} archive -archivePath "${archive_path}"
 fi
 
