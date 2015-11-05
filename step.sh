@@ -39,6 +39,12 @@ if [ -z "${output_dir}" ] ; then
 	exit 1
 fi
 
+if [ -z "${configuration}" ] ; then
+	echo "[!] Missing required input: configuration"
+	exit 1
+fi
+
+
 if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; then
 	echo "(!) xcode_major_version = 6, export_options_path only used if xcode_major_version > 6"
 	export_options_path=""
@@ -83,6 +89,7 @@ echo " * ipa_path: ${ipa_path}"
 echo " * dsym_zip_path: ${dsym_zip_path}"
 echo " * is_force_code_sign: ${is_force_code_sign}"
 echo " * is_clean_build: ${is_clean_build}"
+echo " * configuration: ${configuration}"
 
 if [ ! -z "${export_options_path}" ] ; then
 	echo " * export_options_path: ${export_options_path}"
@@ -132,6 +139,7 @@ if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	set -v
 	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
+        -configuration "${configuration}" \
 		${clean_build_param} archive -archivePath "${archive_path}" \
 		-verbose \
 		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
@@ -140,6 +148,7 @@ else
 	set -v
 	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
+        -configuration "${configuration}" \
 		${clean_build_param} archive -archivePath "${archive_path}" \
 		-verbose
 fi

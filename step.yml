@@ -49,6 +49,15 @@ inputs:
       is_required: true
       is_expand: true
       is_dont_change_value: false
+  - configuration: $BITRISE_CONFIGURATION
+    opts: 
+      title: "Configuration name"
+      summary: ""
+      description: |
+        The configuration to use
+      is_required: true
+      is_expand: true
+      is_dont_change_value: false
   - output_dir: $BITRISE_DEPLOY_DIR
     opts:
       title: "Output directory path"
