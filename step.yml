@@ -51,12 +51,19 @@ inputs:
       is_required: true
       is_expand: true
       is_dont_change_value: false
-  - configuration: 
-    opts: 
+  - configuration:
+    opts:
       title: "Configuration name"
       summary: ""
       description: |
-        The configuration to use
+        (optional) The configuration to use. By default your Scheme
+        defines which configuration (Debug, Release, ...) should be used,
+        but you can overwrite it with this option.
+
+        **Make sure that the Configuration you specify actually exists
+        in your Xcode Project**. If it does not, if you have a typo
+        in the value of this input Xcode will simply use the Configuration
+        specified by the Scheme and will silently ignore this parameter!
       is_required: false
       is_expand: true
       is_dont_change_value: false
