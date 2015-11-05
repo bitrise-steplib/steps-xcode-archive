@@ -47,7 +47,7 @@ fi
 if [ -z "${build_tool}" ] ; then
 	echo "[!] Missing required input: build_tool"
 	exit 1
-elif [ "${build_tool}" != "xctool" ] && [ "${build_tool}" != "xcodebuild" ]; then
+elif [[ "${build_tool}" != "xctool" && "${build_tool}" != "xcodebuild" ]] ; then
 	echo "[!] Invalid build_tool: ${build_tool}"
 	exit 1
 fi
@@ -152,6 +152,12 @@ else
 fi
 
 set +v
+
+echo
+echo
+echo "=> Exporting IPA from generated Archive ..."
+echo
+echo
 
 if [[ "${xcode_major_version}" == "6" ]] ; then
 	#
