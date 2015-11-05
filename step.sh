@@ -105,9 +105,9 @@ if [ ! -z "${workdir}" ] ; then
 	cd "${workdir}"
 fi
 
-xcode_configuration='Release'
+xcode_configuration=''
 if [ ! -z "${configuration}" ] ; then
-	xcode_configuration="${configuration}"
+	xcode_configuration="-configuration ${configuration}"
 fi
 
 
@@ -149,7 +149,7 @@ if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	set -v
 	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
-        -configuration "${xcode_configuration}" \
+		${xcode_configuration} \
 		${clean_build_param} archive -archivePath "${archive_path}" \
 		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
 		CODE_SIGN_IDENTITY="${BITRISE_CODE_SIGN_IDENTITY}"
@@ -157,7 +157,7 @@ else
 	set -v
 	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
-		-configuration "${xcode_configuration}" \
+		${xcode_configuration} \
 		${clean_build_param} archive -archivePath "${archive_path}"
 fi
 
