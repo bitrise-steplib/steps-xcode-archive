@@ -17,8 +17,10 @@ is_requires_admin_user: false
 is_always_run: false
 is_skippable: false
 dependencies:
-  - manager: _
-    name: xcode
+- manager: _
+  name: xcode
+- manager: brew
+  name: xctool
 run_if: ""
 inputs:
   - workdir: $BITRISE_SOURCE_DIR
@@ -106,6 +108,15 @@ inputs:
         - "no"
       is_required: true
       is_expand: true
+      is_dont_change_value: false
+  - build_tool: "xctool"
+    opts:
+      title: "Build tool"
+      value_options:
+      - "xctool"
+      - "xcodebuild"
+      is_required: true
+      is_expand: false
       is_dont_change_value: false
 outputs:
   - BITRISE_IPA_PATH:

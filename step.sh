@@ -44,6 +44,14 @@ if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; 
 	export_options_path=""
 fi
 
+if [ -z "${build_tool}" ] ; then
+	echo "[!] Missing required input: build_tool"
+	exit 1
+elif [ "${build_tool}" != "xctool" ] && [ "${build_tool}" != "xcodebuild" ]; then
+	echo "[!] Invalid build_tool: ${build_tool}"
+	exit 1
+fi
+
 #
 # Project-or-Workspace flag
 if [[ "${project_path}" == *".xcodeproj" ]]; then
@@ -74,6 +82,7 @@ fi
 echo
 echo "========== Configs =========="
 echo " * CONFIG_xcode_project_action: ${CONFIG_xcode_project_action}"
+echo " * build_tool: ${build_tool}"
 echo " * project_path: ${project_path}"
 echo " * scheme: ${scheme}"
 echo " * workdir: ${workdir}"
@@ -130,18 +139,16 @@ if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	echo " (!) Using Force Code Signing mode!"
 
 	set -v
-	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
+	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
 		${clean_build_param} archive -archivePath "${archive_path}" \
-		-verbose \
 		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
 		CODE_SIGN_IDENTITY="${BITRISE_CODE_SIGN_IDENTITY}"
 else
 	set -v
-	xcodebuild ${CONFIG_xcode_project_action} "${project_path}" \
+	"${build_tool}" ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" \
-		${clean_build_param} archive -archivePath "${archive_path}" \
-		-verbose
+		${clean_build_param} archive -archivePath "${archive_path}"
 fi
 
 set +v
