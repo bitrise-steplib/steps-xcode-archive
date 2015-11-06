@@ -70,7 +70,8 @@ cd "${output_dir}"
 output_dir="$(pwd)"
 cd -
 
-archive_path="${output_dir}/${scheme}.xcarchive"
+archive_tmp_dir=$(mktemp -d -t bitrise-xcarchive)
+archive_path="${archive_tmp_dir}/${scheme}.xcarchive"
 ipa_path="${output_dir}/${scheme}.ipa"
 dsym_zip_path="${output_dir}/${scheme}.dSYM.zip"
 
@@ -148,7 +149,7 @@ if [[ "${is_force_code_sign}" == "yes" ]] ; then
 
 	echo
 	echo
-	
+
 	set -x
 	${build_tool} ${CONFIG_xcode_project_action} "${project_path}" \
 		-scheme "${scheme}" ${xcode_configuration} \
