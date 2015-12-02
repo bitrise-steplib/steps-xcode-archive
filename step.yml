@@ -19,8 +19,6 @@ is_skippable: false
 deps:
   check_only:
   - name: xcode
-  brew:
-  - name: xctool
 run_if: ""
 inputs:
   - workdir: $BITRISE_SOURCE_DIR
@@ -125,12 +123,15 @@ inputs:
       is_required: true
       is_expand: true
       is_dont_change_value: false
-  - build_tool: "xctool"
+  - output_tool: xcpretty
     opts:
-      title: "Build tool"
+      title: Output tool
+      description: |-
+        If output_tool is set to xcpretty, the xcodebuild output will be prettified by xcpretty.
+        If output_tool is set to xcodebuild, the raw xcodebuild output will be printed.
       value_options:
-      - "xctool"
-      - "xcodebuild"
+      - xcpretty
+      - xcodebuild
       is_required: true
       is_expand: false
       is_dont_change_value: false
