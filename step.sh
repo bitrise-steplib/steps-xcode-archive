@@ -4,7 +4,6 @@ THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 set -e
 
-
 #
 # Detect Xcode major version
 xcode_major_version=""
@@ -45,13 +44,27 @@ if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; 
 	export_options_path=""
 fi
 
-if [ -z "${build_tool}" ] ; then
-	echo "[!] Missing required input: build_tool"
-	exit 1
-elif [[ "${build_tool}" != "xctool" && "${build_tool}" != "xcodebuild" ]] ; then
-	echo "[!] Invalid build_tool: ${build_tool}"
+if [[ "${output_tool}" != "xcpretty" && "${output_tool}" != "xcodebuild" ]] ; then
+	echo "[!] Invalid output_tool: ${output_tool}"
 	exit 1
 fi
+
+set +e
+
+if [[ "${output_tool}" == "xcpretty" ]] ; then
+	xcpretty_version=$(xcpretty --version)
+	exit_code=$?
+	if [[ $exit_code != 0 || -z $xcpretty_version ]] ; then
+		echo
+		echo " (!) xcpretty is not installed"
+		echo "     For xcpretty installation see: 'https://github.com/supermarin/xcpretty',"
+		echo "     or use 'xcodebuild' as 'output_tool'."
+		echo
+		exit 1
+	fi
+fi
+
+set -e
 
 #
 # Project-or-Workspace flag
@@ -84,7 +97,7 @@ fi
 echo
 echo "========== Configs =========="
 echo " * CONFIG_xcode_project_action: ${CONFIG_xcode_project_action}"
-echo " * build_tool: ${build_tool}"
+echo " * output_tool: ${output_tool}"
 echo " * project_path: ${project_path}"
 echo " * scheme: ${scheme}"
 echo " * workdir: ${workdir}"
@@ -142,38 +155,40 @@ if [ -f "${ipa_path}" ] ; then
 	rm "${ipa_path}"
 fi
 
+echo
+echo
+echo "=> Create the Archive ..."
+
 #
 # Create the Archive with Xcode Command Line tools
+archive_cmd="xcodebuild ${CONFIG_xcode_project_action} \"${project_path}\""
+archive_cmd="$archive_cmd -scheme \"${scheme}\" ${xcode_configuration}"
+archive_cmd="$archive_cmd ${clean_build_param} archive -archivePath \"${archive_path}\""
+
 if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	echo " (!) Using Force Code Signing mode!"
 
-	echo
-	echo
-
-	set -x
-	${build_tool} ${CONFIG_xcode_project_action} "${project_path}" \
-		-scheme "${scheme}" ${xcode_configuration} \
-		${clean_build_param} archive -archivePath "${archive_path}" \
-		PROVISIONING_PROFILE="${BITRISE_PROVISIONING_PROFILE_ID}" \
-		CODE_SIGN_IDENTITY="${BITRISE_CODE_SIGN_IDENTITY}"
-else
-	echo
-	echo
-
-	set -x
-	${build_tool} ${CONFIG_xcode_project_action} "${project_path}" \
-		-scheme "${scheme}" ${xcode_configuration} \
-		${clean_build_param} archive -archivePath "${archive_path}"
+	archive_cmd="$archive_cmd PROVISIONING_PROFILE=\"${BITRISE_PROVISIONING_PROFILE_ID}\""
+	archive_cmd="$archive_cmd CODE_SIGN_IDENTITY=\"${BITRISE_CODE_SIGN_IDENTITY}\""
 fi
 
-set +x
-set +v
+if [[ "${output_tool}" == "xcpretty" ]] ; then
+	archive_cmd="set -o pipefail && $archive_cmd | xcpretty"
+fi
+
+echo
+echo "archive command:"
+echo "$archive_cmd"
+echo
+
+eval $archive_cmd
 
 echo
 echo
 echo "=> Exporting IPA from generated Archive ..."
 echo
-echo
+
+export_command="xcodebuild -exportArchive"
 
 if [[ "${xcode_major_version}" == "6" ]] ; then
 	#
@@ -210,20 +225,27 @@ if [[ "${xcode_major_version}" == "6" ]] ; then
 
 	echo " (i) Found Profile Name for signing: ${profile_name}"
 
-	set -v
-
 	#
 	# Use the Provisioning Profile name to export the IPA
-	xcodebuild -exportArchive \
-		-exportFormat ipa \
-		-archivePath "${archive_path}" \
-		-exportPath "${ipa_path}" \
-		-exportProvisioningProfile "${profile_name}"
+	export_command="$export_command -exportFormat ipa"
+	export_command="$export_command -archivePath \"${archive_path}\""
+	export_command="$export_command -exportPath \"${ipa_path}\""
+	export_command="$export_command -exportProvisioningProfile \"${profile_name}\""
+
+	if [[ "${output_tool}" == "xcpretty" ]] ; then
+		export_command="set -o pipefail && $export_command | xcpretty"
+	fi
+
+	echo
+	echo "export command:"
+	echo "$export_command"
+	echo
+
+	eval $export_command
 else
 	echo " (i) Using Xcode 7 'exportOptionsPlist' option"
 
 	if [ -z "${export_options_path}" ] ; then
-		set -x
 		export_options_path="${output_dir}/export_options.plist"
 		curr_pwd="$(pwd)"
 		cd "${THIS_SCRIPT_DIR}"
@@ -232,14 +254,7 @@ else
 			-o "${export_options_path}" \
 			-a "${archive_path}"
 		cd "${curr_pwd}"
-		set +x
 	fi
-
-
-	#
-	# Export the IPA
-	echo "Content of exportOptionsPlist file:"
-	cat "${export_options_path}"
 
 	#
 	# Because of an RVM issue which conflicts with `xcodebuild`'s new
@@ -255,16 +270,22 @@ else
 		rvm use system
 	fi
 
-	set -x
-
 	tmp_dir=$(mktemp -d -t bitrise-xcarchive)
 
-	xcodebuild -exportArchive \
-		-archivePath "${archive_path}" \
-		-exportPath "${tmp_dir}" \
-		-exportOptionsPlist "${export_options_path}"
+	export_command="$export_command -archivePath \"${archive_path}\""
+	export_command="$export_command -exportPath \"${tmp_dir}\""
+	export_command="$export_command -exportOptionsPlist \"${export_options_path}\""
 
-	set +x
+	if [[ "${output_tool}" == "xcpretty" ]] ; then
+		export_command="set -o pipefail && $export_command | xcpretty"
+	fi
+
+	echo
+	echo "export command:"
+	echo "$export_command"
+	echo
+
+	eval $export_command
 
 	# Searching for ipa
 	exported_ipa_path=""
@@ -299,8 +320,6 @@ else
 
 	ipa_path="${exported_ipa_path}"
 fi
-
-set +v
 
 
 #
