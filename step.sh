@@ -54,12 +54,12 @@ set +e
 if [[ "${output_tool}" == "xcpretty" ]] ; then
 	xcpretty_version=$(xcpretty --version)
 	exit_code=$?
-	if [[ $exit_code != 0 ]] ; then
-		echo "xcpretty is not installed"
-		exit $exit_code
-	fi
-	if [[ -z $xcpretty_version ]] ; then
-		echo "xcpretty is not installed"
+	if [[ $exit_code != 0 || -z $xcpretty_version ]] ; then
+		echo
+		echo " (!) xcpretty is not installed"
+		echo "     For xcpretty installation see: 'https://github.com/supermarin/xcpretty',"
+		echo "     or use 'xcodebuild' as 'output_tool'."
+		echo
 		exit 1
 	fi
 fi
