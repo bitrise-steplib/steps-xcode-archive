@@ -177,8 +177,8 @@ if [[ "${output_tool}" == "xcpretty" ]] ; then
 fi
 
 echo
-echo "archive command:"
-echo "$archive_cmd"
+echo " => Archive command:"
+echo '$' $archive_cmd
 echo
 
 eval $archive_cmd
