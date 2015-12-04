@@ -51,10 +51,11 @@ fi
 
 set +e
 
+xcpretty_version=""
 if [[ "${output_tool}" == "xcpretty" ]] ; then
 	xcpretty_version=$(xcpretty --version)
 	exit_code=$?
-	if [[ $exit_code != 0 || -z $xcpretty_version ]] ; then
+	if [[ $exit_code != 0 || -z "$xcpretty_version" ]] ; then
 		echo
 		echo " (!) xcpretty is not installed"
 		echo "     For xcpretty installation see: 'https://github.com/supermarin/xcpretty',"
@@ -96,8 +97,11 @@ fi
 # Print configs
 echo
 echo "========== Configs =========="
-echo " * CONFIG_xcode_project_action: ${CONFIG_xcode_project_action}"
 echo " * output_tool: ${output_tool}"
+if [[ "${output_tool}" == "xcpretty" ]] ; then
+	echo " * xcpretty version: ${xcpretty_version}"
+fi
+echo " * xcodebuild version: $(xcodebuild -version)"
 echo " * project_path: ${project_path}"
 echo " * scheme: ${scheme}"
 echo " * workdir: ${workdir}"
@@ -108,6 +112,9 @@ echo " * dsym_zip_path: ${dsym_zip_path}"
 echo " * is_force_code_sign: ${is_force_code_sign}"
 echo " * is_clean_build: ${is_clean_build}"
 echo " * configuration: ${configuration}"
+echo " * CONFIG_xcode_project_action: ${CONFIG_xcode_project_action}"
+echo "============================="
+echo
 
 if [ ! -z "${export_options_path}" ] ; then
 	echo " * export_options_path: ${export_options_path}"
