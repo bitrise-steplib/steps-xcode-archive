@@ -126,17 +126,6 @@ if [ ! -z "${workdir}" ] ; then
 	cd "${workdir}"
 fi
 
-xcode_configuration=''
-if [ ! -z "${configuration}" ] ; then
-	xcode_configuration="-configuration ${configuration}"
-fi
-
-
-clean_build_param=''
-if [[ "${is_clean_build}" == "yes" ]] ; then
-	clean_build_param='clean'
-fi
-
 
 #
 # Cleanup function
@@ -169,8 +158,14 @@ echo "=> Create the Archive ..."
 #
 # Create the Archive with Xcode Command Line tools
 archive_cmd="xcodebuild ${CONFIG_xcode_project_action} \"${project_path}\""
-archive_cmd="$archive_cmd -scheme \"${scheme}\" ${xcode_configuration}"
-archive_cmd="$archive_cmd ${clean_build_param} archive -archivePath \"${archive_path}\""
+archive_cmd="$archive_cmd -scheme \"${scheme}\""
+if [ ! -z "${configuration}" ] ; then
+	archive_cmd="$archive_cmd -configuration \"${configuration}\""
+fi
+if [[ "${is_clean_build}" == "yes" ]] ; then
+	archive_cmd="$archive_cmd clean"
+fi
+archive_cmd="$archive_cmd archive -archivePath \"${archive_path}\""
 
 if [[ "${is_force_code_sign}" == "yes" ]] ; then
 	echo " (!) Using Force Code Signing mode!"
@@ -244,8 +239,8 @@ if [[ "${xcode_major_version}" == "6" ]] ; then
 	fi
 
 	echo
-	echo "export command:"
-	echo "$export_command"
+	echo "=> Export command:"
+	echo '$' $export_command
 	echo
 
 	eval $export_command
@@ -288,8 +283,8 @@ else
 	fi
 
 	echo
-	echo "export command:"
-	echo "$export_command"
+	echo "=> Export command:"
+	echo '$' $export_command
 	echo
 
 	eval $export_command
