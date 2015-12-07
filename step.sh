@@ -160,7 +160,7 @@ echo "=> Create the Archive ..."
 archive_cmd="xcodebuild ${CONFIG_xcode_project_action} \"${project_path}\""
 archive_cmd="$archive_cmd -scheme \"${scheme}\""
 if [ ! -z "${configuration}" ] ; then
-	archive_cmd="$archive_cmd -configuration ${configuration}"
+	archive_cmd="$archive_cmd -configuration \"${configuration}\""
 fi
 if [[ "${is_clean_build}" == "yes" ]] ; then
 	archive_cmd="$archive_cmd clean"
@@ -180,7 +180,7 @@ fi
 
 echo
 echo "=> Archive command:"
-echo "'$' $archive_cmd"
+echo '$' $archive_cmd
 echo
 
 eval $archive_cmd
@@ -239,8 +239,8 @@ if [[ "${xcode_major_version}" == "6" ]] ; then
 	fi
 
 	echo
-	echo "export command:"
-	echo "$export_command"
+	echo "=> Export command:"
+	echo '$' $export_command
 	echo
 
 	eval $export_command
@@ -283,8 +283,8 @@ else
 	fi
 
 	echo
-	echo "export command:"
-	echo "$export_command"
+	echo "=> Export command:"
+	echo '$' $export_command
 	echo
 
 	eval $export_command
