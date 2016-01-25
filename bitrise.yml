@@ -4,14 +4,14 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
   # define these in your .bitrise.secrets.yml
-  - BITRISE_PROJECT_PATH:
-  - BITRISE_SCHEME:
+  - BITRISE_PROJECT_PATH: $BITRISE_PROJECT_PATH
+  - BITRISE_SCHEME: $BITRISE_SCHEME
   # optional
-  - PROJECT_WORKDIR:
-  - BITRISE_DEPLOY_DIR:
+  - PROJECT_WORKDIR: $PROJECT_WORKDIR
+  - BITRISE_DEPLOY_DIR: $BITRISE_DEPLOY_DIR
   # for force-code-sign mode also set these
-  - BITRISE_PROVISIONING_PROFILE_ID:
-  - BITRISE_CODE_SIGN_IDENTITY:
+  - BITRISE_PROVISIONING_PROFILE_ID: $BITRISE_PROVISIONING_PROFILE_ID
+  - BITRISE_CODE_SIGN_IDENTITY: $BITRISE_CODE_SIGN_IDENTITY
 
 workflows:
   test:
@@ -30,6 +30,7 @@ workflows:
         inputs:
         - is_force_code_sign: "no"
         - is_clean_build: "no"
+        # - is_clean_build: "yes"
         - workdir: $PROJECT_WORKDIR
         - output_tool: xcpretty
         # - output_tool: xcodebuild
