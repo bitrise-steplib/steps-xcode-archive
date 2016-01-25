@@ -16,6 +16,10 @@ app:
 workflows:
   test:
     steps:
+    - script:
+        title: Step audit
+        inputs:
+        - content: stepman audit --step-yml=./step.yml
     - change-workdir:
         title: Switch working dir to test/_tmp dir
         description: |-
@@ -50,7 +54,7 @@ workflows:
       # if you want to share this step into a StepLib
       - MY_STEPLIB_REPO_FORK_GIT_URL:
       - STEP_ID_IN_STEPLIB: xcode-archive
-      - STEP_GIT_VERION_TAG_TO_SHARE: 1.5.2
+      - STEP_GIT_VERION_TAG_TO_SHARE: 1.6.0
       - STEP_GIT_CLONE_URL: https://github.com/bitrise-io/steps-xcode-archive.git
     description: |-
       If this is the first time you try to share a Step you should
