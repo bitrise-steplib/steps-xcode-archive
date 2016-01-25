@@ -114,7 +114,7 @@ inputs:
       is_required: false
       is_expand: true
       is_dont_change_value: false
-  - is_clean_build: "yes"
+  - is_clean_build: "no"
     opts:
       title: "Do a clean Xcode build before the archive?"
       value_options:
