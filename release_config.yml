@@ -1,5 +1,5 @@
 release:
-  development_branch: master
+  development_branch: develop
   release_branch: master
 changelog:
   path: CHANGELOG.md
