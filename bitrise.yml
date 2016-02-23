@@ -47,6 +47,32 @@ workflows:
             echo "-> BITRISE_IPA_PATH: ${BITRISE_IPA_PATH}"
             echo "-> BITRISE_DSYM_PATH: ${BITRISE_DSYM_PATH}"
 
+  create-release:
+    steps:
+    - script:
+        title:
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -e
+
+            export CI=true
+            releaseman create --bump-version patch
+
+  create-release-version:
+    envs:
+    - RELEASE_VERSION: 1.6.1
+    steps:
+    - script:
+        title:
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -e
+
+            export CI=true
+            releaseman create --version $RELEASE_VERSION
+
 
   # ----------------------------------------------------------------
   # --- workflows to Share this step into a Step Library
