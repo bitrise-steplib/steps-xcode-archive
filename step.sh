@@ -113,6 +113,7 @@ echo " * is_force_code_sign: ${is_force_code_sign}"
 echo " * is_clean_build: ${is_clean_build}"
 echo " * configuration: ${configuration}"
 echo " * CONFIG_xcode_project_action: ${CONFIG_xcode_project_action}"
+echo " * xcodebuild_options: ${xcodebuild_options}"
 echo "============================="
 echo
 
@@ -172,6 +173,10 @@ if [[ "${is_force_code_sign}" == "yes" ]] ; then
 
 	archive_cmd="$archive_cmd PROVISIONING_PROFILE=\"${BITRISE_PROVISIONING_PROFILE_ID}\""
 	archive_cmd="$archive_cmd CODE_SIGN_IDENTITY=\"${BITRISE_CODE_SIGN_IDENTITY}\""
+fi
+
+if [ ! -z "${xcodebuild_options}" ] ; then
+	archive_cmd="$archive_cmd ${xcodebuild_options}"
 fi
 
 if [[ "${output_tool}" == "xcpretty" ]] ; then
