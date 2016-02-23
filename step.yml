@@ -135,6 +135,14 @@ inputs:
       is_required: true
       is_expand: false
       is_dont_change_value: false
+  - xcodebuild_options: ""
+    opts:
+      title: Additional options for xcodebuild call
+      description: |-
+        Options added to the end of the xcodebuild call.
+
+        You can use multiple options, separated by a space
+        character. Example: `-xcconfig PATH -verbose`
 outputs:
   - BITRISE_IPA_PATH:
     opts:
