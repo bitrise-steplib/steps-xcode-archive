@@ -108,6 +108,7 @@ workflows:
       Once it finishes the only thing left is to actually create a Pull Request,
       the way described in the guide printed at the end of the process.
     steps:
+    - ensure-clean-git:
     - script:
         inputs:
         - content: |-
