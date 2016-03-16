@@ -14,6 +14,8 @@ app:
   - BITRISE_CODE_SIGN_IDENTITY: $BITRISE_CODE_SIGN_IDENTITY
 
 workflows:
+  # ----------------------------------------------------------------
+  # --- workflow to Step Test
   test:
     steps:
     - script:
@@ -47,6 +49,8 @@ workflows:
             echo "-> BITRISE_IPA_PATH: ${BITRISE_IPA_PATH}"
             echo "-> BITRISE_DSYM_PATH: ${BITRISE_DSYM_PATH}"
 
+  # ----------------------------------------------------------------
+  # --- workflows to create Release
   create-release:
     steps:
     - script:
@@ -61,7 +65,7 @@ workflows:
 
   create-release-version:
     envs:
-    - RELEASE_VERSION: 1.6.1
+    - RELEASE_VERSION: 1.6.2
     steps:
     - script:
         title:
@@ -73,15 +77,14 @@ workflows:
             export CI=true
             releaseman create --version $RELEASE_VERSION
 
-
   # ----------------------------------------------------------------
-  # --- workflows to Share this step into a Step Library
+  # --- workflow to Share this step into a Step Library
   share-this-step:
     envs:
       # if you want to share this step into a StepLib
       - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
       - STEP_ID_IN_STEPLIB: xcode-archive
-      - STEP_GIT_VERION_TAG_TO_SHARE: 1.6.1
+      - STEP_GIT_VERION_TAG_TO_SHARE: 1.6.2
       - STEP_GIT_CLONE_URL: https://github.com/bitrise-io/steps-xcode-archive.git
     description: |-
       If this is the first time you try to share a Step you should
@@ -105,6 +108,7 @@ workflows:
       Once it finishes the only thing left is to actually create a Pull Request,
       the way described in the guide printed at the end of the process.
     steps:
+    - ensure-clean-git:
     - script:
         inputs:
         - content: |-
