@@ -5,17 +5,26 @@ require 'json'
 # -----------------------
 # --- functions
 # -----------------------
-
-def fail_with_message(message)
+def log_fail(message)
+  puts
   puts "\e[31m#{message}\e[0m"
   exit(1)
+end
+
+def log_info(message)
+  puts
+  puts "\e[34m#{message}\e[0m"
+end
+
+def log_details(message)
+  puts "  #{message}"
 end
 
 def collect_provision_info(archive_path)
   applications_path = File.join(archive_path, '/Products/Applications')
   mobileprovision_path = Dir[File.join(applications_path, '*.app/embedded.mobileprovision')].first
 
-  fail_with_message('No mobileprovision_path found') if mobileprovision_path.nil?
+  log_fail('No mobileprovision_path found') if mobileprovision_path.nil?
 
   content = {}
   plist = Plist.parse_xml(`security cms -D -i "#{mobileprovision_path}"`)
@@ -61,8 +70,6 @@ end
 # --- main
 # -----------------------
 
-puts
-
 # Input validation
 options = {
   export_options_path: nil,
@@ -80,29 +87,22 @@ parser = OptionParser.new do|opts|
 end
 parser.parse!
 
-fail_with_message('export_options_path not specified') unless options[:export_options_path]
-puts "(i) export_options_path: #{options[:export_options_path]}"
+log_fail('export_options_path not specified') if options[:export_options_path].to_s == ''
+log_fail('archive_path not specified') if options[:archive_path].to_s == ''
 
-fail_with_message('archive_path not specified') unless options[:archive_path]
-puts "(i) archive_path: #{options[:archive_path]}"
-
-puts
-puts '==> Collect infos from mobileprovision'
+log_info('Configs:')
+log_details("* export_options_path: #{options[:export_options_path]}")
 
 mobileprovision_content = collect_provision_info(options[:archive_path])
-# team_id = mobileprovision_content['TeamIdentifier'].first
 method = export_method(mobileprovision_content)
 
-puts
-puts '==> Create export options'
-
 export_options = {}
-# export_options[:teamID] = team_id unless team_id.nil?
 export_options[:method] = method unless method.nil?
 
-puts
-puts " (i) export_options: #{export_options}"
+log_details("* export_options: #{export_options}")
+
 plist_content = Plist::Emit.dump(export_options)
-puts " (i) plist_content: #{plist_content}"
-puts " (i) saving into file: #{options[:export_options_path]}"
+log_details('* plist_content:')
+puts "#{plist_content}"
+
 File.write(options[:export_options_path], plist_content)

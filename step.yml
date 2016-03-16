@@ -72,7 +72,7 @@ inputs:
       description: |
         This directory will contain the generated Xcode archive (.xcarchive)
         and the .ipa file.
-      is_required: false
+      is_required: true
       is_expand: true
       is_dont_change_value: false
   - is_force_code_sign: "no"
