@@ -167,10 +167,6 @@ dsym_zip_path="${output_dir}/${scheme}.dSYM.zip"
 echo_details "* dsym_zip_path: $dsym_zip_path"
 
 # work dir
-if [ -z "${workdir}" ] ; then
-	workdir="$(pwd)"
-fi
-
 if [ ! -z "${workdir}" ] ; then
 	echo_info "Switching to working directory: ${workdir}"
 	cd "${workdir}"
