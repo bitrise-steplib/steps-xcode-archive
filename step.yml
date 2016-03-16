@@ -70,8 +70,7 @@ inputs:
       title: "Output directory path"
       summary: ""
       description: |
-        This directory will contain the generated Xcode archive (.xcarchive)
-        and the .ipa file.
+        This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
       is_expand: true
       is_dont_change_value: false

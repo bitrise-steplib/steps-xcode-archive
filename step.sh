@@ -152,7 +152,7 @@ echo_details "* CONFIG_xcode_project_action: $CONFIG_xcode_project_action"
 mkdir -p "${output_dir}"
 cd "${output_dir}"
 output_dir="$(pwd)"
-out=$(cd -)
+cd -
 
 # output files
 archive_tmp_dir=$(mktemp -d -t bitrise-xcarchive)
@@ -287,7 +287,7 @@ else
 		export_options_path="${output_dir}/export_options.plist"
 		curr_pwd="$(pwd)"
 		cd "${THIS_SCRIPT_DIR}"
-		out=$(bundle install)
+		bundle install
 		bundle exec ruby "./generate_export_options.rb" \
 			-o "${export_options_path}" \
 			-a "${archive_path}"
