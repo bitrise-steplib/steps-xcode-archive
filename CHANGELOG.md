@@ -1,6 +1,19 @@
-## Changelog (Current version: 1.6.1)
+## Changelog (Current version: 1.7.0)
 
 -----------------
+
+### 1.7.0 (2016 Mar 17)
+
+* [532ef37] release config fix
+* [104fa9d] version bump
+* [dadd071] Merge pull request #29 from bitrise-io/persist_xcarchive
+* [01ae31b] persist xcarchive
+* [2e5f92b] Merge pull request #28 from bitrise-io/step_review
+* [2945620] ensure clean git before share
+* [a17a46d] subshell fix, step.yml fix
+* [7e38887] bitrise.yml updates
+* [aa396ca] workdir fix
+* [98d5ebc] step review, log inprovements
 
 ### 1.6.1 (2016 Feb 23)
 
@@ -134,4 +147,4 @@
 
 -----------------
 
-Updated: 2016 Feb 23
+Updated: 2016 Mar 17
