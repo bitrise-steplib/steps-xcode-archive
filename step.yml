@@ -28,9 +28,6 @@ inputs:
       description: |
         Working directory of the step.
         You can leave it empty to don't change it.
-      is_required: false
-      is_expand: true
-      is_dont_change_value: false
   - project_path: $BITRISE_PROJECT_PATH
     opts:
       title: "Project (or Workspace) path"
@@ -38,8 +35,6 @@ inputs:
       description: |
         A `.xcodeproj` or `.xcworkspace` path.
       is_required: true
-      is_expand: true
-      is_dont_change_value: false
   - scheme: $BITRISE_SCHEME
     opts:
       title: "Scheme name"
@@ -47,8 +42,6 @@ inputs:
       description: |
         The Scheme to use.
       is_required: true
-      is_expand: true
-      is_dont_change_value: false
   - configuration:
     opts:
       title: "Configuration name"
@@ -62,9 +55,6 @@ inputs:
         in your Xcode Project**. If it does not, if you have a typo
         in the value of this input Xcode will simply use the Configuration
         specified by the Scheme and will silently ignore this parameter!
-      is_required: false
-      is_expand: true
-      is_dont_change_value: false
   - output_dir: $BITRISE_DEPLOY_DIR
     opts:
       title: "Output directory path"
@@ -72,8 +62,6 @@ inputs:
       description: |
         This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
-      is_expand: true
-      is_dont_change_value: false
   - is_force_code_sign: "no"
     opts:
       title: "Use force code signing attributes?"
@@ -90,7 +78,6 @@ inputs:
         - "no"
       is_required: true
       is_expand: false
-      is_dont_change_value: false
   - export_options_path:
     opts:
       title: "Export options path"
@@ -110,9 +97,6 @@ inputs:
         If step doesn't find export method based on provisioning profile, development will be use.
 
         Call xcodebuild -help for available export options.
-      is_required: false
-      is_expand: true
-      is_dont_change_value: false
   - is_clean_build: "no"
     opts:
       title: "Do a clean Xcode build before the archive?"
@@ -120,8 +104,6 @@ inputs:
         - "yes"
         - "no"
       is_required: true
-      is_expand: true
-      is_dont_change_value: false
   - output_tool: xcpretty
     opts:
       title: Output tool
@@ -133,7 +115,6 @@ inputs:
       - xcodebuild
       is_required: true
       is_expand: false
-      is_dont_change_value: false
   - xcodebuild_options: ""
     opts:
       title: Additional options for xcodebuild call
@@ -142,6 +123,15 @@ inputs:
 
         You can use multiple options, separated by a space
         character. Example: `-xcconfig PATH -verbose`
+  - is_export_xcarchive_zip: "no"
+    opts:
+      title: Export the generated archive?
+      description: |
+        If this input is set to `yes`, the generated .xcarchive will be zipped and moved to `output_dir`.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
 outputs:
   - BITRISE_IPA_PATH:
     opts:
@@ -149,3 +139,6 @@ outputs:
   - BITRISE_DSYM_PATH:
     opts:
       title: The created .dSYM.zip file's path
+  - BITRISE_XCARCHIVE_PATH:
+    opts:
+      title: The created .xcarchive.zip file's path

@@ -92,6 +92,9 @@ echo_details "* export_options_path: $export_options_path"
 echo_details "* is_clean_build: $is_clean_build"
 echo_details "* output_tool: $output_tool"
 echo_details "* xcodebuild_options: $xcodebuild_options"
+echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
+
+echo
 
 validate_required_input "project_path" $project_path
 validate_required_input "scheme" $scheme
@@ -99,9 +102,16 @@ validate_required_input "is_force_code_sign" $is_force_code_sign
 validate_required_input "is_clean_build" $is_clean_build
 validate_required_input "output_dir" $output_dir
 validate_required_input "output_tool" $output_tool
+validate_required_input "is_export_xcarchive_zip" $is_export_xcarchive_zip
 
 options=("xcpretty"  "xcodebuild")
 validate_required_input_with_options "output_tool" $output_tool "${options[@]}"
+
+options=("yes"  "no")
+validate_required_input_with_options "is_force_code_sign" $is_force_code_sign "${options[@]}"
+validate_required_input_with_options "is_clean_build" $is_clean_build "${options[@]}"
+validate_required_input_with_options "is_export_xcarchive_zip" $is_export_xcarchive_zip "${options[@]}"
+
 
 # Detect Xcode major version
 xcode_major_version=""
@@ -147,6 +157,8 @@ else
 	echo_fail "Failed to get valid project file (invalid project file): ${project_path}"
 fi
 echo_details "* CONFIG_xcode_project_action: $CONFIG_xcode_project_action"
+
+echo
 
 # abs out dir pth
 mkdir -p "${output_dir}"
@@ -356,13 +368,11 @@ else
 	ipa_path="${exported_ipa_path}"
 fi
 
-
 #
 # Export *.ipa path
 envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
 echo_done 'The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
 echo
-
 
 #
 # dSYM handling
@@ -411,11 +421,32 @@ if [[ ! -z "${DSYM_PATH}" && -d "${DSYM_PATH}" ]] ; then
   /usr/bin/zip -rTy \
     "${dsym_zip_path}" \
     "${dsym_fold_name}"
+	cd -
 
 	envman add --key BITRISE_DSYM_PATH --value "${dsym_zip_path}"
 	echo_done 'The dSYM path is now available in the Environment Variable: $BITRISE_DSYM_PATH'
 else
 	echo_warn "No dSYM found (or not a directory: ${DSYM_PATH})"
+fi
+
+#
+# Export *.xcarchive path
+if [[ "$is_export_xcarchive_zip" == "yes" ]] ; then
+	echo_info "Exporting the Archive..."
+
+	xcarchive_parent_folder=$( dirname "${archive_path}" )
+	xcarchive_fold_name=$( basename "${archive_path}" )
+	xcarchive_zip_path="${output_dir}/${scheme}.xcarchive.zip"
+	# cd into dSYM parent to not to store full
+	#  paths in the ZIP
+	cd "${xcarchive_parent_folder}"
+	/usr/bin/zip -rTy \
+		"${xcarchive_zip_path}" \
+		"${xcarchive_fold_name}"
+	cd -
+
+	envman add --key BITRISE_XCARCHIVE_PATH --value "${xcarchive_zip_path}"
+	echo_done 'The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH'
 fi
 
 exit 0
