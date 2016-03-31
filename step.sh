@@ -351,7 +351,7 @@ else
 			if [[ -z "${exported_ipa_path}" ]] ; then
 				exported_ipa_path="${output_dir}/${filename}"
 			else
-				echo_warn "More then ipa file found"
+				echo_warn "More than one ipa file found"
 			fi
 		fi
 	done
