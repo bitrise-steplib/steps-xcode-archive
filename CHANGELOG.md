@@ -1,6 +1,12 @@
-## Changelog (Current version: 1.7.0)
+## Changelog (Current version: 1.7.1)
 
 -----------------
+
+### 1.7.1 (2016 Mar 31)
+
+* [df5e98d] prepare for release
+* [872f4c7] Merge pull request #31 from bitrise-io/typo
+* [461097a] typo fix
 
 ### 1.7.0 (2016 Mar 17)
 
@@ -147,4 +153,4 @@
 
 -----------------
 
-Updated: 2016 Mar 17
+Updated: 2016 Mar 31
