@@ -249,6 +249,11 @@ if [[ "${xcode_major_version}" == "6" ]] ; then
 	#     under the Products/Applications folder
 	embedded_mobile_prov_path=""
 
+	app_directory=$(find "${archive_path}/Products/Applications" -type d -name '*.app')
+
+	envman add --key BITRISE_APP_DIRECTORY --value ${app_directory}
+	echo_done 'The .app directory is now available in the Environment Variable: $BITRISE_APP_DIRECTORY'
+
 	# We need -maxdepth 2 because of the `*.app` directory
 	IFS=$'\n'
 	for a_emb_path in $(find "${archive_path}/Products/Applications" -type f -maxdepth 2 -ipath '*.app/embedded.mobileprovision')
