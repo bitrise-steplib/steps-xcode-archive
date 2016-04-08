@@ -136,6 +136,9 @@ outputs:
   - BITRISE_IPA_PATH:
     opts:
       title: The created .ipa file's path
+  - BITRISE_APP_DIRECTORY:
+    opts:
+      title: The generated .app directory
   - BITRISE_DSYM_PATH:
     opts:
       title: The created .dSYM.zip file's path
