@@ -393,8 +393,8 @@ do
 done
 unset IFS
 
-envman add --key BITRISE_APP_DIRECTORY --value ${app_directory}
-echo_done 'The .app directory is now available in the Environment Variable: $BITRISE_APP_DIRECTORY'
+envman add --key BITRISE_APP_DIR_PATH --value "${app_directory}"
+echo_done 'The .app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH'
 
 #
 # dSYM handling

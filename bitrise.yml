@@ -48,9 +48,9 @@ workflows:
         inputs:
         - content: |-
             echo "-> BITRISE_IPA_PATH: ${BITRISE_IPA_PATH}"
-            echo "-> BITRISE_APP_DIRECTORY: ${BITRISE_APP_DIRECTORY}"
+            echo "-> BITRISE_APP_DIR_PATH: ${BITRISE_APP_DIR_PATH}"
             echo "-> BITRISE_DSYM_PATH: ${BITRISE_DSYM_PATH}"
-            echo "-> BITRISE_DSYM_PATH: ${BITRISE_XCARCHIVE_PATH}"
+            echo "-> BITRISE_XCARCHIVE_PATH: ${BITRISE_XCARCHIVE_PATH}"
 
   # ----------------------------------------------------------------
   # --- workflows to create Release
