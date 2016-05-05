@@ -112,7 +112,6 @@ validate_required_input_with_options "is_force_code_sign" $is_force_code_sign "$
 validate_required_input_with_options "is_clean_build" $is_clean_build "${options[@]}"
 validate_required_input_with_options "is_export_xcarchive_zip" $is_export_xcarchive_zip "${options[@]}"
 
-
 # Detect Xcode major version
 xcode_major_version=""
 major_version_regex="Xcode ([0-9]).[0-9]"
@@ -124,8 +123,13 @@ fi
 if [ "${xcode_major_version}" -lt "6" ] ; then
 	echo_fail "Invalid xcode major version: ${xcode_major_version}, should be greater then 6"
 fi
-echo_details "* xcode_major_version: ${xcode_major_version}"
 
+IFS=$'\n'
+xcodebuild_version_split=($out)
+unset IFS
+
+xcodebuild_version="${xcodebuild_version_split[0]} (${xcodebuild_version_split[1]})"
+echo_details "* xcodebuild_version: $xcodebuild_version"
 
 # Detect xcpretty version
 xcpretty_version=""
@@ -372,7 +376,25 @@ fi
 # Export *.ipa path
 envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
 echo_done 'The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
-echo
+
+#
+# Export app directory
+echo_info "Exporting .app directory..."
+
+IFS=$'\n'
+app_directory=""
+for a_app_directory in $(find "${archive_path}/Products/Applications" -type d -name '*.app')
+do
+	echo " * a_app_directory: ${a_app_directory}"
+	if [ ! -z "${app_directory}" ] ; then
+		echo_warn "More than one \`.app directory\` found in \`${archive_path}/Products/Applications\`"
+	fi
+	app_directory="${a_app_directory}"
+done
+unset IFS
+
+envman add --key BITRISE_APP_DIR_PATH --value "${app_directory}"
+echo_done 'The .app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH'
 
 #
 # dSYM handling
