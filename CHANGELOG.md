@@ -1,6 +1,13 @@
-## Changelog (Current version: 1.7.1)
+## Changelog (Current version: 1.7.2)
 
 -----------------
+
+### 1.7.2 (2016 May 05)
+
+* [ffd6d65] prepare for release
+* [fdabae8] Merge pull request #34 from bitrise-io/export_app_dir
+* [085e6ab] PR fix
+* [0965b76] print xcodebuild full version, export .app directory
 
 ### 1.7.1 (2016 Mar 31)
 
@@ -153,4 +160,4 @@
 
 -----------------
 
-Updated: 2016 Mar 31
+Updated: 2016 May 05
