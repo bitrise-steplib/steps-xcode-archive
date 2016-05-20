@@ -1,4 +1,4 @@
-## Changelog (Current version: 1.7.2)
+## Changelog (Current version: 1.7.3)
 
 -----------------
 
@@ -160,4 +160,4 @@
 
 -----------------
 
-Updated: 2016 May 05
+Updated: 2016 May 20
