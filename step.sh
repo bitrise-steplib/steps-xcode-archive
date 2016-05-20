@@ -237,6 +237,14 @@ eval $archive_cmd
 
 #
 # Exporting the ipa with Xcode Command Line tools
+
+# You'll get a "Error Domain=IDEDistributionErrorDomain Code=14 "No applicable devices found."" error
+# if $GEM_HOME is set and the project's directory includes a Gemfile - to fix this
+# we'll unset GEM_HOME as that's not required for xcodebuild anyway.
+# This probably fixes the RVM issue too, but that still should be tested.
+unset GEM_HOME
+
+# 
 export_command="xcodebuild -exportArchive"
 
 if [[ "${xcode_major_version}" == "6" ]] ; then
