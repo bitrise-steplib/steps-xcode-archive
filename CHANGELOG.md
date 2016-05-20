@@ -2,6 +2,14 @@
 
 -----------------
 
+### 1.7.3 (2016 May 20)
+
+* [9b50305] v1.7.3
+* [3f641bd] Merge branch 'master' of github.com:bitrise-io/steps-xcode-archive
+* [7c48a3b] STEP_GIT_VERION_TAG_TO_SHARE: 1.7.3
+* [ab91731] Merge pull request #35 from bitrise-io/gem_home_fix
+* [fd775d0] gem_home fix
+
 ### 1.7.2 (2016 May 05)
 
 * [ffd6d65] prepare for release
