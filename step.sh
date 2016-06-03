@@ -87,7 +87,8 @@ echo_details "* project_path: $project_path"
 echo_details "* scheme: $scheme"
 echo_details "* configuration: $configuration"
 echo_details "* output_dir: $output_dir"
-echo_details "* is_force_code_sign: $is_force_code_sign"
+echo_details "* force_provisioning_profile: $force_provisioning_profile"
+echo_details "* force_code_sign_identity: $force_code_sign_identity"
 echo_details "* export_options_path: $export_options_path"
 echo_details "* is_clean_build: $is_clean_build"
 echo_details "* output_tool: $output_tool"
@@ -98,7 +99,6 @@ echo
 
 validate_required_input "project_path" $project_path
 validate_required_input "scheme" $scheme
-validate_required_input "is_force_code_sign" $is_force_code_sign
 validate_required_input "is_clean_build" $is_clean_build
 validate_required_input "output_dir" $output_dir
 validate_required_input "output_tool" $output_tool
@@ -108,7 +108,6 @@ options=("xcpretty"  "xcodebuild")
 validate_required_input_with_options "output_tool" $output_tool "${options[@]}"
 
 options=("yes"  "no")
-validate_required_input_with_options "is_force_code_sign" $is_force_code_sign "${options[@]}"
 validate_required_input_with_options "is_clean_build" $is_clean_build "${options[@]}"
 validate_required_input_with_options "is_export_xcarchive_zip" $is_export_xcarchive_zip "${options[@]}"
 
@@ -215,11 +214,17 @@ fi
 
 archive_cmd="$archive_cmd archive -archivePath \"${archive_path}\""
 
-if [[ "${is_force_code_sign}" == "yes" ]] ; then
-	echo_details "Using Force Code Signing mode!"
+if [[ -n "${force_provisioning_profile}" ]] ; then
+	echo_details "Forcing Provisioning Profile!"
 
-	archive_cmd="$archive_cmd PROVISIONING_PROFILE=\"${BITRISE_PROVISIONING_PROFILE_ID}\""
-	archive_cmd="$archive_cmd CODE_SIGN_IDENTITY=\"${BITRISE_CODE_SIGN_IDENTITY}\""
+	archive_cmd="$archive_cmd PROVISIONING_PROFILE=\"${force_provisioning_profile}\""
+fi
+
+
+ if [[ -n "${force_code_sign_identity}" ]] ; then
+	echo_details "Forcing Code Signing Identity!"
+
+	archive_cmd="$archive_cmd CODE_SIGN_IDENTITY=\"${force_code_sign_identity}\""
 fi
 
 if [ ! -z "${xcodebuild_options}" ] ; then
@@ -244,7 +249,7 @@ eval $archive_cmd
 # This probably fixes the RVM issue too, but that still should be tested.
 unset GEM_HOME
 
-# 
+#
 export_command="xcodebuild -exportArchive"
 
 if [[ "${xcode_major_version}" == "6" ]] ; then

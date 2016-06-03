@@ -62,22 +62,16 @@ inputs:
       description: |
         This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
-  - is_force_code_sign: "no"
+  - force_provisioning_profile:
     opts:
-      title: "Use force code signing attributes?"
+      title: "Force code signing with Provisioning Profile"
       description: |-
-        If set to "yes" then it'll use the `PROVISIONING_PROFILE` (set
-        to the value of the `$BITRISE_PROVISIONING_PROFILE_ID` environment)
-        and `CODE_SIGN_IDENTITY` (set to the value
-        of the `$BITRISE_CODE_SIGN_IDENTITY` environment)
-        Xcode Command Line parameters,
-        for force the use of specified Certificate and Provisioning Profile,
-        to the ones
-      value_options:
-        - "yes"
-        - "no"
-      is_required: true
-      is_expand: false
+        Force xcodebuild to use specified Provisioning Profile.
+  - force_code_sign_identity:
+    opts:
+      title: "Force code signing with Identity"
+      description: |-
+        Force xcodebuild to use specified Code Sign Identity.
   - export_options_path:
     opts:
       title: "Export options path"
