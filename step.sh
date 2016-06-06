@@ -215,14 +215,14 @@ fi
 archive_cmd="$archive_cmd archive -archivePath \"${archive_path}\""
 
 if [[ -n "${force_provisioning_profile}" ]] ; then
-	echo_details "Forcing Provisioning Profile!"
+	echo_details "Forcing Provisioning Profile: ${force_provisioning_profile}"
 
 	archive_cmd="$archive_cmd PROVISIONING_PROFILE=\"${force_provisioning_profile}\""
 fi
 
 
- if [[ -n "${force_code_sign_identity}" ]] ; then
-	echo_details "Forcing Code Signing Identity!"
+if [[ -n "${force_code_sign_identity}" ]] ; then
+	echo_details "Forcing Code Signing Identity: ${force_code_sign_identity}"
 
 	archive_cmd="$archive_cmd CODE_SIGN_IDENTITY=\"${force_code_sign_identity}\""
 fi
