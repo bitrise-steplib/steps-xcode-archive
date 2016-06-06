@@ -62,22 +62,31 @@ inputs:
       description: |
         This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
-  - is_force_code_sign: "no"
+  - force_provisioning_profile:
     opts:
-      title: "Use force code signing attributes?"
+      title: "Force code signing with Provisioning Profile"
       description: |-
-        If set to "yes" then it'll use the `PROVISIONING_PROFILE` (set
-        to the value of the `$BITRISE_PROVISIONING_PROFILE_ID` environment)
-        and `CODE_SIGN_IDENTITY` (set to the value
-        of the `$BITRISE_CODE_SIGN_IDENTITY` environment)
-        Xcode Command Line parameters,
-        for force the use of specified Certificate and Provisioning Profile,
-        to the ones
-      value_options:
-        - "yes"
-        - "no"
-      is_required: true
-      is_expand: false
+        Force xcodebuild to use specified Provisioning Profile.
+
+        Use Provisioning Profile's UUID, profile's name is not acceptable by xcodebuild.
+
+        How to get your UUID:
+
+        - In xcode select your project -> Build Settings -> Code Signing
+        - Select the desired Provisioning Profile, then scroll down in profile list and click on Other...
+        - The popup will show your profile's UUID.
+
+        Format example:
+
+        - c5be4123-1234-4f9d-9843-0d9be985a068
+  - force_code_sign_identity:
+    opts:
+      title: "Force code signing with Identity"
+      description: |-
+        Force xcodebuild to use specified Code Sign Identity.
+
+        Specify code sign identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
+        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
   - export_options_path:
     opts:
       title: "Export options path"
@@ -89,6 +98,7 @@ inputs:
         with default values.
 
         Auto generated export options available for export methods:
+
         - app-store
         - ad-hoc
         - enterprise
