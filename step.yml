@@ -62,6 +62,14 @@ inputs:
       description: |
         This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
+  - force_code_sign_identity:
+    opts:
+      title: "Force code signing with Identity"
+      description: |-
+        Force xcodebuild to use specified Code Sign Identity.
+
+        Specify code sign identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
+        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
   - force_provisioning_profile:
     opts:
       title: "Force code signing with Provisioning Profile"
@@ -79,14 +87,6 @@ inputs:
         Format example:
 
         - c5be4123-1234-4f9d-9843-0d9be985a068
-  - force_code_sign_identity:
-    opts:
-      title: "Force code signing with Identity"
-      description: |-
-        Force xcodebuild to use specified Code Sign Identity.
-
-        Specify code sign identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
-        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
   - export_options_path:
     opts:
       title: "Export options path"
