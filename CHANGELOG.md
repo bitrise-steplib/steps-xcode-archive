@@ -1,6 +1,14 @@
-## Changelog (Current version: 1.7.3)
+## Changelog (Current version: 1.8.0)
 
 -----------------
+
+### 1.8.0 (2016 Jun 06)
+
+* [c7b1510] prepare for 1.8.0
+* [9ab1165] Merge pull request #36 from bitrise-io/force_code_sign_fix
+* [ab9f0cc] PR fix
+* [9aebd3a] PR update
+* [d5ccfb2] force code sign updates
 
 ### 1.7.3 (2016 May 20)
 
@@ -168,4 +176,4 @@
 
 -----------------
 
-Updated: 2016 May 20
+Updated: 2016 Jun 06
