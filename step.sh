@@ -88,6 +88,7 @@ echo_details "* scheme: $scheme"
 echo_details "* configuration: $configuration"
 echo_details "* output_dir: $output_dir"
 echo_details "* force_provisioning_profile: $force_provisioning_profile"
+echo_details "* force_provisioning_profile_specifier: $force_provisioning_profile_specifier"
 echo_details "* force_code_sign_identity: $force_code_sign_identity"
 echo_details "* export_options_path: $export_options_path"
 echo_details "* is_clean_build: $is_clean_build"
@@ -149,6 +150,17 @@ fi
 if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; then
 	echo_warn "xcode_major_version = 6, export_options_path only used if xcode_major_version > 6"
 	export_options_path=""
+fi
+
+# force_provisioning_profile & force_provisioning_profile_specifier
+if [ ! -z "${force_provisioning_profile_specifier}" ] && [[ "${xcode_major_version}" -lt "8" ]] ; then
+	echo_warn "xcode_major_version = ${xcode_major_version}, force_provisioning_profile_specifier used if xcode_major_version >= 8"
+	force_provisioning_profile_specifier=""
+fi
+
+if [ ! -z "${force_provisioning_profile_specifier}" ] && [ ! -z "${force_provisioning_profile}" ] ; then
+	echo_warn "both force_provisioning_profile_specifier and force_provisioning_profile defined, using force_provisioning_profile_specifier..."
+	force_provisioning_profile=""
 fi
 
 # Project-or-Workspace flag
@@ -214,14 +226,20 @@ fi
 
 archive_cmd="$archive_cmd archive -archivePath \"${archive_path}\""
 
-if [[ -n "${force_provisioning_profile}" ]] ; then
+if [[ ! -z "${force_provisioning_profile_specifier}" ]] ; then
+	echo_details "Forcing Provisioning Profile Specifier: ${force_provisioning_profile_specifier}"
+
+	archive_cmd="$archive_cmd PROVISIONING_PROFILE_SPECIFIER=\"${force_provisioning_profile_specifier}\""
+fi
+
+if [[ ! -z "${force_provisioning_profile}" ]] ; then
 	echo_details "Forcing Provisioning Profile: ${force_provisioning_profile}"
 
 	archive_cmd="$archive_cmd PROVISIONING_PROFILE=\"${force_provisioning_profile}\""
 fi
 
 
-if [[ -n "${force_code_sign_identity}" ]] ; then
+if [[ ! -z "${force_code_sign_identity}" ]] ; then
 	echo_details "Forcing Code Signing Identity: ${force_code_sign_identity}"
 
 	archive_cmd="$archive_cmd CODE_SIGN_IDENTITY=\"${force_code_sign_identity}\""
