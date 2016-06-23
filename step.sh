@@ -252,7 +252,7 @@ unset GEM_HOME
 #
 export_command="xcodebuild -exportArchive"
 
-if [[ "${xcode_major_version}" == "6" ]] || [[ "${use_deprecated_export}" == "yes" ]]; then
+if [[ "${xcode_major_version}" == "6" ]] || [[ "${use_deprecated_export}" == "yes" ]] ; then
 	echo_info "Exporting IPA from generated Archive ..."
 
 	#
