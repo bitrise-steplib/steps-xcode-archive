@@ -94,6 +94,7 @@ echo_details "* is_clean_build: $is_clean_build"
 echo_details "* output_tool: $output_tool"
 echo_details "* xcodebuild_options: $xcodebuild_options"
 echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
+echo_details "* use_deprecated_export: $use_deprecated_export"
 
 echo
 
@@ -220,7 +221,6 @@ if [[ -n "${force_provisioning_profile}" ]] ; then
 	archive_cmd="$archive_cmd PROVISIONING_PROFILE=\"${force_provisioning_profile}\""
 fi
 
-
 if [[ -n "${force_code_sign_identity}" ]] ; then
 	echo_details "Forcing Code Signing Identity: ${force_code_sign_identity}"
 
@@ -252,7 +252,7 @@ unset GEM_HOME
 #
 export_command="xcodebuild -exportArchive"
 
-if [[ "${xcode_major_version}" == "6" ]] ; then
+if [[ "${xcode_major_version}" == "6" ]] || [[ "${use_deprecated_export}" == "yes" ]] ; then
 	echo_info "Exporting IPA from generated Archive ..."
 
 	#

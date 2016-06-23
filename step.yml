@@ -70,7 +70,7 @@ inputs:
 
         Specify code sign identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
         or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
-        
+
         You also have to **specify the Identity in the format it's stored in Xcode project settings**,
         and **not how it's presented in the Xcode.app GUI**!
         This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
@@ -144,6 +144,15 @@ inputs:
       title: Export the generated archive?
       description: |
         If this input is set to `yes`, the generated .xcarchive will be zipped and moved to `output_dir`.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
+  - use_deprecated_export: "no"
+    opts:
+      title: Use deprecated ipa export method?
+      description: |
+        If this input is set to `yes`, step will use deprecated ipa export method.
       value_options:
       - "yes"
       - "no"
