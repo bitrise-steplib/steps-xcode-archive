@@ -1,6 +1,15 @@
-## Changelog (Current version: 1.8.0)
+## Changelog (Current version: 1.8.1)
 
 -----------------
+
+### 1.8.1 (2016 Jun 23)
+
+* [91ee69d] prepare for 1.8.1
+* [e958fd8] Merge pull request #40 from bitrise-io/deprecated
+* [e4a033c] typo fix
+* [052df29] allow to use deprecated export method: `use_deprecated_export `
+* [f107700] added more info about the format of the Identity
+* [65bbb90] step.yml update
 
 ### 1.8.0 (2016 Jun 06)
 
@@ -176,4 +185,4 @@
 
 -----------------
 
-Updated: 2016 Jun 06
+Updated: 2016 Jun 23
