@@ -1,6 +1,12 @@
-## Changelog (Current version: 1.8.1)
+## Changelog (Current version: 1.8.2)
 
 -----------------
+
+### 1.8.2 (2016 Jul 01)
+
+* [1199337] prepare for 1.8.2
+* [60664e5] Merge pull request #41 from bitrise-io/viktorbenei-patch-1
+* [0a90888] move env unset
 
 ### 1.8.1 (2016 Jun 23)
 
@@ -185,4 +191,4 @@
 
 -----------------
 
-Updated: 2016 Jun 23
+Updated: 2016 Jul 01
