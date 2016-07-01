@@ -247,7 +247,15 @@ eval $archive_cmd
 # if $GEM_HOME is set and the project's directory includes a Gemfile - to fix this
 # we'll unset GEM_HOME as that's not required for xcodebuild anyway.
 # This probably fixes the RVM issue too, but that still should be tested.
+# See also:
+# - http://stackoverflow.com/questions/33041109/xcodebuild-no-applicable-devices-found-when-exporting-archive
+# - https://gist.github.com/claybridges/cea5d4afd24eda268164
 unset GEM_HOME
+unset RUBYLIB
+unset RUBYOPT
+unset BUNDLE_BIN_PATH
+unset _ORIGINAL_GEM_PATH
+unset BUNDLE_GEMFILE
 
 #
 export_command="xcodebuild -exportArchive"
