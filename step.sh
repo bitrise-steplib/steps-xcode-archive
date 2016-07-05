@@ -240,6 +240,10 @@ echo
 
 eval $archive_cmd
 
+if [ ! -e "${archive_path}" ] ; then
+    echo_fail "no archive generated at: ${archive_path}"
+fi
+
 #
 # Exporting the ipa with Xcode Command Line tools
 
