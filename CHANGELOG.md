@@ -1,6 +1,12 @@
-## Changelog (Current version: 1.8.2)
+## Changelog (Current version: 1.8.3)
 
 -----------------
+
+### 1.8.3 (2016 Jul 05)
+
+* [0640cdf] prepare for 1.8.3
+* [278f32d] Merge pull request #42 from bitrise-io/validate_archive
+* [e92de96] check for generated xcarchive
 
 ### 1.8.2 (2016 Jul 01)
 
@@ -191,4 +197,4 @@
 
 -----------------
 
-Updated: 2016 Jul 01
+Updated: 2016 Jul 05
