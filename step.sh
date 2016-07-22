@@ -435,6 +435,20 @@ IFS=$'\n'
 for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.app.dSYM") ; do
   app_dsym_count=$[app_dsym_count + 1]
   app_dsym_path="${a_app_dsym}"
+
+  dsym_parent_folder=$( dirname "${a_app_dsym}" )
+  dsym_fold_name=$( basename "${a_app_dsym}" )
+  dsym_zip_path="${output_dir}/${dsym_fold_name}.zip"
+
+  echo_details "Moving dSYM from: ${a_app_dsym} to: ${dsym_zip_path}"
+
+  # cd into dSYM parent to not to store full
+  #  paths in the ZIP
+  cd "${dsym_parent_folder}"
+  /usr/bin/zip -rTy \
+    "${dsym_zip_path}" \
+    "${dsym_fold_name}"
+  cd -
 done
 unset IFS
 
@@ -468,7 +482,7 @@ if [[ ! -z "${DSYM_PATH}" && -d "${DSYM_PATH}" ]] ; then
   /usr/bin/zip -rTy \
     "${dsym_zip_path}" \
     "${dsym_fold_name}"
-	cd -
+  cd -
 
 	envman add --key BITRISE_DSYM_PATH --value "${dsym_zip_path}"
 	echo_done 'The dSYM path is now available in the Environment Variable: $BITRISE_DSYM_PATH'
