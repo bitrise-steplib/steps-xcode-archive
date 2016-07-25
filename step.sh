@@ -433,8 +433,6 @@ app_dsym_path=""
 
 IFS=$'\n'
 for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.dSYM") ; do
-  app_dsym_count=$[app_dsym_count + 1]
-  app_dsym_path="${a_app_dsym}"
 
   dsym_parent_folder=$( dirname "${a_app_dsym}" )
   dsym_fold_name=$( basename "${a_app_dsym}" )
