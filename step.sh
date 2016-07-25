@@ -432,7 +432,7 @@ app_dsym_count=0
 app_dsym_path=""
 
 IFS=$'\n'
-for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.app.dSYM") ; do
+for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.dSYM") ; do
   app_dsym_count=$[app_dsym_count + 1]
   app_dsym_path="${a_app_dsym}"
 
@@ -451,6 +451,16 @@ for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.app.dSYM") ;
   cd -
 done
 unset IFS
+
+dsym_zip_path="${output_dir}/${scheme}.dSYM.zip"
+
+IFS=$'\n'
+for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.app.dSYM") ; do
+  app_dsym_count=$[app_dsym_count + 1]
+  app_dsym_path="${a_app_dsym}"
+done
+unset IFS
+
 
 DSYM_PATH=""
 if [ ${app_dsym_count} -eq 1 ] ; then
