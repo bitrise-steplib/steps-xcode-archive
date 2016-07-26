@@ -399,8 +399,9 @@ fi
 
 #
 # Export *.ipa path
-envman add --key BITRISE_IPA_PATH --value "${ipa_path}"
-echo_done 'The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'
+export BITRISE_IPA_PATH="${ipa_path}"
+envman add --key BITRISE_IPA_PATH --value "${BITRISE_IPA_PATH}"
+echo_done 'The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH'" (value: $BITRISE_IPA_PATH)"
 
 #
 # Export app directory
@@ -418,8 +419,9 @@ do
 done
 unset IFS
 
-envman add --key BITRISE_APP_DIR_PATH --value "${app_directory}"
-echo_done 'The .app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH'
+export BITRISE_APP_DIR_PATH="${app_directory}"
+envman add --key BITRISE_APP_DIR_PATH --value "${BITRISE_APP_DIR_PATH}"
+echo_done 'The .app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH'" (value: $BITRISE_APP_DIR_PATH)"
 
 #
 # dSYM handling
@@ -470,8 +472,9 @@ if [[ ! -z "${DSYM_PATH}" && -d "${DSYM_PATH}" ]] ; then
     "${dsym_fold_name}"
 	cd -
 
-	envman add --key BITRISE_DSYM_PATH --value "${dsym_zip_path}"
-	echo_done 'The dSYM path is now available in the Environment Variable: $BITRISE_DSYM_PATH'
+	export BITRISE_DSYM_PATH="${dsym_zip_path}"
+	envman add --key BITRISE_DSYM_PATH --value "${BITRISE_DSYM_PATH}"
+	echo_done 'The dSYM path is now available in the Environment Variable: $BITRISE_DSYM_PATH'" (value: $BITRISE_DSYM_PATH)"
 else
 	echo_warn "No dSYM found (or not a directory: ${DSYM_PATH})"
 fi
@@ -492,8 +495,9 @@ if [[ "$is_export_xcarchive_zip" == "yes" ]] ; then
 		"${xcarchive_fold_name}"
 	cd -
 
-	envman add --key BITRISE_XCARCHIVE_PATH --value "${xcarchive_zip_path}"
-	echo_done 'The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH'
+	export BITRISE_XCARCHIVE_PATH="${xcarchive_zip_path}"
+	envman add --key BITRISE_XCARCHIVE_PATH --value "${BITRISE_XCARCHIVE_PATH}"
+	echo_done 'The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH'" (value: $BITRISE_XCARCHIVE_PATH)"
 fi
 
 exit 0
