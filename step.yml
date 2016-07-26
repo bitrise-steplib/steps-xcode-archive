@@ -1,8 +1,11 @@
-title: Xcode Archive
+title: Xcode Archive for iOS
 summary: |-
-  Create an archive so you can share it, upload it, deploy it and catch them
+  Run Xcode Archive command and export an iOS IPA
+description: |-
+  Run Xcode Archive command and export an iOS IPA.
+
+  You can share it, upload it, deploy it and catch them
   all! Well, maybe not the last one.
-description: ""
 website: https://github.com/bitrise-io/steps-new-xcode-archive
 source_code_url: https://github.com/bitrise-io/steps-new-xcode-archive
 support_url: https://github.com/bitrise-io/steps-new-xcode-archive/issues
