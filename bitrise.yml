@@ -64,7 +64,7 @@ workflows:
         - content: |
             #!/bin/bash
             set -ex
-            go get -u -v github.com/bitrise-tools/releaseman
+            go get -u github.com/bitrise-tools/releaseman
             export CI=true
             releaseman create --bump-version patch
 
@@ -78,7 +78,7 @@ workflows:
         - content: |
             #!/bin/bash
             set -ex
-            go get -u -v github.com/bitrise-tools/releaseman
+            go get -u github.com/bitrise-tools/releaseman
             export CI=true
             releaseman create --version $RELEASE_VERSION
 
