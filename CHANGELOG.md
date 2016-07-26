@@ -1,6 +1,11 @@
-## Changelog (Current version: 1.8.4)
+## Changelog (Current version: 1.8.5)
 
 -----------------
+
+### 1.8.5 (2016 Jul 26)
+
+* [c4f9425] release prep - v1.8.5
+* [1742332] step.yml revision
 
 ### 1.8.4 (2016 Jul 26)
 
