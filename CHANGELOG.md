@@ -1,6 +1,12 @@
-## Changelog (Current version: 1.8.3)
+## Changelog (Current version: 1.8.4)
 
 -----------------
+
+### 1.8.4 (2016 Jul 26)
+
+* [70fde9c] bitrise.yml revision & v1.8.4
+* [c4ab5f9] Merge pull request #45 from bitrise-io/feature/debug-print-paths
+* [e85a01c] debug print the exposed paths
 
 ### 1.8.3 (2016 Jul 05)
 
@@ -197,4 +203,4 @@
 
 -----------------
 
-Updated: 2016 Jul 05
+Updated: 2016 Jul 26
