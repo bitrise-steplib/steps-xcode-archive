@@ -98,6 +98,7 @@ method = export_method(mobileprovision_content)
 
 export_options = {}
 export_options[:method] = method unless method.nil?
+export_options[:uploadBitcode] = false
 
 log_details("* export_options: #{export_options}")
 
