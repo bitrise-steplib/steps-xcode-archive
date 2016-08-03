@@ -160,6 +160,16 @@ inputs:
       - "yes"
       - "no"
       is_required: true
+  - export_all_dsyms: "no"
+    opts:
+      title: Export all dsyms
+      description: |-
+        If this input is set to `yes` step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
+        Otherwise only .app dsym will be zipped and the zip path exported.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
 outputs:
   - BITRISE_IPA_PATH:
     opts:

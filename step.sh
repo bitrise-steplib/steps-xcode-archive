@@ -95,6 +95,7 @@ echo_details "* output_tool: $output_tool"
 echo_details "* xcodebuild_options: $xcodebuild_options"
 echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
 echo_details "* use_deprecated_export: $use_deprecated_export"
+echo_details "* export_all_dsyms: $export_all_dsyms"
 
 echo
 
@@ -411,7 +412,7 @@ IFS=$'\n'
 app_directory=""
 for a_app_directory in $(find "${archive_path}/Products/Applications" -type d -name '*.app')
 do
-	echo " * a_app_directory: ${a_app_directory}"
+	echo_details "a_app_directory: ${a_app_directory}"
 	if [ ! -z "${app_directory}" ] ; then
 		echo_warn "More than one \`.app directory\` found in \`${archive_path}/Products/Applications\`"
 	fi
@@ -425,36 +426,64 @@ echo_done 'The .app directory is now available in the Environment Variable: $BIT
 
 #
 # dSYM handling
-# get the .app.dSYM folders from the dSYMs archive folder
+# get the .dSYM folders from the dSYMs archive folder
 echo_info "Exporting dSym from generated Archive..."
 
 archive_dsyms_folder="${archive_path}/dSYMs"
 ls "${archive_dsyms_folder}"
-app_dsym_count=0
-app_dsym_path=""
+
+app_dsym_regex='.*.app.dSYM'
+app_dsym_paths=()
+other_dsym_paths=()
 
 IFS=$'\n'
-for a_app_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.app.dSYM") ; do
-  app_dsym_count=$[app_dsym_count + 1]
-  app_dsym_path="${a_app_dsym}"
+for a_dsym in $(find "${archive_dsyms_folder}" -type d -name "*.dSYM") ; do
+  if [[ $a_dsym =~ $app_dsym_regex ]] ; then
+  	app_dsym_paths=(${app_dsym_paths[@]} "$a_dsym")
+  else
+  	other_dsym_paths=(${other_dsym_paths[@]} "$a_dsym")
+  fi	
 done
 unset IFS
 
-DSYM_PATH=""
-if [ ${app_dsym_count} -eq 1 ] ; then
-  echo_details "dSYM found at: ${app_dsym_path}"
+app_dsym_count=${#app_dsym_paths[@]}
+other_dsym_count=${#other_dsym_paths[@]}
 
-  if [ -d "${app_dsym_path}" ] ; then
-    DSYM_PATH="${app_dsym_path}"
-  else
-    echo_warn "Found dSYM path is not a directory!"
-  fi
+echo 
+echo_details "app_dsym_count: $app_dsym_count"
+echo_details "other_dsym_count: $other_dsym_count"
+
+DSYM_PATH=""
+if [[ "$export_all_dsyms" == "yes" ]] ; then
+  tmp_dir="$(mktemp -d -t bitrise-dsym)/"
+
+  dsym_paths=("${app_dsym_paths[@]}" "${other_dsym_paths[@]}")
+
+  IFS=$'\n'
+  for dsym_path in "${dsym_paths[@]}" ; do
+	dsym_fold_name=$( basename "${dsym_path}" )
+
+  	cp -r "${dsym_path}" "${tmp_dir}/${dsym_fold_name}"
+  done
+  unset IFS
+
+  DSYM_PATH="${tmp_dir}"
 else
-  if [ ${app_dsym_count} -eq 0 ] ; then
-    echo_warn "No dSYM found!"
-		echo_details "To generate debug symbols (dSYM) go to your Xcode Project's Settings - *Build Settings - Debug Information Format* and set it to *DWARF with dSYM File*."
+  if [ ${app_dsym_count} -eq 1 ] ; then
+    app_dsym_path="${app_dsym_paths[0]}"
+	
+    if [ -d "${app_dsym_path}" ] ; then
+	  DSYM_PATH="${app_dsym_path}"
+	else 
+	  echo_warn "Found dSYM path is not a directory!"
+	fi
   else
-    echo_warn "More than one dSYM found!"
+    if [ ${app_dsym_count} -eq 0 ] ; then
+	  echo_warn "No dSYM found!"
+	  echo_details "To generate debug symbols (dSYM) go to your Xcode Project's Settings - *Build Settings - Debug Information Format* and set it to *DWARF with dSYM File*."
+	else
+	  echo_warn "More than one dSYM found!"
+	fi
   fi
 fi
 
@@ -467,10 +496,8 @@ if [[ ! -z "${DSYM_PATH}" && -d "${DSYM_PATH}" ]] ; then
   # cd into dSYM parent to not to store full
   #  paths in the ZIP
   cd "${dsym_parent_folder}"
-  /usr/bin/zip -rTy \
-    "${dsym_zip_path}" \
-    "${dsym_fold_name}"
-	cd -
+  zip_output=$(/usr/bin/zip -rTy "${dsym_zip_path}" "${dsym_fold_name}")
+  cd -
 
 	export BITRISE_DSYM_PATH="${dsym_zip_path}"
 	envman add --key BITRISE_DSYM_PATH --value "${BITRISE_DSYM_PATH}"
@@ -490,9 +517,7 @@ if [[ "$is_export_xcarchive_zip" == "yes" ]] ; then
 	# cd into dSYM parent to not to store full
 	#  paths in the ZIP
 	cd "${xcarchive_parent_folder}"
-	/usr/bin/zip -rTy \
-		"${xcarchive_zip_path}" \
-		"${xcarchive_fold_name}"
+	zip_output=$(/usr/bin/zip -rTy "${xcarchive_zip_path}" "${xcarchive_fold_name}")
 	cd -
 
 	export BITRISE_XCARCHIVE_PATH="${xcarchive_zip_path}"
