@@ -1,6 +1,12 @@
-## Changelog (Current version: 1.8.5)
+## Changelog (Current version: 1.9.0)
 
 -----------------
+
+### 1.9.0 (2016 Aug 11)
+
+* [cb70d37] prepare for 1.9.0
+* [c2de143] export all dsyms (#46)
+* [2cd20c3] go get releaseman - no need for verbose
 
 ### 1.8.5 (2016 Jul 26)
 
@@ -208,4 +214,4 @@
 
 -----------------
 
-Updated: 2016 Jul 26
+Updated: 2016 Aug 11
