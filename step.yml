@@ -41,7 +41,6 @@ inputs:
       - "ad-hoc"
       - "enterprise"
       - "development"
-      - "developer-id"
   - upload_bitcode: "yes"
     opts:
       title: "Include bitcode"
