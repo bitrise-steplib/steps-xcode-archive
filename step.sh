@@ -81,23 +81,28 @@ function validate_required_input_with_options {
 
 #
 # Validate parameters
-echo_info "Configs:"
+echo_info "ipa export configs:"
+echo_details "* export_method: $export_method"
+echo_details "* upload_bitcode: $upload_bitcode"
+echo_details "* compile_bitcode: $compile_bitcode"
+echo_details "* export_options_path: $export_options_path"
+echo_details "* use_deprecated_export: $use_deprecated_export"
+
+echo_info "xcodebuild configs:"
+echo_details "* output_tool: $output_tool"
 echo_details "* workdir: $workdir"
 echo_details "* project_path: $project_path"
 echo_details "* scheme: $scheme"
 echo_details "* configuration: $configuration"
 echo_details "* output_dir: $output_dir"
+echo_details "* is_clean_build: $is_clean_build"
+echo_details "* xcodebuild_options: $xcodebuild_options"
 echo_details "* force_provisioning_profile: $force_provisioning_profile"
 echo_details "* force_code_sign_identity: $force_code_sign_identity"
-echo_details "* export_options_path: $export_options_path"
-echo_details "* is_clean_build: $is_clean_build"
-echo_details "* output_tool: $output_tool"
-echo_details "* xcodebuild_options: $xcodebuild_options"
-echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
-echo_details "* use_deprecated_export: $use_deprecated_export"
-echo_details "* export_all_dsyms: $export_all_dsyms"
 
-echo
+echo_info "step output configs:"
+echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
+echo_details "* export_all_dsyms: $export_all_dsyms"
 
 validate_required_input "project_path" $project_path
 validate_required_input "scheme" $scheme
@@ -129,6 +134,7 @@ IFS=$'\n'
 xcodebuild_version_split=($out)
 unset IFS
 
+echo_info "step determined configs:"
 xcodebuild_version="${xcodebuild_version_split[0]} (${xcodebuild_version_split[1]})"
 echo_details "* xcodebuild_version: $xcodebuild_version"
 
@@ -173,7 +179,6 @@ cd -
 
 # output files
 archive_tmp_dir=$(mktemp -d -t bitrise-xcarchive)
-
 archive_path="${archive_tmp_dir}/${scheme}.xcarchive"
 echo_details "* archive_path: $archive_path"
 
@@ -241,6 +246,7 @@ echo
 
 eval $archive_cmd
 
+# ensure xcarchive exists
 if [ ! -e "${archive_path}" ] ; then
     echo_fail "no archive generated at: ${archive_path}"
 fi

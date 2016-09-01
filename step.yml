@@ -24,6 +24,66 @@ deps:
   - name: xcode
 run_if: ""
 inputs:
+  - export_method: "auto-detect"
+    opts:
+      title: "Select method for export"
+      summary: ""
+      description: |-
+        __Export option:__
+
+        Describes how Xcode should export the archive.   
+        
+        If you select `auto-detect` step will figure out proper export method  
+        based on provisioning profile embedded into generated xcodearchive.
+      value_options:
+      - "auto-detect"
+      - "app-store"
+      - "ad-hoc"
+      - "enterprise"
+      - "development"
+      - "developer-id"
+  - upload_bitcode: "yes"
+    opts:
+      title: "Include bitcode"
+      summary: ""
+      description: |-
+        __Export option:__  
+
+        For __App Store__ exports, should the package include bitcode?
+      value_options:
+      - "yes"
+      - "no"
+  - compile_bitcode: "yes"
+    opts:
+      title: "Rebuild from bitcode"
+      summary: ""
+      description: |-
+        __Export option:__  
+        
+        For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
+      value_options:
+      - "yes"
+      - "no"
+  - export_options_path:
+    opts:
+      title: "Export options path"
+      description: |-
+        Used for Xcode version 7 and above.
+
+        Specifies a path to a plist file that configures archive exporting.
+        If empty, step generates these options based on provisioning profile,
+        with default values.
+
+        Auto generated export options available for export methods:
+
+        - app-store
+        - ad-hoc
+        - enterprise
+        - development
+
+        If step doesn't find export method based on provisioning profile, development will be use.
+
+        Call xcodebuild -help for available export options.
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       title: "Working directory"
@@ -96,26 +156,6 @@ inputs:
         Format example:
 
         - c5be4123-1234-4f9d-9843-0d9be985a068
-  - export_options_path:
-    opts:
-      title: "Export options path"
-      description: |-
-        Used for Xcode version 7 and above.
-
-        Specifies a path to a plist file that configures archive exporting.
-        If empty, step generates these options based on provisioning profile,
-        with default values.
-
-        Auto generated export options available for export methods:
-
-        - app-store
-        - ad-hoc
-        - enterprise
-        - development
-
-        If step doesn't find export method based on provisioning profile, development will be use.
-
-        Call xcodebuild -help for available export options.
   - is_clean_build: "no"
     opts:
       title: "Do a clean Xcode build before the archive?"
