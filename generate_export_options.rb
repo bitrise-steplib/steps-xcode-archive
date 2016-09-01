@@ -110,6 +110,21 @@ if options[:export_method].to_s.empty? && options[:archive_path].to_s.empty?
   log_fail('failed to determin export-method: no archive_path nor export_method provided')
 end
 
+upload_bitcode = ''
+unless options[:upload_bitcode].to_s.empty?
+  if options[:upload_bitcode].casecmp('yes') != 0 && options[:upload_bitcode].casecmp('no') != 0
+    log_faile("invalid upload_bitcode value: #{options[:upload_bitcode]}, valid values: YES, NO")
+  end
+  upload_bitcode = options[:upload_bitcode].upcase
+end
+
+compile_bitcode = ''
+unless options[:compile_bitcode].to_s.empty?
+  if options[:compile_bitcode].casecmp('yes') != 0 && options[:compile_bitcode].casecmp('no') != 0
+    log_faile("invalid compile_bitcode value: #{options[:compile_bitcode]}, valid values: YES, NO")
+  end
+  compile_bitcode = options[:compile_bitcode].upcase
+end
 
 mobileprovision_content = collect_provision_info(options[:archive_path])
 
@@ -120,8 +135,8 @@ log_fail('failed to detect export-method or no export_method provided') if metho
 
 export_options = {}
 export_options[:method] = method unless method.to_s.empty?
-export_options[:uploadBitcode] = options[:upload_bitcode] if method == 'app-store' && !options[:upload_bitcode].to_s.empty?
-export_options[:compileBitcode] = options[:compile_bitcode] if method != 'app-store' && !options[:compile_bitcode].to_s.empty?
+export_options[:uploadBitcode] = upload_bitcode if method == 'app-store' && !upload_bitcode.to_s.empty?
+export_options[:compileBitcode] = compile_bitcode if method != 'app-store' && !compile_bitcode.to_s.empty?
 
 plist_content = Plist::Emit.dump(export_options)
 log_details('* plist_content:')
