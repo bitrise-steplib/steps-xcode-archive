@@ -3,7 +3,7 @@ require 'plist'
 require 'json'
 
 # -----------------------
-# --- functions
+# --- Functions
 # -----------------------
 def log_fail(message)
   puts
@@ -67,19 +67,28 @@ def export_method(mobileprovision_content)
 end
 
 # -----------------------
-# --- main
+# --- Main
 # -----------------------
 
 # Input validation
 options = {
   export_options_path: nil,
-  archive_path: nil
+  archive_path: nil,
+
+  export_method: nil,
+  upload_bitcode: nil,
+  compile_bitcode: nil
 }
 
-parser = OptionParser.new do|opts|
+parser = OptionParser.new do |opts|
   opts.banner = 'Usage: step.rb [options]'
   opts.on('-o', '--export_options_path path', 'Export options path') { |o| options[:export_options_path] = o unless o.to_s == '' }
   opts.on('-a', '--archive_path path', 'Archive path') { |a| options[:archive_path] = a unless a.to_s == '' }
+
+  opts.on('-m', '--export_method string', 'Export method') { |m| options[:export_method] = m unless m.to_s == '' }
+  opts.on('-u', '--upload_bitcode string', 'Upload bitcode') { |u| options[:upload_bitcode] = u unless u.to_s == '' }
+  opts.on('-c', '--compile_bitcode string', 'Recompile from bitcode') { |c| options[:compile_bitcode] = c unless c.to_s == '' }
+
   opts.on('-h', '--help', 'Displays Help') do
     puts opts
     exit
@@ -87,22 +96,35 @@ parser = OptionParser.new do|opts|
 end
 parser.parse!
 
-log_fail('export_options_path not specified') if options[:export_options_path].to_s == ''
-log_fail('archive_path not specified') if options[:archive_path].to_s == ''
-
 log_info('Configs:')
 log_details("* export_options_path: #{options[:export_options_path]}")
+log_details("* archive_path: #{options[:archive_path]}")
+
+log_details("* export_method: #{options[:export_method]}")
+log_details("* upload_bitcode: #{options[:upload_bitcode]}")
+log_details("* compile_bitcode: #{options[:compile_bitcode]}")
+
+log_fail('export_options_path not specified') if options[:export_options_path].to_s == ''
+
+if options[:export_method].to_s.empty? && options[:archive_path].to_s.empty?
+  log_fail('failed to determin export-method: no archive_path nor export_method provided')
+end
+
 
 mobileprovision_content = collect_provision_info(options[:archive_path])
-method = export_method(mobileprovision_content)
+
+method = options[:export_method]
+method = export_method(mobileprovision_content) if method.to_s.empty?
+
+log_fail('failed to detect export-method or no export_method provided') if method.to_s.empty?
 
 export_options = {}
-export_options[:method] = method unless method.nil?
-
-log_details("* export_options: #{export_options}")
+export_options[:method] = method unless method.to_s.empty?
+export_options[:uploadBitcode] = options[:upload_bitcode] if method == 'app-store' && !options[:upload_bitcode].to_s.empty?
+export_options[:compileBitcode] = options[:compile_bitcode] if method != 'app-store' && !options[:compile_bitcode].to_s.empty?
 
 plist_content = Plist::Emit.dump(export_options)
 log_details('* plist_content:')
-puts "#{plist_content}"
+puts plist_content.to_s
 
 File.write(options[:export_options_path], plist_content)

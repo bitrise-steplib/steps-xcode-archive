@@ -332,13 +332,21 @@ else
 	echo_info "Generating exportOptionsPlist..."
 
 	if [ -z "${export_options_path}" ] ; then
+		if [ "${export_method}" == "auto-detect" ] ; then
+			# let generate_export_options.rb to determin export method
+			export_method=""
+		fi
+
 		export_options_path="${output_dir}/export_options.plist"
 		curr_pwd="$(pwd)"
 		cd "${THIS_SCRIPT_DIR}"
 		bundle install
 		bundle exec ruby "./generate_export_options.rb" \
 			-o "${export_options_path}" \
-			-a "${archive_path}"
+			-a "${archive_path}" \
+			-m "${export_method}" \
+			-u "${upload_bitcode}" \
+			-c "${compile_bitcode}"
 		cd "${curr_pwd}"
 	fi
 
