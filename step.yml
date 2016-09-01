@@ -63,26 +63,6 @@ inputs:
       value_options:
       - "yes"
       - "no"
-  - export_options_path:
-    opts:
-      title: "Export options path"
-      description: |-
-        Used for Xcode version 7 and above.
-
-        Specifies a path to a plist file that configures archive exporting.
-        If empty, step generates these options based on provisioning profile,
-        with default values.
-
-        Auto generated export options available for export methods:
-
-        - app-store
-        - ad-hoc
-        - enterprise
-        - development
-
-        If step doesn't find export method based on provisioning profile, development will be use.
-
-        Call xcodebuild -help for available export options.
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       title: "Working directory"
@@ -209,6 +189,26 @@ inputs:
       - "yes"
       - "no"
       is_required: true
+  - export_options_path:
+    opts:
+      title: "Export options path"
+      description: |-
+        Used for Xcode version 7 and above.
+
+        Specifies a path to a plist file that configures archive exporting.
+        If empty, step generates these options based on provisioning profile,
+        with default values.
+
+        Auto generated export options available for export methods:
+
+        - app-store
+        - ad-hoc
+        - enterprise
+        - development
+
+        If step doesn't find export method based on provisioning profile, development will be use.
+
+        Call xcodebuild -help for available export options.
 outputs:
   - BITRISE_IPA_PATH:
     opts:
