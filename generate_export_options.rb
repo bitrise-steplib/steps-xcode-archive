@@ -115,9 +115,9 @@ end
 
 upload_bitcode = true
 unless options[:upload_bitcode].to_s.empty?
-  if options[:upload_bitcode].casecmp('yes') == 0
+  if options[:upload_bitcode].eql? 'yes'
     upload_bitcode = true
-  elsif options[:upload_bitcode].casecmp('no') == 0
+  elsif options[:upload_bitcode].eql? 'no'
     upload_bitcode = false
   else
     log_fail("invalid upload_bitcode value: #{options[:upload_bitcode]}, valid values: YES, NO")
@@ -126,9 +126,9 @@ end
 
 compile_bitcode = true
 unless options[:compile_bitcode].to_s.empty?
-  if options[:compile_bitcode].casecmp('yes') == 0
+  if options[:compile_bitcode].eql? 'yes'
     compile_bitcode = true
-  elsif options[:compile_bitcode].casecmp('no') == 0
+  elsif options[:compile_bitcode].eql? 'no'
     compile_bitcode = false
   else
     log_fail("invalid compile_bitcode value: #{options[:compile_bitcode]}, valid values: YES, NO")

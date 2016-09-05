@@ -71,6 +71,10 @@ inputs:
         __Export option:__  
         
         The Developer Portal team to use for this export.
+
+        Format example:
+
+        - `1MZX23ABCD4`
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       title: "Working directory"
@@ -119,6 +123,10 @@ inputs:
         Used for Xcode version 8 and above.
 
         Force xcodebuild to use specified Developer Portal team during archive.
+
+        Format example:
+
+        - `1MZX23ABCD4`
   - force_code_sign_identity:
     opts:
       title: "Force code signing with Identity"
@@ -145,11 +153,11 @@ inputs:
 
         - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
         - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
-        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): TEAM_ID/PROFILE_SPECIFIER_NAME
+        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
 
         Format example:
 
-        - 1MZX23ABCD4/My Provisioning Profile
+        - `1MZX23ABCD4/My Provisioning Profile`
   - force_provisioning_profile:
     opts:
       title: "Force code signing with Provisioning Profile"
@@ -240,7 +248,7 @@ inputs:
 
         If step doesn't find export method based on provisioning profile, development will be use.
 
-        Call xcodebuild -help for available export options.
+        Call `xcodebuild -help` for available export options.
 outputs:
   - BITRISE_IPA_PATH:
     opts:
