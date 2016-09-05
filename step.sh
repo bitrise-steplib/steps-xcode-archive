@@ -85,6 +85,7 @@ echo_info "ipa export configs:"
 echo_details "* export_method: $export_method"
 echo_details "* upload_bitcode: $upload_bitcode"
 echo_details "* compile_bitcode: $compile_bitcode"
+echo_details "* team_id: $team_id"
 echo_details "* export_options_path: $export_options_path"
 echo_details "* use_deprecated_export: $use_deprecated_export"
 
@@ -346,7 +347,8 @@ else
 			-a "${archive_path}" \
 			-m "${export_method}" \
 			-u "${upload_bitcode}" \
-			-c "${compile_bitcode}"
+			-c "${compile_bitcode}" \
+			-t "${team_id}"
 		cd "${curr_pwd}"
 	fi
 

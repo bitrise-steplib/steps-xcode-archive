@@ -77,7 +77,8 @@ options = {
 
   export_method: nil,
   upload_bitcode: nil,
-  compile_bitcode: nil
+  compile_bitcode: nil,
+  team_id: nil
 }
 
 parser = OptionParser.new do |opts|
@@ -88,6 +89,7 @@ parser = OptionParser.new do |opts|
   opts.on('-m', '--export_method string', 'Export method') { |m| options[:export_method] = m unless m.to_s == '' }
   opts.on('-u', '--upload_bitcode string', 'Upload bitcode') { |u| options[:upload_bitcode] = u unless u.to_s == '' }
   opts.on('-c', '--compile_bitcode string', 'Recompile from bitcode') { |c| options[:compile_bitcode] = c unless c.to_s == '' }
+  opts.on('-t', '--team_id string', 'The Developer Portal team') { |t| options[:team_id] = t unless t.to_s == '' }
 
   opts.on('-h', '--help', 'Displays Help') do
     puts opts
@@ -103,6 +105,7 @@ log_details("* archive_path: #{options[:archive_path]}")
 log_details("* export_method: #{options[:export_method]}")
 log_details("* upload_bitcode: #{options[:upload_bitcode]}")
 log_details("* compile_bitcode: #{options[:compile_bitcode]}")
+log_details("* team_id: #{options[:team_id]}")
 
 log_fail('export_options_path not specified') if options[:export_options_path].to_s == ''
 
@@ -110,33 +113,41 @@ if options[:export_method].to_s.empty? && options[:archive_path].to_s.empty?
   log_fail('failed to determin export-method: no archive_path nor export_method provided')
 end
 
-upload_bitcode = ''
+upload_bitcode = true
 unless options[:upload_bitcode].to_s.empty?
-  if options[:upload_bitcode].casecmp('yes') != 0 && options[:upload_bitcode].casecmp('no') != 0
-    log_faile("invalid upload_bitcode value: #{options[:upload_bitcode]}, valid values: YES, NO")
+  if options[:upload_bitcode].casecmp('yes') == 0
+    upload_bitcode = true
+  elsif options[:upload_bitcode].casecmp('no') == 0
+    upload_bitcode = false
+  else
+    log_fail("invalid upload_bitcode value: #{options[:upload_bitcode]}, valid values: YES, NO")
   end
-  upload_bitcode = options[:upload_bitcode].upcase
 end
 
-compile_bitcode = ''
+compile_bitcode = true
 unless options[:compile_bitcode].to_s.empty?
-  if options[:compile_bitcode].casecmp('yes') != 0 && options[:compile_bitcode].casecmp('no') != 0
-    log_faile("invalid compile_bitcode value: #{options[:compile_bitcode]}, valid values: YES, NO")
+  if options[:compile_bitcode].casecmp('yes') == 0
+    compile_bitcode = true
+  elsif options[:compile_bitcode].casecmp('no') == 0
+    compile_bitcode = false
+  else
+    log_fail("invalid compile_bitcode value: #{options[:compile_bitcode]}, valid values: YES, NO")
   end
-  compile_bitcode = options[:compile_bitcode].upcase
 end
-
-mobileprovision_content = collect_provision_info(options[:archive_path])
 
 method = options[:export_method]
-method = export_method(mobileprovision_content) if method.to_s.empty?
+if method.to_s.empty?
+  mobileprovision_content = collect_provision_info(options[:archive_path])
+  method = export_method(mobileprovision_content)
+end
 
 log_fail('failed to detect export-method or no export_method provided') if method.to_s.empty?
 
 export_options = {}
-export_options[:method] = method unless method.to_s.empty?
+export_options[:method] = method
 export_options[:uploadBitcode] = upload_bitcode if method == 'app-store' && !upload_bitcode.to_s.empty?
 export_options[:compileBitcode] = compile_bitcode if method != 'app-store' && !compile_bitcode.to_s.empty?
+export_options[:teamID] = options[:team_id] unless options[:team_id].to_s.empty?
 
 plist_content = Plist::Emit.dump(export_options)
 log_details('* plist_content:')

@@ -63,6 +63,14 @@ inputs:
       value_options:
       - "yes"
       - "no"
+  - team_id: 
+    opts:
+      title: "The Developer Portal team to use for this export"
+      summary: ""
+      description: |-
+        __Export option:__  
+        
+        The Developer Portal team to use for this export.
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       title: "Working directory"
