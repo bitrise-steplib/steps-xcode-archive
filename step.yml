@@ -112,6 +112,13 @@ inputs:
       description: |
         This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
+  - force_team_id:
+    opts:
+      title: "Force Developer Portal team to use during archive"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Developer Portal team during archive.
   - force_code_sign_identity:
     opts:
       title: "Force code signing with Identity"
@@ -126,6 +133,23 @@ inputs:
         This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
         `iPhone` (`iPhone Distribution` or `iPhone Development`).
         **Capitalization also matters**, `iPhone Distribution` works but `iphone distribution` does not!
+  - force_provisioning_profile_specifier:
+    opts:
+      title: "Force code signing with Provisioning Profile Specifier"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Provisioning Profile.
+
+        How to get your Provisioning Profile Specifier:
+
+        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
+        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
+        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): TEAM_ID/PROFILE_SPECIFIER_NAME
+
+        Format example:
+
+        - 1MZX23ABCD4/My Provisioning Profile
   - force_provisioning_profile:
     opts:
       title: "Force code signing with Provisioning Profile"

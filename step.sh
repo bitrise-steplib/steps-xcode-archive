@@ -88,6 +88,10 @@ echo_details "* compile_bitcode: $compile_bitcode"
 echo_details "* team_id: $team_id"
 echo_details "* export_options_path: $export_options_path"
 echo_details "* use_deprecated_export: $use_deprecated_export"
+echo_details "* force_team_id: $force_team_id"
+echo_details "* force_provisioning_profile_specifier: $force_provisioning_profile_specifier"
+echo_details "* force_provisioning_profile: $force_provisioning_profile"
+echo_details "* force_code_sign_identity: $force_code_sign_identity"
 
 echo_info "xcodebuild configs:"
 echo_details "* output_tool: $output_tool"
@@ -98,8 +102,6 @@ echo_details "* configuration: $configuration"
 echo_details "* output_dir: $output_dir"
 echo_details "* is_clean_build: $is_clean_build"
 echo_details "* xcodebuild_options: $xcodebuild_options"
-echo_details "* force_provisioning_profile: $force_provisioning_profile"
-echo_details "* force_code_sign_identity: $force_code_sign_identity"
 
 echo_info "step output configs:"
 echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
@@ -158,6 +160,21 @@ fi
 if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; then
 	echo_warn "xcode_major_version = 6, export_options_path only used if xcode_major_version > 6"
 	export_options_path=""
+fi
+
+if [ ! -z "${force_provisioning_profile_specifier}" ] && [[ "${xcode_major_version}" < "8" ]] ; then
+	echo_warn "force_provisioning_profile_specifier is set but, force_provisioning_profile_specifier only used if xcode_major_version > 7"
+	force_provisioning_profile_specifier=""
+fi
+
+if [ ! -z "${force_provisioning_profile_specifier}" ] && [ ! -z "${force_provisioning_profile}" ] ; then
+	echo_warn "both force_provisioning_profile_specifier and force_provisioning_profile are set, using force_provisioning_profile_specifier"
+	force_provisioning_profile=""
+fi
+
+if [ ! -z "${force_team_id}" ] && [[ "${xcode_major_version}" < "8" ]] ; then
+	echo_warn "force_team_id is set but, force_team_id only used if xcode_major_version > 7"
+	force_team_id=""
 fi
 
 # Project-or-Workspace flag
@@ -221,6 +238,18 @@ if [[ "${is_clean_build}" == "yes" ]] ; then
 fi
 
 archive_cmd="$archive_cmd archive -archivePath \"${archive_path}\""
+
+if [[ -n "${force_team_id}" ]] ; then
+	echo_details "Forcing Team ID: ${force_team_id}"
+
+	archive_cmd="$archive_cmd DEVELOPMENT_TEAM=\"${force_team_id}\""
+fi
+
+if [[ -n "${force_provisioning_profile_specifier}" ]] ; then
+	echo_details "Forcing Provisioning Profile: ${force_provisioning_profile_specifier}"
+
+	archive_cmd="$archive_cmd PROVISIONING_PROFILE_SPECIFIER=\"${force_provisioning_profile_specifier}\""
+fi
 
 if [[ -n "${force_provisioning_profile}" ]] ; then
 	echo_details "Forcing Provisioning Profile: ${force_provisioning_profile}"
