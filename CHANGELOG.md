@@ -1,6 +1,11 @@
-## Changelog (Current version: 1.9.0)
+## Changelog (Current version: 1.9.1)
 
 -----------------
+
+### 1.9.1 (2016 Sep 06)
+
+* [6b80213] prepare for 1.9.1
+* [98d229a] Export options (#48)
 
 ### 1.9.0 (2016 Aug 11)
 
@@ -214,4 +219,4 @@
 
 -----------------
 
-Updated: 2016 Aug 11
+Updated: 2016 Sep 06
