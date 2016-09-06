@@ -174,7 +174,7 @@ inputs:
 
         Format example:
 
-        - c5be4123-1234-4f9d-9843-0d9be985a068
+        - `c5be4123-1234-4f9d-9843-0d9be985a068`
   - is_clean_build: "no"
     opts:
       title: "Do a clean Xcode build before the archive?"
