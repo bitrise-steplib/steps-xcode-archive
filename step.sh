@@ -81,23 +81,31 @@ function validate_required_input_with_options {
 
 #
 # Validate parameters
-echo_info "Configs:"
+echo_info "ipa export configs:"
+echo_details "* export_method: $export_method"
+echo_details "* upload_bitcode: $upload_bitcode"
+echo_details "* compile_bitcode: $compile_bitcode"
+echo_details "* team_id: $team_id"
+echo_details "* export_options_path: $export_options_path"
+echo_details "* use_deprecated_export: $use_deprecated_export"
+echo_details "* force_team_id: $force_team_id"
+echo_details "* force_provisioning_profile_specifier: $force_provisioning_profile_specifier"
+echo_details "* force_provisioning_profile: $force_provisioning_profile"
+echo_details "* force_code_sign_identity: $force_code_sign_identity"
+
+echo_info "xcodebuild configs:"
+echo_details "* output_tool: $output_tool"
 echo_details "* workdir: $workdir"
 echo_details "* project_path: $project_path"
 echo_details "* scheme: $scheme"
 echo_details "* configuration: $configuration"
 echo_details "* output_dir: $output_dir"
-echo_details "* force_provisioning_profile: $force_provisioning_profile"
-echo_details "* force_code_sign_identity: $force_code_sign_identity"
-echo_details "* export_options_path: $export_options_path"
 echo_details "* is_clean_build: $is_clean_build"
-echo_details "* output_tool: $output_tool"
 echo_details "* xcodebuild_options: $xcodebuild_options"
-echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
-echo_details "* use_deprecated_export: $use_deprecated_export"
-echo_details "* export_all_dsyms: $export_all_dsyms"
 
-echo
+echo_info "step output configs:"
+echo_details "* is_export_xcarchive_zip: $is_export_xcarchive_zip"
+echo_details "* export_all_dsyms: $export_all_dsyms"
 
 validate_required_input "project_path" $project_path
 validate_required_input "scheme" $scheme
@@ -129,6 +137,7 @@ IFS=$'\n'
 xcodebuild_version_split=($out)
 unset IFS
 
+echo_info "step determined configs:"
 xcodebuild_version="${xcodebuild_version_split[0]} (${xcodebuild_version_split[1]})"
 echo_details "* xcodebuild_version: $xcodebuild_version"
 
@@ -153,6 +162,21 @@ if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; 
 	export_options_path=""
 fi
 
+if [ ! -z "${force_provisioning_profile_specifier}" ] && [[ "${xcode_major_version}" < "8" ]] ; then
+	echo_warn "force_provisioning_profile_specifier is set but, force_provisioning_profile_specifier only used if xcode_major_version > 7"
+	force_provisioning_profile_specifier=""
+fi
+
+if [ ! -z "${force_provisioning_profile_specifier}" ] && [ ! -z "${force_provisioning_profile}" ] ; then
+	echo_warn "both force_provisioning_profile_specifier and force_provisioning_profile are set, using force_provisioning_profile_specifier"
+	force_provisioning_profile=""
+fi
+
+if [ ! -z "${force_team_id}" ] && [[ "${xcode_major_version}" < "8" ]] ; then
+	echo_warn "force_team_id is set but, force_team_id only used if xcode_major_version > 7"
+	force_team_id=""
+fi
+
 # Project-or-Workspace flag
 if [[ "${project_path}" == *".xcodeproj" ]]; then
 	CONFIG_xcode_project_action="-project"
@@ -173,7 +197,6 @@ cd -
 
 # output files
 archive_tmp_dir=$(mktemp -d -t bitrise-xcarchive)
-
 archive_path="${archive_tmp_dir}/${scheme}.xcarchive"
 echo_details "* archive_path: $archive_path"
 
@@ -216,6 +239,18 @@ fi
 
 archive_cmd="$archive_cmd archive -archivePath \"${archive_path}\""
 
+if [[ -n "${force_team_id}" ]] ; then
+	echo_details "Forcing Team ID: ${force_team_id}"
+
+	archive_cmd="$archive_cmd DEVELOPMENT_TEAM=\"${force_team_id}\""
+fi
+
+if [[ -n "${force_provisioning_profile_specifier}" ]] ; then
+	echo_details "Forcing Provisioning Profile: ${force_provisioning_profile_specifier}"
+
+	archive_cmd="$archive_cmd PROVISIONING_PROFILE_SPECIFIER=\"${force_provisioning_profile_specifier}\""
+fi
+
 if [[ -n "${force_provisioning_profile}" ]] ; then
 	echo_details "Forcing Provisioning Profile: ${force_provisioning_profile}"
 
@@ -241,6 +276,7 @@ echo
 
 eval $archive_cmd
 
+# ensure xcarchive exists
 if [ ! -e "${archive_path}" ] ; then
     echo_fail "no archive generated at: ${archive_path}"
 fi
@@ -326,13 +362,22 @@ else
 	echo_info "Generating exportOptionsPlist..."
 
 	if [ -z "${export_options_path}" ] ; then
+		if [ "${export_method}" == "auto-detect" ] ; then
+			# let generate_export_options.rb to determin export method
+			export_method=""
+		fi
+
 		export_options_path="${output_dir}/export_options.plist"
 		curr_pwd="$(pwd)"
 		cd "${THIS_SCRIPT_DIR}"
 		bundle install
 		bundle exec ruby "./generate_export_options.rb" \
 			-o "${export_options_path}" \
-			-a "${archive_path}"
+			-a "${archive_path}" \
+			-m "${export_method}" \
+			-u "${upload_bitcode}" \
+			-c "${compile_bitcode}" \
+			-t "${team_id}"
 		cd "${curr_pwd}"
 	fi
 

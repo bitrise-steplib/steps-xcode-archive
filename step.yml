@@ -24,6 +24,57 @@ deps:
   - name: xcode
 run_if: ""
 inputs:
+  - export_method: "auto-detect"
+    opts:
+      title: "Select method for export"
+      summary: ""
+      description: |-
+        __Export option:__
+
+        Describes how Xcode should export the archive.   
+        
+        If you select `auto-detect` step will figure out proper export method  
+        based on provisioning profile embedded into generated xcodearchive.
+      value_options:
+      - "auto-detect"
+      - "app-store"
+      - "ad-hoc"
+      - "enterprise"
+      - "development"
+  - upload_bitcode: "yes"
+    opts:
+      title: "Include bitcode"
+      summary: ""
+      description: |-
+        __Export option:__  
+
+        For __App Store__ exports, should the package include bitcode?
+      value_options:
+      - "yes"
+      - "no"
+  - compile_bitcode: "yes"
+    opts:
+      title: "Rebuild from bitcode"
+      summary: ""
+      description: |-
+        __Export option:__  
+        
+        For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
+      value_options:
+      - "yes"
+      - "no"
+  - team_id: 
+    opts:
+      title: "The Developer Portal team to use for this export"
+      summary: ""
+      description: |-
+        __Export option:__  
+        
+        The Developer Portal team to use for this export.
+
+        Format example:
+
+        - `1MZX23ABCD4`
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       title: "Working directory"
@@ -65,6 +116,17 @@ inputs:
       description: |
         This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
+  - force_team_id:
+    opts:
+      title: "Force Developer Portal team to use during archive"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Developer Portal team during archive.
+
+        Format example:
+
+        - `1MZX23ABCD4`
   - force_code_sign_identity:
     opts:
       title: "Force code signing with Identity"
@@ -79,6 +141,23 @@ inputs:
         This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
         `iPhone` (`iPhone Distribution` or `iPhone Development`).
         **Capitalization also matters**, `iPhone Distribution` works but `iphone distribution` does not!
+  - force_provisioning_profile_specifier:
+    opts:
+      title: "Force code signing with Provisioning Profile Specifier"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Provisioning Profile.
+
+        How to get your Provisioning Profile Specifier:
+
+        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
+        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
+        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
+
+        Format example:
+
+        - `1MZX23ABCD4/My Provisioning Profile`
   - force_provisioning_profile:
     opts:
       title: "Force code signing with Provisioning Profile"
@@ -96,26 +175,6 @@ inputs:
         Format example:
 
         - c5be4123-1234-4f9d-9843-0d9be985a068
-  - export_options_path:
-    opts:
-      title: "Export options path"
-      description: |-
-        Used for Xcode version 7 and above.
-
-        Specifies a path to a plist file that configures archive exporting.
-        If empty, step generates these options based on provisioning profile,
-        with default values.
-
-        Auto generated export options available for export methods:
-
-        - app-store
-        - ad-hoc
-        - enterprise
-        - development
-
-        If step doesn't find export method based on provisioning profile, development will be use.
-
-        Call xcodebuild -help for available export options.
   - is_clean_build: "no"
     opts:
       title: "Do a clean Xcode build before the archive?"
@@ -170,6 +229,26 @@ inputs:
       - "yes"
       - "no"
       is_required: true
+  - export_options_path:
+    opts:
+      title: "Export options path"
+      description: |-
+        Used for Xcode version 7 and above.
+
+        Specifies a path to a plist file that configures archive exporting.
+        If empty, step generates these options based on provisioning profile,
+        with default values.
+
+        Auto generated export options available for export methods:
+
+        - app-store
+        - ad-hoc
+        - enterprise
+        - development
+
+        If step doesn't find export method based on provisioning profile, development will be use.
+
+        Call `xcodebuild -help` for available export options.
 outputs:
   - BITRISE_IPA_PATH:
     opts:
