@@ -196,7 +196,7 @@ output_dir="$(pwd)"
 cd -
 
 # output files
-archive_tmp_dir=$(mktemp -d -t bitrise-xcarchive)
+archive_tmp_dir=$(mktemp -d)
 archive_path="${archive_tmp_dir}/${scheme}.xcarchive"
 echo_details "* archive_path: $archive_path"
 
@@ -396,7 +396,7 @@ else
 		rvm use system
 	fi
 
-	tmp_dir=$(mktemp -d -t bitrise-xcarchive)
+	tmp_dir=$(mktemp -d)
 
 	export_command="$export_command -archivePath \"${archive_path}\""
 	export_command="$export_command -exportPath \"${tmp_dir}\""
@@ -500,7 +500,7 @@ echo_details "other_dsym_count: $other_dsym_count"
 
 DSYM_PATH=""
 if [[ "$export_all_dsyms" == "yes" ]] ; then
-  tmp_dir="$(mktemp -d -t bitrise-dsym)/"
+  tmp_dir="$(mktemp -d)/"
 
   dsym_paths=("${app_dsym_paths[@]}" "${other_dsym_paths[@]}")
 
