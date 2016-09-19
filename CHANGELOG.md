@@ -1,6 +1,11 @@
-## Changelog (Current version: 1.9.1)
+## Changelog (Current version: 1.9.2)
 
 -----------------
+
+### 1.9.2 (2016 Sep 19)
+
+* [fead6c2] prepare for 1.9.2
+* [3992b09] remove template from mktemp (#49)
 
 ### 1.9.1 (2016 Sep 06)
 
@@ -219,4 +224,4 @@
 
 -----------------
 
-Updated: 2016 Sep 06
+Updated: 2016 Sep 19
