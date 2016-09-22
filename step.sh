@@ -144,13 +144,15 @@ echo_details "* xcodebuild_version: $xcodebuild_version"
 # Detect xcpretty version
 xcpretty_version=""
 if [[ "${output_tool}" == "xcpretty" ]] ; then
+	set +e
 	xcpretty_version=$(xcpretty --version)
 	exit_code=$?
+	set -e
 	if [[ $exit_code != 0 || -z "$xcpretty_version" ]] ; then
 		echo_fail "xcpretty is not installed
-		For xcpretty installation see: 'https://github.com/supermarin/xcpretty',
-		or use 'xcodebuild' as 'output_tool'.
-		"
+For xcpretty installation see: 'https://github.com/supermarin/xcpretty',
+or use 'xcodebuild' as 'output_tool'.
+"
 	fi
 
 	echo_details "* xcpretty_version: $xcpretty_version"
