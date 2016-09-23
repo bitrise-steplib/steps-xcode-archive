@@ -3,7 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - STEP_VERSION: 1.9.2
+  - STEP_VERSION: 1.10.0
 
   # define these in your .bitrise.secrets.yml
   - BITRISE_PROJECT_PATH: $BITRISE_PROJECT_PATH
