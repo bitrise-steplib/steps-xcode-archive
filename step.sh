@@ -75,6 +75,17 @@ function validate_required_input_with_options {
 	fi
 }
 
+function handle_xcodebuild_fail {
+	if [[ "${output_tool}" == "xcpretty" ]] ; then
+		cp $xcodebuild_output "$BITRISE_DEPLOY_DIR/raw-xcodebuild-output.log"
+		echo_warn "If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+The log file is stored in \$BITRISE_DEPLOY_DIR, and its full path
+is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable"
+	fi
+
+	exit 1
+}
+
 #=======================================
 # Main
 #=======================================
@@ -144,13 +155,15 @@ echo_details "* xcodebuild_version: $xcodebuild_version"
 # Detect xcpretty version
 xcpretty_version=""
 if [[ "${output_tool}" == "xcpretty" ]] ; then
+	set +e
 	xcpretty_version=$(xcpretty --version)
 	exit_code=$?
+	set -e
 	if [[ $exit_code != 0 || -z "$xcpretty_version" ]] ; then
 		echo_fail "xcpretty is not installed
-		For xcpretty installation see: 'https://github.com/supermarin/xcpretty',
-		or use 'xcodebuild' as 'output_tool'.
-		"
+For xcpretty installation see: 'https://github.com/supermarin/xcpretty',
+or use 'xcodebuild' as 'output_tool'.
+"
 	fi
 
 	echo_details "* xcpretty_version: $xcpretty_version"
@@ -267,14 +280,24 @@ if [ ! -z "${xcodebuild_options}" ] ; then
 	archive_cmd="$archive_cmd ${xcodebuild_options}"
 fi
 
+xcodebuild_output=""
 if [[ "${output_tool}" == "xcpretty" ]] ; then
-	archive_cmd="set -o pipefail && $archive_cmd | xcpretty"
+	xcodebuild_output="$(mktemp -d)/raw-xcodebuild-output.log"
+	archive_cmd="set -o pipefail && $archive_cmd | tee $xcodebuild_output | xcpretty"
+	envman add --key BITRISE_XCODE_RAW_RESULT_TEXT_PATH --value $xcodebuild_output
 fi
 
 echo_details "$ $archive_cmd"
 echo
 
+set +e
 eval $archive_cmd
+exit_status=$?
+set -e
+
+if [ $exit_status != 0 ] ; then
+	handle_xcodebuild_fail
+fi
 
 # ensure xcarchive exists
 if [ ! -e "${archive_path}" ] ; then
@@ -346,14 +369,24 @@ if [[ "${xcode_major_version}" == "6" ]] || [[ "${use_deprecated_export}" == "ye
 	export_command="$export_command -exportPath \"${ipa_path}\""
 	export_command="$export_command -exportProvisioningProfile \"${profile_name}\""
 
+	xcodebuild_output=""
 	if [[ "${output_tool}" == "xcpretty" ]] ; then
-		export_command="set -o pipefail && $export_command | xcpretty"
+		xcodebuild_output="$(mktemp -d)/raw-xcodebuild-output.log"
+		export_command="set -o pipefail && $export_command | tee $xcodebuild_output | xcpretty"
+		envman add --key BITRISE_XCODE_RAW_RESULT_TEXT_PATH --value $xcodebuild_output
 	fi
 
 	echo_details "$ $export_command"
 	echo
 
+	set +e
 	eval $export_command
+	exit_status=$?
+	set -e
+
+	if [ $exit_status != 0 ] ; then
+		handle_xcodebuild_fail
+	fi
 else
 	#
 	# Xcode major version > 6
@@ -402,14 +435,25 @@ else
 	export_command="$export_command -exportPath \"${tmp_dir}\""
 	export_command="$export_command -exportOptionsPlist \"${export_options_path}\""
 
+	xcodebuild_output=""
 	if [[ "${output_tool}" == "xcpretty" ]] ; then
-		export_command="set -o pipefail && $export_command | xcpretty"
+		xcodebuild_output="$(mktemp -d)/raw-xcodebuild-output.log"
+		export_command="set -o pipefail && $export_command | tee $xcodebuild_output | xcpretty"
+		envman add --key BITRISE_XCODE_RAW_RESULT_TEXT_PATH --value $xcodebuild_output
 	fi
 
 	echo_details "$ $export_command"
 	echo
 
+	set +e
 	eval $export_command
+	exit_status=$?
+	set -e
+
+	if [ $exit_status != 0 ] ; then
+		handle_xcodebuild_fail
+	fi
+
 	echo
 
 	# Searching for ipa
