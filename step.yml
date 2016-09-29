@@ -79,28 +79,28 @@ inputs:
     opts:
       title: "Working directory"
       summary: ""
-      description: |
+      description: |-
         Working directory of the step.
         You can leave it empty to don't change it.
   - project_path: $BITRISE_PROJECT_PATH
     opts:
       title: "Project (or Workspace) path"
       summary: ""
-      description: |
+      description: |-
         A `.xcodeproj` or `.xcworkspace` path.
       is_required: true
   - scheme: $BITRISE_SCHEME
     opts:
       title: "Scheme name"
       summary: ""
-      description: |
+      description: |-
         The Scheme to use.
       is_required: true
   - configuration:
     opts:
       title: "Configuration name"
       summary: ""
-      description: |
+      description: |-
         (optional) The configuration to use. By default your Scheme
         defines which configuration (Debug, Release, ...) should be used,
         but you can overwrite it with this option.
@@ -113,7 +113,7 @@ inputs:
     opts:
       title: "Output directory path"
       summary: ""
-      description: |
+      description: |-
         This directory will contain the generated .ipa and .dSYM.zip files.
       is_required: true
   - force_team_id:
@@ -204,7 +204,7 @@ inputs:
   - is_export_xcarchive_zip: "no"
     opts:
       title: Export the generated archive?
-      description: |
+      description: |-
         If this input is set to `yes`, the generated .xcarchive will be zipped and moved to `output_dir`.
       value_options:
       - "yes"
@@ -213,7 +213,7 @@ inputs:
   - use_deprecated_export: "no"
     opts:
       title: Use deprecated ipa export method?
-      description: |
+      description: |-
         If this input is set to `yes`, step will use deprecated ipa export method.
       value_options:
       - "yes"
@@ -229,13 +229,13 @@ inputs:
       - "yes"
       - "no"
       is_required: true
-  - export_options_path:
+  - custom_export_options_plist_content:
     opts:
-      title: "Export options path"
+      title: "Custom export options plist content"
       description: |-
         Used for Xcode version 7 and above.
 
-        Specifies a path to a plist file that configures archive exporting.
+        Specifies a custom export options plist content that configures archive exporting.
         If empty, step generates these options based on provisioning profile,
         with default values.
 
@@ -262,3 +262,10 @@ outputs:
   - BITRISE_XCARCHIVE_PATH:
     opts:
       title: The created .xcarchive.zip file's path
+  - BITRISE_XCODE_ARCHIVE_RAW_RESULT_TEXT_PATH:
+    opts:
+      title: The full, raw archive output file path
+      description: |-
+        This is the path of the raw archive results log file.
+
+        If `output_tool=xcpretty` and the archive fails this log will contain the archive output.
