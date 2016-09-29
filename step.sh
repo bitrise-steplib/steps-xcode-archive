@@ -90,19 +90,42 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable"
 # Main
 #=======================================
 
+
 #
 # Validate parameters
 echo_info "ipa export configs:"
-echo_details "* export_method: $export_method"
-echo_details "* upload_bitcode: $upload_bitcode"
-echo_details "* compile_bitcode: $compile_bitcode"
-echo_details "* team_id: $team_id"
-echo_details "* custom_export_options_plist_content: $custom_export_options_plist_content"
+
+export_method_input_log="* export_method: $export_method"
+if [ ! -z "${custom_export_options_plist_content}" ] ; then
+	export_method_input_log="* export_method: ignoring this options because custom_export_options_plist_content provided, the ignored value: $export_method"
+fi
+echo_details "$export_method_input_log"
+
+upload_bitcode_input_log="* upload_bitcode: $upload_bitcode"
+if [ ! -z "${custom_export_options_plist_content}" ] ; then
+	upload_bitcode_input_log="* upload_bitcode:: ignoring this options because custom_export_options_plist_content provided, the ignored value: $upload_bitcode"
+fi
+echo_details "$upload_bitcode_input_log"
+
+compile_bitcode_input_log="* compile_bitcode: $compile_bitcode"
+if [ ! -z "${custom_export_options_plist_content}" ] ; then
+	compile_bitcode_input_log="* compile_bitcode: ignoring this options because custom_export_options_plist_content provided, the ignored value: $compile_bitcode"
+fi
+echo_details "$compile_bitcode_input_log"
+
+team_id_input_log="* team_id: $team_id"
+if [ ! -z "${custom_export_options_plist_content}" ] ; then
+	team_id_input_log="* team_id: ignoring this options because custom_export_options_plist_content provided, the ignored value: $team_id"
+fi
+echo_details "$team_id_input_log"
+
 echo_details "* use_deprecated_export: $use_deprecated_export"
 echo_details "* force_team_id: $force_team_id"
 echo_details "* force_provisioning_profile_specifier: $force_provisioning_profile_specifier"
 echo_details "* force_provisioning_profile: $force_provisioning_profile"
 echo_details "* force_code_sign_identity: $force_code_sign_identity"
+echo_details "* custom_export_options_plist_content: "
+echo "$custom_export_options_plist_content"
 
 echo_info "xcodebuild configs:"
 echo_details "* output_tool: $output_tool"
@@ -174,14 +197,6 @@ if [ ! -z "${custom_export_options_plist_content}" ] && [[ "${xcode_major_versio
 	echo_warn "xcode_major_version = 6, custom_export_options_plist_content only used if xcode_major_version > 6"
 	custom_export_options_plist_content=""
 fi
-
-if [ ! -z "${custom_export_options_plist_content}" ] ; then
-	if [ "${export_method}" != "auto-detect" ] || [ "${upload_bitcode}" != "yes" ] || [ "${compile_bitcode}" != "yes" ] || [ "${team_id}" != "" ] ; then
-		echo
-		echo_warn "custom_export_options_plist_content provided omitting: export_method, upload_bitcode, team_id inputs"
-		echo
-	fi
-fi 
 
 if [ ! -z "${force_provisioning_profile_specifier}" ] && [[ "${xcode_major_version}" < "8" ]] ; then
 	echo_warn "force_provisioning_profile_specifier is set but, force_provisioning_profile_specifier only used if xcode_major_version > 7"
@@ -427,7 +442,7 @@ else
 		echo "$custom_export_options_plist_content"
 		echo
 
-		echo "$custom_export_options_plist_content" >> "$export_options_path"
+		echo "$custom_export_options_plist_content" > "$export_options_path"
 	fi
 
 	echo_info "Exporting IPA from generated Archive..."
