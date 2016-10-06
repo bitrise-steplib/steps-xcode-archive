@@ -90,19 +90,33 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable"
 # Main
 #=======================================
 
+
 #
 # Validate parameters
 echo_info "ipa export configs:"
+
+if [ ! -z "${custom_export_options_plist_content}" ] ; then
+	echo
+	echo_warn "Ignoring the following options because custom_export_options_plist_content provided:"
+fi
+
 echo_details "* export_method: $export_method"
 echo_details "* upload_bitcode: $upload_bitcode"
 echo_details "* compile_bitcode: $compile_bitcode"
 echo_details "* team_id: $team_id"
-echo_details "* export_options_path: $export_options_path"
+
+if [ ! -z "${custom_export_options_plist_content}" ] ; then
+	echo_warn "----------"
+fi
+
+
 echo_details "* use_deprecated_export: $use_deprecated_export"
 echo_details "* force_team_id: $force_team_id"
 echo_details "* force_provisioning_profile_specifier: $force_provisioning_profile_specifier"
 echo_details "* force_provisioning_profile: $force_provisioning_profile"
 echo_details "* force_code_sign_identity: $force_code_sign_identity"
+echo_details "* custom_export_options_plist_content: "
+echo "$custom_export_options_plist_content"
 
 echo_info "xcodebuild configs:"
 echo_details "* output_tool: $output_tool"
@@ -169,10 +183,10 @@ or use 'xcodebuild' as 'output_tool'.
 	echo_details "* xcpretty_version: $xcpretty_version"
 fi
 
-# export_options_path & Xcode 6
-if [ ! -z "${export_options_path}" ] && [[ "${xcode_major_version}" == "6" ]] ; then
-	echo_warn "xcode_major_version = 6, export_options_path only used if xcode_major_version > 6"
-	export_options_path=""
+# custom_export_options_plist_content validation
+if [ ! -z "${custom_export_options_plist_content}" ] && [[ "${xcode_major_version}" == "6" ]] ; then
+	echo_warn "xcode_major_version = 6, custom_export_options_plist_content only used if xcode_major_version > 6"
+	custom_export_options_plist_content=""
 fi
 
 if [ ! -z "${force_provisioning_profile_specifier}" ] && [[ "${xcode_major_version}" < "8" ]] ; then
@@ -392,15 +406,16 @@ else
 	# Xcode major version > 6
 	#
 
-	echo_info "Generating exportOptionsPlist..."
+	export_options_path="${output_dir}/export_options.plist"
 
-	if [ -z "${export_options_path}" ] ; then
+	if [ -z "${custom_export_options_plist_content}" ] ; then
+		echo_info "Generating export options plist..."
+
 		if [ "${export_method}" == "auto-detect" ] ; then
 			# let generate_export_options.rb to determin export method
 			export_method=""
 		fi
 
-		export_options_path="${output_dir}/export_options.plist"
 		curr_pwd="$(pwd)"
 		cd "${THIS_SCRIPT_DIR}"
 		bundle install
@@ -412,6 +427,13 @@ else
 			-c "${compile_bitcode}" \
 			-t "${team_id}"
 		cd "${curr_pwd}"
+	else
+		echo_info "Using custom export options plist..."
+		echo
+		echo "$custom_export_options_plist_content"
+		echo
+
+		echo "$custom_export_options_plist_content" > "$export_options_path"
 	fi
 
 	echo_info "Exporting IPA from generated Archive..."
