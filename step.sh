@@ -95,29 +95,20 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable"
 # Validate parameters
 echo_info "ipa export configs:"
 
-export_method_input_log="* export_method: $export_method"
 if [ ! -z "${custom_export_options_plist_content}" ] ; then
-	export_method_input_log="* export_method: ignoring this options because custom_export_options_plist_content provided, the ignored value: $export_method"
+	echo
+	echo_warn "Ignoring the following options because custom_export_options_plist_content provided:"
 fi
-echo_details "$export_method_input_log"
 
-upload_bitcode_input_log="* upload_bitcode: $upload_bitcode"
-if [ ! -z "${custom_export_options_plist_content}" ] ; then
-	upload_bitcode_input_log="* upload_bitcode:: ignoring this options because custom_export_options_plist_content provided, the ignored value: $upload_bitcode"
-fi
-echo_details "$upload_bitcode_input_log"
+echo_details "* export_method: $export_method"
+echo_details "* upload_bitcode: $upload_bitcode"
+echo_details "* compile_bitcode: $compile_bitcode"
+echo_details "* team_id: $team_id"
 
-compile_bitcode_input_log="* compile_bitcode: $compile_bitcode"
 if [ ! -z "${custom_export_options_plist_content}" ] ; then
-	compile_bitcode_input_log="* compile_bitcode: ignoring this options because custom_export_options_plist_content provided, the ignored value: $compile_bitcode"
+	echo_warn "----------"
 fi
-echo_details "$compile_bitcode_input_log"
 
-team_id_input_log="* team_id: $team_id"
-if [ ! -z "${custom_export_options_plist_content}" ] ; then
-	team_id_input_log="* team_id: ignoring this options because custom_export_options_plist_content provided, the ignored value: $team_id"
-fi
-echo_details "$team_id_input_log"
 
 echo_details "* use_deprecated_export: $use_deprecated_export"
 echo_details "* force_team_id: $force_team_id"
