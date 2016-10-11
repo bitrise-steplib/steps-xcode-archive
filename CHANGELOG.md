@@ -1,6 +1,11 @@
-## Changelog (Current version: 1.10.0)
+## Changelog (Current version: 1.10.1)
 
 -----------------
+
+### 1.10.1 (2016 Oct 11)
+
+* [b1cb39f] prepare for 1.10.1
+* [74c06eb] custom export options (#51)
 
 ### 1.10.0 (2016 Sep 23)
 
@@ -229,4 +234,4 @@
 
 -----------------
 
-Updated: 2016 Sep 23
+Updated: 2016 Oct 11
