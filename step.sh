@@ -329,6 +329,7 @@ fi
 # - http://stackoverflow.com/questions/33041109/xcodebuild-no-applicable-devices-found-when-exporting-archive
 # - https://gist.github.com/claybridges/cea5d4afd24eda268164
 unset GEM_HOME
+unset GEM_PATH
 unset RUBYLIB
 unset RUBYOPT
 unset BUNDLE_BIN_PATH
