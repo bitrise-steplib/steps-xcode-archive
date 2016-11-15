@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/cmdex"
@@ -206,6 +208,26 @@ func zip(sourceDir, destinationZipPth string) error {
 	}
 
 	return nil
+}
+
+func findIDEDistrubutionLogsPath(output string) (string, error) {
+	ideDistrubutionLogsPath := ""
+
+	pattern := `IDEDistribution: -\[IDEDistributionLogging _createLoggingBundleAtPath:\]: Created bundle at path '(?P<log_path>.*)'`
+	re := regexp.MustCompile(pattern)
+
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if match := re.FindStringSubmatch(line); len(match) == 2 {
+			ideDistrubutionLogsPath = match[1]
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return ideDistrubutionLogsPath, nil
 }
 
 func main() {
@@ -616,7 +638,18 @@ or use 'xcodebuild' as 'output_tool'.`)
 			log.Done("$ %s", xcodebuildCmd.PrintableExportCmd())
 			fmt.Println()
 
-			if err := xcodebuildCmd.Export(); err != nil {
+			if out, err := xcodebuildCmd.Export(); err != nil {
+				logPth, err := findIDEDistrubutionLogsPath(out)
+				if err != nil {
+					log.Warn("Failed to find xcdistributionlogs, error: %s", err)
+				}
+
+				log.Warn("logPth: %s", logPth)
+
+				if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", logPth); err != nil {
+					fail("Failed to export xcdistributionlogs path, error: %s", err)
+				}
+
 				fail("Export failed, error: %s", err)
 			}
 		}
@@ -649,10 +682,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 				ipaPath = exportedIPA
 			}
 		}
-
 	}
-
-	fmt.Println()
 
 	log.Info("Exporting outputs...")
 

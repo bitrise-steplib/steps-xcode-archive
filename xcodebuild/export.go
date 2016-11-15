@@ -1,8 +1,11 @@
 package xcodebuild
 
 import (
+	"io"
 	"os"
 	"os/exec"
+
+	"bytes"
 
 	"github.com/bitrise-io/go-utils/cmdex"
 )
@@ -111,15 +114,18 @@ func (xb Model) LegacyExport() error {
 }
 
 // Export ...
-func (xb Model) Export() error {
+func (xb Model) Export() (string, error) {
 	cmdSlice := xb.exportCmdSlice()
 	cmd, err := cmdex.NewCommandFromSlice(cmdSlice)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	cmd.SetStdout(os.Stdout)
-	cmd.SetStderr(os.Stderr)
+	var outBuffer bytes.Buffer
+	outWriter := io.MultiWriter(&outBuffer, os.Stdout)
 
-	return cmd.Run()
+	cmd.SetStdout(outWriter)
+	cmd.SetStderr(outWriter)
+
+	return outBuffer.String(), cmd.Run()
 }

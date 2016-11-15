@@ -281,3 +281,7 @@ outputs:
         This is the path of the raw archive results log file.
 
         If `output_tool=xcpretty` and the archive fails this log will contain the archive output.
+  - BITRISE_IDEDISTRIBUTION_LOGS_PATH:
+    opts:
+      title: Path to the xcdistributionlogs
+      description: ""
