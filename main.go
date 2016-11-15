@@ -229,7 +229,7 @@ func main() {
 
 	xcodeMajorVersion := xcodebuildVersion.XcodeVersion.Segments()[0]
 	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-		fail("Invalid xcode major version (%s), should not be less then %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
+		fail("Invalid xcode major version (%s), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
 	}
 
 	// Detect xcpretty version
@@ -303,19 +303,16 @@ or use 'xcodebuild' as 'output_tool'.`)
 	}
 
 	// output files
-	log.Info("output paths")
-	archiveTmpDir, err := pathutil.NormalizedOSTempDirPath("__archive__")
+	tmpArchiveDir, err := pathutil.NormalizedOSTempDirPath("__archive__")
 	if err != nil {
 		fail("Failed to create temp dir for archives, error: %s", err)
 	}
-	archivePath := filepath.Join(archiveTmpDir, configs.ArtifactName+".xcarchive")
-	log.Detail("- archivePath: %s", archivePath)
+	tmpArchivePath := filepath.Join(tmpArchiveDir, configs.ArtifactName+".xcarchive")
 
+	archiveZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".xcarchive.zip")
+	appPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".app")
 	ipaPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".ipa")
-	log.Detail("- ipaPath: %s", ipaPath)
-
 	dsymZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".dSYM.zip")
-	log.Detail("- dsymZipPath: %s", dsymZipPath)
 
 	// cleanup
 	if exist, err := pathutil.IsPathExists(ipaPath); err != nil {
@@ -346,7 +343,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 	xcodebuildCmd.SetScheme(configs.Scheme)
 	xcodebuildCmd.SetConfiguration(configs.Configuration)
 	xcodebuildCmd.SetIsCleanBuild(configs.IsCleanBuild == "yes")
-	xcodebuildCmd.SetArchivePath(archivePath)
+	xcodebuildCmd.SetArchivePath(tmpArchivePath)
 
 	if configs.ForceTeamID != "" {
 		log.Detail("Forcing Development Team: %s", configs.ForceTeamID)
@@ -409,10 +406,10 @@ or use 'xcodebuild' as 'output_tool'.`)
 	fmt.Println()
 
 	// Ensure xcarchive exists
-	if exist, err := pathutil.IsPathExists(archivePath); err != nil {
+	if exist, err := pathutil.IsPathExists(tmpArchivePath); err != nil {
 		fail("Failed to check if archive exist, error: %s", err)
 	} else if !exist {
-		fail("No archive generated at: %s", archivePath)
+		fail("No archive generated at: %s", tmpArchivePath)
 	}
 
 	// Exporting the ipa with Xcode Command Line tools
@@ -448,7 +445,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 			under the Products/Applications folder
 		*/
 
-		embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(archivePath)
+		embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(tmpArchivePath)
 		if err != nil {
 			log.Error("Failed to get embedded profile path, error: %s", err)
 			os.Exit(1)
@@ -467,7 +464,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 		xcodebuildCmd := xcodebuild.New()
 		xcodebuildCmd.SetExportFormat("ipa")
-		xcodebuildCmd.SetArchivePath(archivePath)
+		xcodebuildCmd.SetArchivePath(tmpArchivePath)
 		xcodebuildCmd.SetExportPath(ipaPath)
 		xcodebuildCmd.SetExportProvisioningProfile(*provProfile.Name)
 
@@ -526,7 +523,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 			if configs.ExportMethod == "auto-detect" {
 				log.Detail("creating default export options based on embedded profile")
 
-				embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(archivePath)
+				embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(tmpArchivePath)
 				if err != nil {
 					log.Error("Failed to get embedded profile path, error: %s", err)
 					os.Exit(1)
@@ -590,7 +587,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		}
 
 		xcodebuildCmd := xcodebuild.New()
-		xcodebuildCmd.SetArchivePath(archivePath)
+		xcodebuildCmd.SetArchivePath(tmpArchivePath)
 		xcodebuildCmd.SetExportPath(tmpDir)
 		xcodebuildCmd.SetExportOptionsPlist(exportOptionsPth)
 
@@ -627,30 +624,32 @@ or use 'xcodebuild' as 'output_tool'.`)
 		// Search for ipa
 		exportedIPA := ""
 
-		pattern := filepath.Join(tmpDir, "*")
-		files, err := filepath.Glob(pattern)
+		pattern := filepath.Join(tmpDir, "*.ipa")
+		ipas, err := filepath.Glob(pattern)
 		if err != nil {
-			fail("Failed to collect output files, error: %s", err)
+			fail("Failed to collect ipa files, error: %s", err)
 		}
 
-		for _, file := range files {
-			base := filepath.Base(file)
-			ext := filepath.Ext(file)
-			deployPth := filepath.Join(configs.OutputDir, base+ext)
-
-			if err := os.Rename(file, deployPth); err != nil {
-				fail("Failed to move (%s) -> (%s), error: %s", file, deployPth, err)
+		if len(ipas) == 0 {
+			fail("No ipa found with pattern: %s", pattern)
+		} else if len(ipas) == 1 {
+			if err := cmdex.CopyFile(ipas[0], ipaPath); err != nil {
+				fail("Failed to copy (%s) -> (%s), error: %s", ipas[0], ipaPath, err)
 			}
+		} else {
+			log.Warn("More than 1 .ipa file found")
 
-			if ext == ".ipa" {
-				if exportedIPA != "" {
-					log.Warn("More than 1 ipa file found")
+			for _, ipa := range ipas {
+				base := filepath.Base(ipa)
+				deployPth := filepath.Join(configs.OutputDir, base)
+
+				if err := cmdex.CopyFile(ipa, deployPth); err != nil {
+					fail("Failed to copy (%s) -> (%s), error: %s", ipas[0], ipaPath, err)
 				}
-				exportedIPA = deployPth
+				ipaPath = exportedIPA
 			}
 		}
 
-		ipaPath = exportedIPA
 	}
 
 	fmt.Println()
@@ -660,44 +659,75 @@ or use 'xcodebuild' as 'output_tool'.`)
 	//
 	// Export outputs
 
-	// Export *.ipa path
-	if err := exportEnvironmentWithEnvman("BITRISE_IPA_PATH", ipaPath); err != nil {
-		fail("Failed to export ipa path, error: %s", err)
+	// Export xcarchive zip path
+	if configs.IsExportXcarchiveZip == "yes" {
+		fmt.Println()
+
+		if err := zip(tmpArchiveDir, archiveZipPath); err != nil {
+			fail("zip failed, error: %s", err)
+		}
+
+		if err := exportEnvironmentWithEnvman("BITRISE_XCARCHIVE_PATH", archiveZipPath); err != nil {
+			fail("Failed to export xcarchive zip path, error: %s", err)
+		}
+
+		log.Done("The xcarchive zip path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH (value: %s)", archiveZipPath)
 	}
-	fmt.Println()
-	log.Done("The IPA path is now available in the Environment Variable: $BITRISE_IPA_PATH (value: %s)", ipaPath)
 
 	// Export app directory
+	fmt.Println()
+
 	exportedApp := ""
 
-	pattern := filepath.Join(archivePath, "Products/Applications", "*.app")
-	files, err := filepath.Glob(pattern)
+	pattern := filepath.Join(tmpArchivePath, "Products/Applications", "*.app")
+	apps, err := filepath.Glob(pattern)
 	if err != nil {
 		fail("Failed to find .app directories, error: %s", err)
 	}
 
-	for _, file := range files {
-		base := filepath.Base(file)
-		deployPth := filepath.Join(configs.OutputDir, base)
-
-		if err := os.Rename(file, deployPth); err != nil {
-			fail("Failed to move (%s) -> (%s), error: %s", file, deployPth, err)
+	if len(apps) == 0 {
+		log.Warn("No app found with pattern (%s)", pattern)
+	} else if len(apps) == 1 {
+		if err := cmdex.CopyDir(apps[0], appPath, true); err != nil {
+			fail("Failed to copy (%s) -> (%s), error: %s", apps[0], appPath, err)
 		}
+		exportedApp = appPath
+	} else {
+		log.Warn("More than 1 .app directory found")
 
-		if exportedApp != "" {
-			log.Warn("More than 1 .app directory found")
+		for _, app := range apps {
+			base := filepath.Base(app)
+			deployPth := filepath.Join(configs.OutputDir, base)
+
+			if err := cmdex.CopyDir(app, deployPth, true); err != nil {
+				fail("Failed to copy (%s) -> (%s), error: %s", app, deployPth, err)
+			}
+
+			exportedApp = deployPth
 		}
-		exportedApp = deployPth
 	}
 
-	if err := exportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", exportedApp); err != nil {
-		fail("Failed to export .app path, error: %s", err)
+	if exportedApp != "" {
+		if err := exportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", exportedApp); err != nil {
+			fail("Failed to export .app path, error: %s", err)
+		}
+
+		log.Done("The app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH (value: %s)", exportedApp)
 	}
+
+	// Export ipa path
 	fmt.Println()
-	log.Done("The .app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH (value: %s)", exportedApp)
 
-	// dSYM handling
-	appDSYM, frameworkDSYMs, err := xcarchive.ExportDSYMs(archivePath)
+	if err := exportEnvironmentWithEnvman("BITRISE_IPA_PATH", ipaPath); err != nil {
+		fail("Failed to export ipa path, error: %s", err)
+	}
+
+	log.Done("The ipa path is now available in the Environment Variable: $BITRISE_IPA_PATH (value: %s)", ipaPath)
+
+	// Export dSYMs
+	fmt.Println()
+
+	appDSYM, frameworkDSYMs, err := xcarchive.ExportDSYMs(tmpArchivePath)
 	if err != nil {
 		fail("Failed to export dsyms, error: %s", err)
 	}
@@ -722,9 +752,10 @@ or use 'xcodebuild' as 'output_tool'.`)
 	if err := zip(dsymDir, dsymZipPath); err != nil {
 		fail("zip failed, error: %s", err)
 	}
+
 	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_PATH", dsymZipPath); err != nil {
 		fail("Failed to export dsym path, error: %s", err)
 	}
-	fmt.Println()
-	log.Done("The dSYM path is now available in the Environment Variable: $BITRISE_DSYM_PATH (value: %s)", dsymZipPath)
+
+	log.Done("The dSYM zip path is now available in the Environment Variable: $BITRISE_DSYM_PATH (value: %s)", dsymZipPath)
 }
