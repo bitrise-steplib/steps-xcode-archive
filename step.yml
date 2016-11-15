@@ -22,7 +22,14 @@ is_skippable: false
 deps:
   check_only:
   - name: xcode
-run_if: ""
+  brew:
+  - name: go
+  apt_get:
+  - name: golang
+    bin_name: go
+toolkit:
+  go:
+    package_name: github.com/bitrise-io/steps-xcode-archive
 inputs:
   - export_method: "auto-detect"
     opts:
@@ -249,6 +256,11 @@ inputs:
         If step doesn't find export method based on provisioning profile, development will be use.
 
         Call `xcodebuild -help` for available export options.
+  - artifact_name: ${scheme}
+    opts:
+      title: "Generated Artifact Name"
+      description: |-
+        This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
 outputs:
   - BITRISE_IPA_PATH:
     opts:
