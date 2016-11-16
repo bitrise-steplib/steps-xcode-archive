@@ -12,27 +12,27 @@
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/cmdex",
-			"Rev": "5c210e4691a5a75e5685d2e842a104ca55ec7697"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/colorstring",
-			"Rev": "5c210e4691a5a75e5685d2e842a104ca55ec7697"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/errorutil",
-			"Rev": "5c210e4691a5a75e5685d2e842a104ca55ec7697"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/fileutil",
-			"Rev": "5c210e4691a5a75e5685d2e842a104ca55ec7697"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/log",
-			"Rev": "5c210e4691a5a75e5685d2e842a104ca55ec7697"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/pathutil",
-			"Rev": "5c210e4691a5a75e5685d2e842a104ca55ec7697"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/exportoptions",

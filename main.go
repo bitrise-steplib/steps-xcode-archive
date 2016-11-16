@@ -231,6 +231,10 @@ func findIDEDistrubutionLogsPath(output string) (string, error) {
 	return "", nil
 }
 
+func applyRVMFix() error {
+	return nil
+}
+
 func main() {
 	configs := createConfigsModelFromEnvs()
 
@@ -332,28 +336,32 @@ or use 'xcodebuild' as 'output_tool'.`)
 	}
 	tmpArchivePath := filepath.Join(tmpArchiveDir, configs.ArtifactName+".xcarchive")
 
-	archiveZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".xcarchive.zip")
 	appPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".app")
 	ipaPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".ipa")
+	archiveZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".xcarchive.zip")
 	dsymZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".dSYM.zip")
+	rawXcodebuildOutputLogPath := filepath.Join(configs.OutputDir, "raw-xcodebuild-output.log")
+	exportOptionsPath := filepath.Join(configs.OutputDir, "export_options.plist")
 
 	// cleanup
-	if exist, err := pathutil.IsPathExists(ipaPath); err != nil {
-		fail("Failed to check if ipa (%s) exist, error: %s", ipaPath, err)
-	} else if exist {
-		if err := os.Remove(ipaPath); err != nil {
-			fail("Failed to remove ipa (%s), error: %s", ipaPath, err)
-		}
+	filesToCleanup := []string{
+		appPath,
+		ipaPath,
+		archiveZipPath,
+		dsymZipPath,
+		rawXcodebuildOutputLogPath,
+		exportOptionsPath,
 	}
 
-	if exist, err := pathutil.IsPathExists(dsymZipPath); err != nil {
-		fail("Failed to check if dsym.zip (%s) exist, error: %s", dsymZipPath, err)
-	} else if exist {
-		if err := os.Remove(dsymZipPath); err != nil {
-			fail("Failed to remove dsym.zip (%s), error: %s", dsymZipPath, err)
+	for _, pth := range filesToCleanup {
+		if exist, err := pathutil.IsPathExists(pth); err != nil {
+			fail("Failed to check if path (%s) exist, error: %s", pth, err)
+		} else if exist {
+			if err := os.Remove(pth); err != nil {
+				fail("Failed to remove path (%s), error: %s", pth, err)
+			}
 		}
 	}
-	fmt.Println()
 
 	//
 	// Create the Archive with Xcode Command Line tools
@@ -411,8 +419,14 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 		rawXcodebuildOut, err := xcprettyCmd.Run()
 		if err != nil {
-			if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOut); err != nil {
-				fail("Failed to export xcodebuild raw log path, error: %s", err)
+			if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
+				log.Warn("Failed to write raw xcodebuild log, error: %s", err)
+			} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
+				log.Warn("Failed to export xcodebuild raw log path, error: %s", err)
+			} else {
+				log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+The log file is stored in \$BITRISE_DEPLOY_DIR, and its full path
+is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 
 			fail("Archive failed, error: %s", err)
@@ -435,6 +449,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		fail("No archive generated at: %s", tmpArchivePath)
 	}
 
+	//
 	// Exporting the ipa with Xcode Command Line tools
 
 	/*
@@ -446,9 +461,6 @@ or use 'xcodebuild' as 'output_tool'.`)
 		- http://stackoverflow.com/questions/33041109/xcodebuild-no-applicable-devices-found-when-exporting-archive
 		- https://gist.github.com/claybridges/cea5d4afd24eda268164
 	*/
-
-	//
-	// Export ipa from the archive
 	log.Info("Exporting ipa from the archive...")
 	fmt.Println()
 
@@ -460,7 +472,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 	}
 
 	if xcodeMajorVersion == 6 || configs.UseDeprecatedExport == "yes" {
-		log.Warn("Using legacy export")
+		log.Detail("Using legacy export")
 		/*
 			Get the name of the profile which was used for creating the archive
 			--> Search for embedded.mobileprovision in the xcarchive.
@@ -470,19 +482,16 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 		embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(tmpArchivePath)
 		if err != nil {
-			log.Error("Failed to get embedded profile path, error: %s", err)
-			os.Exit(1)
+			fail("Failed to get embedded profile path, error: %s", err)
 		}
 
 		provProfile, err := provisioningprofile.NewFromFile(embeddedProfilePth)
 		if err != nil {
-			log.Error("Failed to create provisioning profile model, error: %s", err)
-			os.Exit(1)
+			fail("Failed to create provisioning profile model, error: %s", err)
 		}
 
 		if provProfile.Name == nil {
-			log.Error("Profile name empty")
-			os.Exit(1)
+			fail("Profile name empty")
 		}
 
 		xcodebuildCmd := xcodebuild.New()
@@ -492,13 +501,12 @@ or use 'xcodebuild' as 'output_tool'.`)
 		xcodebuildCmd.SetExportProvisioningProfile(*provProfile.Name)
 
 		if configs.OutputTool == "xcpretty" {
-			xcprettyCmd := xcpretty.New()
-
 			exportCmd, err := xcodebuildCmd.LegacyExportCmd()
 			if err != nil {
 				fail("Failed to create export command, error: %s", err)
 			}
 
+			xcprettyCmd := xcpretty.New()
 			xcprettyCmd.SetCmdToPretty(exportCmd)
 
 			log.Done("$ %s", xcprettyCmd.PrintableCmd())
@@ -506,8 +514,14 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 			rawXcodebuildOut, err := xcprettyCmd.Run()
 			if err != nil {
-				if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOut); err != nil {
-					fail("Failed to export xcodebuild raw log path, error: %s", err)
+				if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
+					log.Warn("Failed to write raw xcodebuild log, error: %s", err)
+				} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
+					log.Warn("Failed to export xcodebuild raw log path, error: %s", err)
+				} else {
+					log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+The log file is stored in \$BITRISE_DEPLOY_DIR, and its full path
+is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				fail("Export failed, error: %s", err)
@@ -521,55 +535,45 @@ or use 'xcodebuild' as 'output_tool'.`)
 			}
 		}
 	} else {
-		exportOptionsPth := ""
+		log.Detail("Using export options")
 
 		if configs.CustomExportOptionsPlistContent != "" {
 			log.Detail("Custom export options content provided:")
 			fmt.Println(configs.CustomExportOptionsPlistContent)
 
-			tmpDir, err := pathutil.NormalizedOSTempDirPath("export")
-			if err != nil {
-				log.Error("Failed to create tmp dir, error: %s", err)
-				os.Exit(1)
-			}
-			exportOptionsPth = filepath.Join(tmpDir, "export-options.plist")
-
-			if err := fileutil.WriteStringToFile(exportOptionsPth, configs.CustomExportOptionsPlistContent); err != nil {
+			if err := fileutil.WriteStringToFile(exportOptionsPath, configs.CustomExportOptionsPlistContent); err != nil {
 				log.Error("Failed to write export options to file, error: %s", err)
 				os.Exit(1)
 			}
 		} else {
 			log.Detail("Generating export options")
 
-			var exportOpts exportoptions.ExportOptions
-
 			var method exportoptions.Method
-
 			if configs.ExportMethod == "auto-detect" {
-				log.Detail("creating default export options based on embedded profile")
+				log.Detail("auto-detect export method, based on embedded profile")
 
 				embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(tmpArchivePath)
 				if err != nil {
-					log.Error("Failed to get embedded profile path, error: %s", err)
-					os.Exit(1)
+					fail("Failed to get embedded profile path, error: %s", err)
 				}
 
 				provProfile, err := provisioningprofile.NewFromFile(embeddedProfilePth)
 				if err != nil {
-					log.Error("Failed to create provisioning profile model, error: %s", err)
-					os.Exit(1)
+					fail("Failed to create provisioning profile model, error: %s", err)
 				}
 
 				method = provProfile.GetExportMethod()
+				log.Detail("detected export method: %s", method)
 			} else {
+				log.Detail("using export-method input: %s", configs.ExportMethod)
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
-					log.Error("Failed to parse export options, error: %s", err)
-					os.Exit(1)
+					fail("Failed to parse export options, error: %s", err)
 				}
 				method = parsedMethod
 			}
 
+			var exportOpts exportoptions.ExportOptions
 			if method == exportoptions.MethodAppStore {
 				options := exportoptions.NewAppStoreOptions()
 				options.UploadBitcode = (configs.UploadBitcode == "yes")
@@ -587,11 +591,8 @@ or use 'xcodebuild' as 'output_tool'.`)
 			log.Detail("generated export options content:")
 			fmt.Println(exportOpts.String())
 
-			var err error
-			exportOptionsPth, err = exportOpts.WriteToTmpFile()
-			if err != nil {
-				log.Error("Failed to write export options to file, error: %s", err)
-				os.Exit(1)
+			if err = exportOpts.WriteToFile(exportOptionsPath); err != nil {
+				fail("Failed to write export options to file, error: %s", err)
 			}
 		}
 
@@ -605,7 +606,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		xcodebuildCmd := xcodebuild.New()
 		xcodebuildCmd.SetArchivePath(tmpArchivePath)
 		xcodebuildCmd.SetExportPath(tmpDir)
-		xcodebuildCmd.SetExportOptionsPlist(exportOptionsPth)
+		xcodebuildCmd.SetExportOptionsPlist(exportOptionsPath)
 
 		if configs.OutputTool == "xcpretty" {
 			xcprettyCmd := xcpretty.New()
