@@ -127,5 +127,8 @@ func (xb Model) Export() (string, error) {
 	cmd.SetStdout(outWriter)
 	cmd.SetStderr(outWriter)
 
-	return outBuffer.String(), cmd.Run()
+	err = cmd.Run()
+	out := outBuffer.String()
+
+	return out, err
 }

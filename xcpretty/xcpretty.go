@@ -97,5 +97,5 @@ func (xcp Model) Run() (string, error) {
 		return out, err
 	}
 
-	return "", nil
+	return outBuffer.String(), nil
 }

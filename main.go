@@ -19,7 +19,7 @@ import (
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
 	"github.com/bitrise-tools/go-xcode/xcarchive"
-	shellquote "github.com/kballard/go-shellquote"
+	"github.com/kballard/go-shellquote"
 )
 
 const (
@@ -211,23 +211,24 @@ func zip(sourceDir, destinationZipPth string) error {
 }
 
 func findIDEDistrubutionLogsPath(output string) (string, error) {
-	ideDistrubutionLogsPath := ""
-
 	pattern := `IDEDistribution: -\[IDEDistributionLogging _createLoggingBundleAtPath:\]: Created bundle at path '(?P<log_path>.*)'`
 	re := regexp.MustCompile(pattern)
 
 	scanner := bufio.NewScanner(strings.NewReader(output))
 	for scanner.Scan() {
 		line := scanner.Text()
+		fmt.Printf("[] line: %s\n", line)
 		if match := re.FindStringSubmatch(line); len(match) == 2 {
-			ideDistrubutionLogsPath = match[1]
+			fmt.Printf("match: %s\n", match[1])
+			return match[1], nil
 		}
+		fmt.Printf("no match\n")
 	}
 	if err := scanner.Err(); err != nil {
 		return "", err
 	}
 
-	return ideDistrubutionLogsPath, nil
+	return "", nil
 }
 
 func main() {
@@ -542,6 +543,8 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 			var exportOpts exportoptions.ExportOptions
 
+			var method exportoptions.Method
+
 			if configs.ExportMethod == "auto-detect" {
 				log.Detail("creating default export options based on embedded profile")
 
@@ -557,37 +560,28 @@ or use 'xcodebuild' as 'output_tool'.`)
 					os.Exit(1)
 				}
 
-				if provProfile.Name != nil {
-					log.Detail("embedded profile name: %s", *provProfile.Name)
-				}
-
-				options, err := xcarchive.DefaultExportOptions(provProfile)
-				if err != nil {
-					log.Error("Failed to create default export options, error: %s", err)
-					os.Exit(1)
-				}
-
-				exportOpts = options
+				method = provProfile.GetExportMethod()
 			} else {
-				method, err := exportoptions.ParseMethod(configs.ExportMethod)
+				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
 					log.Error("Failed to parse export options, error: %s", err)
 					os.Exit(1)
 				}
+				method = parsedMethod
+			}
 
-				if method == exportoptions.MethodAppStore {
-					options := exportoptions.NewAppStoreOptions()
-					options.UploadBitcode = (configs.UploadBitcode == "yes")
-					options.TeamID = configs.TeamID
+			if method == exportoptions.MethodAppStore {
+				options := exportoptions.NewAppStoreOptions()
+				options.UploadBitcode = (configs.UploadBitcode == "yes")
+				options.TeamID = configs.TeamID
 
-					exportOpts = options
-				} else {
-					options := exportoptions.NewNonAppStoreOptions(method)
-					options.CompileBitcode = (configs.CompileBitcode == "yes")
-					options.TeamID = configs.TeamID
+				exportOpts = options
+			} else {
+				options := exportoptions.NewNonAppStoreOptions(method)
+				options.CompileBitcode = (configs.CompileBitcode == "yes")
+				options.TeamID = configs.TeamID
 
-					exportOpts = options
-				}
+				exportOpts = options
 			}
 
 			log.Detail("generated export options content:")
@@ -626,9 +620,18 @@ or use 'xcodebuild' as 'output_tool'.`)
 			log.Done("$ %s", xcprettyCmd.PrintableCmd())
 			fmt.Println()
 
-			rawXcodebuildOut, err := xcprettyCmd.Run()
+			xcodebuildOut, xcprettyErr := xcprettyCmd.Run()
+			logPth, err := findIDEDistrubutionLogsPath(xcodebuildOut)
 			if err != nil {
-				if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOut); err != nil {
+				log.Warn("Failed to find xcdistributionlogs, error: %s", err)
+			}
+
+			if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", logPth); err != nil {
+				fail("Failed to export xcdistributionlogs path, error: %s", err)
+			}
+
+			if xcprettyErr != nil {
+				if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", xcodebuildOut); err != nil {
 					fail("Failed to export xcodebuild raw log path, error: %s", err)
 				}
 
@@ -638,19 +641,20 @@ or use 'xcodebuild' as 'output_tool'.`)
 			log.Done("$ %s", xcodebuildCmd.PrintableExportCmd())
 			fmt.Println()
 
-			if out, err := xcodebuildCmd.Export(); err != nil {
-				logPth, err := findIDEDistrubutionLogsPath(out)
-				if err != nil {
-					log.Warn("Failed to find xcdistributionlogs, error: %s", err)
-				}
+			xcodebuildOut, xcodebuildErr := xcodebuildCmd.Export()
+			logPth, err := findIDEDistrubutionLogsPath(xcodebuildOut)
+			if err != nil {
+				log.Warn("Failed to find xcdistributionlogs, error: %s", err)
+			}
 
-				log.Warn("logPth: %s", logPth)
+			fmt.Printf("xcodebuildOut: %s\n", xcodebuildOut)
 
-				if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", logPth); err != nil {
-					fail("Failed to export xcdistributionlogs path, error: %s", err)
-				}
+			if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", logPth); err != nil {
+				fail("Failed to export xcdistributionlogs path, error: %s", err)
+			}
 
-				fail("Export failed, error: %s", err)
+			if xcodebuildErr != nil {
+				fail("Export failed, error: %s", xcodebuildErr)
 			}
 		}
 
