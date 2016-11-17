@@ -217,12 +217,9 @@ func findIDEDistrubutionLogsPath(output string) (string, error) {
 	scanner := bufio.NewScanner(strings.NewReader(output))
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Printf("[] line: %s\n", line)
 		if match := re.FindStringSubmatch(line); len(match) == 2 {
-			fmt.Printf("match: %s\n", match[1])
 			return match[1], nil
 		}
-		fmt.Printf("no match\n")
 	}
 	if err := scanner.Err(); err != nil {
 		return "", err
@@ -231,7 +228,33 @@ func findIDEDistrubutionLogsPath(output string) (string, error) {
 	return "", nil
 }
 
+func isProgramInstalled(name string) bool {
+	err := cmdex.NewCommand("which", name).Run()
+	return (err == nil)
+}
+
 func applyRVMFix() error {
+	if !isProgramInstalled("rvm") {
+		return nil
+	}
+	log.Warn(`Applying RVM 'fix'`)
+
+	homeDir := pathutil.UserHomeDir()
+	rvmScriptPth := filepath.Join(homeDir, ".rvm/scripts/rvm")
+	if exist, err := pathutil.IsPathExists(rvmScriptPth); err != nil {
+		return err
+	} else if !exist {
+		return nil
+	}
+
+	if err := cmdex.NewCommand("source", rvmScriptPth).Run(); err != nil {
+		return err
+	}
+
+	if err := cmdex.NewCommand("rvm", "use", "system").Run(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -357,7 +380,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		if exist, err := pathutil.IsPathExists(pth); err != nil {
 			fail("Failed to check if path (%s) exist, error: %s", pth, err)
 		} else if exist {
-			if err := os.Remove(pth); err != nil {
+			if err := os.RemoveAll(pth); err != nil {
 				fail("Failed to remove path (%s), error: %s", pth, err)
 			}
 		}
@@ -548,6 +571,15 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		} else {
 			log.Detail("Generating export options")
 
+			/*
+			   Because of an RVM issue which conflicts with `xcodebuild`'s new
+			   `-exportOptionsPlist` option
+			   link: https://github.com/bitrise-io/steps-xcode-archive/issues/13
+			*/
+			if err := applyRVMFix(); err != nil {
+				fail("rvm fix failed, error: %s", err)
+			}
+
 			var method exportoptions.Method
 			if configs.ExportMethod == "auto-detect" {
 				log.Detail("auto-detect export method, based on embedded profile")
@@ -589,6 +621,7 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 
 			log.Detail("generated export options content:")
+			fmt.Println()
 			fmt.Println(exportOpts.String())
 
 			if err = exportOpts.WriteToFile(exportOptionsPath); err != nil {
@@ -647,8 +680,6 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			if err != nil {
 				log.Warn("Failed to find xcdistributionlogs, error: %s", err)
 			}
-
-			fmt.Printf("xcodebuildOut: %s\n", xcodebuildOut)
 
 			if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", logPth); err != nil {
 				fail("Failed to export xcdistributionlogs path, error: %s", err)

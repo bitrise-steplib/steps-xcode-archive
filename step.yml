@@ -268,12 +268,28 @@ outputs:
   - BITRISE_APP_DIR_PATH:
     opts:
       title: The generated .app directory
-  - BITRISE_DSYM_PATH:
+  - BITRISE_DSYM_DIR_PATH:
+    opts:
+      title: The created .dSYM dir's path
+      description: |-
+        If `export_all_dsyms` is set to `"yes"`, step will collect every dsym (.app dsym and framwork dsyms) in a directory and export the directory path.
+        Otherwise this environment points to the .app.DSYM directory path.
+  - BITRISE_DSYM_DIR_ZIP_PATH:
     opts:
       title: The created .dSYM.zip file's path
+      description: |-
+        If `export_all_dsyms` is set to `"yes"`, step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
+        Otherwise this environment points to the zipped .app.DSYM directory path.
   - BITRISE_XCARCHIVE_PATH:
     opts:
+      title: The created .xcarchive file's path
+  - BITRISE_XCARCHIVE_ZIP_PATH:
+    opts:
       title: The created .xcarchive.zip file's path
+      description: |-
+         The created .xcarchive.zip file's path.
+
+         This environment will be exported only if, is_export_xcarchive_zip="yes"
   - BITRISE_XCODE_ARCHIVE_RAW_RESULT_TEXT_PATH:
     opts:
       title: The full, raw archive output file path
@@ -284,4 +300,6 @@ outputs:
   - BITRISE_IDEDISTRIBUTION_LOGS_PATH:
     opts:
       title: Path to the xcdistributionlogs
-      description: ""
+  - BITRISE_DSYM_PATH:
+    opts:
+      title: The created .dSYM.zip file's path
