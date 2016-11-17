@@ -15,6 +15,10 @@ workflows:
   ci:
     before_run:
     - go-tests
+    after_run:
+    - ci-minimal
+
+  ci-minimal:
     steps:
     - script:
         inputs:
@@ -42,7 +46,6 @@ workflows:
     - certificate-and-profile-installer: {}
     - path::./: 
         inputs:
-        - output_dir: $HOME/Downloads
         - output_tool: xcodebuild
         - is_export_xcarchive_zip: "yes"
         - export_all_dsyms: "yes"
