@@ -28,6 +28,8 @@ workflows:
     - test
 
   ci-xcode-8:
+    before_run:
+    - go-tests
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
