@@ -228,13 +228,8 @@ func findIDEDistrubutionLogsPath(output string) (string, error) {
 	return "", nil
 }
 
-func isProgramInstalled(name string) bool {
-	err := cmdex.NewCommand("which", name).Run()
-	return (err == nil)
-}
-
 func applyRVMFix() error {
-	if !isProgramInstalled("rvm") {
+	if !utils.IsToolInstalled("rvm") {
 		return nil
 	}
 	log.Warn(`Applying RVM 'fix'`)
@@ -725,22 +720,28 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	//
 	// Export outputs
 
-	// Export xcarchive zip path
-	if configs.IsExportXcarchiveZip == "yes" {
-		fmt.Println()
+	// Export .xcarchive
+	fmt.Println()
 
+	if err := exportEnvironmentWithEnvman("BITRISE_XCARCHIVE_PATH", tmpArchiveDir); err != nil {
+		fail("Failed to export xcarchivepath, error: %s", err)
+	}
+
+	log.Done("The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH (value: %s)", archiveZipPath)
+
+	if configs.IsExportXcarchiveZip == "yes" {
 		if err := zip(tmpArchiveDir, archiveZipPath); err != nil {
 			fail("zip failed, error: %s", err)
 		}
 
-		if err := exportEnvironmentWithEnvman("BITRISE_XCARCHIVE_PATH", archiveZipPath); err != nil {
+		if err := exportEnvironmentWithEnvman("BITRISE_XCARCHIVE_ZIP_PATH", archiveZipPath); err != nil {
 			fail("Failed to export xcarchive zip path, error: %s", err)
 		}
 
-		log.Done("The xcarchive zip path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH (value: %s)", archiveZipPath)
+		log.Done("The xcarchive zip path is now available in the Environment Variable: $BITRISE_XCARCHIVE_ZIP_PATH (value: %s)", archiveZipPath)
 	}
 
-	// Export app directory
+	// Export .app
 	fmt.Println()
 
 	exportedApp := ""
@@ -781,7 +782,7 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		log.Done("The app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH (value: %s)", exportedApp)
 	}
 
-	// Export ipa path
+	// Export .ipa
 	fmt.Println()
 
 	if err := exportEnvironmentWithEnvman("BITRISE_IPA_PATH", ipaPath); err != nil {
@@ -790,7 +791,7 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 	log.Done("The ipa path is now available in the Environment Variable: $BITRISE_IPA_PATH (value: %s)", ipaPath)
 
-	// Export dSYMs
+	// Export .dSYMs
 	fmt.Println()
 
 	appDSYM, frameworkDSYMs, err := xcarchive.ExportDSYMs(tmpArchivePath)
@@ -815,9 +816,21 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		}
 	}
 
+	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_DIR_PATH", dsymDir); err != nil {
+		fail("Failed to export dsym path, error: %s", err)
+	}
+
+	log.Done("The dSYM dir path is now available in the Environment Variable: $BITRISE_DSYM_DIR_PATH (value: %s)", dsymDir)
+
 	if err := zip(dsymDir, dsymZipPath); err != nil {
 		fail("zip failed, error: %s", err)
 	}
+
+	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_DIR_ZIP_PATH", dsymZipPath); err != nil {
+		fail("Failed to export dsym path, error: %s", err)
+	}
+
+	log.Done("The dSYM zip path is now available in the Environment Variable: $BITRISE_DSYM_DIR_ZIP_PATH (value: %s)", dsymZipPath)
 
 	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_PATH", dsymZipPath); err != nil {
 		fail("Failed to export dsym path, error: %s", err)

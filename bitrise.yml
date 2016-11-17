@@ -75,9 +75,16 @@ workflows:
         inputs:
         - content: |-
             echo "-> BITRISE_IPA_PATH: $BITRISE_IPA_PATH"
+
             echo "-> BITRISE_APP_DIR_PATH: $BITRISE_APP_DIR_PATH"
+
+            echo "-> BITRISE_DSYM_DIR_PATH: $BITRISE_DSYM_DIR_PATH"
+            echo "-> BITRISE_DSYM_DIR_ZIP_PATH: $BITRISE_DSYM_DIR_ZIP_PATH"
             echo "-> BITRISE_DSYM_PATH: $BITRISE_DSYM_PATH"
+
             echo "-> BITRISE_XCARCHIVE_PATH: $BITRISE_XCARCHIVE_PATH"
+            echo "-> BITRISE_XCARCHIVE_ZIP_PATH: $BITRISE_XCARCHIVE_ZIP_PATH"
+
             echo "-> BITRISE_IDEDISTRIBUTION_LOGS_PATH: $BITRISE_IDEDISTRIBUTION_LOGS_PATH"
 
   go-tests:

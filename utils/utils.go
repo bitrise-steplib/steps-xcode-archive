@@ -45,7 +45,8 @@ func XcodeBuildVersion() (XcodebuildVersionModel, error) {
 	return createXcodeVersionFromOutput(versionOut)
 }
 
-func isToolInstalled(name string) bool {
+// IsToolInstalled ...
+func IsToolInstalled(name string) bool {
 	cmd := cmdex.NewCommand("which", name)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	return err == nil && out != ""
@@ -53,7 +54,7 @@ func isToolInstalled(name string) bool {
 
 // IsXcprettyInstalled ...
 func IsXcprettyInstalled() bool {
-	return isToolInstalled("xcpretty")
+	return IsToolInstalled("xcpretty")
 }
 
 func parseXcprettyVersionOut(versionOut string) (*version.Version, error) {
