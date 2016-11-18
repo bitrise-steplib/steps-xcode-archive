@@ -8,8 +8,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/go-utils/cmdex"
+	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -253,6 +255,21 @@ func applyRVMFix() error {
 	return nil
 }
 
+func currentTimestamp() string {
+	timeStampFormat := "15:04:05"
+	currentTime := time.Now()
+	return currentTime.Format(timeStampFormat)
+}
+
+// ColoringFunc ...
+type ColoringFunc func(...interface{}) string
+
+func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}) {
+	message := fmt.Sprintf(format, v...)
+	messageWithTimeStamp := fmt.Sprintf("[%s] %s", currentTimestamp(), coloringFunc(message))
+	fmt.Println(messageWithTimeStamp)
+}
+
 func main() {
 	configs := createConfigsModelFromEnvs()
 
@@ -360,6 +377,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 	dsymZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".dSYM.zip")
 	rawXcodebuildOutputLogPath := filepath.Join(configs.OutputDir, "raw-xcodebuild-output.log")
 	exportOptionsPath := filepath.Join(configs.OutputDir, "export_options.plist")
+	ideDistributionLogPath := filepath.Join(configs.OutputDir, "xcodebuild.xcdistributionlogs")
 
 	// cleanup
 	filesToCleanup := []string{
@@ -369,6 +387,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		dsymZipPath,
 		rawXcodebuildOutputLogPath,
 		exportOptionsPath,
+		ideDistributionLogPath,
 	}
 
 	for _, pth := range filesToCleanup {
@@ -432,7 +451,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 		xcprettyCmd.SetCmdToPretty(archiveCmd)
 
-		log.Done("$ %s", xcprettyCmd.PrintableCmd())
+		logWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
 		fmt.Println()
 
 		rawXcodebuildOut, err := xcprettyCmd.Run()
@@ -450,7 +469,7 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			fail("Archive failed, error: %s", err)
 		}
 	} else {
-		log.Done("$ %s", xcodebuildCmd.PrintableArchiveCmd())
+		logWithTimestamp(colorstring.Green, "$ %s", xcodebuildCmd.PrintableArchiveCmd())
 		fmt.Println()
 
 		if err := xcodebuildCmd.Archive(); err != nil {
@@ -527,7 +546,7 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			xcprettyCmd := xcpretty.New()
 			xcprettyCmd.SetCmdToPretty(exportCmd)
 
-			log.Done("$ %s", xcprettyCmd.PrintableCmd())
+			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 			fmt.Println()
 
 			rawXcodebuildOut, err := xcprettyCmd.Run()
@@ -545,7 +564,7 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				fail("Export failed, error: %s", err)
 			}
 		} else {
-			log.Done("$ %s", xcodebuildCmd.PrintableLegacyExportCmd())
+			logWithTimestamp(colorstring.Green, xcodebuildCmd.PrintableLegacyExportCmd())
 			fmt.Println()
 
 			if err := xcodebuildCmd.LegacyExport(); err != nil {
@@ -646,28 +665,38 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 			xcprettyCmd.SetCmdToPretty(exportCmd)
 
-			log.Done("$ %s", xcprettyCmd.PrintableCmd())
+			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 			fmt.Println()
 
-			xcodebuildOut, xcprettyErr := xcprettyCmd.Run()
-			logPth, err := findIDEDistrubutionLogsPath(xcodebuildOut)
+			rawXcodebuildOut, xcprettyErr := xcprettyCmd.Run()
+			logPth, err := findIDEDistrubutionLogsPath(rawXcodebuildOut)
 			if err != nil {
 				log.Warn("Failed to find xcdistributionlogs, error: %s", err)
 			}
 
-			if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", logPth); err != nil {
-				fail("Failed to export xcdistributionlogs path, error: %s", err)
+			if err := cmdex.CopyDir(logPth, ideDistributionLogPath, true); err != nil {
+				log.Warn("Failed to move xcdistributionlogs to (%s), error: %s", ideDistributionLogPath, err)
+			} else {
+				if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", ideDistributionLogPath); err != nil {
+					fail("Failed to export xcdistributionlogs path, error: %s", err)
+				}
 			}
 
 			if xcprettyErr != nil {
-				if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", xcodebuildOut); err != nil {
-					fail("Failed to export xcodebuild raw log path, error: %s", err)
+				if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
+					log.Warn("Failed to write raw xcodebuild log, error: %s", err)
+				} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
+					log.Warn("Failed to export xcodebuild raw log path, error: %s", err)
+				} else {
+					log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+The log file is stored in \$BITRISE_DEPLOY_DIR, and its full path
+is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				fail("Export failed, error: %s", err)
 			}
 		} else {
-			log.Done("$ %s", xcodebuildCmd.PrintableExportCmd())
+			logWithTimestamp(colorstring.Green, xcodebuildCmd.PrintableExportCmd())
 			fmt.Println()
 
 			xcodebuildOut, xcodebuildErr := xcodebuildCmd.Export()
@@ -676,8 +705,12 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Warn("Failed to find xcdistributionlogs, error: %s", err)
 			}
 
-			if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", logPth); err != nil {
-				fail("Failed to export xcdistributionlogs path, error: %s", err)
+			if err := cmdex.CopyDir(logPth, ideDistributionLogPath, true); err != nil {
+				log.Warn("Failed to move xcdistributionlogs to (%s), error: %s", ideDistributionLogPath, err)
+			} else {
+				if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", ideDistributionLogPath); err != nil {
+					fail("Failed to export xcdistributionlogs path, error: %s", err)
+				}
 			}
 
 			if xcodebuildErr != nil {
@@ -727,7 +760,7 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		fail("Failed to export xcarchivepath, error: %s", err)
 	}
 
-	log.Done("The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH (value: %s)", archiveZipPath)
+	log.Done("The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH (value: %s)", tmpArchiveDir)
 
 	if configs.IsExportXcarchiveZip == "yes" {
 		if err := zip(tmpArchiveDir, archiveZipPath); err != nil {
@@ -825,12 +858,6 @@ is available in the \$BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	if err := zip(dsymDir, dsymZipPath); err != nil {
 		fail("zip failed, error: %s", err)
 	}
-
-	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_DIR_ZIP_PATH", dsymZipPath); err != nil {
-		fail("Failed to export dsym path, error: %s", err)
-	}
-
-	log.Done("The dSYM zip path is now available in the Environment Variable: $BITRISE_DSYM_DIR_ZIP_PATH (value: %s)", dsymZipPath)
 
 	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_PATH", dsymZipPath); err != nil {
 		fail("Failed to export dsym path, error: %s", err)

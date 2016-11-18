@@ -9,6 +9,10 @@ import (
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 )
 
+const (
+	notValidParameterErrorMessage = "security: SecPolicySetValue: One or more parameters passed to a function were not valid."
+)
+
 // EntitlementsModel ...
 type EntitlementsModel struct {
 	GetTaskAllow    *bool   `plist:"get-task-allow"`
@@ -34,16 +38,19 @@ func newFromProfileContent(content string) (Model, error) {
 
 // NewFromFile ...
 func NewFromFile(pth string) (Model, error) {
-	cmdSlice := []string{"security", "cms", "-D", "-i", pth}
-
-	cmd, err := cmdex.NewCommandFromSlice(cmdSlice)
-	if err != nil {
-		return Model{}, fmt.Errorf("failed to create command from (%s)", strings.Join(cmdSlice, " "))
-	}
+	cmd := cmdex.NewCommand("security", "cms", "-D", "-i", pth)
 
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return Model{}, fmt.Errorf("command failed, error: %s", err)
+	}
+
+	outSplit := strings.Split(out, "\n")
+	if len(outSplit) > 0 {
+		if strings.Contains(outSplit[0], notValidParameterErrorMessage) {
+			fixedOutSplit := outSplit[1:len(outSplit)]
+			out = strings.Join(fixedOutSplit, "\n")
+		}
 	}
 
 	return newFromProfileContent(out)

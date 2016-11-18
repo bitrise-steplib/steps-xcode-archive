@@ -36,15 +36,15 @@
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/exportoptions",
-			"Rev": "0966872a26cb5c83a7860f881046b3f6a8944712"
+			"Rev": "0d1f0390d9c46b01ea8e57d7b3d7e02ff8dcc59c"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/provisioningprofile",
-			"Rev": "0966872a26cb5c83a7860f881046b3f6a8944712"
+			"Rev": "0d1f0390d9c46b01ea8e57d7b3d7e02ff8dcc59c"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcarchive",
-			"Rev": "0966872a26cb5c83a7860f881046b3f6a8944712"
+			"Rev": "0d1f0390d9c46b01ea8e57d7b3d7e02ff8dcc59c"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-version",

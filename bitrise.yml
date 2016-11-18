@@ -79,7 +79,6 @@ workflows:
             echo "-> BITRISE_APP_DIR_PATH: $BITRISE_APP_DIR_PATH"
 
             echo "-> BITRISE_DSYM_DIR_PATH: $BITRISE_DSYM_DIR_PATH"
-            echo "-> BITRISE_DSYM_DIR_ZIP_PATH: $BITRISE_DSYM_DIR_ZIP_PATH"
             echo "-> BITRISE_DSYM_PATH: $BITRISE_DSYM_PATH"
 
             echo "-> BITRISE_XCARCHIVE_PATH: $BITRISE_XCARCHIVE_PATH"
