@@ -1,6 +1,12 @@
-## Changelog (Current version: 1.10.1)
+## Changelog (Current version: 2.0.0)
 
 -----------------
+
+### 2.0.0 (2016 Nov 18)
+
+* [db93fd5] prepare for 2.0.0
+* [6e8fe18] Go toolkit (#55)
+* [f341f67] one more env to unset, to work around Xcode's bug (#52)
 
 ### 1.10.1 (2016 Oct 11)
 
@@ -234,4 +240,4 @@
 
 -----------------
 
-Updated: 2016 Oct 11
+Updated: 2016 Nov 18
