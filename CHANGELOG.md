@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.0.0)
+## Changelog (Current version: 2.0.1)
 
 -----------------
+
+### 2.0.1 (2016 Nov 18)
+
+* [7e82157] prepare for 2.0.1
+* [960741a] fixed xcodebuild force options, ensure xcpretty close (#56)
 
 ### 2.0.0 (2016 Nov 18)
 
