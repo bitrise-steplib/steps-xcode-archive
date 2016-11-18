@@ -1,6 +1,7 @@
 package xcodebuild
 
 import (
+	"fmt"
 	"os"
 
 	"os/exec"
@@ -35,16 +36,16 @@ func (xb Model) archiveCmdSlice() []string {
 	}
 
 	if xb.forceDevelopmentTeam != "" {
-		slice = append(slice, "DEVELOPMENT_TEAM", xb.forceDevelopmentTeam)
+		slice = append(slice, fmt.Sprintf("DEVELOPMENT_TEAM=%s", xb.forceDevelopmentTeam))
 	}
 	if xb.forceProvisioningProfileSpecifier != "" {
-		slice = append(slice, "DEVELOPMENT_TEAM", xb.forceProvisioningProfileSpecifier)
+		slice = append(slice, fmt.Sprintf("DEVELOPMENT_TEAM=%s", xb.forceProvisioningProfileSpecifier))
 	}
 	if xb.forceProvisioningProfile != "" {
-		slice = append(slice, "PROVISIONING_PROFILE", xb.forceProvisioningProfile)
+		slice = append(slice, fmt.Sprintf("PROVISIONING_PROFILE=%s", xb.forceProvisioningProfile))
 	}
 	if xb.forceCodeSignIdentity != "" {
-		slice = append(slice, "CODE_SIGN_IDENTITY", xb.forceCodeSignIdentity)
+		slice = append(slice, fmt.Sprintf("CODE_SIGN_IDENTITY=%s", xb.forceCodeSignIdentity))
 	}
 
 	slice = append(slice, xb.customOptions...)

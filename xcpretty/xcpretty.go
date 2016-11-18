@@ -9,6 +9,7 @@ import (
 	"bytes"
 
 	"github.com/bitrise-io/go-utils/cmdex"
+	"github.com/bitrise-io/go-utils/log"
 )
 
 const (
@@ -83,16 +84,17 @@ func (xcp Model) Run() (string, error) {
 		return out, err
 	}
 
-	if err := xcp.cmdToPretty.Wait(); err != nil {
-		out := outBuffer.String()
-		return out, err
-	}
-	if err := pipeWriter.Close(); err != nil {
-		out := outBuffer.String()
-		return out, err
-	}
+	defer func() {
+		if err := pipeWriter.Close(); err != nil {
+			log.Warn("Failed to close xcodebuild-xcpretty pipe, error: %s", err)
+		}
 
-	if err := prettyCmd.GetCmd().Wait(); err != nil {
+		if err := prettyCmd.GetCmd().Wait(); err != nil {
+			log.Warn("xcpretty command failed, error: %s", err)
+		}
+	}()
+
+	if err := xcp.cmdToPretty.Wait(); err != nil {
 		out := outBuffer.String()
 		return out, err
 	}
