@@ -22,7 +22,14 @@ is_skippable: false
 deps:
   check_only:
   - name: xcode
-run_if: ""
+  brew:
+  - name: go
+  apt_get:
+  - name: golang
+    bin_name: go
+toolkit:
+  go:
+    package_name: github.com/bitrise-io/steps-xcode-archive
 inputs:
   - export_method: "auto-detect"
     opts:
@@ -249,6 +256,11 @@ inputs:
         If step doesn't find export method based on provisioning profile, development will be use.
 
         Call `xcodebuild -help` for available export options.
+  - artifact_name: ${scheme}
+    opts:
+      title: "Generated Artifact Name"
+      description: |-
+        This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
 outputs:
   - BITRISE_IPA_PATH:
     opts:
@@ -256,12 +268,28 @@ outputs:
   - BITRISE_APP_DIR_PATH:
     opts:
       title: The generated .app directory
+  - BITRISE_DSYM_DIR_PATH:
+    opts:
+      title: The created .dSYM dir's path
+      description: |-
+        If `export_all_dsyms` is set to `"yes"`, step will collect every dsym (.app dsym and framwork dsyms) in a directory and export the directory path.
+        Otherwise this environment points to the .app.DSYM directory path.
   - BITRISE_DSYM_PATH:
     opts:
       title: The created .dSYM.zip file's path
+      description: |-
+        If `export_all_dsyms` is set to `"yes"`, step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
+        Otherwise this environment points to the zipped .app.DSYM directory path.
   - BITRISE_XCARCHIVE_PATH:
     opts:
+      title: The created .xcarchive file's path
+  - BITRISE_XCARCHIVE_ZIP_PATH:
+    opts:
       title: The created .xcarchive.zip file's path
+      description: |-
+         The created .xcarchive.zip file's path.
+
+         This environment will be exported only if, is_export_xcarchive_zip="yes"
   - BITRISE_XCODE_ARCHIVE_RAW_RESULT_TEXT_PATH:
     opts:
       title: The full, raw archive output file path
@@ -269,3 +297,6 @@ outputs:
         This is the path of the raw archive results log file.
 
         If `output_tool=xcpretty` and the archive fails this log will contain the archive output.
+  - BITRISE_IDEDISTRIBUTION_LOGS_PATH:
+    opts:
+      title: Path to the xcdistributionlogs
