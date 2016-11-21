@@ -312,20 +312,20 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 	// Validation CustomExportOptionsPlistContent
 	if configs.CustomExportOptionsPlistContent != "" &&
-		xcodeMajorVersion == 6 {
-		log.Warn("xcodeMajorVersion = 6, CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
+		xcodeMajorVersion < 7 {
+		log.Warn("CustomExportOptionsPlistContent is set, but CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
 		configs.CustomExportOptionsPlistContent = ""
 	}
 
 	if configs.ForceProvisioningProfileSpecifier != "" &&
 		xcodeMajorVersion < 8 {
-		log.Warn("ForceProvisioningProfileSpecifier is set but, ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
+		log.Warn("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
 		configs.ForceProvisioningProfileSpecifier = ""
 	}
 
 	if configs.ForceTeamID == "" &&
 		xcodeMajorVersion < 8 {
-		log.Warn("force_team_id is set but, force_team_id only used if xcodeMajorVersion > 7")
+		log.Warn("ForceTeamID is set, but ForceTeamID only used if xcodeMajorVersion > 7")
 		configs.ForceTeamID = ""
 	}
 
