@@ -1,0 +1,82 @@
+package exportoptions
+
+import (
+	"fmt"
+
+	plist "github.com/DHowett/go-plist"
+)
+
+// NonAppStoreOptionsModel ...
+type NonAppStoreOptionsModel struct {
+	Method Method
+	TeamID string
+
+	// for non app-store exports
+	CompileBitcode                           bool
+	EmbedOnDemandResourcesAssetPacksInBundle bool
+	ICloudContainerEnvironment               ICloudContainerEnvironment
+	Manifest                                 Manifest
+	OnDemandResourcesAssetPacksBaseURL       string
+	Thinning                                 string
+}
+
+// NewNonAppStoreOptions ...
+func NewNonAppStoreOptions(method Method) NonAppStoreOptionsModel {
+	return NonAppStoreOptionsModel{
+		Method:                                   method,
+		CompileBitcode:                           CompileBitcodeDefault,
+		EmbedOnDemandResourcesAssetPacksInBundle: EmbedOnDemandResourcesAssetPacksInBundleDefault,
+		ICloudContainerEnvironment:               ICloudContainerEnvironmentDefault,
+		Thinning:                                 ThinningDefault,
+	}
+}
+
+// Hash ...
+func (options NonAppStoreOptionsModel) Hash() map[string]interface{} {
+	hash := map[string]interface{}{}
+	if options.Method != "" {
+		hash[MethodKey] = options.Method
+	}
+	if options.TeamID != "" {
+		hash[TeamIDKey] = options.TeamID
+	}
+	if options.CompileBitcode != CompileBitcodeDefault {
+		hash[CompileBitcodeKey] = options.CompileBitcode
+	}
+	if options.EmbedOnDemandResourcesAssetPacksInBundle != EmbedOnDemandResourcesAssetPacksInBundleDefault {
+		hash[EmbedOnDemandResourcesAssetPacksInBundleKey] = options.EmbedOnDemandResourcesAssetPacksInBundle
+	}
+	if options.ICloudContainerEnvironment != ICloudContainerEnvironmentDefault {
+		hash[ICloudContainerEnvironmentKey] = options.ICloudContainerEnvironment
+	}
+	if !options.Manifest.IsEmpty() {
+		hash[ManifestKey] = options.Manifest.ToHash()
+	}
+	if options.OnDemandResourcesAssetPacksBaseURL != "" {
+		hash[OnDemandResourcesAssetPacksBaseURLKey] = options.OnDemandResourcesAssetPacksBaseURL
+	}
+	if options.Thinning != ThinningDefault {
+		hash[ThinningKey] = options.Thinning
+	}
+	return hash
+}
+
+// String ...
+func (options NonAppStoreOptionsModel) String() (string, error) {
+	hash := options.Hash()
+	plistBytes, err := plist.MarshalIndent(hash, plist.XMLFormat, "\t")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal export options model, error: %s", err)
+	}
+	return string(plistBytes), err
+}
+
+// WriteToFile ...
+func (options NonAppStoreOptionsModel) WriteToFile(pth string) error {
+	return WritePlistToFile(options.Hash(), pth)
+}
+
+// WriteToTmpFile ...
+func (options NonAppStoreOptionsModel) WriteToTmpFile() (string, error) {
+	return WritePlistToTmpFile(options.Hash())
+}
