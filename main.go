@@ -714,14 +714,14 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
 	}
 
-	log.Done("The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH (value: %s)", tmpArchivePath)
+	log.Done("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, tmpArchivePath)
 
 	if configs.IsExportXcarchiveZip == "yes" {
 		if err := utils.ExportOutputDirAsZip(tmpArchivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
 			fail("Failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
 		}
 
-		log.Done("The xcarchive zip path is now available in the Environment Variable: $BITRISE_XCARCHIVE_ZIP_PATH (value: %s)", archiveZipPath)
+		log.Done("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
 	}
 
 	// Export .app
@@ -736,7 +736,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseAppDirPthEnvKey, err)
 	}
 
-	log.Done("The app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH (value: %s)", appPath)
+	log.Done("The app directory is now available in the Environment Variable: %s (value: %s)", bitriseAppDirPthEnvKey, appPath)
 
 	// Export .ipa
 	fmt.Println()
@@ -745,7 +745,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseIPAPthEnvKey, err)
 	}
 
-	log.Done("The ipa path is now available in the Environment Variable: $BITRISE_IPA_PATH (value: %s)", ipaPath)
+	log.Done("The ipa path is now available in the Environment Variable: %s (value: %s)", bitriseIPAPthEnvKey, ipaPath)
 
 	// Export .dSYMs
 	fmt.Println()
@@ -776,11 +776,11 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
 	}
 
-	log.Done("The dSYM dir path is now available in the Environment Variable: $BITRISE_DSYM_DIR_PATH (value: %s)", dsymDir)
+	log.Done("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
 
 	if err := utils.ExportOutputDirAsZip(dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
 		fail("Failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
 	}
 
-	log.Done("The dSYM zip path is now available in the Environment Variable: $BITRISE_DSYM_PATH (value: %s)", dsymZipPath)
+	log.Done("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
 }
