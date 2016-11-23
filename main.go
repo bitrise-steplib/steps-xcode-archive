@@ -28,6 +28,17 @@ const (
 	minSupportedXcodeMajorVersion = 6
 )
 
+const (
+	bitriseXcodeRawResultTextEnvKey     = "BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
+	bitriseIDEDistributionLogsPthEnvKey = "BITRISE_IDEDISTRIBUTION_LOGS_PATH"
+	bitriseXCArchivePthEnvKey           = "BITRISE_XCARCHIVE_PATH"
+	bitriseXCArchiveZipPthEnvKey        = "BITRISE_XCARCHIVE_ZIP_PATH"
+	bitriseAppDirPthEnvKey              = "BITRISE_APP_DIR_PATH"
+	bitriseIPAPthEnvKey                 = "BITRISE_IPA_PATH"
+	bitriseDSYMDirPthEnvKey             = "BITRISE_DSYM_DIR_PATH"
+	bitriseDSYMPthEnvKey                = "BITRISE_DSYM_PATH"
+)
+
 // ConfigsModel ...
 type ConfigsModel struct {
 	ExportMethod   string
@@ -188,28 +199,9 @@ func (configs ConfigsModel) validate() error {
 	return nil
 }
 
-func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
-	cmd := cmdex.NewCommand("envman", "add", "--key", keyStr)
-	cmd.SetStdin(strings.NewReader(valueStr))
-	return cmd.Run()
-}
-
 func fail(format string, v ...interface{}) {
 	log.Error(format, v...)
 	os.Exit(1)
-}
-
-func zip(sourceDir, destinationZipPth string) error {
-	parentDir := filepath.Dir(sourceDir)
-	dirName := filepath.Base(sourceDir)
-	cmd := cmdex.NewCommand("/usr/bin/zip", "-rTy", destinationZipPth, dirName)
-	cmd.SetDir(parentDir)
-	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
-		return fmt.Errorf("Failed to zip dir: %s, output: %s, error: %s", sourceDir, out, err)
-	}
-
-	return nil
 }
 
 func findIDEDistrubutionLogsPath(output string) (string, error) {
@@ -357,23 +349,26 @@ or use 'xcodebuild' as 'output_tool'.`)
 		fail("Failed to create temp dir for archives, error: %s", err)
 	}
 	tmpArchivePath := filepath.Join(tmpArchiveDir, configs.ArtifactName+".xcarchive")
+
 	appPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".app")
 	ipaPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".ipa")
-	archiveZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".xcarchive.zip")
-	dsymZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".dSYM.zip")
-	rawXcodebuildOutputLogPath := filepath.Join(configs.OutputDir, "raw-xcodebuild-output.log")
 	exportOptionsPath := filepath.Join(configs.OutputDir, "export_options.plist")
-	ideDistributionLogPath := filepath.Join(configs.OutputDir, "xcodebuild.xcdistributionlogs")
+	rawXcodebuildOutputLogPath := filepath.Join(configs.OutputDir, "raw-xcodebuild-output.log")
+
+	dsymZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".dSYM.zip")
+	archiveZipPath := filepath.Join(configs.OutputDir, configs.ArtifactName+".xcarchive.zip")
+	ideDistributionLogsZipPath := filepath.Join(configs.OutputDir, "xcodebuild.xcdistributionlogs.zip")
 
 	// cleanup
 	filesToCleanup := []string{
 		appPath,
 		ipaPath,
-		archiveZipPath,
-		dsymZipPath,
-		rawXcodebuildOutputLogPath,
 		exportOptionsPath,
-		ideDistributionLogPath,
+		rawXcodebuildOutputLogPath,
+
+		dsymZipPath,
+		archiveZipPath,
+		ideDistributionLogsZipPath,
 	}
 
 	for _, pth := range filesToCleanup {
@@ -443,10 +438,8 @@ or use 'xcodebuild' as 'output_tool'.`)
 		fmt.Println()
 
 		if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-			if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
-				log.Warn("Failed to write raw xcodebuild log, error: %s", err)
-			} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
-				log.Warn("Failed to export xcodebuild raw log path, error: %s", err)
+			if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+				log.Warn("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 			} else {
 				log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
@@ -531,10 +524,8 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			fmt.Println()
 
 			if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-				if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
-					log.Warn("Failed to write raw xcodebuild log, error: %s", err)
-				} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
-					log.Warn("Failed to export xcodebuild raw log path, error: %s", err)
+				if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+					log.Warn("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 				} else {
 					log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
@@ -640,12 +631,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 			fmt.Println()
 
-			if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
+			if xcodebuildOut, err := xcprettyCmd.Run(); err != nil {
 				// xcodebuild raw output
-				if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
-					log.Warn("Failed to write raw xcodebuild log, error: %s", err)
-				} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
-					log.Warn("Failed to export raw xcodebuild log path, error: %s", err)
+				if err := utils.ExportOutputFileContent(xcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+					log.Warn("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 				} else {
 					log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
@@ -653,12 +642,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				// xcdistributionlogs
-				if logPth, err := findIDEDistrubutionLogsPath(rawXcodebuildOut); err != nil {
+				if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
 					log.Warn("Failed to find xcdistributionlogs, error: %s", err)
-				} else if err := cmdex.CopyDir(logPth, ideDistributionLogPath, true); err != nil {
-					log.Warn("Failed to move xcdistributionlogs to (%s), error: %s", ideDistributionLogPath, err)
-				} else if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", ideDistributionLogPath); err != nil {
-					log.Warn("Failed to export xcdistributionlogs path, error: %s", err)
+				} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
+					log.Warn("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
 				} else {
 					log.Warn(`Also please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
@@ -673,12 +660,10 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 			if xcodebuildOut, err := exportCmd.RunAndReturnOutput(); err != nil {
 				// xcdistributionlogs
-				if logPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
+				if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
 					log.Warn("Failed to find xcdistributionlogs, error: %s", err)
-				} else if err := cmdex.CopyDir(logPth, ideDistributionLogPath, true); err != nil {
-					log.Warn("Failed to move xcdistributionlogs to (%s), error: %s", ideDistributionLogPath, err)
-				} else if err := exportEnvironmentWithEnvman("BITRISE_IDEDISTRIBUTION_LOGS_PATH", ideDistributionLogPath); err != nil {
-					log.Warn("Failed to export xcdistributionlogs path, error: %s", err)
+				} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
+					log.Warn("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
 				} else {
 					log.Warn(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
@@ -725,19 +710,15 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	// Export .xcarchive
 	fmt.Println()
 
-	if err := exportEnvironmentWithEnvman("BITRISE_XCARCHIVE_PATH", tmpArchivePath); err != nil {
-		fail("Failed to export xcarchivepath, error: %s", err)
+	if err := utils.ExportOutputDir(tmpArchivePath, tmpArchivePath, bitriseXCArchivePthEnvKey); err != nil {
+		fail("Failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
 	}
 
 	log.Done("The xcarchive path is now available in the Environment Variable: $BITRISE_XCARCHIVE_PATH (value: %s)", tmpArchivePath)
 
 	if configs.IsExportXcarchiveZip == "yes" {
-		if err := zip(tmpArchivePath, archiveZipPath); err != nil {
-			fail("zip failed, error: %s", err)
-		}
-
-		if err := exportEnvironmentWithEnvman("BITRISE_XCARCHIVE_ZIP_PATH", archiveZipPath); err != nil {
-			fail("Failed to export xcarchive zip path, error: %s", err)
+		if err := utils.ExportOutputDirAsZip(tmpArchivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
+			fail("Failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
 		}
 
 		log.Done("The xcarchive zip path is now available in the Environment Variable: $BITRISE_XCARCHIVE_ZIP_PATH (value: %s)", archiveZipPath)
@@ -751,12 +732,8 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to find app, error: %s", err)
 	}
 
-	if err := cmdex.CopyDir(exportedApp, appPath, true); err != nil {
-		fail("Failed to copy (%s) -> (%s), error: %s", exportedApp, appPath, err)
-	}
-
-	if err := exportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", appPath); err != nil {
-		fail("Failed to export .app path, error: %s", err)
+	if err := utils.ExportOutputDir(exportedApp, exportedApp, bitriseAppDirPthEnvKey); err != nil {
+		fail("Failed to export %s, error: %s", bitriseAppDirPthEnvKey, err)
 	}
 
 	log.Done("The app directory is now available in the Environment Variable: $BITRISE_APP_DIR_PATH (value: %s)", appPath)
@@ -764,8 +741,8 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	// Export .ipa
 	fmt.Println()
 
-	if err := exportEnvironmentWithEnvman("BITRISE_IPA_PATH", ipaPath); err != nil {
-		fail("Failed to export ipa path, error: %s", err)
+	if err := utils.ExportOutputFile(ipaPath, ipaPath, bitriseIPAPthEnvKey); err != nil {
+		fail("Failed to export %s, error: %s", bitriseIPAPthEnvKey, err)
 	}
 
 	log.Done("The ipa path is now available in the Environment Variable: $BITRISE_IPA_PATH (value: %s)", ipaPath)
@@ -795,18 +772,14 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		}
 	}
 
-	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_DIR_PATH", dsymDir); err != nil {
-		fail("Failed to export dsym path, error: %s", err)
+	if err := utils.ExportOutputDir(dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
+		fail("Failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
 	}
 
 	log.Done("The dSYM dir path is now available in the Environment Variable: $BITRISE_DSYM_DIR_PATH (value: %s)", dsymDir)
 
-	if err := zip(dsymDir, dsymZipPath); err != nil {
-		fail("zip failed, error: %s", err)
-	}
-
-	if err := exportEnvironmentWithEnvman("BITRISE_DSYM_PATH", dsymZipPath); err != nil {
-		fail("Failed to export dsym path, error: %s", err)
+	if err := utils.ExportOutputDirAsZip(dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
+		fail("Failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
 	}
 
 	log.Done("The dSYM zip path is now available in the Environment Variable: $BITRISE_DSYM_PATH (value: %s)", dsymZipPath)
