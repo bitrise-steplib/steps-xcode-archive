@@ -398,7 +398,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 	} else if ext == ".xcworkspace" {
 		isWorkspace = true
 	} else {
-		fail("Project file extension should .xcodeproj or .xcworkspace, but got: %s", ext)
+		fail("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
 	archiveCmd := xcodebuild.NewArchiveCommand(configs.ProjectPath, isWorkspace)
@@ -442,8 +442,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		logWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
 		fmt.Println()
 
-		rawXcodebuildOut, err := xcprettyCmd.Run()
-		if err != nil {
+		if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
 			if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
 				log.Warn("Failed to write raw xcodebuild log, error: %s", err)
 			} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
@@ -531,8 +530,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 			fmt.Println()
 
-			rawXcodebuildOut, err := xcprettyCmd.Run()
-			if err != nil {
+			if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
 				if err := fileutil.WriteStringToFile(rawXcodebuildOutputLogPath, rawXcodebuildOut); err != nil {
 					log.Warn("Failed to write raw xcodebuild log, error: %s", err)
 				} else if err := exportEnvironmentWithEnvman("BITRISE_XCODE_RAW_RESULT_TEXT_PATH", rawXcodebuildOutputLogPath); err != nil {
@@ -556,25 +554,24 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	} else {
 		log.Detail("Using export options")
 
+		/*
+		   Because of an RVM issue which conflicts with `xcodebuild`'s new
+		   `-exportOptionsPlist` option
+		   link: https://github.com/bitrise-io/steps-xcode-archive/issues/13
+		*/
+		if err := applyRVMFix(); err != nil {
+			fail("rvm fix failed, error: %s", err)
+		}
+
 		if configs.CustomExportOptionsPlistContent != "" {
 			log.Detail("Custom export options content provided:")
 			fmt.Println(configs.CustomExportOptionsPlistContent)
 
 			if err := fileutil.WriteStringToFile(exportOptionsPath, configs.CustomExportOptionsPlistContent); err != nil {
-				log.Error("Failed to write export options to file, error: %s", err)
-				os.Exit(1)
+				fail("Failed to write export options to file, error: %s", err)
 			}
 		} else {
 			log.Detail("Generating export options")
-
-			/*
-			   Because of an RVM issue which conflicts with `xcodebuild`'s new
-			   `-exportOptionsPlist` option
-			   link: https://github.com/bitrise-io/steps-xcode-archive/issues/13
-			*/
-			if err := applyRVMFix(); err != nil {
-				fail("rvm fix failed, error: %s", err)
-			}
 
 			var method exportoptions.Method
 			if configs.ExportMethod == "auto-detect" {
@@ -757,7 +754,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	if err := cmdex.CopyDir(exportedApp, appPath, true); err != nil {
 		fail("Failed to copy (%s) -> (%s), error: %s", exportedApp, appPath, err)
 	}
-	
+
 	if err := exportEnvironmentWithEnvman("BITRISE_APP_DIR_PATH", appPath); err != nil {
 		fail("Failed to export .app path, error: %s", err)
 	}
