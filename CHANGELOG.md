@@ -1,6 +1,13 @@
-## Changelog (Current version: 2.0.1)
+## Changelog (Current version: 2.0.2)
 
 -----------------
+
+### 2.0.2 (2016 Nov 23)
+
+* [985d991] prepare for 2.0.2
+* [34d32b5] use go-xcode package (#57)
+* [7fa9e7d] url fix / update (#58)
+* [627ae81] typo fixes
 
 ### 2.0.1 (2016 Nov 18)
 
@@ -245,4 +252,4 @@
 
 -----------------
 
-Updated: 2016 Nov 18
+Updated: 2016 Nov 23
