@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.0.2)
+## Changelog (Current version: 2.0.3)
 
 -----------------
+
+### 2.0.3 (2016 Nov 29)
+
+* [e8c26d0] prepare for 2.0.3
+* [0cbd8b2] export all dsyms by default (#59)
 
 ### 2.0.2 (2016 Nov 23)
 
@@ -252,4 +257,4 @@
 
 -----------------
 
-Updated: 2016 Nov 23
+Updated: 2016 Nov 29
