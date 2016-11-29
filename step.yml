@@ -226,7 +226,7 @@ inputs:
       - "yes"
       - "no"
       is_required: true
-  - export_all_dsyms: "no"
+  - export_all_dsyms: "yes"
     opts:
       title: Export all dsyms
       description: |-
