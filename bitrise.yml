@@ -3,7 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - STEP_VERSION: 2.0.2
+  - STEP_VERSION: 2.0.3
 
   - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
   - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
