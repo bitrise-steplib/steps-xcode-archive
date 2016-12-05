@@ -236,7 +236,7 @@ func applyRVMFix() error {
 		return nil
 	}
 
-	if err := cmdex.NewCommand("source", rvmScriptPth).Run(); err != nil {
+	if err := cmdex.NewCommand("bash", "-c", fmt.Sprintf("source %s", rvmScriptPth)).Run(); err != nil {
 		return err
 	}
 
