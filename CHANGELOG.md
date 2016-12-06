@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.0.3)
+## Changelog (Current version: 2.0.4)
 
 -----------------
+
+### 2.0.4 (2016 Dec 06)
+
+* [a881d37] prepare for 2.0.4
+* [1808ef8] rvm fix (#60)
 
 ### 2.0.3 (2016 Nov 29)
 
@@ -257,4 +262,4 @@
 
 -----------------
 
-Updated: 2016 Nov 29
+Updated: 2016 Dec 06
