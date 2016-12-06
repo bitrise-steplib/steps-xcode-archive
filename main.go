@@ -222,31 +222,6 @@ func findIDEDistrubutionLogsPath(output string) (string, error) {
 	return "", nil
 }
 
-func applyRVMFix() error {
-	if !utils.IsToolInstalled("rvm") {
-		return nil
-	}
-	log.Warn(`Applying RVM 'fix'`)
-
-	homeDir := pathutil.UserHomeDir()
-	rvmScriptPth := filepath.Join(homeDir, ".rvm/scripts/rvm")
-	if exist, err := pathutil.IsPathExists(rvmScriptPth); err != nil {
-		return err
-	} else if !exist {
-		return nil
-	}
-
-	if err := cmdex.NewCommand("bash", "-c", fmt.Sprintf("source %s", rvmScriptPth)).Run(); err != nil {
-		return err
-	}
-
-	if err := cmdex.NewCommand("rvm", "use", "system").Run(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func currentTimestamp() string {
 	timeStampFormat := "15:04:05"
 	currentTime := time.Now()
@@ -544,15 +519,6 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		}
 	} else {
 		log.Detail("Using export options")
-
-		/*
-		   Because of an RVM issue which conflicts with `xcodebuild`'s new
-		   `-exportOptionsPlist` option
-		   link: https://github.com/bitrise-io/steps-xcode-archive/issues/13
-		*/
-		if err := applyRVMFix(); err != nil {
-			fail("rvm fix failed, error: %s", err)
-		}
 
 		if configs.CustomExportOptionsPlistContent != "" {
 			log.Detail("Custom export options content provided:")
