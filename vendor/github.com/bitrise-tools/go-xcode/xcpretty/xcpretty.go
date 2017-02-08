@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/bitrise-io/go-utils/cmdex"
+	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
 )
@@ -42,15 +42,15 @@ func (c CommandModel) cmdSlice() []string {
 }
 
 // Command ...
-func (c CommandModel) Command() *cmdex.CommandModel {
+func (c CommandModel) Command() *command.Model {
 	cmdSlice := c.cmdSlice()
-	return cmdex.NewCommand(cmdSlice[0])
+	return command.New(cmdSlice[0])
 }
 
 // PrintableCmd ...
 func (c CommandModel) PrintableCmd() string {
 	prettyCmdSlice := c.cmdSlice()
-	prettyCmdStr := cmdex.PrintableCommandArgs(false, prettyCmdSlice)
+	prettyCmdStr := command.PrintableCommandArgs(false, prettyCmdSlice)
 
 	cmdStr := c.xcodebuildCommand.PrintableCmd()
 
@@ -89,11 +89,11 @@ func (c CommandModel) Run() (string, error) {
 	// Always close xcpretty outputs
 	defer func() {
 		if err := pipeWriter.Close(); err != nil {
-			log.Warn("Failed to close xcodebuild-xcpretty pipe, error: %s", err)
+			log.Warnf("Failed to close xcodebuild-xcpretty pipe, error: %s", err)
 		}
 
 		if err := prettyCmd.GetCmd().Wait(); err != nil {
-			log.Warn("xcpretty command failed, error: %s", err)
+			log.Warnf("xcpretty command failed, error: %s", err)
 		}
 	}()
 

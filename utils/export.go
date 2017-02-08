@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/cmdex"
+	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
 )
@@ -13,7 +13,7 @@ import (
 func zip(sourceDir, destinationZipPth string) error {
 	parentDir := filepath.Dir(sourceDir)
 	dirName := filepath.Base(sourceDir)
-	cmd := cmdex.NewCommand("/usr/bin/zip", "-rTy", destinationZipPth, dirName)
+	cmd := command.New("/usr/bin/zip", "-rTy", destinationZipPth, dirName)
 	cmd.SetDir(parentDir)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
@@ -24,7 +24,7 @@ func zip(sourceDir, destinationZipPth string) error {
 }
 
 func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
-	cmd := cmdex.NewCommand("envman", "add", "--key", keyStr)
+	cmd := command.New("envman", "add", "--key", keyStr)
 	cmd.SetStdin(strings.NewReader(valueStr))
 	return cmd.Run()
 }
@@ -32,7 +32,7 @@ func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
 // ExportOutputDir ...
 func ExportOutputDir(sourceDirPth, destinationDirPth, envKey string) error {
 	if sourceDirPth != destinationDirPth {
-		if err := cmdex.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
+		if err := command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
 		}
 	}
@@ -43,7 +43,7 @@ func ExportOutputDir(sourceDirPth, destinationDirPth, envKey string) error {
 // ExportOutputFile ...
 func ExportOutputFile(sourcePth, destinationPth, envKey string) error {
 	if sourcePth != destinationPth {
-		if err := cmdex.CopyFile(sourcePth, destinationPth); err != nil {
+		if err := command.CopyFile(sourcePth, destinationPth); err != nil {
 			return err
 		}
 	}

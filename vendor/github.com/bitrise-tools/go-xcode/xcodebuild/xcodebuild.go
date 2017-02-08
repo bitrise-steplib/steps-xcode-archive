@@ -1,6 +1,6 @@
 package xcodebuild
 
-import "github.com/bitrise-io/go-utils/cmdex"
+import "github.com/bitrise-io/go-utils/command"
 
 const (
 	toolName = "xcodebuild"
@@ -9,5 +9,5 @@ const (
 // CommandModel ...
 type CommandModel interface {
 	PrintableCmd() string
-	Command() *cmdex.CommandModel
+	Command() *command.Model
 }

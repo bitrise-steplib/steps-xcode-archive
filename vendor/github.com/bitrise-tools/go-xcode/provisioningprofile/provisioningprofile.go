@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	plist "github.com/DHowett/go-plist"
-	"github.com/bitrise-io/go-utils/cmdex"
+	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 )
 
@@ -38,7 +38,7 @@ func newFromProfileContent(content string) (Model, error) {
 
 // NewFromFile ...
 func NewFromFile(pth string) (Model, error) {
-	cmd := cmdex.NewCommand("security", "cms", "-D", "-i", pth)
+	cmd := command.New("security", "cms", "-D", "-i", pth)
 
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
