@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.0.4)
+## Changelog (Current version: 2.0.5)
 
 -----------------
+
+### 2.0.5 (2017 Feb 08)
+
+* [d25cda5] Prepare for 2.0.5
+* [325feed] Godeps-update, print DistributionLog (#62)
 
 ### 2.0.4 (2016 Dec 06)
 
@@ -262,4 +267,4 @@
 
 -----------------
 
-Updated: 2016 Dec 06
+Updated: 2017 Feb 08
