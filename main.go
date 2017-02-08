@@ -631,7 +631,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 				} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
 					log.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
 				} else {
-					criticalDistLogFilePth := filepath.Join(logsDirPth, "/IDEDistribution.critical.log")
+					criticalDistLogFilePth := filepath.Join(logsDirPth, "IDEDistribution.critical.log")
 					log.Warnf("IDEDistribution.critical.log:")
 					if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
 						log.Printf(criticalDistLog)
