@@ -2,36 +2,99 @@ package log
 
 import (
 	"fmt"
+	"time"
+
+	"io"
+	"os"
 
 	"github.com/bitrise-io/go-utils/colorstring"
 )
 
-// Error ...
-func Error(format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	fmt.Println(colorstring.Red(message))
+//
+// Log configuration
+
+var timestampLayout = "15:04:05"
+
+// SetTimestampLayout ...
+func SetTimestampLayout(layout string) {
+	timestampLayout = layout
 }
 
-// Warn ...
-func Warn(format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	fmt.Println(colorstring.Yellow(message))
+var outWriter io.Writer = os.Stdout
+
+// SetOutWriter ...
+func SetOutWriter(writer io.Writer) {
+	outWriter = writer
 }
 
-// Info ...
-func Info(format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	fmt.Println(colorstring.Blue(message))
+//
+// Print with color
+
+func printfWithColor(color colorstring.ColorfFunc, format string, v ...interface{}) {
+	strWithColor := color(format, v...)
+	fmt.Fprintln(outWriter, strWithColor)
 }
 
-// Detail ...
-func Detail(format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	fmt.Println(message)
+// Printf ...
+func Printf(format string, v ...interface{}) {
+	printfWithColor(colorstring.NoColorf, format, v...)
 }
 
-// Done ...
-func Done(format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	fmt.Println(colorstring.Green(message))
+// Infof ...
+func Infof(format string, v ...interface{}) {
+	printfWithColor(colorstring.Bluef, format, v...)
+}
+
+// Donef ...
+func Donef(format string, v ...interface{}) {
+	printfWithColor(colorstring.Greenf, format, v...)
+}
+
+// Errorf ...
+func Errorf(format string, v ...interface{}) {
+	printfWithColor(colorstring.Redf, format, v...)
+}
+
+// Warnf ...
+func Warnf(format string, v ...interface{}) {
+	printfWithColor(colorstring.Yellowf, format, v...)
+}
+
+//
+// Print with color and timestamp
+
+func timestamp() string {
+	currentTime := time.Now()
+	return currentTime.Format(timestampLayout)
+}
+
+func printfWithColorAndTime(color colorstring.ColorfFunc, format string, v ...interface{}) {
+	strWithColor := color(format, v...)
+	strWithColorAndTime := fmt.Sprintf("[%s] %s", timestamp(), strWithColor)
+	fmt.Fprintln(outWriter, strWithColorAndTime)
+}
+
+// Printft ...
+func Printft(format string, v ...interface{}) {
+	printfWithColorAndTime(colorstring.NoColorf, format, v...)
+}
+
+// Infoft ...
+func Infoft(format string, v ...interface{}) {
+	printfWithColorAndTime(colorstring.Bluef, format, v...)
+}
+
+// Doneft ...
+func Doneft(format string, v ...interface{}) {
+	printfWithColorAndTime(colorstring.Greenf, format, v...)
+}
+
+// Errorft ...
+func Errorft(format string, v ...interface{}) {
+	printfWithColorAndTime(colorstring.Redf, format, v...)
+}
+
+// Warnft ...
+func Warnft(format string, v ...interface{}) {
+	printfWithColorAndTime(colorstring.Yellowf, format, v...)
 }

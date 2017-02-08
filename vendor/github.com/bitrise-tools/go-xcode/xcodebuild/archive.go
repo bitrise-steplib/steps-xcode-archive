@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/bitrise-io/go-utils/cmdex"
+	"github.com/bitrise-io/go-utils/command"
 )
 
 /*
@@ -159,13 +159,13 @@ func (c *ArchiveCommandModel) cmdSlice() []string {
 // PrintableCmd ...
 func (c ArchiveCommandModel) PrintableCmd() string {
 	cmdSlice := c.cmdSlice()
-	return cmdex.PrintableCommandArgs(false, cmdSlice)
+	return command.PrintableCommandArgs(false, cmdSlice)
 }
 
 // Command ...
-func (c ArchiveCommandModel) Command() *cmdex.CommandModel {
+func (c ArchiveCommandModel) Command() *command.Model {
 	cmdSlice := c.cmdSlice()
-	return cmdex.NewCommand(cmdSlice[0], cmdSlice[1:]...)
+	return command.New(cmdSlice[0], cmdSlice[1:]...)
 }
 
 // Cmd ...

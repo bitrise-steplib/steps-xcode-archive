@@ -97,49 +97,49 @@ func createConfigsModelFromEnvs() ConfigsModel {
 }
 
 func (configs ConfigsModel) print() {
-	log.Info("ipa export configs:")
+	log.Infof("ipa export configs:")
 
 	useCustomExportOptions := (configs.CustomExportOptionsPlistContent != "")
 	if useCustomExportOptions {
 		fmt.Println()
-		log.Warn("Ignoring the following options because CustomExportOptionsPlistContent provided:")
+		log.Warnf("Ignoring the following options because CustomExportOptionsPlistContent provided:")
 	}
 
-	log.Detail("- ExportMethod: %s", configs.ExportMethod)
-	log.Detail("- UploadBitcode: %s", configs.UploadBitcode)
-	log.Detail("- CompileBitcode: %s", configs.CompileBitcode)
-	log.Detail("- TeamID: %s", configs.TeamID)
+	log.Printf("- ExportMethod: %s", configs.ExportMethod)
+	log.Printf("- UploadBitcode: %s", configs.UploadBitcode)
+	log.Printf("- CompileBitcode: %s", configs.CompileBitcode)
+	log.Printf("- TeamID: %s", configs.TeamID)
 
 	if useCustomExportOptions {
-		log.Warn("----------")
+		log.Warnf("----------")
 	}
 
-	log.Detail("- UseDeprecatedExport: %s", configs.UseDeprecatedExport)
-	log.Detail("- ForceTeamID: %s", configs.ForceTeamID)
-	log.Detail("- ForceProvisioningProfileSpecifier: %s", configs.ForceProvisioningProfileSpecifier)
-	log.Detail("- ForceProvisioningProfile: %s", configs.ForceProvisioningProfile)
-	log.Detail("- ForceCodeSignIdentity: %s", configs.ForceCodeSignIdentity)
-	log.Detail("- CustomExportOptionsPlistContent:")
+	log.Printf("- UseDeprecatedExport: %s", configs.UseDeprecatedExport)
+	log.Printf("- ForceTeamID: %s", configs.ForceTeamID)
+	log.Printf("- ForceProvisioningProfileSpecifier: %s", configs.ForceProvisioningProfileSpecifier)
+	log.Printf("- ForceProvisioningProfile: %s", configs.ForceProvisioningProfile)
+	log.Printf("- ForceCodeSignIdentity: %s", configs.ForceCodeSignIdentity)
+	log.Printf("- CustomExportOptionsPlistContent:")
 	if configs.CustomExportOptionsPlistContent != "" {
-		log.Detail(configs.CustomExportOptionsPlistContent)
+		log.Printf(configs.CustomExportOptionsPlistContent)
 	}
 	fmt.Println()
 
-	log.Info("xcodebuild configs:")
-	log.Detail("- OutputTool: %s", configs.OutputTool)
-	log.Detail("- Workdir: %s", configs.Workdir)
-	log.Detail("- ProjectPath: %s", configs.ProjectPath)
-	log.Detail("- Scheme: %s", configs.Scheme)
-	log.Detail("- Configuration: %s", configs.Configuration)
-	log.Detail("- OutputDir: %s", configs.OutputDir)
-	log.Detail("- IsCleanBuild: %s", configs.IsCleanBuild)
-	log.Detail("- XcodebuildOptions: %s", configs.XcodebuildOptions)
+	log.Infof("xcodebuild configs:")
+	log.Printf("- OutputTool: %s", configs.OutputTool)
+	log.Printf("- Workdir: %s", configs.Workdir)
+	log.Printf("- ProjectPath: %s", configs.ProjectPath)
+	log.Printf("- Scheme: %s", configs.Scheme)
+	log.Printf("- Configuration: %s", configs.Configuration)
+	log.Printf("- OutputDir: %s", configs.OutputDir)
+	log.Printf("- IsCleanBuild: %s", configs.IsCleanBuild)
+	log.Printf("- XcodebuildOptions: %s", configs.XcodebuildOptions)
 	fmt.Println()
 
-	log.Info("step output configs:")
-	log.Detail("- IsExportXcarchiveZip: %s", configs.IsExportXcarchiveZip)
-	log.Detail("- ExportAllDsyms: %s", configs.ExportAllDsyms)
-	log.Detail("- ArtifactName: %s", configs.ArtifactName)
+	log.Infof("step output configs:")
+	log.Printf("- IsExportXcarchiveZip: %s", configs.IsExportXcarchiveZip)
+	log.Printf("- ExportAllDsyms: %s", configs.ExportAllDsyms)
+	log.Printf("- ArtifactName: %s", configs.ArtifactName)
 	fmt.Println()
 }
 
@@ -200,7 +200,7 @@ func (configs ConfigsModel) validate() error {
 }
 
 func fail(format string, v ...interface{}) {
-	log.Error(format, v...)
+	log.Errorf(format, v...)
 	os.Exit(1)
 }
 
@@ -247,14 +247,14 @@ func main() {
 		fail("Issue with input: %s", err)
 	}
 
-	log.Info("step determined configs:")
+	log.Infof("step determined configs:")
 
 	// Detect Xcode major version
 	xcodebuildVersion, err := utils.XcodeBuildVersion()
 	if err != nil {
 		fail("Failed to determin xcode version, error: %s", err)
 	}
-	log.Detail("- xcodebuildVersion: %s (%s)", xcodebuildVersion.XcodeVersion.String(), xcodebuildVersion.BuildVersion)
+	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.XcodeVersion.String(), xcodebuildVersion.BuildVersion)
 
 	xcodeMajorVersion := xcodebuildVersion.XcodeVersion.Segments()[0]
 	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
@@ -273,31 +273,31 @@ or use 'xcodebuild' as 'output_tool'.`)
 		if err != nil {
 			fail("Failed to determin xcpretty version, error: %s", err)
 		}
-		log.Detail("- xcprettyVersion: %s", xcprettyVersion.String())
+		log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 	}
 
 	// Validation CustomExportOptionsPlistContent
 	if configs.CustomExportOptionsPlistContent != "" &&
 		xcodeMajorVersion < 7 {
-		log.Warn("CustomExportOptionsPlistContent is set, but CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
+		log.Warnf("CustomExportOptionsPlistContent is set, but CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
 		configs.CustomExportOptionsPlistContent = ""
 	}
 
 	if configs.ForceProvisioningProfileSpecifier != "" &&
 		xcodeMajorVersion < 8 {
-		log.Warn("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
+		log.Warnf("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
 		configs.ForceProvisioningProfileSpecifier = ""
 	}
 
 	if configs.ForceTeamID == "" &&
 		xcodeMajorVersion < 8 {
-		log.Warn("ForceTeamID is set, but ForceTeamID only used if xcodeMajorVersion > 7")
+		log.Warnf("ForceTeamID is set, but ForceTeamID only used if xcodeMajorVersion > 7")
 		configs.ForceTeamID = ""
 	}
 
 	if configs.ForceProvisioningProfileSpecifier != "" &&
 		configs.ForceProvisioningProfile != "" {
-		log.Warn("both ForceProvisioningProfileSpecifier and ForceProvisioningProfile are set, using ForceProvisioningProfileSpecifier")
+		log.Warnf("both ForceProvisioningProfileSpecifier and ForceProvisioningProfile are set, using ForceProvisioningProfileSpecifier")
 		configs.ForceProvisioningProfile = ""
 	}
 
@@ -358,7 +358,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 	//
 	// Create the Archive with Xcode Command Line tools
-	log.Info("Create the Archive ...")
+	log.Infof("Create the Archive ...")
 	fmt.Println()
 
 	isWorkspace := false
@@ -376,19 +376,19 @@ or use 'xcodebuild' as 'output_tool'.`)
 	archiveCmd.SetConfiguration(configs.Configuration)
 
 	if configs.ForceTeamID != "" {
-		log.Detail("Forcing Development Team: %s", configs.ForceTeamID)
+		log.Printf("Forcing Development Team: %s", configs.ForceTeamID)
 		archiveCmd.SetForceDevelopmentTeam(configs.ForceTeamID)
 	}
 	if configs.ForceProvisioningProfileSpecifier != "" {
-		log.Detail("Forcing Provisioning Profile Specifier: %s", configs.ForceProvisioningProfileSpecifier)
+		log.Printf("Forcing Provisioning Profile Specifier: %s", configs.ForceProvisioningProfileSpecifier)
 		archiveCmd.SetForceProvisioningProfileSpecifier(configs.ForceProvisioningProfileSpecifier)
 	}
 	if configs.ForceProvisioningProfile != "" {
-		log.Detail("Forcing Provisioning Profile: %s", configs.ForceProvisioningProfile)
+		log.Printf("Forcing Provisioning Profile: %s", configs.ForceProvisioningProfile)
 		archiveCmd.SetForceProvisioningProfile(configs.ForceProvisioningProfile)
 	}
 	if configs.ForceCodeSignIdentity != "" {
-		log.Detail("Forcing Code Signing Identity: %s", configs.ForceCodeSignIdentity)
+		log.Printf("Forcing Code Signing Identity: %s", configs.ForceCodeSignIdentity)
 		archiveCmd.SetForceCodeSignIdentity(configs.ForceCodeSignIdentity)
 	}
 
@@ -414,9 +414,9 @@ or use 'xcodebuild' as 'output_tool'.`)
 
 		if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
 			if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-				log.Warn("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+				log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 			} else {
-				log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+				log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
@@ -453,7 +453,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		- http://stackoverflow.com/questions/33041109/xcodebuild-no-applicable-devices-found-when-exporting-archive
 		- https://gist.github.com/claybridges/cea5d4afd24eda268164
 	*/
-	log.Info("Exporting ipa from the archive...")
+	log.Infof("Exporting ipa from the archive...")
 	fmt.Println()
 
 	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
@@ -464,7 +464,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	}
 
 	if xcodeMajorVersion == 6 || configs.UseDeprecatedExport == "yes" {
-		log.Detail("Using legacy export")
+		log.Printf("Using legacy export")
 		/*
 			Get the name of the profile which was used for creating the archive
 			--> Search for embedded.mobileprovision in the xcarchive.
@@ -500,9 +500,9 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 			if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
 				if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-					log.Warn("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 				} else {
-					log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+					log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
@@ -518,21 +518,21 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 		}
 	} else {
-		log.Detail("Using export options")
+		log.Printf("Using export options")
 
 		if configs.CustomExportOptionsPlistContent != "" {
-			log.Detail("Custom export options content provided:")
+			log.Printf("Custom export options content provided:")
 			fmt.Println(configs.CustomExportOptionsPlistContent)
 
 			if err := fileutil.WriteStringToFile(exportOptionsPath, configs.CustomExportOptionsPlistContent); err != nil {
 				fail("Failed to write export options to file, error: %s", err)
 			}
 		} else {
-			log.Detail("Generating export options")
+			log.Printf("Generating export options")
 
 			var method exportoptions.Method
 			if configs.ExportMethod == "auto-detect" {
-				log.Detail("auto-detect export method, based on embedded profile")
+				log.Printf("auto-detect export method, based on embedded profile")
 
 				embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(tmpArchivePath)
 				if err != nil {
@@ -545,9 +545,9 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				method = provProfile.GetExportMethod()
-				log.Detail("detected export method: %s", method)
+				log.Printf("detected export method: %s", method)
 			} else {
-				log.Detail("using export-method input: %s", configs.ExportMethod)
+				log.Printf("using export-method input: %s", configs.ExportMethod)
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
 					fail("Failed to parse export options, error: %s", err)
@@ -570,7 +570,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				exportOpts = options
 			}
 
-			log.Detail("generated export options content:")
+			log.Printf("generated export options content:")
 			fmt.Println()
 			fmt.Println(exportOpts.String())
 
@@ -600,20 +600,20 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			if xcodebuildOut, err := xcprettyCmd.Run(); err != nil {
 				// xcodebuild raw output
 				if err := utils.ExportOutputFileContent(xcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-					log.Warn("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 				} else {
-					log.Warn(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+					log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				// xcdistributionlogs
 				if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
-					log.Warn("Failed to find xcdistributionlogs, error: %s", err)
+					log.Warnf("Failed to find xcdistributionlogs, error: %s", err)
 				} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
-					log.Warn("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
+					log.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
 				} else {
-					log.Warn(`Also please check the xcdistributionlogs
+					log.Warnf(`Also please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 				}
@@ -627,11 +627,17 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			if xcodebuildOut, err := exportCmd.RunAndReturnOutput(); err != nil {
 				// xcdistributionlogs
 				if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
-					log.Warn("Failed to find xcdistributionlogs, error: %s", err)
+					log.Warnf("Failed to find xcdistributionlogs, error: %s", err)
 				} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
-					log.Warn("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
+					log.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
 				} else {
-					log.Warn(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
+					criticalDistLogFilePth := filepath.Join(logsDirPth, "/IDEDistribution.critical.log")
+					log.Warnf("IDEDistribution.critical.log:")
+					if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+						log.Printf(criticalDistLog)
+					}
+
+					log.Warnf(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 				}
@@ -654,7 +660,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 				fail("Failed to copy (%s) -> (%s), error: %s", ipas[0], ipaPath, err)
 			}
 		} else {
-			log.Warn("More than 1 .ipa file found")
+			log.Warnf("More than 1 .ipa file found")
 
 			for _, ipa := range ipas {
 				base := filepath.Base(ipa)
@@ -668,7 +674,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		}
 	}
 
-	log.Info("Exporting outputs...")
+	log.Infof("Exporting outputs...")
 
 	//
 	// Export outputs
@@ -680,14 +686,14 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
 	}
 
-	log.Done("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, tmpArchivePath)
+	log.Donef("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, tmpArchivePath)
 
 	if configs.IsExportXcarchiveZip == "yes" {
 		if err := utils.ExportOutputDirAsZip(tmpArchivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
 			fail("Failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
 		}
 
-		log.Done("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
+		log.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
 	}
 
 	// Export .app
@@ -702,7 +708,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseAppDirPthEnvKey, err)
 	}
 
-	log.Done("The app directory is now available in the Environment Variable: %s (value: %s)", bitriseAppDirPthEnvKey, appPath)
+	log.Donef("The app directory is now available in the Environment Variable: %s (value: %s)", bitriseAppDirPthEnvKey, appPath)
 
 	// Export .ipa
 	fmt.Println()
@@ -711,7 +717,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseIPAPthEnvKey, err)
 	}
 
-	log.Done("The ipa path is now available in the Environment Variable: %s (value: %s)", bitriseIPAPthEnvKey, ipaPath)
+	log.Donef("The ipa path is now available in the Environment Variable: %s (value: %s)", bitriseIPAPthEnvKey, ipaPath)
 
 	// Export .dSYMs
 	fmt.Println()
@@ -742,11 +748,11 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
 	}
 
-	log.Done("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
+	log.Donef("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
 
 	if err := utils.ExportOutputDirAsZip(dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
 		fail("Failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
 	}
 
-	log.Done("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
+	log.Donef("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
 }
