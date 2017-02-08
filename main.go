@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/go-utils/cmdex"
 	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -650,7 +650,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		if len(ipas) == 0 {
 			fail("No ipa found with pattern: %s", pattern)
 		} else if len(ipas) == 1 {
-			if err := cmdex.CopyFile(ipas[0], ipaPath); err != nil {
+			if err := command.CopyFile(ipas[0], ipaPath); err != nil {
 				fail("Failed to copy (%s) -> (%s), error: %s", ipas[0], ipaPath, err)
 			}
 		} else {
@@ -660,7 +660,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 				base := filepath.Base(ipa)
 				deployPth := filepath.Join(configs.OutputDir, base)
 
-				if err := cmdex.CopyFile(ipa, deployPth); err != nil {
+				if err := command.CopyFile(ipa, deployPth); err != nil {
 					fail("Failed to copy (%s) -> (%s), error: %s", ipas[0], ipaPath, err)
 				}
 				ipaPath = ipa
@@ -726,13 +726,13 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		fail("Failed to create tmp dir, error: %s", err)
 	}
 
-	if err := cmdex.CopyDir(appDSYM, dsymDir, false); err != nil {
+	if err := command.CopyDir(appDSYM, dsymDir, false); err != nil {
 		fail("Failed to copy (%s) -> (%s), error: %s", appDSYM, dsymDir, err)
 	}
 
 	if configs.ExportAllDsyms == "yes" {
 		for _, dsym := range frameworkDSYMs {
-			if err := cmdex.CopyDir(dsym, dsymDir, false); err != nil {
+			if err := command.CopyDir(dsym, dsymDir, false); err != nil {
 				fail("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
 			}
 		}

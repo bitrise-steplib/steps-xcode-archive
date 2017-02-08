@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/cmdex"
+	"github.com/bitrise-io/go-utils/command"
 	version "github.com/hashicorp/go-version"
 )
 
@@ -36,7 +36,7 @@ func createXcodeVersionFromOutput(versionOut string) (XcodebuildVersionModel, er
 
 // XcodeBuildVersion ...
 func XcodeBuildVersion() (XcodebuildVersionModel, error) {
-	cmd := cmdex.NewCommand("xcodebuild", "-version")
+	cmd := command.New("xcodebuild", "-version")
 	versionOut, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return XcodebuildVersionModel{}, err
@@ -47,7 +47,7 @@ func XcodeBuildVersion() (XcodebuildVersionModel, error) {
 
 // IsToolInstalled ...
 func IsToolInstalled(name string) bool {
-	cmd := cmdex.NewCommand("which", name)
+	cmd := command.New("which", name)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	return err == nil && out != ""
 }
@@ -63,7 +63,7 @@ func parseXcprettyVersionOut(versionOut string) (*version.Version, error) {
 
 // XcprettyVersion ...
 func XcprettyVersion() (*version.Version, error) {
-	cmd := cmdex.NewCommand("xcpretty", "--version")
+	cmd := command.New("xcpretty", "--version")
 	versionOut, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return nil, err
