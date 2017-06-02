@@ -1,8 +1,9 @@
-title: Xcode Archive for iOS
+title: Xcode Archive & Export for iOS
 summary: |-
-  Run Xcode Archive command and export an iOS IPA
+  Run Xcode Archive command and then Export an IPA from the archive.
 description: |-
-  Run Xcode Archive command and export an iOS IPA.
+  Run Xcode Archive command and then Export an IPA from the archive
+  for iOS, tvOS or watchOS.
 
   You can share it, upload it, deploy it and catch them
   all! Well, maybe not the last one.
@@ -15,7 +16,6 @@ project_type_tags:
   - ios
 type_tags:
   - build
-  - xcode
 is_requires_admin_user: false
 is_always_run: false
 is_skippable: false
@@ -33,14 +33,13 @@ toolkit:
 inputs:
   - export_method: "auto-detect"
     opts:
+      category: Export Options
       title: "Select method for export"
       summary: ""
       description: |-
-        __Export option:__
+        Describes how Xcode should export the archive.
 
-        Describes how Xcode should export the archive.   
-        
-        If you select `auto-detect` step will figure out proper export method  
+        If you select `auto-detect` step will figure out proper export method
         based on provisioning profile embedded into generated xcodearchive.
       value_options:
       - "auto-detect"
@@ -48,196 +47,43 @@ inputs:
       - "ad-hoc"
       - "enterprise"
       - "development"
+  - team_id:
+    opts:
+      category: Export Options
+      title: "The Developer Portal team to use for this export"
+      summary: ""
+      description: |-
+        The Developer Portal team to use for this export.
+
+        Optional, only required if you want to use a different team for
+        distribution, not the one you have set in your Xcode project.
+
+        Format example:
+
+        - `1MZX23ABCD4`
   - upload_bitcode: "yes"
     opts:
+      category: Export Options
       title: "Include bitcode"
       summary: ""
       description: |-
-        __Export option:__  
-
         For __App Store__ exports, should the package include bitcode?
       value_options:
       - "yes"
       - "no"
   - compile_bitcode: "yes"
     opts:
+      category: Export Options
       title: "Rebuild from bitcode"
       summary: ""
-      description: |-
-        __Export option:__  
-        
+      description: |
         For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
       value_options:
       - "yes"
       - "no"
-  - team_id: 
-    opts:
-      title: "The Developer Portal team to use for this export"
-      summary: ""
-      description: |-
-        __Export option:__  
-        
-        The Developer Portal team to use for this export.
-
-        Format example:
-
-        - `1MZX23ABCD4`
-  - workdir: $BITRISE_SOURCE_DIR
-    opts:
-      title: "Working directory"
-      summary: ""
-      description: |-
-        Working directory of the step.
-        You can leave it empty to don't change it.
-  - project_path: $BITRISE_PROJECT_PATH
-    opts:
-      title: "Project (or Workspace) path"
-      summary: ""
-      description: |-
-        A `.xcodeproj` or `.xcworkspace` path.
-      is_required: true
-  - scheme: $BITRISE_SCHEME
-    opts:
-      title: "Scheme name"
-      summary: ""
-      description: |-
-        The Scheme to use.
-      is_required: true
-  - configuration:
-    opts:
-      title: "Configuration name"
-      summary: ""
-      description: |-
-        (optional) The configuration to use. By default your Scheme
-        defines which configuration (Debug, Release, ...) should be used,
-        but you can overwrite it with this option.
-
-        **Make sure that the Configuration you specify actually exists
-        in your Xcode Project**. If it does not, if you have a typo
-        in the value of this input Xcode will simply use the Configuration
-        specified by the Scheme and will silently ignore this parameter!
-  - output_dir: $BITRISE_DEPLOY_DIR
-    opts:
-      title: "Output directory path"
-      summary: ""
-      description: |-
-        This directory will contain the generated .ipa and .dSYM.zip files.
-      is_required: true
-  - force_team_id:
-    opts:
-      title: "Force Developer Portal team to use during archive"
-      description: |-
-        Used for Xcode version 8 and above.
-
-        Force xcodebuild to use specified Developer Portal team during archive.
-
-        Format example:
-
-        - `1MZX23ABCD4`
-  - force_code_sign_identity:
-    opts:
-      title: "Force code signing with Identity"
-      description: |-
-        Force xcodebuild to use specified Code Sign Identity.
-
-        Specify code sign identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
-        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
-
-        You also have to **specify the Identity in the format it's stored in Xcode project settings**,
-        and **not how it's presented in the Xcode.app GUI**!
-        This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
-        `iPhone` (`iPhone Distribution` or `iPhone Development`).
-        **Capitalization also matters**, `iPhone Distribution` works but `iphone distribution` does not!
-  - force_provisioning_profile_specifier:
-    opts:
-      title: "Force code signing with Provisioning Profile Specifier"
-      description: |-
-        Used for Xcode version 8 and above.
-
-        Force xcodebuild to use specified Provisioning Profile.
-
-        How to get your Provisioning Profile Specifier:
-
-        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
-        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
-        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
-
-        Format example:
-
-        - `1MZX23ABCD4/My Provisioning Profile`
-  - force_provisioning_profile:
-    opts:
-      title: "Force code signing with Provisioning Profile"
-      description: |-
-        Force xcodebuild to use specified Provisioning Profile.
-
-        Use Provisioning Profile's UUID, profile's name is not acceptable by xcodebuild.
-
-        How to get your UUID:
-
-        - In xcode select your project -> Build Settings -> Code Signing
-        - Select the desired Provisioning Profile, then scroll down in profile list and click on Other...
-        - The popup will show your profile's UUID.
-
-        Format example:
-
-        - `c5be4123-1234-4f9d-9843-0d9be985a068`
-  - is_clean_build: "no"
-    opts:
-      title: "Do a clean Xcode build before the archive?"
-      value_options:
-        - "yes"
-        - "no"
-      is_required: true
-  - output_tool: xcpretty
-    opts:
-      title: Output tool
-      description: |-
-        If output_tool is set to xcpretty, the xcodebuild output will be prettified by xcpretty.
-        If output_tool is set to xcodebuild, the raw xcodebuild output will be printed.
-      value_options:
-      - xcpretty
-      - xcodebuild
-      is_required: true
-      is_expand: false
-  - xcodebuild_options: ""
-    opts:
-      title: Additional options for xcodebuild call
-      description: |-
-        Options added to the end of the xcodebuild call.
-
-        You can use multiple options, separated by a space
-        character. Example: `-xcconfig PATH -verbose`
-  - is_export_xcarchive_zip: "no"
-    opts:
-      title: Export the generated archive?
-      description: |-
-        If this input is set to `yes`, the generated .xcarchive will be zipped and moved to `output_dir`.
-      value_options:
-      - "yes"
-      - "no"
-      is_required: true
-  - use_deprecated_export: "no"
-    opts:
-      title: Use deprecated ipa export method?
-      description: |-
-        If this input is set to `yes`, step will use deprecated ipa export method.
-      value_options:
-      - "yes"
-      - "no"
-      is_required: true
-  - export_all_dsyms: "yes"
-    opts:
-      title: Export all dsyms
-      description: |-
-        If this input is set to `yes` step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
-        Otherwise only .app dsym will be zipped and the zip path exported.
-      value_options:
-      - "yes"
-      - "no"
-      is_required: true
   - custom_export_options_plist_content:
     opts:
+      category: Export Options (debug)
       title: "Custom export options plist content"
       description: |-
         Used for Xcode version 7 and above.
@@ -256,11 +102,181 @@ inputs:
         If step doesn't find export method based on provisioning profile, development will be use.
 
         Call `xcodebuild -help` for available export options.
+  - project_path: $BITRISE_PROJECT_PATH
+    opts:
+      category: Config
+      title: "Project (or Workspace) path"
+      summary: ""
+      description: |-
+        A `.xcodeproj` or `.xcworkspace` path.
+      is_required: true
+  - scheme: $BITRISE_SCHEME
+    opts:
+      category: Config
+      title: "Scheme name"
+      summary: ""
+      description: |-
+        The Scheme to use.
+      is_required: true
+  - configuration:
+    opts:
+      category: Config
+      title: "Configuration name"
+      summary: ""
+      description: |-
+        (optional) The configuration to use. By default your Scheme
+        defines which configuration (Debug, Release, ...) should be used,
+        but you can overwrite it with this option.
+
+        **Make sure that the Configuration you specify actually exists
+        in your Xcode Project**. If it does not, if you have a typo
+        in the value of this input Xcode will simply use the Configuration
+        specified by the Scheme and will silently ignore this parameter!
+  - force_team_id:
+    opts:
+      category: Force Code Signing Options (deprecated)
+      title: "Force Developer Portal team to use during archive"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Developer Portal team during archive.
+
+        Format example:
+
+        - `1MZX23ABCD4`
+  - force_code_sign_identity:
+    opts:
+      category: Force Code Signing Options (deprecated)
+      title: "Force code signing with Identity"
+      description: |-
+        Force xcodebuild to use specified Code Sign Identity.
+
+        Specify code sign identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
+        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
+
+        You also have to **specify the Identity in the format it's stored in Xcode project settings**,
+        and **not how it's presented in the Xcode.app GUI**!
+        This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
+        `iPhone` (`iPhone Distribution` or `iPhone Development`).
+        **Capitalization also matters**, `iPhone Distribution` works but `iphone distribution` does not!
+  - force_provisioning_profile_specifier:
+    opts:
+      category: Force Code Signing Options (deprecated)
+      title: "Force code signing with Provisioning Profile Specifier"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Provisioning Profile.
+
+        How to get your Provisioning Profile Specifier:
+
+        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
+        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
+        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
+
+        Format example:
+
+        - `1MZX23ABCD4/My Provisioning Profile`
+  - force_provisioning_profile:
+    opts:
+      category: Force Code Signing Options (deprecated)
+      title: "Force code signing with Provisioning Profile"
+      description: |-
+        Force xcodebuild to use specified Provisioning Profile.
+
+        Use Provisioning Profile's UUID, profile's name is not acceptable by xcodebuild.
+
+        How to get your UUID:
+
+        - In xcode select your project -> Build Settings -> Code Signing
+        - Select the desired Provisioning Profile, then scroll down in profile list and click on Other...
+        - The popup will show your profile's UUID.
+
+        Format example:
+
+        - `c5be4123-1234-4f9d-9843-0d9be985a068`
+  - output_dir: $BITRISE_DEPLOY_DIR
+    opts:
+      category: Debug
+      title: "Output directory path"
+      summary: ""
+      description: |-
+        This directory will contain the generated .ipa and .dSYM.zip files.
+      is_required: true
+  - workdir: $BITRISE_SOURCE_DIR
+    opts:
+      category: Debug
+      title: "Working directory"
+      summary: ""
+      description: |-
+        Working directory of the step.
+        You can leave it empty to don't change it.
+  - is_clean_build: "no"
+    opts:
+      category: Debug
+      title: "Do a clean Xcode build before the archive?"
+      value_options:
+        - "yes"
+        - "no"
+      is_required: true
+  - output_tool: xcpretty
+    opts:
+      category: Debug
+      title: Output tool
+      description: |-
+        If output_tool is set to xcpretty, the xcodebuild output will be prettified by xcpretty.
+        If output_tool is set to xcodebuild, the raw xcodebuild output will be printed.
+      value_options:
+      - xcpretty
+      - xcodebuild
+      is_required: true
+      is_expand: false
+  - xcodebuild_options: ""
+    opts:
+      category: Debug
+      title: Additional options for xcodebuild call
+      description: |-
+        Options added to the end of the xcodebuild call.
+
+        You can use multiple options, separated by a space
+        character. Example: `-xcconfig PATH -verbose`
+  - is_export_xcarchive_zip: "no"
+    opts:
+      category: Debug
+      title: Export the generated archive?
+      description: |-
+        If this input is set to `yes`, the generated .xcarchive will be zipped and moved to `output_dir`.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
+  - export_all_dsyms: "yes"
+    opts:
+      category: Debug
+      title: Export all dsyms
+      description: |-
+        If this input is set to `yes` step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
+        Otherwise only .app dsym will be zipped and the zip path exported.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
   - artifact_name: ${scheme}
     opts:
+      category: Debug
       title: "Generated Artifact Name"
       description: |-
         This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
+  - use_deprecated_export: "no"
+    opts:
+      category: Deprecated
+      title: Use deprecated ipa export method?
+      description: |-
+        If this input is set to `yes`, step will use deprecated ipa export method.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
 outputs:
   - BITRISE_IPA_PATH:
     opts:
