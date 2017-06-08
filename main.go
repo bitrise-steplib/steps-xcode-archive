@@ -472,17 +472,18 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			under the Products/Applications folder
 		*/
 
-		embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(tmpArchivePath)
+		embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
 		if err != nil {
 			fail("Failed to get embedded profile path, error: %s", err)
 		}
 
-		provProfile, err := provisioningprofile.NewFromFile(embeddedProfilePth)
+		provProfilePlistData, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
 		if err != nil {
 			fail("Failed to create provisioning profile model, error: %s", err)
 		}
 
-		if provProfile.Name == nil {
+		name, found := provProfilePlistData.GetString("Name")
+		if !found {
 			fail("Profile name empty")
 		}
 
@@ -490,7 +491,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		legacyExportCmd.SetExportFormat("ipa")
 		legacyExportCmd.SetArchivePath(tmpArchivePath)
 		legacyExportCmd.SetExportPath(ipaPath)
-		legacyExportCmd.SetExportProvisioningProfileName(*provProfile.Name)
+		legacyExportCmd.SetExportProvisioningProfileName(name)
 
 		if configs.OutputTool == "xcpretty" {
 			xcprettyCmd := xcpretty.New(legacyExportCmd)
@@ -534,17 +535,17 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			if configs.ExportMethod == "auto-detect" {
 				log.Printf("auto-detect export method, based on embedded profile")
 
-				embeddedProfilePth, err := xcarchive.EmbeddedMobileProvisionPth(tmpArchivePath)
+				embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
 				if err != nil {
 					fail("Failed to get embedded profile path, error: %s", err)
 				}
 
-				provProfile, err := provisioningprofile.NewFromFile(embeddedProfilePth)
+				provProfilePlistData, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
 				if err != nil {
 					fail("Failed to create provisioning profile model, error: %s", err)
 				}
 
-				method = provProfile.GetExportMethod()
+				method = provisioningprofile.GetExportMethod(provProfilePlistData)
 				log.Printf("detected export method: %s", method)
 			} else {
 				log.Printf("using export-method input: %s", configs.ExportMethod)

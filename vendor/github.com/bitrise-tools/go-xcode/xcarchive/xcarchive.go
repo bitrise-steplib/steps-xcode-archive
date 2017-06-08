@@ -4,29 +4,52 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-tools/go-xcode/utility"
 )
 
-// EmbeddedMobileProvisionPth ...
-func EmbeddedMobileProvisionPth(archivePth string) (string, error) {
-	applicationPth := filepath.Join(archivePth, "/Products/Applications")
-	mobileProvisionPthPattern := filepath.Join(applicationPth, "*.app/embedded.mobileprovision")
-	mobileProvisionPths, err := filepath.Glob(mobileProvisionPthPattern)
+// FindEmbeddedMobileProvision ...
+func FindEmbeddedMobileProvision(archivePth string) (string, error) {
+	if exist, err := pathutil.IsDirExists(archivePth); err != nil {
+		return "", fmt.Errorf("failed to check if archive exist, error: %s", err)
+	} else if !exist {
+		return "", fmt.Errorf("archive not exist at: %s", archivePth)
+	}
+
+	applicationsDirPth := filepath.Join(archivePth, "Products/Applications")
+	apps, err := utility.ListEntries(applicationsDirPth, utility.ExtensionFilter(".app", true))
 	if err != nil {
-		return "", fmt.Errorf("failed to find embedded.mobileprovision with pattern: %s, error: %s", mobileProvisionPthPattern, err)
+		return "", err
 	}
-	if len(mobileProvisionPths) == 0 {
-		return "", fmt.Errorf("no embedded.mobileprovision with pattern: %s", mobileProvisionPthPattern)
+
+	for _, app := range apps {
+		embeddedProfiles, err := utility.ListEntries(app, utility.BaseFilter("embedded.mobileprovision", true))
+		if err != nil {
+			return "", err
+		}
+		if len(embeddedProfiles) > 0 {
+			return embeddedProfiles[0], nil
+		}
 	}
-	return mobileProvisionPths[0], nil
+
+	return "", fmt.Errorf("no embedded.mobileprovision found")
 }
 
 // FindDSYMs ...
 func FindDSYMs(archivePth string) (string, []string, error) {
-	pattern := filepath.Join(archivePth, "dSYMs", "*.dSYM")
-	dsyms, err := filepath.Glob(pattern)
-	if err != nil {
-		return "", []string{}, fmt.Errorf("failed to find dSYM with pattern: %s, error: %s", pattern, err)
+	if exist, err := pathutil.IsDirExists(archivePth); err != nil {
+		return "", []string{}, fmt.Errorf("failed to check if archive exist, error: %s", err)
+	} else if !exist {
+		return "", []string{}, fmt.Errorf("archive not exist at: %s", archivePth)
 	}
+
+	dsymsDirPth := filepath.Join(archivePth, "dSYMs")
+	dsyms, err := utility.ListEntries(dsymsDirPth, utility.ExtensionFilter(".dsym", true))
+	if err != nil {
+		return "", []string{}, err
+	}
+
 	appDSYM := ""
 	frameworkDSYMs := []string{}
 	for _, dsym := range dsyms {
@@ -36,19 +59,29 @@ func FindDSYMs(archivePth string) (string, []string, error) {
 			frameworkDSYMs = append(frameworkDSYMs, dsym)
 		}
 	}
+	if appDSYM == "" && len(frameworkDSYMs) == 0 {
+		return "", []string{}, fmt.Errorf("no dsym found")
+	}
+
 	return appDSYM, frameworkDSYMs, nil
 }
 
 // FindApp ...
 func FindApp(archivePth string) (string, error) {
-	pattern := filepath.Join(archivePth, "Products/Applications", "*.app")
-	apps, err := filepath.Glob(pattern)
+	if exist, err := pathutil.IsDirExists(archivePth); err != nil {
+		return "", fmt.Errorf("failed to check if archive exist, error: %s", err)
+	} else if !exist {
+		return "", fmt.Errorf("archive not exist at: %s", archivePth)
+	}
+
+	applicationsDirPth := filepath.Join(archivePth, "Products/Applications")
+	apps, err := utility.ListEntries(applicationsDirPth, utility.ExtensionFilter(".app", true))
 	if err != nil {
-		return "", fmt.Errorf("failed to find .app directory with pattern: %s, error: %s", pattern, err)
+		return "", err
 	}
 
 	if len(apps) == 0 {
-		return "", fmt.Errorf("no app found with pattern (%s)", pattern)
+		return "", fmt.Errorf("no app found")
 	}
 
 	return apps[0], nil
