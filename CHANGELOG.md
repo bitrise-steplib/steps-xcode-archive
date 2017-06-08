@@ -1,6 +1,12 @@
-## Changelog (Current version: 2.0.5)
+## Changelog (Current version: 2.0.6)
 
 -----------------
+
+### 2.0.6 (2017 Jun 08)
+
+* [ff1289e] prepare for 2.0.6
+* [28f2c71] input grouping and reordering (#64)
+* [d8ea1e6] godeps update (#65)
 
 ### 2.0.5 (2017 Feb 08)
 
@@ -267,4 +273,4 @@
 
 -----------------
 
-Updated: 2017 Feb 08
+Updated: 2017 Jun 08
