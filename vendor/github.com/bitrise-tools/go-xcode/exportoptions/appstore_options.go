@@ -3,7 +3,7 @@ package exportoptions
 import (
 	"fmt"
 
-	plist "github.com/DHowett/go-plist"
+	"howett.net/plist"
 )
 
 // AppStoreOptionsModel ...

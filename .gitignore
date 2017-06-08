@@ -1,4 +1,3 @@
-.bitrise.secrets.yml
-.bitrise
-out/
 _tmp
+.gows*
+.bitrise*

@@ -24,9 +24,6 @@ deps:
   - name: xcode
   brew:
   - name: go
-  apt_get:
-  - name: golang
-    bin_name: go
 toolkit:
   go:
     package_name: github.com/bitrise-io/steps-xcode-archive

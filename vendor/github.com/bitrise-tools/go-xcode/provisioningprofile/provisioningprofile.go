@@ -4,47 +4,25 @@ import (
 	"fmt"
 	"strings"
 
-	plist "github.com/DHowett/go-plist"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
+	"github.com/bitrise-tools/go-xcode/plistutil"
 )
 
 const (
 	notValidParameterErrorMessage = "security: SecPolicySetValue: One or more parameters passed to a function were not valid."
 )
 
-// EntitlementsModel ...
-type EntitlementsModel struct {
-	GetTaskAllow    *bool   `plist:"get-task-allow"`
-	DeveloperTeamID *string `plist:"com.apple.developer.team-identifier"`
-}
-
-// Model ...
-type Model struct {
-	Name                 *string            `plist:"Name"`
-	ProvisionedDevices   *[]string          `plist:"ProvisionedDevices"`
-	ProvisionsAllDevices *bool              `plist:"ProvisionsAllDevices"`
-	Entitlements         *EntitlementsModel `plist:"Entitlements"`
-}
-
-func newFromProfileContent(content string) (Model, error) {
-	var mobileProvision Model
-	if _, err := plist.Unmarshal([]byte(content), &mobileProvision); err != nil {
-		return Model{}, fmt.Errorf("failed to mobileprovision, error: %s", err)
-	}
-
-	return mobileProvision, nil
-}
-
-// NewFromFile ...
-func NewFromFile(pth string) (Model, error) {
-	cmd := command.New("security", "cms", "-D", "-i", pth)
+// NewPlistDataFromFile ...
+func NewPlistDataFromFile(provisioningProfilePth string) (plistutil.PlistData, error) {
+	cmd := command.New("security", "cms", "-D", "-i", provisioningProfilePth)
 
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return Model{}, fmt.Errorf("command failed, error: %s", err)
+		return nil, fmt.Errorf("command failed, error: %s", err)
 	}
 
+	// fix: security: SecPolicySetValue: One or more parameters passed to a function were not valid.
 	outSplit := strings.Split(out, "\n")
 	if len(outSplit) > 0 {
 		if strings.Contains(outSplit[0], notValidParameterErrorMessage) {
@@ -52,38 +30,42 @@ func NewFromFile(pth string) (Model, error) {
 			out = strings.Join(fixedOutSplit, "\n")
 		}
 	}
+	// ---
 
-	return newFromProfileContent(out)
+	return plistutil.NewPlistDataFromContent(out)
 }
 
 // GetExportMethod ...
-func (profile Model) GetExportMethod() exportoptions.Method {
-	method := exportoptions.MethodDefault
-	if profile.ProvisionedDevices == nil {
-		if profile.ProvisionsAllDevices != nil && *profile.ProvisionsAllDevices {
-			method = exportoptions.MethodEnterprise
-		} else {
-			method = exportoptions.MethodAppStore
+func GetExportMethod(data plistutil.PlistData) exportoptions.Method {
+	_, ok := data.GetStringArray("ProvisionedDevices")
+	if !ok {
+		if allDevices, ok := data.GetBool("ProvisionsAllDevices"); ok && allDevices {
+			return exportoptions.MethodEnterprise
 		}
-	} else if profile.Entitlements != nil {
-		entitlements := *profile.Entitlements
-		if entitlements.GetTaskAllow != nil && *entitlements.GetTaskAllow {
-			method = exportoptions.MethodDevelopment
-		} else {
-			method = exportoptions.MethodAdHoc
-		}
+		return exportoptions.MethodAppStore
 	}
-	return method
+
+	entitlements, ok := data.GetMapStringInterface("Entitlements")
+	if ok {
+		if allow, ok := entitlements.GetBool("get-task-allow"); ok && allow {
+			return exportoptions.MethodDevelopment
+		}
+		return exportoptions.MethodAdHoc
+	}
+
+	return exportoptions.MethodDefault
 }
 
 // GetDeveloperTeam ...
-func (profile Model) GetDeveloperTeam() string {
-	developerTeamID := ""
-	if profile.Entitlements != nil {
-		entitlements := *profile.Entitlements
-		if entitlements.DeveloperTeamID != nil {
-			developerTeamID = *entitlements.DeveloperTeamID
-		}
+func GetDeveloperTeam(data plistutil.PlistData) string {
+	entitlements, ok := data.GetMapStringInterface("Entitlements")
+	if !ok {
+		return ""
 	}
-	return developerTeamID
+
+	teamID, ok := entitlements.GetString("com.apple.developer.team-identifier")
+	if !ok {
+		return ""
+	}
+	return teamID
 }
