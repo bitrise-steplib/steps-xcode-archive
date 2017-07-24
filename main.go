@@ -731,35 +731,40 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 	appDSYM, frameworkDSYMs, err := xcarchive.FindDSYMs(tmpArchivePath)
 	if err != nil {
-		fail("Failed to export dsyms, error: %s", err)
-	}
-
-	dsymDir, err := pathutil.NormalizedOSTempDirPath("__dsyms__")
-	if err != nil {
-		fail("Failed to create tmp dir, error: %s", err)
-	}
-
-	if err := command.CopyDir(appDSYM, dsymDir, false); err != nil {
-		fail("Failed to copy (%s) -> (%s), error: %s", appDSYM, dsymDir, err)
-	}
-
-	if configs.ExportAllDsyms == "yes" {
-		for _, dsym := range frameworkDSYMs {
-			if err := command.CopyDir(dsym, dsymDir, false); err != nil {
-				fail("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
-			}
+		if err.Error() == "no dsym found" {
+			log.Warnf("no app nor framework dsyms found")
+		} else {
+			fail("Failed to export dsyms, error: %s", err)
 		}
 	}
+	if err == nil {
+		dsymDir, err := pathutil.NormalizedOSTempDirPath("__dsyms__")
+		if err != nil {
+			fail("Failed to create tmp dir, error: %s", err)
+		}
 
-	if err := utils.ExportOutputDir(dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
-		fail("Failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
+		if err := command.CopyDir(appDSYM, dsymDir, false); err != nil {
+			fail("Failed to copy (%s) -> (%s), error: %s", appDSYM, dsymDir, err)
+		}
+
+		if configs.ExportAllDsyms == "yes" {
+			for _, dsym := range frameworkDSYMs {
+				if err := command.CopyDir(dsym, dsymDir, false); err != nil {
+					fail("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
+				}
+			}
+		}
+
+		if err := utils.ExportOutputDir(dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
+			fail("Failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
+		}
+
+		log.Donef("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
+
+		if err := utils.ExportOutputDirAsZip(dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
+			fail("Failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
+		}
+
+		log.Donef("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
 	}
-
-	log.Donef("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
-
-	if err := utils.ExportOutputDirAsZip(dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
-		fail("Failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
-	}
-
-	log.Donef("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
 }
