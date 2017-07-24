@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.0.6)
+## Changelog (Current version: 2.1.0)
 
 -----------------
+
+### 2.1.0 (2017 Jul 24)
+
+* [62a0064] prepare for 2.1.0
+* [846199d] optional dsyms, godeps-update (#68)
 
 ### 2.0.6 (2017 Jun 08)
 
@@ -273,4 +278,4 @@
 
 -----------------
 
-Updated: 2017 Jun 08
+Updated: 2017 Jul 24
