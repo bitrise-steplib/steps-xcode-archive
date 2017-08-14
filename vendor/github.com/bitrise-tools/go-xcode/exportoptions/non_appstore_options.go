@@ -8,8 +8,9 @@ import (
 
 // NonAppStoreOptionsModel ...
 type NonAppStoreOptionsModel struct {
-	Method Method
-	TeamID string
+	Method                             Method
+	TeamID                             string
+	BundleIDProvisioningProfileMapping map[string]string
 
 	// for non app-store exports
 	CompileBitcode                           bool
@@ -57,6 +58,9 @@ func (options NonAppStoreOptionsModel) Hash() map[string]interface{} {
 	}
 	if options.Thinning != ThinningDefault {
 		hash[ThinningKey] = options.Thinning
+	}
+	if len(options.BundleIDProvisioningProfileMapping) > 0 {
+		hash[ProvisioningProfilesKey] = options.BundleIDProvisioningProfileMapping
 	}
 	return hash
 }

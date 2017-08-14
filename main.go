@@ -556,17 +556,34 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				method = parsedMethod
 			}
 
+			profileMapping := map[string]string{}
+			if xcodeMajorVersion >= 9 {
+				mapping, err := provisioningprofile.BundleIDProvisionigProfileMapping(configs.ProjectPath)
+				if err != nil {
+					fail("Failed to read provisioning profile - bundle id mapping, error: %s", err)
+				}
+				profileMapping = mapping
+			}
+
 			var exportOpts exportoptions.ExportOptions
 			if method == exportoptions.MethodAppStore {
 				options := exportoptions.NewAppStoreOptions()
 				options.UploadBitcode = (configs.UploadBitcode == "yes")
 				options.TeamID = configs.TeamID
 
+				if xcodeMajorVersion >= 9 {
+					options.BundleIDProvisioningProfileMapping = profileMapping
+				}
+
 				exportOpts = options
 			} else {
 				options := exportoptions.NewNonAppStoreOptions(method)
 				options.CompileBitcode = (configs.CompileBitcode == "yes")
 				options.TeamID = configs.TeamID
+
+				if xcodeMajorVersion >= 9 {
+					options.BundleIDProvisioningProfileMapping = profileMapping
+				}
 
 				exportOpts = options
 			}

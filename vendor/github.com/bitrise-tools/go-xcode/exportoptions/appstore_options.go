@@ -8,7 +8,8 @@ import (
 
 // AppStoreOptionsModel ...
 type AppStoreOptionsModel struct {
-	TeamID string
+	TeamID                             string
+	BundleIDProvisioningProfileMapping map[string]string
 
 	// for app-store exports
 	UploadBitcode bool
@@ -35,6 +36,9 @@ func (options AppStoreOptionsModel) Hash() map[string]interface{} {
 	}
 	if options.UploadSymbols != UploadSymbolsDefault {
 		hash[UploadSymbolsKey] = options.UploadSymbols
+	}
+	if len(options.BundleIDProvisioningProfileMapping) > 0 {
+		hash[ProvisioningProfilesKey] = options.BundleIDProvisioningProfileMapping
 	}
 	return hash
 }
