@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.1.0)
+## Changelog (Current version: 2.1.1)
 
 -----------------
+
+### 2.1.1 (2017 Aug 14)
+
+* [c5316cc] prepare for 2.1.1
+* [53e50f7] react-native project_type_tag added (#69)
 
 ### 2.1.0 (2017 Jul 24)
 
@@ -278,4 +283,4 @@
 
 -----------------
 
-Updated: 2017 Jul 24
+Updated: 2017 Aug 14
