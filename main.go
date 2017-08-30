@@ -16,10 +16,12 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
+	"github.com/bitrise-tools/codesigndoc/provprofile"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
 	"github.com/bitrise-tools/go-xcode/xcarchive"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
+	"github.com/bitrise-tools/go-xcode/xcodeproj"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
 )
@@ -532,6 +534,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			log.Printf("Generating export options")
 
 			var method exportoptions.Method
+			embeddedProfileName := ""
 			if configs.ExportMethod == "auto-detect" {
 				log.Printf("auto-detect export method, based on embedded profile")
 
@@ -547,6 +550,8 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				method = provisioningprofile.GetExportMethod(provProfilePlistData)
 				log.Printf("detected export method: %s", method)
+
+				embeddedProfileName, _ = provProfilePlistData.GetString("Name")
 			} else {
 				log.Printf("using export-method input: %s", configs.ExportMethod)
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
@@ -558,11 +563,46 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 			profileMapping := map[string]string{}
 			if xcodeMajorVersion >= 9 {
-				mapping, err := provisioningprofile.BundleIDProvisionigProfileMapping(configs.ProjectPath)
+				mapping, err := xcodeproj.TargetCodeSignMapping(configs.ProjectPath)
 				if err != nil {
-					fail("Failed to read provisioning profile - bundle id mapping, error: %s", err)
+					fail("Failed to create target code sign properties mapping, error: %s", err)
 				}
-				profileMapping = mapping
+
+				for _, codeSignProperties := range mapping {
+					profileName := codeSignProperties.ProvisioningProfileSpecifier
+					if profileName == "" {
+						profileName = codeSignProperties.ProvisioningProfile
+					}
+
+					if profileName == "" {
+						if configs.ExportMethod == "auto-detect" {
+							profileName = embeddedProfileName
+						} else {
+							profileDatas, err := provprofile.FindProvProfilesByAppID(codeSignProperties.BundleIdentifier)
+							if err != nil {
+								fail("Failed to find matching provisioning profiles for: %s, error: %s", codeSignProperties.BundleIdentifier, err)
+							}
+
+							if len(profileDatas) == 0 {
+								fail("Failed to find matching provisioning profiles for: %s", codeSignProperties.BundleIdentifier)
+							} else if len(profileDatas) > 1 {
+								log.Errorf("Multiple provisoning profiles found for bundle id: %s", codeSignProperties.BundleIdentifier)
+								log.Errorf("The step can not determine which one to use...")
+								log.Errorf("Please specify custom_export_options_plist_content input instead of specifying export_method")
+								log.Errorf("Read more: http://blog.bitrise.io/2017/08/15/new-export-options-plist-in-Xcode-9.html")
+								os.Exit(1)
+							}
+
+							profileName = profileDatas[0].ProvisioningProfileInfo.Name
+						}
+					}
+
+					if profileName == "" {
+						fail("Failed to find desired provisioning profile for: %s", codeSignProperties.BundleIdentifier)
+					}
+
+					profileMapping[codeSignProperties.BundleIdentifier] = profileName
+				}
 			}
 
 			var exportOpts exportoptions.ExportOptions
