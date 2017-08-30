@@ -291,7 +291,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		configs.ForceProvisioningProfileSpecifier = ""
 	}
 
-	if configs.ForceTeamID == "" &&
+	if configs.ForceTeamID != "" &&
 		xcodeMajorVersion < 8 {
 		log.Warnf("ForceTeamID is set, but ForceTeamID only used if xcodeMajorVersion > 7")
 		configs.ForceTeamID = ""
@@ -583,9 +583,22 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 								fail("Failed to find matching provisioning profiles for: %s, error: %s", codeSignProperties.BundleIdentifier, err)
 							}
 
-							if len(profileDatas) == 0 {
+							matchingProfileNames := []string{}
+							for _, profileData := range profileDatas {
+								provProfilePlistData, err := provisioningprofile.NewPlistDataFromFile(profileData.Path)
+								if err != nil {
+									fail("Failed to create provisioning profile model, error: %s", err)
+								}
+
+								method := provisioningprofile.GetExportMethod(provProfilePlistData)
+								if string(method) == configs.ExportMethod {
+									matchingProfileNames = append(matchingProfileNames, profileData.ProvisioningProfileInfo.Name)
+								}
+							}
+
+							if len(matchingProfileNames) == 0 {
 								fail("Failed to find matching provisioning profiles for: %s", codeSignProperties.BundleIdentifier)
-							} else if len(profileDatas) > 1 {
+							} else if len(matchingProfileNames) > 1 {
 								log.Errorf("Multiple provisoning profiles found for bundle id: %s", codeSignProperties.BundleIdentifier)
 								log.Errorf("The step can not determine which one to use...")
 								log.Errorf("Please specify custom_export_options_plist_content input instead of specifying export_method")
@@ -593,7 +606,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 								os.Exit(1)
 							}
 
-							profileName = profileDatas[0].ProvisioningProfileInfo.Name
+							profileName = matchingProfileNames[0]
 						}
 					}
 
