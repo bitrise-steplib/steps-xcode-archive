@@ -18,6 +18,19 @@ workflows:
     - test_xcode_8
     - test_multi_target
 
+  test_xcode_7:
+    before_run:
+    - go-tests
+    after_run:
+    - test_objc
+
+  test_xcode_8:
+    before_run:
+    - go-tests
+    after_run:
+    - test_objc
+    - test_xcode_8
+
   test_objc:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
