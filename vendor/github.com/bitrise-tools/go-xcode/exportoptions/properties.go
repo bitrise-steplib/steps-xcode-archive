@@ -149,3 +149,6 @@ const UploadSymbolsKey = "uploadSymbols"
 
 // UploadSymbolsDefault ...
 const UploadSymbolsDefault = true
+
+// ProvisioningProfilesKey ...
+const ProvisioningProfilesKey = "provisioningProfiles"
