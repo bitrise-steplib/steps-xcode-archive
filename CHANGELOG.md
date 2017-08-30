@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.1.1)
+## Changelog (Current version: 2.2.0)
 
 -----------------
+
+### 2.2.0 (2017 Aug 30)
+
+* [83e1273] prepare for 2.2.0
+* [afd465d] Xcode9 export (#70)
 
 ### 2.1.1 (2017 Aug 14)
 
@@ -283,4 +288,4 @@
 
 -----------------
 
-Updated: 2017 Aug 14
+Updated: 2017 Aug 30
