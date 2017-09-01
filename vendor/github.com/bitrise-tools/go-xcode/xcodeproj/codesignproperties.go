@@ -31,10 +31,10 @@ def contained_projects(project_or_workspace_pth)
     workspace_contents_pth = File.join(project_or_workspace_pth, 'contents.xcworkspacedata')
     workspace_contents = File.read(workspace_contents_pth)
     project_paths = workspace_contents.scan(/\"group:(.*)\"/).collect do |current_match|
-      # skip cocoapods projects
-      return nil if current_match.end_with?('Pods/Pods.xcodeproj')
-
       File.join(File.expand_path('..', project_or_workspace_pth), current_match.first)
+    end.find_all do |current_match|
+      # skip cocoapods projects
+      !current_match.end_with?("Pods/Pods.xcodeproj")
     end
   end
   project_paths
@@ -52,7 +52,7 @@ def read_code_sign_map(project_or_workspace_pth)
       target.build_configuration_list.build_configurations.each do |build_configuration|
         attributes = project.root_object.attributes['TargetAttributes']
         target_id = target.uuid
-		target_attributes = attributes[target_id]
+        target_attributes = attributes[target_id]
 
         bundle_id = build_configuration.resolve_build_setting('PRODUCT_BUNDLE_IDENTIFIER') || ''
         provisioning_style = target_attributes['ProvisioningStyle'] || ''
@@ -77,9 +77,19 @@ end
 begin
   project_path = ENV['project_path']
   mapping = read_code_sign_map(project_path)
-  puts "#{{ :data =>  mapping }.to_json}"
+  result = {
+    data: mapping
+  }
+  result_json = result.to_json.to_s
+  puts result_json
 rescue => e
-  puts "#{{ :error => e.to_s }.to_json}"
+  error_message = e.to_s + "\n" + e.backtrace.to_s
+  result = {
+    error: error_message
+  }
+  result_json = result.to_json.to_s
+  puts result_json
+  exit(1)
 end
 `
 
