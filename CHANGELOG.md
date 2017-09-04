@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.2.0)
+## Changelog (Current version: 2.2.1)
 
 -----------------
+
+### 2.2.1 (2017 Sep 04)
+
+* [70a6614] prepare for 2.2.1
+* [bdd56b8] exportOptions fix (#72)
 
 ### 2.2.0 (2017 Aug 30)
 
@@ -288,4 +293,4 @@
 
 -----------------
 
-Updated: 2017 Aug 30
+Updated: 2017 Sep 04
