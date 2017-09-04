@@ -54,39 +54,39 @@
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/exportoptions",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/models",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/plistutil",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/provisioningprofile",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/utility",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcarchive",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcodebuild",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcodeproj",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcpretty",
-			"Rev": "800da7d6b29cc8d530282eb2f40ed59db7ed764c"
+			"Rev": "dd8cdbc9ec4776525971efdaf38cfff447e6d2c4"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-version",
@@ -112,11 +112,11 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "ab9e364efd8b52800ff7ee48a9ffba4e0ed78dfb"
+			"Rev": "7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/windows",
-			"Rev": "ab9e364efd8b52800ff7ee48a9ffba4e0ed78dfb"
+			"Rev": "7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce"
 		},
 		{
 			"ImportPath": "howett.net/plist",
