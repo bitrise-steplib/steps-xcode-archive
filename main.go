@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/bitrise-tools/go-xcode/plistutil"
 
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/command"
@@ -552,6 +555,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("detected export method: %s", method)
 
 				embeddedProfileName, _ = provProfilePlistData.GetString("Name")
+				log.Printf("embedded provisioning profile name: %s", embeddedProfileName)
 			} else {
 				log.Printf("using export-method input: %s", configs.ExportMethod)
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
@@ -563,24 +567,64 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 			profileMapping := map[string]string{}
 			if xcodeMajorVersion >= 9 {
-				mapping, err := xcodeproj.TargetCodeSignMapping(configs.ProjectPath)
+				log.Printf("xcode major version > 9, generating exportOptions with provisioningProfiles node")
+
+				user := os.Getenv("USER")
+				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, configs.Configuration, user)
 				if err != nil {
 					fail("Failed to create target code sign properties mapping, error: %s", err)
 				}
 
-				for _, codeSignProperties := range mapping {
-					profileName := codeSignProperties.ProvisioningProfileSpecifier
-					if profileName == "" {
-						profileName = codeSignProperties.ProvisioningProfile
-					}
+				mapping, err := json.MarshalIndent(targetCodeSignInfoMap, "", "\t")
+				if err != nil {
+					fmt.Printf("target code sign info mapping based on the project:\n%s", mapping)
+				}
 
-					if profileName == "" {
-						if configs.ExportMethod == "auto-detect" {
-							profileName = embeddedProfileName
-						} else {
-							profileDatas, err := provprofile.FindProvProfilesByAppID(codeSignProperties.BundleIdentifier)
+				for _, codeSignInfo := range targetCodeSignInfoMap {
+					profileName := ""
+					if configs.ExportMethod == "auto-detect" {
+						log.Printf("using embedded profile (%s) to sign: %s", embeddedProfileName, codeSignInfo.BundleIdentifier)
+
+						profileName = embeddedProfileName
+					} else {
+						profileName := codeSignInfo.ProvisioningProfileSpecifier
+						if profileName != "" {
+							log.Printf("using project specified profile specifier (%s) to sign: %s", profileName, codeSignInfo.BundleIdentifier)
+						} else if codeSignInfo.ProvisioningProfile != "" {
+							profileName = codeSignInfo.ProvisioningProfile
+							log.Printf("using project specified profile (%s) to sign: %s", profileName, codeSignInfo.BundleIdentifier)
+						}
+
+						if profileName != "" {
+							// profile defined in the project, check if its export method matches to the config defined one
+							if err := utils.WalkIOSProvProfiles(func(profileData plistutil.PlistData) bool {
+								udid, _ := profileData.GetString("UUID")
+								name, _ := profileData.GetString("Name")
+								teamID := provisioningprofile.GetDeveloperTeam(profileData)
+
+								if udid == profileName || (teamID+"/"+name) == profileName {
+									exportMethod := provisioningprofile.GetExportMethod(profileData)
+									if string(exportMethod) != configs.ExportMethod {
+										log.Warnf("project specified profile's export method (%s) does not match to the selected (%s)", exportMethod, configs.ExportMethod)
+										log.Warnf("searching for installed profile with selected export method")
+										profileName = ""
+										return true
+									}
+
+									return false
+								}
+								return false
+							}); err != nil {
+								fail("Failed to find profile: %s, error: %s", profileName, err)
+							}
+						}
+
+						if profileName == "" {
+							log.Printf("project does not specify profile for: %s, seraching for installed profile for export method: %ss", codeSignInfo.BundleIdentifier, configs.ExportMethod)
+
+							profileDatas, err := provprofile.FindProvProfilesByAppID(codeSignInfo.BundleIdentifier)
 							if err != nil {
-								fail("Failed to find matching provisioning profiles for: %s, error: %s", codeSignProperties.BundleIdentifier, err)
+								fail("Failed to find matching provisioning profiles for: %s, error: %s", codeSignInfo.BundleIdentifier, err)
 							}
 
 							matchingProfileNames := []string{}
@@ -597,9 +641,9 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 							}
 
 							if len(matchingProfileNames) == 0 {
-								fail("Failed to find matching provisioning profiles for: %s", codeSignProperties.BundleIdentifier)
+								fail("Failed to find matching provisioning profiles for: %s", codeSignInfo.BundleIdentifier)
 							} else if len(matchingProfileNames) > 1 {
-								log.Errorf("Multiple provisoning profiles found for bundle id: %s", codeSignProperties.BundleIdentifier)
+								log.Errorf("Multiple provisoning profiles found for bundle id: %s", codeSignInfo.BundleIdentifier)
 								log.Errorf("The step can not determine which one to use...")
 								log.Errorf("Please specify custom_export_options_plist_content input instead of specifying export_method")
 								log.Errorf("Read more: http://blog.bitrise.io/2017/08/15/new-export-options-plist-in-Xcode-9.html")
@@ -607,14 +651,16 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 							}
 
 							profileName = matchingProfileNames[0]
+
+							log.Printf("using installed profile (%s) to sign: %s", profileName, codeSignInfo.BundleIdentifier)
 						}
 					}
 
 					if profileName == "" {
-						fail("Failed to find desired provisioning profile for: %s", codeSignProperties.BundleIdentifier)
+						fail("Failed to find desired provisioning profile for: %s", codeSignInfo.BundleIdentifier)
 					}
 
-					profileMapping[codeSignProperties.BundleIdentifier] = profileName
+					profileMapping[codeSignInfo.BundleIdentifier] = profileName
 				}
 			}
 
@@ -626,6 +672,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				if xcodeMajorVersion >= 9 {
 					options.BundleIDProvisioningProfileMapping = profileMapping
+					options.SigningCertificate = configs.ForceCodeSignIdentity
 				}
 
 				exportOpts = options
@@ -636,6 +683,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				if xcodeMajorVersion >= 9 {
 					options.BundleIDProvisioningProfileMapping = profileMapping
+					options.SigningCertificate = configs.ForceCodeSignIdentity
 				}
 
 				exportOpts = options
