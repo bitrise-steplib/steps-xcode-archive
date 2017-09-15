@@ -117,10 +117,6 @@ func (configs ConfigsModel) print() {
 	}
 
 	log.Printf("- UseDeprecatedExport: %s", configs.UseDeprecatedExport)
-	log.Printf("- ForceTeamID: %s", configs.ForceTeamID)
-	log.Printf("- ForceProvisioningProfileSpecifier: %s", configs.ForceProvisioningProfileSpecifier)
-	log.Printf("- ForceProvisioningProfile: %s", configs.ForceProvisioningProfile)
-	log.Printf("- ForceCodeSignIdentity: %s", configs.ForceCodeSignIdentity)
 	log.Printf("- CustomExportOptionsPlistContent:")
 	if configs.CustomExportOptionsPlistContent != "" {
 		log.Printf(configs.CustomExportOptionsPlistContent)
@@ -136,6 +132,10 @@ func (configs ConfigsModel) print() {
 	log.Printf("- OutputDir: %s", configs.OutputDir)
 	log.Printf("- IsCleanBuild: %s", configs.IsCleanBuild)
 	log.Printf("- XcodebuildOptions: %s", configs.XcodebuildOptions)
+	log.Printf("- ForceTeamID: %s", configs.ForceTeamID)
+	log.Printf("- ForceProvisioningProfileSpecifier: %s", configs.ForceProvisioningProfileSpecifier)
+	log.Printf("- ForceProvisioningProfile: %s", configs.ForceProvisioningProfile)
+	log.Printf("- ForceCodeSignIdentity: %s", configs.ForceCodeSignIdentity)
 	fmt.Println()
 
 	log.Infof("step output configs:")
