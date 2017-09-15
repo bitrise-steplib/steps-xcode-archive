@@ -1,6 +1,12 @@
-## Changelog (Current version: 2.2.1)
+## Changelog (Current version: 2.3.0)
 
 -----------------
+
+### 2.3.0 (2017 Sep 15)
+
+* [c2d9712] prepare for 2.3.0
+* [829d9de] Export options (#75)
+* [9591b13] force_team_id, force_code_sign_identity, force_provisioning_profile_specifier and force_provisioning_profile are not deprecated options, in some cases they are required! (#74)
 
 ### 2.2.1 (2017 Sep 04)
 
@@ -293,4 +299,4 @@
 
 -----------------
 
-Updated: 2017 Sep 04
+Updated: 2017 Sep 15
