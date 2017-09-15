@@ -152,3 +152,6 @@ const UploadSymbolsDefault = true
 
 // ProvisioningProfilesKey ...
 const ProvisioningProfilesKey = "provisioningProfiles"
+
+// SigningCertificateKey ...
+const SigningCertificateKey = "signingCertificate"
