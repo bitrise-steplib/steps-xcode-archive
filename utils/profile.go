@@ -14,7 +14,7 @@ const (
 )
 
 // IOSProvProfileWalkFunc ...
-type IOSProvProfileWalkFunc = func(plistData plistutil.PlistData) bool
+type IOSProvProfileWalkFunc func(plistData plistutil.PlistData) bool
 
 // WalkIOSProvProfiles ...
 func WalkIOSProvProfiles(walkFunc IOSProvProfileWalkFunc) error {
