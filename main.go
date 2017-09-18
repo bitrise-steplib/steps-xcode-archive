@@ -620,7 +620,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						}
 
 						if profileName == "" {
-							log.Printf("project does not specify profile for: %s, searching for installed profile for export method: %ss", codeSignInfo.BundleIdentifier, configs.ExportMethod)
+							log.Printf("project does not specify profile for: %s, searching for installed profile for export method: %s", codeSignInfo.BundleIdentifier, configs.ExportMethod)
 
 							profileDatas, err := provprofile.FindProvProfilesByAppID(codeSignInfo.BundleIdentifier)
 							if err != nil {
