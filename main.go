@@ -620,7 +620,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						}
 
 						if profileName == "" {
-							log.Printf("project does not specify profile for: %s, seraching for installed profile for export method: %ss", codeSignInfo.BundleIdentifier, configs.ExportMethod)
+							log.Printf("project does not specify profile for: %s, searching for installed profile for export method: %s", codeSignInfo.BundleIdentifier, configs.ExportMethod)
 
 							profileDatas, err := provprofile.FindProvProfilesByAppID(codeSignInfo.BundleIdentifier)
 							if err != nil {
@@ -643,7 +643,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 							if len(matchingProfileNames) == 0 {
 								fail("Failed to find matching provisioning profiles for: %s", codeSignInfo.BundleIdentifier)
 							} else if len(matchingProfileNames) > 1 {
-								log.Errorf("Multiple provisoning profiles found for bundle id: %s", codeSignInfo.BundleIdentifier)
+								log.Errorf("Multiple provisioning profiles found for bundle id: %s", codeSignInfo.BundleIdentifier)
 								log.Errorf("The step can not determine which one to use...")
 								log.Errorf("Please specify custom_export_options_plist_content input instead of specifying export_method")
 								log.Errorf("Read more: http://blog.bitrise.io/2017/08/15/new-export-options-plist-in-Xcode-9.html")
