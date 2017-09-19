@@ -58,6 +58,8 @@ workflows:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    - FORCE_TEAM_ID: 72SA8V3WYL
     after_run:
     - _common
 

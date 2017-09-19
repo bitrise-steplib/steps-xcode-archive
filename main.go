@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,15 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-tools/go-xcode/plistutil"
-
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
-	"github.com/bitrise-tools/codesigndoc/provprofile"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
 	"github.com/bitrise-tools/go-xcode/xcarchive"
@@ -27,6 +23,7 @@ import (
 	"github.com/bitrise-tools/go-xcode/xcodeproj"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
+	"github.com/ryanuber/go-glob"
 )
 
 const (
@@ -240,6 +237,13 @@ func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}
 	message := fmt.Sprintf(format, v...)
 	messageWithTimeStamp := fmt.Sprintf("[%s] %s", currentTimestamp(), coloringFunc(message))
 	fmt.Println(messageWithTimeStamp)
+}
+
+func isExpired(t time.Time) bool {
+	if t.Equal(time.Time{}) {
+		return false
+	}
+	return t.Before(time.Now())
 }
 
 func main() {
@@ -482,15 +486,12 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			fail("Failed to get embedded profile path, error: %s", err)
 		}
 
-		provProfilePlistData, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
+		profile, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
 		if err != nil {
 			fail("Failed to create provisioning profile model, error: %s", err)
 		}
 
-		name, found := provProfilePlistData.GetString("Name")
-		if !found {
-			fail("Profile name empty")
-		}
+		name := profile.GetName()
 
 		legacyExportCmd := xcodebuild.NewLegacyExportCommand()
 		legacyExportCmd.SetExportFormat("ipa")
@@ -537,7 +538,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			log.Printf("Generating export options")
 
 			var method exportoptions.Method
-			embeddedProfileName := ""
+			embeddedProfileUUID := ""
 			if configs.ExportMethod == "auto-detect" {
 				log.Printf("auto-detect export method, based on embedded profile")
 
@@ -546,23 +547,21 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					fail("Failed to get embedded profile path, error: %s", err)
 				}
 
-				provProfilePlistData, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
+				profile, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
 				if err != nil {
 					fail("Failed to create provisioning profile model, error: %s", err)
 				}
 
-				method = provisioningprofile.GetExportMethod(provProfilePlistData)
-				log.Printf("detected export method: %s", method)
-
-				embeddedProfileName, _ = provProfilePlistData.GetString("Name")
-				log.Printf("embedded provisioning profile name: %s", embeddedProfileName)
+				method = profile.GetExportMethod()
+				embeddedProfileUUID = profile.GetUUID()
+				log.Printf("embedded provisioning profile: %s (%s) - export method: %s", profile.GetName(), embeddedProfileUUID, method)
 			} else {
-				log.Printf("using export-method input: %s", configs.ExportMethod)
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
 					fail("Failed to parse export options, error: %s", err)
 				}
 				method = parsedMethod
+				log.Printf("using export-method input: %s", configs.ExportMethod)
 			}
 
 			profileMapping := map[string]string{}
@@ -575,92 +574,73 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					fail("Failed to create target code sign properties mapping, error: %s", err)
 				}
 
-				mapping, err := json.MarshalIndent(targetCodeSignInfoMap, "", "\t")
-				if err != nil {
-					fmt.Printf("target code sign info mapping based on the project:\n%s", mapping)
-				}
-
 				for _, codeSignInfo := range targetCodeSignInfoMap {
 					profileName := ""
+					profileUUID := ""
+
 					if configs.ExportMethod == "auto-detect" {
-						log.Printf("using embedded profile (%s) to sign: %s", embeddedProfileName, codeSignInfo.BundleIdentifier)
-
-						profileName = embeddedProfileName
+						profileUUID = embeddedProfileUUID
+						log.Printf("using embedded provisioning profile: %s to sign: %s", embeddedProfileUUID, codeSignInfo.BundleIdentifier)
 					} else {
-						profileName = codeSignInfo.ProvisioningProfileSpecifier
-						if profileName != "" {
-							log.Printf("using project specified profile specifier (%s) to sign: %s", profileName, codeSignInfo.BundleIdentifier)
+						if codeSignInfo.ProvisioningProfileSpecifier != "" {
+							profileName = codeSignInfo.ProvisioningProfileSpecifier
+							log.Printf("using provisioning profile specifier: %s to sign: %s", profileName, codeSignInfo.BundleIdentifier)
 						} else if codeSignInfo.ProvisioningProfile != "" {
-							profileName = codeSignInfo.ProvisioningProfile
-							log.Printf("using project specified profile (%s) to sign: %s", profileName, codeSignInfo.BundleIdentifier)
-						}
-
-						if profileName != "" {
-							// profile defined in the project, check if its export method matches to the config defined one
-							if err := utils.WalkIOSProvProfiles(func(profileData plistutil.PlistData) bool {
-								udid, _ := profileData.GetString("UUID")
-								name, _ := profileData.GetString("Name")
-								teamID := provisioningprofile.GetDeveloperTeam(profileData)
-
-								if udid == profileName || (teamID+"/"+name) == profileName {
-									exportMethod := provisioningprofile.GetExportMethod(profileData)
-									if string(exportMethod) != configs.ExportMethod {
-										log.Warnf("project specified profile's export method (%s) does not match to the selected (%s)", exportMethod, configs.ExportMethod)
-										log.Warnf("searching for installed profile with selected export method")
-										profileName = ""
-										return true
-									}
-
-									return false
-								}
-								return false
-							}); err != nil {
-								fail("Failed to find profile: %s, error: %s", profileName, err)
-							}
-						}
-
-						if profileName == "" {
-							log.Printf("project does not specify profile for: %s, searching for installed profile for export method: %s", codeSignInfo.BundleIdentifier, configs.ExportMethod)
-
-							profileDatas, err := provprofile.FindProvProfilesByAppID(codeSignInfo.BundleIdentifier)
-							if err != nil {
-								fail("Failed to find matching provisioning profiles for: %s, error: %s", codeSignInfo.BundleIdentifier, err)
-							}
-
-							matchingProfileNames := []string{}
-							for _, profileData := range profileDatas {
-								provProfilePlistData, err := provisioningprofile.NewPlistDataFromFile(profileData.Path)
-								if err != nil {
-									fail("Failed to create provisioning profile model, error: %s", err)
-								}
-
-								method := provisioningprofile.GetExportMethod(provProfilePlistData)
-								if string(method) == configs.ExportMethod {
-									matchingProfileNames = append(matchingProfileNames, profileData.ProvisioningProfileInfo.Name)
-								}
-							}
-
-							if len(matchingProfileNames) == 0 {
-								fail("Failed to find matching provisioning profiles for: %s", codeSignInfo.BundleIdentifier)
-							} else if len(matchingProfileNames) > 1 {
-								log.Errorf("Multiple provisioning profiles found for bundle id: %s", codeSignInfo.BundleIdentifier)
-								log.Errorf("The step can not determine which one to use...")
-								log.Errorf("Please specify custom_export_options_plist_content input instead of specifying export_method")
-								log.Errorf("Read more: http://blog.bitrise.io/2017/08/15/new-export-options-plist-in-Xcode-9.html")
-								os.Exit(1)
-							}
-
-							profileName = matchingProfileNames[0]
-
-							log.Printf("using installed profile (%s) to sign: %s", profileName, codeSignInfo.BundleIdentifier)
+							profileUUID = codeSignInfo.ProvisioningProfile
+							log.Printf("using provisioning profile: %s to sign: %s", profileUUID, codeSignInfo.BundleIdentifier)
 						}
 					}
 
-					if profileName == "" {
-						fail("Failed to find desired provisioning profile for: %s", codeSignInfo.BundleIdentifier)
+					desiredProfileUUID := ""
+
+					if err := utils.WalkIOSProvProfiles(func(profile provisioningprofile.Profile) bool {
+						uuid := profile.GetUUID()
+						name := profile.GetName()
+						exportMethod := profile.GetExportMethod()
+						bundleID := profile.GetBundleIdentifier()
+
+						profileMatch := false
+						if profileUUID != "" {
+							if profileUUID == uuid {
+								profileMatch = true
+							}
+						} else if profileName != "" {
+							if profileName == name {
+								profileMatch = true
+							}
+						} else {
+							if glob.Glob(bundleID, codeSignInfo.BundleIdentifier) && exportMethod == method {
+								profileMatch = true
+							}
+						}
+
+						if profileMatch {
+							expire := profile.GetExpirationDate()
+							if isExpired(expire) {
+								log.Errorf("Profile found: %s (%s)", name, uuid)
+								fail("But it expired at: %s", expire.String())
+							}
+
+							desiredProfileUUID = uuid
+							return true
+						}
+
+						return false
+					}); err != nil {
+						fail("Failed to search for profile, error: %s", err)
 					}
 
-					profileMapping[codeSignInfo.BundleIdentifier] = profileName
+					if desiredProfileUUID == "" {
+						if profileUUID != "" {
+							fail("Failed to find installed provisioning profile with UUID: %s", profileUUID)
+						} else if profileName != "" {
+							fail("Failed to find installed provisioning profile with name: %s", profileName)
+						} else {
+							fail("Failed to find installed provisioning profile for bundle id: %s, export method: %s", codeSignInfo.BundleIdentifier, method)
+						}
+					}
+
+					profileMapping[codeSignInfo.BundleIdentifier] = desiredProfileUUID
 				}
 			}
 

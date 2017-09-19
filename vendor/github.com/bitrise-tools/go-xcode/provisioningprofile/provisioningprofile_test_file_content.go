@@ -168,10 +168,10 @@ const enterpriseProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
 	<key>AppIDName</key>
-	<string>PaintSpeciPad</string>
+	<string>Test</string>
 	<key>ApplicationIdentifierPrefix</key>
 	<array>
-	<string>PF3BP78LQ8</string>
+	<string>9NS44DLTN7</string>
 	</array>
 	<key>CreationDate</key>
 	<date>2015-10-05T13:32:46Z</date>
@@ -187,28 +187,28 @@ const enterpriseProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
 	<dict>
 		<key>keychain-access-groups</key>
 		<array>
-			<string>PF3BP78LQ8.*</string>
+			<string>9NS44DLTN7.*</string>
 		</array>
 		<key>get-task-allow</key>
 		<false/>
 		<key>application-identifier</key>
-		<string>PF3BP78LQ8.com.akzonobel.PaintSpeciPad</string>
+		<string>9NS44DLTN7.com.Bitrise.Test</string>
 		<key>com.apple.developer.team-identifier</key>
-		<string>PF3BP78LQ8</string>
+		<string>9NS44DLTN7</string>
 
 	</dict>
 	<key>ExpirationDate</key>
 	<date>2016-10-04T13:32:46Z</date>
 	<key>Name</key>
-	<string>PaintSpeciPadDistProf</string>
+	<string>Bitrise Test Enterprise</string>
 	<key>ProvisionsAllDevices</key>
 	<true/>
 	<key>TeamIdentifier</key>
 	<array>
-		<string>PF3BP78LQ8</string>
+		<string>9NS44DLTN7</string>
 	</array>
 	<key>TeamName</key>
-	<string>Akzo Nobel Decorative Coatings B.V.</string>
+	<string>Bitrise</string>
 	<key>TimeToLive</key>
 	<integer>365</integer>
 	<key>UUID</key>

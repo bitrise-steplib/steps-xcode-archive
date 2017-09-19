@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-tools/go-xcode/plistutil"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
 	"github.com/pkg/errors"
 )
@@ -14,7 +13,7 @@ const (
 )
 
 // IOSProvProfileWalkFunc ...
-type IOSProvProfileWalkFunc func(plistData plistutil.PlistData) bool
+type IOSProvProfileWalkFunc func(profile provisioningprofile.Profile) bool
 
 // WalkIOSProvProfiles ...
 func WalkIOSProvProfiles(walkFunc IOSProvProfileWalkFunc) error {
@@ -29,12 +28,12 @@ func WalkIOSProvProfiles(walkFunc IOSProvProfileWalkFunc) error {
 	}
 
 	for _, pth := range pths {
-		plistData, err := provisioningprofile.NewPlistDataFromFile(pth)
+		profile, err := provisioningprofile.NewPlistDataFromFile(pth)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse Provisioning Profile")
 		}
 
-		if breakWalk := walkFunc(plistData); breakWalk {
+		if breakWalk := walkFunc(profile); breakWalk {
 			break
 		}
 	}
