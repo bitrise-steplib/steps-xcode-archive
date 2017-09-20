@@ -587,7 +587,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 						profileName = embeddedProfileName
 					} else {
-						profileName := codeSignInfo.ProvisioningProfileSpecifier
+						profileName = codeSignInfo.ProvisioningProfileSpecifier
 						if profileName != "" {
 							log.Printf("using project specified profile specifier (%s) to sign: %s", profileName, codeSignInfo.BundleIdentifier)
 						} else if codeSignInfo.ProvisioningProfile != "" {
