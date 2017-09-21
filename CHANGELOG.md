@@ -1,6 +1,13 @@
-## Changelog (Current version: 2.3.0)
+## Changelog (Current version: 2.3.1)
 
 -----------------
+
+### 2.3.1 (2017 Sep 21)
+
+* [3e843e1] prepare for 2.3.1
+* [9dbe78a] export option provisioningProfiles node fix (#79)
+* [04ae6f2] Update main.go (#78)
+* [0c68ced] Spellcheck: "searching" instead of "seraching" (#77)
 
 ### 2.3.0 (2017 Sep 15)
 
@@ -299,4 +306,4 @@
 
 -----------------
 
-Updated: 2017 Sep 15
+Updated: 2017 Sep 21
