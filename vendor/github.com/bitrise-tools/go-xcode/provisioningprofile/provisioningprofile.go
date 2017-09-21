@@ -17,8 +17,8 @@ const (
 // Profile ...
 type Profile plistutil.PlistData
 
-// NewPlistDataFromFile ...
-func NewPlistDataFromFile(provisioningProfilePth string) (Profile, error) {
+// NewProfileFromFile ...
+func NewProfileFromFile(provisioningProfilePth string) (Profile, error) {
 	cmd := command.New("security", "cms", "-D", "-i", provisioningProfilePth)
 
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()

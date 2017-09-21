@@ -240,7 +240,7 @@ func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}
 }
 
 func isExpired(t time.Time) bool {
-	if t.Equal(time.Time{}) {
+	if t.IsZero() {
 		return false
 	}
 	return t.Before(time.Now())
@@ -486,7 +486,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			fail("Failed to get embedded profile path, error: %s", err)
 		}
 
-		profile, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
+		profile, err := provisioningprofile.NewProfileFromFile(embeddedProfilePth)
 		if err != nil {
 			fail("Failed to create provisioning profile model, error: %s", err)
 		}
@@ -547,7 +547,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					fail("Failed to get embedded profile path, error: %s", err)
 				}
 
-				profile, err := provisioningprofile.NewPlistDataFromFile(embeddedProfilePth)
+				profile, err := provisioningprofile.NewProfileFromFile(embeddedProfilePth)
 				if err != nil {
 					fail("Failed to create provisioning profile model, error: %s", err)
 				}
@@ -617,8 +617,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						if profileMatch {
 							expire := profile.GetExpirationDate()
 							if isExpired(expire) {
-								log.Errorf("Profile found: %s (%s)", name, uuid)
-								fail("But it expired at: %s", expire.String())
+								log.Warnf("Profile found: %s (%s), but it expired at: %s", name, uuid, expire.String())
 							}
 
 							desiredProfileUUID = uuid

@@ -28,7 +28,7 @@ func WalkIOSProvProfiles(walkFunc IOSProvProfileWalkFunc) error {
 	}
 
 	for _, pth := range pths {
-		profile, err := provisioningprofile.NewPlistDataFromFile(pth)
+		profile, err := provisioningprofile.NewProfileFromFile(pth)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse Provisioning Profile")
 		}
