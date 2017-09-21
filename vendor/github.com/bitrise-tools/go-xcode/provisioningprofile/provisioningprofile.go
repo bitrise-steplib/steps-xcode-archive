@@ -3,6 +3,7 @@ package provisioningprofile
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
@@ -13,8 +14,11 @@ const (
 	notValidParameterErrorMessage = "security: SecPolicySetValue: One or more parameters passed to a function were not valid."
 )
 
-// NewPlistDataFromFile ...
-func NewPlistDataFromFile(provisioningProfilePth string) (plistutil.PlistData, error) {
+// Profile ...
+type Profile plistutil.PlistData
+
+// NewProfileFromFile ...
+func NewProfileFromFile(provisioningProfilePth string) (Profile, error) {
 	cmd := command.New("security", "cms", "-D", "-i", provisioningProfilePth)
 
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
@@ -32,11 +36,52 @@ func NewPlistDataFromFile(provisioningProfilePth string) (plistutil.PlistData, e
 	}
 	// ---
 
-	return plistutil.NewPlistDataFromContent(out)
+	plistData, err := plistutil.NewPlistDataFromContent(out)
+	if err != nil {
+		return Profile{}, err
+	}
+	return Profile(plistData), nil
+}
+
+// GetUUID ...
+func (profile Profile) GetUUID() string {
+	data := plistutil.PlistData(profile)
+	uuid, _ := data.GetString("UUID")
+	return uuid
+}
+
+// GetName ...
+func (profile Profile) GetName() string {
+	data := plistutil.PlistData(profile)
+	uuid, _ := data.GetString("Name")
+	return uuid
+}
+
+// GetApplicationIdentifier ...
+func (profile Profile) GetApplicationIdentifier() string {
+	data := plistutil.PlistData(profile)
+	entitlements, ok := data.GetMapStringInterface("Entitlements")
+	if !ok {
+		return ""
+	}
+
+	applicationID, ok := entitlements.GetString("application-identifier")
+	if !ok {
+		return ""
+	}
+	return applicationID
+}
+
+// GetBundleIdentifier ...
+func (profile Profile) GetBundleIdentifier() string {
+	applicationID := profile.GetApplicationIdentifier()
+	teamID := profile.GetTeamID()
+	return strings.TrimPrefix(applicationID, teamID+".")
 }
 
 // GetExportMethod ...
-func GetExportMethod(data plistutil.PlistData) exportoptions.Method {
+func (profile Profile) GetExportMethod() exportoptions.Method {
+	data := plistutil.PlistData(profile)
 	_, ok := data.GetStringArray("ProvisionedDevices")
 	if !ok {
 		if allDevices, ok := data.GetBool("ProvisionsAllDevices"); ok && allDevices {
@@ -56,16 +101,20 @@ func GetExportMethod(data plistutil.PlistData) exportoptions.Method {
 	return exportoptions.MethodDefault
 }
 
-// GetDeveloperTeam ...
-func GetDeveloperTeam(data plistutil.PlistData) string {
+// GetTeamID ...
+func (profile Profile) GetTeamID() string {
+	data := plistutil.PlistData(profile)
 	entitlements, ok := data.GetMapStringInterface("Entitlements")
-	if !ok {
-		return ""
+	if ok {
+		teamID, _ := entitlements.GetString("com.apple.developer.team-identifier")
+		return teamID
 	}
+	return ""
+}
 
-	teamID, ok := entitlements.GetString("com.apple.developer.team-identifier")
-	if !ok {
-		return ""
-	}
-	return teamID
+// GetExpirationDate ...
+func (profile Profile) GetExpirationDate() time.Time {
+	data := plistutil.PlistData(profile)
+	expiry, _ := data.GetTime("ExpirationDate")
+	return expiry
 }

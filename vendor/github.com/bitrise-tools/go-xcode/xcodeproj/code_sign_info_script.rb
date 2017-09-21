@@ -1,6 +1,4 @@
-package xcodeproj
-
-const codeSignInfoScriptContent = `require 'xcodeproj'
+require 'xcodeproj'
 require 'json'
 
 ####
@@ -289,9 +287,3 @@ rescue => e
   puts result_json
   exit(1)
 end
-`
-
-const gemfileContent = `source "https://rubygems.org"
-gem "xcodeproj"
-gem "json"
-`
