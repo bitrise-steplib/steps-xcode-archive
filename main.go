@@ -751,29 +751,52 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		}
 
 		// Search for ipa
-		pattern := filepath.Join(tmpDir, "*.ipa")
-		ipas, err := filepath.Glob(pattern)
-		if err != nil {
-			fail("Failed to collect ipa files, error: %s", err)
+		fileList := []string{}
+		ipaFiles := []string{}
+		if walkErr := filepath.Walk(tmpDir, func(pth string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			fileList = append(fileList, pth)
+
+			if filepath.Ext(pth) == ".ipa" {
+				ipaFiles = append(ipaFiles, pth)
+			}
+
+			return nil
+		}); walkErr != nil {
+			fail("Failed to search for .ipa file, error: %s", err)
 		}
 
-		if len(ipas) == 0 {
-			fail("No ipa found with pattern: %s", pattern)
-		} else if len(ipas) == 1 {
-			if err := command.CopyFile(ipas[0], ipaPath); err != nil {
-				fail("Failed to copy (%s) -> (%s), error: %s", ipas[0], ipaPath, err)
+		if len(ipaFiles) == 0 {
+			log.Errorf("No .ipa file found at export dir: %s", tmpDir)
+			log.Printf("File list in the export dir:")
+			for _, pth := range fileList {
+				log.Printf("- %s", pth)
 			}
+			fail("")
 		} else {
-			log.Warnf("More than 1 .ipa file found")
+			if err := command.CopyFile(ipaFiles[0], ipaPath); err != nil {
+				fail("Failed to copy (%s) -> (%s), error: %s", ipaFiles[0], ipaPath, err)
+			}
 
-			for _, ipa := range ipas {
-				base := filepath.Base(ipa)
-				deployPth := filepath.Join(configs.OutputDir, base)
+			if len(ipaFiles) > 1 {
+				log.Warnf("More than 1 .ipa file found, exporting first one: %s", ipaFiles[0])
+				log.Warnf("Moving every ipa to the BITRISE_DEPLOY_DIR")
 
-				if err := command.CopyFile(ipa, deployPth); err != nil {
-					fail("Failed to copy (%s) -> (%s), error: %s", ipas[0], ipaPath, err)
+				for i, pth := range ipaFiles {
+					if i == 0 {
+						continue
+					}
+
+					base := filepath.Base(pth)
+					deployPth := filepath.Join(configs.OutputDir, base)
+
+					if err := command.CopyFile(pth, deployPth); err != nil {
+						fail("Failed to copy (%s) -> (%s), error: %s", pth, ipaPath, err)
+					}
 				}
-				ipaPath = ipa
 			}
 		}
 	}
