@@ -12,11 +12,8 @@ const (
 	provProfileSystemDirPath = "~/Library/MobileDevice/Provisioning Profiles"
 )
 
-// IOSProvProfileWalkFunc ...
-type IOSProvProfileWalkFunc func(profile provisioningprofile.Profile) bool
-
-// WalkIOSProvProfiles ...
-func WalkIOSProvProfiles(walkFunc IOSProvProfileWalkFunc) error {
+// WalkIOSProvProfilesPth ...
+func WalkIOSProvProfilesPth(walkFunc func(pth string) bool) error {
 	absProvProfileDirPath, err := pathutil.AbsPath(provProfileSystemDirPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to get Absolute path of Provisioning Profiles dir")
@@ -28,15 +25,28 @@ func WalkIOSProvProfiles(walkFunc IOSProvProfileWalkFunc) error {
 	}
 
 	for _, pth := range pths {
-		profile, err := provisioningprofile.NewProfileFromFile(pth)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse Provisioning Profile")
-		}
-
-		if breakWalk := walkFunc(profile); breakWalk {
+		if breakWalk := walkFunc(pth); breakWalk {
 			break
 		}
 	}
 
 	return nil
+}
+
+// WalkIOSProvProfiles ...
+func WalkIOSProvProfiles(walkFunc func(profile provisioningprofile.Profile) bool) error {
+	var profileErr error
+	if walkErr := WalkIOSProvProfilesPth(func(pth string) bool {
+		profile, err := provisioningprofile.NewProfileFromFile(pth)
+		if err != nil {
+			profileErr = err
+			return true
+		}
+
+		return walkFunc(profile)
+	}); walkErr != nil {
+		return walkErr
+	}
+
+	return profileErr
 }
