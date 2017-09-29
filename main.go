@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -415,6 +417,8 @@ or use 'xcodebuild' as 'output_tool'.`)
 		archiveCmd.SetCustomOptions(options)
 	}
 
+	archiveOutputLog := ""
+
 	if configs.OutputTool == "xcpretty" {
 		xcprettyCmd := xcpretty.New(archiveCmd)
 
@@ -431,14 +435,43 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 
 			fail("Archive failed, error: %s", err)
+		} else {
+			archiveOutputLog = rawXcodebuildOut
 		}
 	} else {
 		logWithTimestamp(colorstring.Green, "$ %s", archiveCmd.PrintableCmd())
 		fmt.Println()
 
-		if err := archiveCmd.Run(); err != nil {
+		archiveRootCmd := archiveCmd.Command()
+
+		logBuffer := new(bytes.Buffer)
+		logMultiWriter := io.MultiWriter(os.Stdout, logBuffer)
+		archiveRootCmd.SetStdout(logMultiWriter)
+		archiveRootCmd.SetStderr(os.Stderr)
+
+		if err := archiveRootCmd.Run(); err != nil {
 			fail("Archive failed, error: %s", err)
 		}
+
+		archiveOutputLog = logBuffer.String()
+	}
+
+	fmt.Println()
+
+	if matches := regexp.MustCompile(`"com\.apple\.developer\.team-identifier" = (.*?);`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
+		log.Donef("TeamID: %s", matches[1])
+	}
+
+	if matches := regexp.MustCompile(`Signing Identity:.* "(.*?)"`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
+		log.Donef("Signing Identity: %s", matches[1])
+	}
+
+	if matches := regexp.MustCompile(`Provisioning Profile:.* "(.*?)"`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
+		log.Donef("Provisioning Profile: %s", matches[1])
+	}
+
+	if matches := regexp.MustCompile(`Provisioning Profile:.*?"\n.*?\((.*?)\)`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
+		log.Donef("Provisioning Profile ID: %s", matches[1])
 	}
 
 	fmt.Println()
