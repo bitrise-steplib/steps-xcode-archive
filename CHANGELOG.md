@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.3.1)
+## Changelog (Current version: 2.3.2)
 
 -----------------
+
+### 2.3.2 (2017 Sep 29)
+
+* [69dceea] prepare for 2.3.2
+* [6b42c29] Xcode9 (#81)
 
 ### 2.3.1 (2017 Sep 21)
 
@@ -306,4 +311,4 @@
 
 -----------------
 
-Updated: 2017 Sep 21
+Updated: 2017 Sep 29
