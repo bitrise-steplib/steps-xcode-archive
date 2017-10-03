@@ -624,7 +624,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				for bundleID, profile := range profiles {
 					//profileMapping[bundleID] = profile.UUID
-					fmt.Printf("%v %v", bundleId,profile)
+					fmt.Printf("%v %v", bundleID,profile)
 				}
 				fmt.Printf("%v",cert.CommonName)
 				//exportCodeSignIdentity = cert.CommonName
