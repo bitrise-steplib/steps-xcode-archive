@@ -91,6 +91,7 @@ workflows:
     - path::./:
         inputs:
         - output_tool: xcodebuild
+        - team_id: 72SA8V3WYL
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_team_id: $FORCE_TEAM_ID
     - script:
