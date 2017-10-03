@@ -17,7 +17,7 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
+	"github.com/bitrise-io/steps-xcode-archive/exportoptiongenerator"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
@@ -26,7 +26,6 @@ import (
 	"github.com/bitrise-tools/go-xcode/xcodeproj"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
-	"github.com/ryanuber/go-glob"
 )
 
 const (
@@ -616,98 +615,18 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					os.Exit(1)
 				}
 
-				for _, codeSignInfo := range targetCodeSignInfoMap {
-					manualFinalProfileUUID := ""
-
-					if configs.ExportMethod != "auto-detect" {
-						manualProfileName := ""
-						manualProfileUUID := ""
-
-						if codeSignInfo.ProvisioningProfileSpecifier != "" {
-							manualProfileName = codeSignInfo.ProvisioningProfileSpecifier
-							log.Printf("using provisioning profile specifier: %s to sign: %s", manualProfileName, codeSignInfo.BundleIdentifier)
-						} else if codeSignInfo.ProvisioningProfile != "" {
-							manualProfileUUID = codeSignInfo.ProvisioningProfile
-							log.Printf("using provisioning profile: %s to sign: %s", manualProfileUUID, codeSignInfo.BundleIdentifier)
-						}
-
-						if err := utils.WalkIOSProvProfiles(func(profile provisioningprofile.Profile) bool {
-							uuid := profile.GetUUID()
-							name := profile.GetName()
-							method := profile.GetExportMethod()
-							bundleID := profile.GetBundleIdentifier()
-
-							profileMatch := false
-							if manualProfileUUID != "" {
-								if manualProfileUUID == uuid {
-									profileMatch = true
-								}
-							} else if manualProfileName != "" {
-								if manualProfileName == name {
-									profileMatch = true
-								}
-							} else {
-								if glob.Glob(bundleID, codeSignInfo.BundleIdentifier) && method == exportMethod {
-									profileMatch = true
-								}
-							}
-
-							if profileMatch {
-								expire := profile.GetExpirationDate()
-								if isExpired(expire) {
-									log.Warnf("Profile found: %s (%s), but it expired at: %s", name, uuid, expire.String())
-								}
-
-								manualFinalProfileUUID = uuid
-								return true
-							}
-
-							return false
-						}); err != nil {
-							fail("Failed to search for profile, error: %s", err)
-						}
-
-						if manualFinalProfileUUID == "" {
-							message := ""
-							if manualProfileUUID != "" {
-								message = fmt.Sprintf("Failed to find installed provisioning profile with UUID: %s", manualProfileUUID)
-							} else if manualProfileName != "" {
-								message = fmt.Sprintf("Failed to find installed provisioning profile with name: %s", manualProfileName)
-							} else {
-								message = fmt.Sprintf("Failed to find installed provisioning profile for bundle id: %s, export method: %s", codeSignInfo.BundleIdentifier, exportMethod)
-							}
-
-							fmt.Println()
-							log.Errorf(message)
-							log.Printf("Installed profile infos:")
-							if err := utils.WalkIOSProvProfilesPth(func(pth string) bool {
-								profile, err := profileutil.ProfileFromFile(pth)
-								if err != nil {
-									log.Warnf("Failed to read profile infos from: %s", pth)
-								} else {
-									log.Printf("%s profile for team (%s): %s (%s)", profile.ExportType, profile.TeamIdentifier, profile.Name, profile.UUID)
-									for _, cert := range profile.DeveloperCertificates {
-										if cert.CommonName != "" && cert.TeamID != "" && !cert.EndDate.IsZero() {
-											log.Printf("- %s expire: %s", cert.CommonName, cert.EndDate.String())
-										} else {
-											log.Printf("- %s expire: %s", cert.RawSubject, cert.RawEndDate)
-										}
-									}
-									fmt.Println()
-								}
-								return false
-							}); err != nil {
-								log.Warnf("Failed to list installed profiles, error: %s", err)
-							}
-
-							fail("Failed to create export options")
-						}
-
-						profileMapping[codeSignInfo.BundleIdentifier] = manualFinalProfileUUID
-					} else {
-						profileMapping[codeSignInfo.BundleIdentifier] = exportProfileUUID
-					}
+				certs, err := exportoptiongenerator.New(exportMethod, targetCodeSignInfoMap)
+				if err != nil {
+					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
 				}
+
+				cert, profiles := certs.GenerateBundleIDProfileMap()
+
+				for bundleID, profile := range profiles {
+					profileMapping[bundleID] = profile.UUID
+				}
+
+				exportCodeSignIdentity = cert.CommonName
 			}
 
 			var exportOpts exportoptions.ExportOptions
