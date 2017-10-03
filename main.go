@@ -605,7 +605,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			if xcodeMajorVersion >= 9 {
 				log.Printf("xcode major version > 9, generating exportOptions with provisioningProfiles node")
 
-				/*user := os.Getenv("USER")
+				user := os.Getenv("USER")
 				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, configs.Configuration, user)
 				if err != nil {
 					log.Errorf("Failed to create scheme - target mapping, error: %s", err)
@@ -623,10 +623,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				cert, profiles := certs.GenerateBundleIDProfileMap()
 
 				for bundleID, profile := range profiles {
-					profileMapping[bundleID] = profile.UUID
+					//profileMapping[bundleID] = profile.UUID
+					fmt.Printf("%v %v", bundleId,profile)
 				}
-
-				exportCodeSignIdentity = cert.CommonName*/
+				fmt.Printf("%v",cert.CommonName)
+				//exportCodeSignIdentity = cert.CommonName
 			}
 
 			var exportOpts exportoptions.ExportOptions
