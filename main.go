@@ -666,9 +666,9 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				fmt.Printf("Resolved CodeSignInfo mapping:\n")
 				for bundleID, prof := range profiles {
-					fmt.Printf("%s - %s", bundleID, prof.Name)
+					fmt.Printf("%s - %s\n", bundleID, prof.Name)
 				}
-				fmt.Printf("codeSignIdentity: %s", cert.RawSubject)
+				fmt.Printf("codeSignIdentity: %s\n", cert.RawSubject)
 				fmt.Println()
 
 				for bundleID, profile := range profiles {
