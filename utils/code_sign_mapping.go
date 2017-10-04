@@ -29,7 +29,7 @@ func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, e
 			}
 			isCertInstalled := false
 			for _, installedCert := range certificates {
-				if embeddedCert.RawSubject == installedCert.RawSubject {
+				if embeddedCert.RawSubject == installedCert.RawSubject && embeddedCert.RawEndDate == installedCert.RawEndDate {
 					isCertInstalled = true
 					break
 				}
