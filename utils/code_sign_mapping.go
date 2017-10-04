@@ -3,14 +3,16 @@ package utils
 import (
 	"sort"
 
+	"github.com/bitrise-tools/go-xcode/exportoptions"
+	glob "github.com/ryanuber/go-glob"
+
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
 	"github.com/bitrise-tools/go-xcode/xcodeproj"
-	glob "github.com/ryanuber/go-glob"
 )
 
 // ResolveCodeSignMapping ...
-func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, exportMethod string, profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) (certificateutil.CertificateInfosModel, map[string]profileutil.ProfileModel) {
+func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, exportMethod exportoptions.Method, profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) (certificateutil.CertificateInfosModel, map[string]profileutil.ProfileModel) {
 	sort.Sort(ByBundleIDLength(profiles))
 
 	bundleIDTeamIDmap := map[string]xcodeproj.CodeSignInfo{}
@@ -37,6 +39,7 @@ func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, e
 			if !isCertInstalled {
 				continue
 			}
+
 			if _, ok := groupedProfiles[embeddedCert.RawSubject]; !ok {
 				groupedProfiles[embeddedCert.RawSubject] = []profileutil.ProfileModel{}
 			}
@@ -45,56 +48,47 @@ func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, e
 	}
 
 	for certSubject, profiles := range groupedProfiles {
-		certSubjectFound := false
+		profileFound := true
+		filtered = map[string]profileutil.ProfileModel{}
 		for _, profile := range profiles {
-			foundProfiles := map[string]profileutil.ProfileModel{}
-			skipMatching := false
-			for bundleIDToCheck, codesignInfo := range bundleIDTeamIDmap {
-				if codesignInfo.ProvisioningProfileSpecifier == profile.Name {
-					foundProfiles[bundleIDToCheck] = profile
-					skipMatching = true
+			bundleIDFound := false
+			for bundleID, codesignInfo := range bundleIDTeamIDmap {
+				if codesignInfo.ProvisioningProfileSpecifier != "" && profile.Name != "" {
+					if codesignInfo.ProvisioningProfileSpecifier == profile.Name {
+						bundleIDFound = true
+						filtered[bundleID] = profile
+						continue
+					}
+				}
+				if codesignInfo.ProvisioningProfile != "" && profile.UUID != "" {
+					if codesignInfo.ProvisioningProfile == profile.UUID {
+						bundleIDFound = true
+						filtered[bundleID] = profile
+						continue
+					}
+				}
+				if glob.Glob(profile.BundleIdentifier, bundleID) && exportMethod == profile.ExportType && profile.TeamIdentifier == codesignInfo.DevelopmentTeam {
+					bundleIDFound = true
+					filtered[bundleID] = profile
+					continue
+				}
+				if glob.Glob(profile.BundleIdentifier, bundleID) && exportMethod == profile.ExportType {
+					bundleIDFound = true
+					filtered[bundleID] = profile
 					continue
 				}
 			}
-			if !skipMatching {
-				for bundleIDToCheck, codesignInfo := range bundleIDTeamIDmap {
-					if codesignInfo.ProvisioningProfile == profile.UUID {
-						foundProfiles[bundleIDToCheck] = profile
-						skipMatching = true
-						continue
-					}
-				}
-			}
-			if !skipMatching {
-				for bundleIDToCheck, codesignInfo := range bundleIDTeamIDmap {
-					if glob.Glob(profile.BundleIdentifier, bundleIDToCheck) && exportMethod == string(profile.ExportType) && profile.TeamIdentifier == codesignInfo.DevelopmentTeam {
-						foundProfiles[bundleIDToCheck] = profile
-						skipMatching = true
-						continue
-					}
-				}
-			}
-			if !skipMatching {
-				for bundleIDToCheck := range bundleIDTeamIDmap {
-					if glob.Glob(profile.BundleIdentifier, bundleIDToCheck) && exportMethod == string(profile.ExportType) {
-						foundProfiles[bundleIDToCheck] = profile
-						continue
-					}
-				}
-			}
-			if len(foundProfiles) >= len(bundleIDTeamIDmap) {
-				certSubjectFound = true
-				filtered = foundProfiles
-				break
+			if !bundleIDFound {
+				profileFound = false
 			}
 		}
-		if certSubjectFound {
+
+		if profileFound {
 			for _, cert := range certificates {
 				if cert.RawSubject == certSubject {
 					return cert, filtered
 				}
 			}
-			break
 		}
 	}
 

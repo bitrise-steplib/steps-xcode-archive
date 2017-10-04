@@ -663,7 +663,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				fmt.Println()
 
-				cert, profiles := utils.ResolveCodeSignMapping(targetCodeSignInfoMap, string(exportoptions.MethodAppStore), profs, certs)
+				cert, profiles := utils.ResolveCodeSignMapping(targetCodeSignInfoMap, exportoptions.Method(exportMethod), profs, certs)
 				if err != nil {
 					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
 				}
