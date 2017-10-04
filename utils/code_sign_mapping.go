@@ -27,6 +27,16 @@ func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, e
 			if embeddedCert.RawSubject == "" {
 				continue
 			}
+			isCertInstalled := false
+			for _, installedCert := range certificates {
+				if embeddedCert.RawSubject == installedCert.RawSubject {
+					isCertInstalled = true
+					break
+				}
+			}
+			if !isCertInstalled {
+				continue
+			}
 			if _, ok := groupedProfiles[embeddedCert.RawSubject]; !ok {
 				groupedProfiles[embeddedCert.RawSubject] = []profileutil.ProfileModel{}
 			}
