@@ -615,7 +615,13 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				certs, err := utils.InstalledCertificates()
+				if err != nil {
+					fail("Failed to get installed certificates, error: %s", err)
+				}
 				profs, err := utils.InstalledIosProfiles()
+				if err != nil {
+					fail("Failed to get installed provisioning profiles, error: %s", err)
+				}
 
 				cert, profiles := utils.ResolveCodeSignMapping(targetCodeSignInfoMap, string(exportoptions.MethodAppStore), profs, certs)
 				if err != nil {
