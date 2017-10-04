@@ -656,6 +656,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					fmt.Printf("  team: %s\n", prof.TeamIdentifier)
 					fmt.Printf("  bundleID: %s\n", prof.BundleIdentifier)
 					fmt.Printf("  expire: %s\n", prof.ExpirationDate.String())
+					fmt.Printf("  certificates:\n")
+					for _, cert := range prof.DeveloperCertificates {
+						fmt.Printf("    %s:\n", cert.RawSubject)
+					}
 				}
 				fmt.Println()
 
