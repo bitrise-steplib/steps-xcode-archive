@@ -614,19 +614,62 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					os.Exit(1)
 				}
 
+				fmt.Println()
+				fmt.Printf("Target - CodeSignInfo mapping:\n")
+				for target, info := range targetCodeSignInfoMap {
+					fmt.Printf("%s:\n", target)
+					fmt.Printf("  BundleIdentifier: %s\n", info.BundleIdentifier)
+					fmt.Printf("  DevelopmentTeam: %s\n", info.DevelopmentTeam)
+					fmt.Printf("  CodeSignIdentity: %s\n", info.CodeSignIdentity)
+					profile := info.ProvisioningProfileSpecifier
+					if profile == "" {
+						profile = info.ProvisioningProfile
+					}
+					fmt.Printf("  Profile: %s\n", profile)
+				}
+				fmt.Println()
+
 				certs, err := utils.InstalledCertificates()
 				if err != nil {
 					fail("Failed to get installed certificates, error: %s", err)
 				}
+
+				fmt.Printf("Installed certificates:\n")
+				for _, cert := range certs {
+					distrType := "distribution"
+					if cert.IsDevelopement {
+						distrType = "development"
+					}
+					fmt.Printf("%s certificate: %s\n", distrType, cert.RawSubject)
+					fmt.Printf("  expire: %s\n", cert.RawEndDate)
+				}
+				fmt.Println()
+
 				profs, err := utils.InstalledIosProfiles()
 				if err != nil {
 					fail("Failed to get installed provisioning profiles, error: %s", err)
 				}
 
+				fmt.Printf("Installed profiles:\n")
+				for _, prof := range profs {
+					fmt.Printf("%s profile: %s (%s)\n", prof.ExportType, prof.Name, prof.BundleIdentifier)
+					fmt.Printf("  team: %s\n", prof.TeamIdentifier)
+					fmt.Printf("  bundleID: %s\n", prof.BundleIdentifier)
+					fmt.Printf("  expire: %s\n", prof.ExpirationDate.String())
+				}
+				fmt.Println()
+
 				cert, profiles := utils.ResolveCodeSignMapping(targetCodeSignInfoMap, string(exportoptions.MethodAppStore), profs, certs)
 				if err != nil {
 					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
 				}
+
+				fmt.Printf("Resolved CodeSignInfo mapping:\n")
+				for bundleID, prof := range profiles {
+					fmt.Printf("%s - %s", bundleID, prof.Name)
+				}
+				fmt.Printf("codeSignIdentity: %s", cert.RawSubject)
+				fmt.Println()
 
 				for bundleID, profile := range profiles {
 					profileMapping[bundleID] = profile.UUID
