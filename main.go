@@ -17,7 +17,6 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-io/steps-xcode-archive/exportoptiongenerator"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
@@ -615,19 +614,19 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					os.Exit(1)
 				}
 
-				certs, err := exportoptiongenerator.New(exportMethod, targetCodeSignInfoMap)
+				certs, err := utils.InstalledCertificates()
+				profs, err := utils.InstalledIosProfiles()
+
+				cert, profiles := utils.ResolveCodeSignMapping(targetCodeSignInfoMap, string(exportoptions.MethodAppStore), profs, certs)
 				if err != nil {
 					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
 				}
 
-				cert, profiles := certs.GenerateBundleIDProfileMap()
-
 				for bundleID, profile := range profiles {
-					//profileMapping[bundleID] = profile.UUID
-					fmt.Printf("%v %v", bundleID,profile)
+					profileMapping[bundleID] = profile.UUID
 				}
-				fmt.Printf("%v",cert.CommonName)
-				//exportCodeSignIdentity = cert.CommonName
+
+				exportCodeSignIdentity = cert.CommonName
 			}
 
 			var exportOpts exportoptions.ExportOptions

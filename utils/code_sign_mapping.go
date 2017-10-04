@@ -59,6 +59,15 @@ func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, e
 				for bundleIDToCheck, codesignInfo := range bundleIDTeamIDmap {
 					if glob.Glob(profile.BundleIdentifier, bundleIDToCheck) && exportMethod == string(profile.ExportType) && profile.TeamIdentifier == codesignInfo.DevelopmentTeam {
 						foundProfiles[bundleIDToCheck] = profile
+						skipMatching = true
+						continue
+					}
+				}
+			}
+			if !skipMatching {
+				for bundleIDToCheck := range bundleIDTeamIDmap {
+					if glob.Glob(profile.BundleIdentifier, bundleIDToCheck) && exportMethod == string(profile.ExportType) {
+						foundProfiles[bundleIDToCheck] = profile
 						continue
 					}
 				}
