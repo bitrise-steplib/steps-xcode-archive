@@ -5,18 +5,9 @@ import (
 
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
-	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/xcodeproj"
 	glob "github.com/ryanuber/go-glob"
 )
-
-// ExportOptionConfig ...
-type ExportOptionConfig struct {
-	Method                exportoptions.Method
-	CodesignInfoMap       map[string]xcodeproj.CodeSignInfo
-	Profiles              []profileutil.ProfileModel
-	InstalledCertificates []certificateutil.CertificateInfosModel
-}
 
 // ResolveCodeSignMapping ...
 func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, exportMethod string, profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) (certificateutil.CertificateInfosModel, map[string]profileutil.ProfileModel) {
