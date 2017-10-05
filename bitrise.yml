@@ -36,7 +36,6 @@ workflows:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
     - OUTPUT_TOOL: xcodebuild
     after_run:
     - _common
@@ -47,7 +46,6 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
     - FORCE_TEAM_ID: 72SA8V3WYL
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
     - OUTPUT_TOOL: xcpretty
     after_run:
     - _common
@@ -91,7 +89,6 @@ workflows:
     - path::./:
         inputs:
         - output_tool: xcodebuild
-        - team_id: 72SA8V3WYL
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_team_id: $FORCE_TEAM_ID
     - script:
