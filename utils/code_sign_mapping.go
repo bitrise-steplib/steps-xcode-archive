@@ -8,35 +8,39 @@ import (
 
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
-	"github.com/bitrise-tools/go-xcode/xcodeproj"
 )
 
+// ProfileGroup ...
+type ProfileGroup struct {
+	Certificate certificateutil.CertificateInfosModel
+	Profiles    map[string]profileutil.ProfileModel
+}
+
 // ResolveCodeSignMapping ...
-func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, exportMethod exportoptions.Method, profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) (certificateutil.CertificateInfosModel, map[string]profileutil.ProfileModel) {
-	sort.Sort(ByBundleIDLength(profiles))
+func ResolveCodeSignMapping(bundleIDs []string, exportMethod exportoptions.Method, profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) []ProfileGroup {
+	profileGroups := groupInstalledProfilesByInstalledEmbeddedCertificateSubjects(profiles, certificates)
+	return findProfilesByBundleIDsAndExportMethod(profileGroups, bundleIDs, exportMethod)
+}
 
-	bundleIDTeamIDmap := map[string]xcodeproj.CodeSignInfo{}
-	for _, val := range codeSignInfoMap {
-		bundleIDTeamIDmap[val.BundleIdentifier] = val
+func isCertificateInstalled(installedCertificates []certificateutil.CertificateInfosModel, certificate certificateutil.CertificateInfosModel) bool {
+	isCertInstalled := false
+	for _, installedCert := range installedCertificates {
+		if certificate.RawSubject == installedCert.RawSubject && certificate.RawEndDate == installedCert.RawEndDate {
+			isCertInstalled = true
+			break
+		}
 	}
+	return isCertInstalled
+}
 
-	filtered := map[string]profileutil.ProfileModel{}
-
+func groupInstalledProfilesByInstalledEmbeddedCertificateSubjects(profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) map[string][]profileutil.ProfileModel {
 	groupedProfiles := map[string][]profileutil.ProfileModel{}
-
 	for _, profile := range profiles {
 		for _, embeddedCert := range profile.DeveloperCertificates {
 			if embeddedCert.RawSubject == "" {
 				continue
 			}
-			isCertInstalled := false
-			for _, installedCert := range certificates {
-				if embeddedCert.RawSubject == installedCert.RawSubject && embeddedCert.RawEndDate == installedCert.RawEndDate {
-					isCertInstalled = true
-					break
-				}
-			}
-			if !isCertInstalled {
+			if !isCertificateInstalled(certificates, embeddedCert) {
 				continue
 			}
 
@@ -47,50 +51,38 @@ func ResolveCodeSignMapping(codeSignInfoMap map[string]xcodeproj.CodeSignInfo, e
 		}
 	}
 
-	for certSubject, profiles := range groupedProfiles {
-		profileFound := true
-		filtered = map[string]profileutil.ProfileModel{}
+	return groupedProfiles
+}
+
+func findProfilesByBundleIDsAndExportMethod(profileGroups map[string][]profileutil.ProfileModel, bundleIDs []string, exportMethod exportoptions.Method) []ProfileGroup {
+	filteredProfileGroups := []ProfileGroup{}
+	for certSubject, profiles := range profileGroups {
+		sort.Sort(ByBundleIDLength(profiles))
+
+		bundleIDProfilePairs := map[string]profileutil.ProfileModel{}
+		profileFound := 0
 		for _, profile := range profiles {
-			bundleIDFound := false
-			for bundleID, codesignInfo := range bundleIDTeamIDmap {
-				if codesignInfo.ProvisioningProfileSpecifier != "" && profile.Name != "" {
-					if codesignInfo.ProvisioningProfileSpecifier == profile.Name {
-						bundleIDFound = true
-						filtered[bundleID] = profile
-						continue
-					}
-				}
-				if codesignInfo.ProvisioningProfile != "" && profile.UUID != "" {
-					if codesignInfo.ProvisioningProfile == profile.UUID {
-						bundleIDFound = true
-						filtered[bundleID] = profile
-						continue
-					}
-				}
-				if glob.Glob(profile.BundleIdentifier, bundleID) && exportMethod == profile.ExportType && profile.TeamIdentifier == codesignInfo.DevelopmentTeam {
-					bundleIDFound = true
-					filtered[bundleID] = profile
-					continue
-				}
+			for _, bundleID := range bundleIDs {
 				if glob.Glob(profile.BundleIdentifier, bundleID) && exportMethod == profile.ExportType {
-					bundleIDFound = true
-					filtered[bundleID] = profile
-					continue
+					profileFound++
+					bundleIDProfilePairs[bundleID] = profile
 				}
-			}
-			if !bundleIDFound {
-				profileFound = false
 			}
 		}
 
-		if profileFound {
-			for _, cert := range certificates {
-				if cert.RawSubject == certSubject {
-					return cert, filtered
+		if profileFound == len(bundleIDs) {
+			cert := certificateutil.CertificateInfosModel{}
+			for _, profile := range profiles {
+				for _, embeddedCert := range profile.DeveloperCertificates {
+					if certSubject == embeddedCert.RawSubject {
+						cert = embeddedCert
+					}
 				}
 			}
+
+			filteredProfileGroups = append(filteredProfileGroups, ProfileGroup{Certificate: cert, Profiles: bundleIDProfilePairs})
 		}
 	}
 
-	return certificateutil.CertificateInfosModel{}, nil
+	return filteredProfileGroups
 }
