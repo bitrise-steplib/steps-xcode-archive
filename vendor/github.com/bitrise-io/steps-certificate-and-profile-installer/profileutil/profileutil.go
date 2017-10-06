@@ -24,8 +24,13 @@ type ProfileInfoModel struct {
 }
 
 // IsXcodeManaged ...
+func IsXcodeManaged(profileName string) bool {
+	return strings.HasPrefix(profileName, "iOS Team Provisioning Profile") || strings.HasPrefix(profileName, "XC")
+}
+
+// IsXcodeManaged ...
 func (prof ProfileInfoModel) IsXcodeManaged() bool {
-	return strings.HasPrefix(prof.Name, "iOS Team Provisioning Profile") || strings.HasPrefix(prof.Name, "XC:") || strings.HasPrefix(prof.Name, "XC iOS:")
+	return IsXcodeManaged(prof.Name)
 }
 
 // IsExpired ...

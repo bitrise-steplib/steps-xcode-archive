@@ -36,13 +36,13 @@
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil",
-			"Comment": "1.9.0-2-ga16a3bd",
-			"Rev": "a16a3bd33fc5ad05d7e3f26c9067dacc33159534"
+			"Comment": "1.9.0-3-g4db3664",
+			"Rev": "4db366408943ed0386941f83f3e0ddc3e68d88f5"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil",
-			"Comment": "1.9.0-2-ga16a3bd",
-			"Rev": "a16a3bd33fc5ad05d7e3f26c9067dacc33159534"
+			"Comment": "1.9.0-3-g4db3664",
+			"Rev": "4db366408943ed0386941f83f3e0ddc3e68d88f5"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/exportoptions",
