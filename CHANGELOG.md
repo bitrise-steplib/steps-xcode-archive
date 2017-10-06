@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.3.2)
+## Changelog (Current version: 2.3.3)
 
 -----------------
+
+### 2.3.3 (2017 Oct 06)
+
+* [f39eb06] prepare for 2.3.3
+* [2d7b421] Resolve profiles (#82)
 
 ### 2.3.2 (2017 Sep 29)
 
@@ -311,4 +316,4 @@
 
 -----------------
 
-Updated: 2017 Sep 29
+Updated: 2017 Oct 06
