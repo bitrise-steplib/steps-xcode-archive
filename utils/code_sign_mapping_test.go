@@ -13,20 +13,20 @@ import (
 func TestIsCertificateInstalled(t *testing.T) {
 	t.Log("certificate installed")
 	{
-		certificate := certificateutil.CertificateInfosModel{
+		certificate := certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: INSTALLED (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}
-		installedCertificates := []certificateutil.CertificateInfosModel{certificate}
+		installedCertificates := []certificateutil.CertificateInfoModel{certificate}
 
 		require.Equal(t, true, isCertificateInstalled(installedCertificates, certificate))
 	}
 
 	t.Log("certificate NOT installed")
 	{
-		installedCertificates := []certificateutil.CertificateInfosModel{certificateutil.CertificateInfosModel{
+		installedCertificates := []certificateutil.CertificateInfoModel{certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: INSTALLED (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}}
-		certificate := certificateutil.CertificateInfosModel{
+		certificate := certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: NOT INSTALLED (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}
 
@@ -35,8 +35,8 @@ func TestIsCertificateInstalled(t *testing.T) {
 
 	t.Log("certificate NOT installed - no installed certificates")
 	{
-		installedCertificates := []certificateutil.CertificateInfosModel{}
-		certificate := certificateutil.CertificateInfosModel{
+		installedCertificates := []certificateutil.CertificateInfoModel{}
+		certificate := certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: NOT INSTALLED (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}
 
@@ -47,21 +47,21 @@ func TestIsCertificateInstalled(t *testing.T) {
 func TestCreateCertificateProfilesMapping(t *testing.T) {
 	t.Log("1 certificate - 1 profile map")
 	{
-		certificate := certificateutil.CertificateInfosModel{
+		certificate := certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: User Name1 (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}
 
-		profile1 := profileutil.ProfileModel{
-			DeveloperCertificates: []certificateutil.CertificateInfosModel{
+		profile1 := profileutil.ProfileInfoModel{
+			DeveloperCertificates: []certificateutil.CertificateInfoModel{
 				certificate,
 			},
 		}
 
-		certificates := []certificateutil.CertificateInfosModel{certificate}
-		profiles := []profileutil.ProfileModel{profile1}
+		certificates := []certificateutil.CertificateInfoModel{certificate}
+		profiles := []profileutil.ProfileInfoModel{profile1}
 
 		mapping := createCertificateProfilesMapping(profiles, certificates)
-		expected := map[string][]profileutil.ProfileModel{
+		expected := map[string][]profileutil.ProfileInfoModel{
 			"subject= /UID=23442233441/CN=iPhone Developer: User Name1 (679345FD33)/OU=671115FD33/O=My Company/C=US": profiles,
 		}
 		require.Equal(t, expected, mapping)
@@ -69,21 +69,21 @@ func TestCreateCertificateProfilesMapping(t *testing.T) {
 
 	t.Log("1 certificate - 1 profile map")
 	{
-		certificate := certificateutil.CertificateInfosModel{
+		certificate := certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: User Name1 (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}
 
-		profile := profileutil.ProfileModel{
-			DeveloperCertificates: []certificateutil.CertificateInfosModel{
+		profile := profileutil.ProfileInfoModel{
+			DeveloperCertificates: []certificateutil.CertificateInfoModel{
 				certificate,
 			},
 		}
 
-		certificates := []certificateutil.CertificateInfosModel{certificate}
-		profiles := []profileutil.ProfileModel{profile}
+		certificates := []certificateutil.CertificateInfoModel{certificate}
+		profiles := []profileutil.ProfileInfoModel{profile}
 
 		mapping := createCertificateProfilesMapping(profiles, certificates)
-		expected := map[string][]profileutil.ProfileModel{
+		expected := map[string][]profileutil.ProfileInfoModel{
 			"subject= /UID=23442233441/CN=iPhone Developer: User Name1 (679345FD33)/OU=671115FD33/O=My Company/C=US": profiles,
 		}
 		require.Equal(t, expected, mapping)
@@ -100,33 +100,33 @@ func TestResolveCodeSignGroupItems(t *testing.T) {
 
 		method := exportoptions.MethodDevelopment
 
-		cert1 := certificateutil.CertificateInfosModel{
+		cert1 := certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: User Name1 (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}
-		cert2 := certificateutil.CertificateInfosModel{
+		cert2 := certificateutil.CertificateInfoModel{
 			RawSubject: "subject= /UID=23442233441/CN=iPhone Developer: User Name2 (679345FD33)/OU=671115FD33/O=My Company/C=US",
 		}
-		certs := []certificateutil.CertificateInfosModel{cert1, cert2}
+		certs := []certificateutil.CertificateInfoModel{cert1, cert2}
 
-		profs := []profileutil.ProfileModel{
-			profileutil.ProfileModel{
+		profs := []profileutil.ProfileInfoModel{
+			profileutil.ProfileInfoModel{
 				BundleIdentifier: "com.tomi",
 				ExportType:       "development",
-				DeveloperCertificates: []certificateutil.CertificateInfosModel{
+				DeveloperCertificates: []certificateutil.CertificateInfoModel{
 					cert1,
 				},
 			},
-			profileutil.ProfileModel{
+			profileutil.ProfileInfoModel{
 				BundleIdentifier: "*",
 				ExportType:       "development",
-				DeveloperCertificates: []certificateutil.CertificateInfosModel{
+				DeveloperCertificates: []certificateutil.CertificateInfoModel{
 					cert1,
 				},
 			},
-			profileutil.ProfileModel{
+			profileutil.ProfileInfoModel{
 				BundleIdentifier: "*",
 				ExportType:       "development",
-				DeveloperCertificates: []certificateutil.CertificateInfosModel{
+				DeveloperCertificates: []certificateutil.CertificateInfoModel{
 					cert2,
 				},
 			},

@@ -16,8 +16,8 @@ const (
 )
 
 // InstalledIosProfiles ...
-func InstalledIosProfiles() ([]profileutil.ProfileModel, error) {
-	profiles := []profileutil.ProfileModel{}
+func InstalledIosProfiles() ([]profileutil.ProfileInfoModel, error) {
+	profiles := []profileutil.ProfileInfoModel{}
 
 	if err := WalkIOSProvProfilesPth(func(pth string) bool {
 		profile, err := profileutil.ProfileFromFile(pth)

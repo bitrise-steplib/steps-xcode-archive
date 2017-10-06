@@ -38,7 +38,7 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, c
 			}
 
 			if _, ok := createCertificateProfilesMap[embeddedCert.RawSubject]; !ok {
-				createCertificateProfilesMap[embeddedCert.RawSubject] = []profileutil.ProfileModel{}
+				createCertificateProfilesMap[embeddedCert.RawSubject] = []profileutil.ProfileInfoModel{}
 			}
 			createCertificateProfilesMap[embeddedCert.RawSubject] = append(createCertificateProfilesMap[embeddedCert.RawSubject], profile)
 		}
@@ -52,7 +52,7 @@ func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoMode
 	for groupItemCertificateSubject, bundleIDProfileMap := range profileGroups {
 		sort.Sort(ByBundleIDLength(bundleIDProfileMap))
 
-		bundleIDProfileMap := map[string]profileutil.ProfileModel{}
+		bundleIDProfileMap := map[string]profileutil.ProfileInfoModel{}
 		for _, bundleID := range bundleIDs {
 			for _, profile := range bundleIDProfileMap {
 				if profile.ExportType != exportMethod {
@@ -67,7 +67,7 @@ func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoMode
 		}
 
 		if len(bundleIDProfileMap) == len(bundleIDs) {
-			groupItemCertificate := certificateutil.CertificateInfosModel{}
+			groupItemCertificate := certificateutil.CertificateInfoModel{}
 			for _, profile := range bundleIDProfileMap {
 				for _, certificate := range profile.DeveloperCertificates {
 					if groupItemCertificateSubject == certificate.RawSubject {

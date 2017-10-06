@@ -17,6 +17,7 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
@@ -614,9 +615,12 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					os.Exit(1)
 				}
 
+				bundleIDs := []string{}
+
 				fmt.Println()
 				fmt.Printf("Target - CodeSignInfo mapping:\n")
 				for target, info := range targetCodeSignInfoMap {
+					bundleIDs = append(bundleIDs, info.BundleIdentifier)
 					fmt.Printf("%s:\n", target)
 					fmt.Printf("  BundleIdentifier: %s\n", info.BundleIdentifier)
 					fmt.Printf("  DevelopmentTeam: %s\n", info.DevelopmentTeam)
@@ -629,18 +633,14 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				fmt.Println()
 
-				certs, err := utils.InstalledCertificates()
+				certs, err := certificateutil.InstalledCertificates()
 				if err != nil {
 					fail("Failed to get installed certificates, error: %s", err)
 				}
 
 				fmt.Printf("Installed certificates:\n")
 				for _, cert := range certs {
-					distrType := "distribution"
-					if cert.IsDevelopement {
-						distrType = "development"
-					}
-					fmt.Printf("%s certificate: %s\n", distrType, cert.RawSubject)
+					fmt.Printf("certificate: %s\n", cert.RawSubject)
 					fmt.Printf("  expire: %s\n", cert.RawEndDate)
 				}
 				fmt.Println()
@@ -663,23 +663,25 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				fmt.Println()
 
-				cert, profiles := utils.ResolveCodeSignMapping(targetCodeSignInfoMap, exportoptions.Method(exportMethod), profs, certs)
+				profileGroups := utils.ResolveCodeSignGroupItems(bundleIDs, exportoptions.Method(exportMethod), profs, certs)
 				if err != nil {
 					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
 				}
 
 				fmt.Printf("Resolved CodeSignInfo mapping:\n")
-				for bundleID, prof := range profiles {
-					fmt.Printf("%s - %s\n", bundleID, prof.Name)
+				for i, group := range profileGroups {
+					fmt.Printf("Group: %d) codeSignIdentity: %s\n", i, group.Certificate.RawSubject)
+					for bundleID, prof := range group.BundleIDProfileMap {
+						if i == 0 {
+							profileMapping[bundleID] = prof.UUID
+						}
+						fmt.Printf("%s - %s\n", bundleID, prof.Name)
+					}
+					if i == 0 {
+						exportCodeSignIdentity = group.Certificate.CommonName
+					}
 				}
-				fmt.Printf("codeSignIdentity: %s\n", cert.RawSubject)
 				fmt.Println()
-
-				for bundleID, profile := range profiles {
-					profileMapping[bundleID] = profile.UUID
-				}
-
-				exportCodeSignIdentity = cert.CommonName
 			}
 
 			var exportOpts exportoptions.ExportOptions
