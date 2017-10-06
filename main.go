@@ -611,17 +611,17 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 		}
 	} else {
-		log.Printf("Using export options")
+		log.Printf("Exporting ipa with ExportOptions.plist")
 
 		if configs.CustomExportOptionsPlistContent != "" {
-			log.Printf("Custom export options content provided:")
+			log.Printf("Custom export options content provided, using it:")
 			fmt.Println(configs.CustomExportOptionsPlistContent)
 
 			if err := fileutil.WriteStringToFile(exportOptionsPath, configs.CustomExportOptionsPlistContent); err != nil {
 				fail("Failed to write export options to file, error: %s", err)
 			}
 		} else {
-			log.Printf("Generating export options")
+			log.Printf("No custom export options content provided, generating export options...")
 
 			var exportMethod exportoptions.Method
 			exportTeamID := ""
@@ -630,21 +630,21 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			exportProfileMapping := map[string]string{}
 
 			if configs.ExportMethod == "auto-detect" {
-				log.Printf("auto-detect export method, based on embedded profile")
+				log.Printf("auto-detect export method specified")
 				exportMethod = archiveExportMethod
 
-				log.Printf("embedded provisioning profile: %s - export method: %s", archiveProfileName, exportMethod)
+				log.Printf("using the archive profile's (%s) export method: %s", archiveProfileName, exportMethod)
 			} else {
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
 					fail("Failed to parse export options, error: %s", err)
 				}
 				exportMethod = parsedMethod
-				log.Printf("using export-method input: %s", configs.ExportMethod)
+				log.Printf("export-method specified: %s", configs.ExportMethod)
 			}
 
 			if xcodeMajorVersion >= 9 {
-				log.Printf("xcode major version > 9, generating exportOptions with provisioningProfiles node")
+				log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
 				user := os.Getenv("USER")
 				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, configs.Configuration, user)
@@ -698,17 +698,20 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				fmt.Println()
 
+				fmt.Printf("Resolving CodeSignGroups:\n")
 				codeSignGroups := utils.ResolveCodeSignGroupItems(bundleIDs, exportoptions.Method(exportMethod), profs, certs)
 				if err != nil {
 					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
 				}
+				fmt.Println()
 
-				fmt.Printf("Resolved CodeSignInfo groups:\n")
-				for i, group := range codeSignGroups {
-					fmt.Printf("Group: %d) codeSignIdentity: %s\n", i, group.Certificate.RawSubject)
+				fmt.Printf("Resolved CodeSignGroups:\n")
+				for _, group := range codeSignGroups {
+					fmt.Printf("codeSignIdentity: %s\n", group.Certificate.RawSubject)
 					for bundleID, prof := range group.BundleIDProfileMap {
-						fmt.Printf("%s - %s\n", bundleID, prof.Name)
+						fmt.Printf("bundle ID: %s is provisioned by: %s\n", bundleID, prof.Name)
 					}
+					fmt.Println()
 				}
 				fmt.Println()
 

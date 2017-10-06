@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/bitrise-io/go-utils/log"
@@ -26,7 +27,7 @@ func isCertificateInstalled(installedCertificates []certificateutil.CertificateI
 	}
 
 	if installed {
-		log.Printf("certificate: %s installed", certificate.CommonName)
+		log.Printf("certificate: %s [%s] is installed", certificate.CommonName, certificate.Serial)
 	}
 
 	return installed
@@ -47,11 +48,14 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, c
 		}
 	}
 
+	fmt.Println()
+
 	for subject, profiles := range createCertificateProfilesMap {
-		log.Printf("certificate: %s profiles:", subject)
+		log.Printf("certificate: %s included in profiles:", subject)
 		for _, profile := range profiles {
 			log.Printf("- %s", profile.Name)
 		}
+		fmt.Println()
 	}
 
 	return createCertificateProfilesMap
@@ -60,29 +64,31 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, c
 func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoModel, bundleIDs []string, exportMethod exportoptions.Method) []CodeSignGroupItem {
 	filteredCodeSignGroupItems := []CodeSignGroupItem{}
 	for groupItemCertificateSerial, profiles := range profileGroups {
+		log.Printf("checking certificate (%s) group:", groupItemCertificateSerial)
 		sort.Sort(ByBundleIDLength(profiles))
 
 		bundleIDProfileMap := map[string]profileutil.ProfileInfoModel{}
 		for _, bundleID := range bundleIDs {
 			for _, profile := range profiles {
 				if profile.ExportType != exportMethod {
-					log.Printf("profile: %s is not for export method: %s", profile.Name, exportMethod)
+					log.Printf("profile (%s) export method (%s) is not the desired (%s)", profile.Name, profile.ExportType, exportMethod)
 					continue
 				}
 
 				if !glob.Glob(profile.BundleIdentifier, bundleID) {
-					log.Printf("profile: %s is not for bundle id: %s", profile.Name, profile.BundleIdentifier)
+					log.Printf("profile (%s) does not provision bundle id: %s", profile.Name, profile.BundleIdentifier)
 					continue
 				}
 
-				log.Printf("profile: %s MATCHES for: %s", profile.Name, bundleID)
+				log.Printf("profile (%s) MATCHES for bundle id (%s) and export method (%s)", profile.Name, bundleID, exportMethod)
 
 				bundleIDProfileMap[bundleID] = profile
 				break
 			}
 		}
 
-		log.Printf("len(bundleIDProfileMap): %d <-> len(bundleIDs): %d", len(bundleIDProfileMap), len(bundleIDs))
+		log.Printf("matching profiles: %d should be: %d", len(bundleIDProfileMap), len(bundleIDs))
+		fmt.Println()
 
 		if len(bundleIDProfileMap) == len(bundleIDs) {
 			groupItemCertificate := certificateutil.CertificateInfoModel{}
@@ -102,6 +108,13 @@ func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoMode
 
 // ResolveCodeSignGroupItems ...
 func ResolveCodeSignGroupItems(bundleIDs []string, exportMethod exportoptions.Method, profiles []profileutil.ProfileInfoModel, certificates []certificateutil.CertificateInfoModel) []CodeSignGroupItem {
+	log.Printf("Creating certificate profiles mapping")
 	certificateProfilesMapping := createCertificateProfilesMapping(profiles, certificates)
-	return createCodeSignGroups(certificateProfilesMapping, bundleIDs, exportMethod)
+	fmt.Println()
+
+	log.Printf("Creating CodeSignGroups")
+	groups := createCodeSignGroups(certificateProfilesMapping, bundleIDs, exportMethod)
+	fmt.Println()
+
+	return groups
 }
