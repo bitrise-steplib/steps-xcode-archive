@@ -46,39 +46,39 @@
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/exportoptions",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/models",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/plistutil",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/provisioningprofile",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/utility",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcarchive",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcodebuild",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcodeproj",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/xcpretty",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "7f684af6198aebe54ae46cc67f6d49133c4c13ff"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",

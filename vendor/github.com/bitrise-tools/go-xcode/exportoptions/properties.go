@@ -155,3 +155,6 @@ const ProvisioningProfilesKey = "provisioningProfiles"
 
 // SigningCertificateKey ...
 const SigningCertificateKey = "signingCertificate"
+
+// SigningStyleKey ...
+const SigningStyleKey = "signingStyle"

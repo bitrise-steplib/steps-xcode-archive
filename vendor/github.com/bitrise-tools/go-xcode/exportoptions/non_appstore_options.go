@@ -12,6 +12,7 @@ type NonAppStoreOptionsModel struct {
 	TeamID                             string
 	BundleIDProvisioningProfileMapping map[string]string
 	SigningCertificate                 string
+	SigningStyle                       string
 
 	// for non app-store exports
 	CompileBitcode                           bool
@@ -65,6 +66,9 @@ func (options NonAppStoreOptionsModel) Hash() map[string]interface{} {
 	}
 	if options.SigningCertificate != "" {
 		hash[SigningCertificateKey] = options.SigningCertificate
+	}
+	if options.SigningStyle != "" {
+		hash[SigningStyleKey] = options.SigningStyle
 	}
 	return hash
 }

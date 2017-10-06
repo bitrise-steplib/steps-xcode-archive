@@ -626,6 +626,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			var exportMethod exportoptions.Method
 			exportTeamID := ""
 			exportCodeSignIdentity := ""
+			exportCodeSignStyle := ""
 			exportProfileMapping := map[string]string{}
 
 			if configs.ExportMethod == "auto-detect" {
@@ -719,9 +720,9 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				// Handle if archive used NON xcode managed profile
 				if codeSignGroupsFound && !archiveCodeSignIsXcodeManaged {
-					log.Warnf("App was signed with NON xcode managed profile when archiving")
+					log.Warnf("App was signed with NON xcode managed profile when archiving,")
 					log.Warnf("only NOT xcode managed profiles are allowed to sign when exporting the archive.")
-					log.Warnf("Removing xcode managed CodeSignInfo groups ")
+					log.Warnf("Removing xcode managed CodeSignInfo groups")
 
 					filteredCodeSignGroups := []utils.CodeSignGroupItem{}
 					for _, codeSignGroup := range codeSignGroups {
@@ -766,18 +767,14 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				if codeSignGroupsFound {
-					if len(codeSignGroups) == 1 {
-						codeSignGroup := codeSignGroups[0]
+					codeSignGroup := utils.CodeSignGroupItem{}
 
-						exportTeamID = codeSignGroup.Certificate.TeamID
-						exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
-						for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
-							exportProfileMapping[bundleID] = profileInfo.UUID
-						}
+					if len(codeSignGroups) == 1 {
+						codeSignGroup = codeSignGroups[0]
 					} else if len(codeSignGroups) > 1 {
 						log.Warnf("Multiple code singing groups found")
 
-						codeSignGroup := codeSignGroups[0]
+						codeSignGroup = codeSignGroups[0]
 
 						found := false
 						if archiveTeamID != "" {
@@ -793,11 +790,25 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						if !found {
 							log.Warnf("Using first group")
 						}
+					}
 
-						exportTeamID = codeSignGroup.Certificate.TeamID
-						exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
-						for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
-							exportProfileMapping[bundleID] = profileInfo.UUID
+					exportTeamID = codeSignGroup.Certificate.TeamID
+					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
+
+					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
+						exportProfileMapping[bundleID] = profileInfo.UUID
+
+						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
+						if isXcodeManaged {
+							if exportCodeSignStyle != "" && exportCodeSignStyle != "automatic" {
+								log.Errorf("Both xcode managed and NON xcode managed profiles in code singing group")
+							}
+							exportCodeSignStyle = "automatic"
+						} else {
+							if exportCodeSignStyle != "" && exportCodeSignStyle != "manual" {
+								log.Errorf("Both xcode managed and NON xcode managed profiles in code singing group")
+							}
+							exportCodeSignStyle = "manual"
 						}
 					}
 				}
@@ -812,6 +823,14 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					options.BundleIDProvisioningProfileMapping = exportProfileMapping
 					options.SigningCertificate = exportCodeSignIdentity
 					options.TeamID = exportTeamID
+
+					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
+						log.Warnf("App was signed with xcode managed profile when archiving,")
+						log.Warnf("ipa export uses manual code singing.")
+						log.Warnf(`Setting "signingStyle" to "manual"`)
+
+						options.SigningStyle = "manual"
+					}
 				}
 
 				exportOpts = options
@@ -823,6 +842,14 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					options.BundleIDProvisioningProfileMapping = exportProfileMapping
 					options.SigningCertificate = exportCodeSignIdentity
 					options.TeamID = exportTeamID
+
+					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
+						log.Warnf("App was signed with xcode managed profile when archiving,")
+						log.Warnf("ipa export uses manual code singing.")
+						log.Warnf(`Setting "signingStyle" to "manual"`)
+
+						options.SigningStyle = "manual"
+					}
 				}
 
 				exportOpts = options
