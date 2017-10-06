@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"os"
 	"path/filepath"
 
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
 	"github.com/pkg/errors"
 )
@@ -11,6 +14,26 @@ import (
 const (
 	provProfileSystemDirPath = "~/Library/MobileDevice/Provisioning Profiles"
 )
+
+// InstalledIosProfiles ...
+func InstalledIosProfiles() ([]profileutil.ProfileInfoModel, error) {
+	profiles := []profileutil.ProfileInfoModel{}
+
+	if err := WalkIOSProvProfilesPth(func(pth string) bool {
+		profile, err := profileutil.ProfileFromFile(pth)
+		if err != nil {
+			log.Errorf("Failed to walk provisioning profiles, error: %s", err)
+			os.Exit(1)
+		}
+
+		profiles = append(profiles, profile)
+		return false
+	}); err != nil {
+		return nil, err
+	}
+
+	return profiles, nil
+}
 
 // WalkIOSProvProfilesPth ...
 func WalkIOSProvProfilesPth(walkFunc func(pth string) bool) error {

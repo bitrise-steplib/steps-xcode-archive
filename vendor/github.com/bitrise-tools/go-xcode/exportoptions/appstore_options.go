@@ -11,6 +11,7 @@ type AppStoreOptionsModel struct {
 	TeamID                             string
 	BundleIDProvisioningProfileMapping map[string]string
 	SigningCertificate                 string
+	SigningStyle                       string
 
 	// for app-store exports
 	UploadBitcode bool
@@ -43,6 +44,9 @@ func (options AppStoreOptionsModel) Hash() map[string]interface{} {
 	}
 	if options.SigningCertificate != "" {
 		hash[SigningCertificateKey] = options.SigningCertificate
+	}
+	if options.SigningStyle != "" {
+		hash[SigningStyleKey] = options.SigningStyle
 	}
 	return hash
 }

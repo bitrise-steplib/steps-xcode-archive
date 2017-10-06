@@ -185,6 +185,8 @@ workflows:
             go get -u -v github.com/Sirupsen/logrus
             go get -u -v github.com/pkg/errors
             go get -u -v github.com/ryanuber/go-glob
+            go get -u -v github.com/davecgh/go-spew/spew
+            go get -u -v github.com/pmezard/go-difflib/difflib
 
             rm -rf ./Godeps
             rm -rf ./vendor

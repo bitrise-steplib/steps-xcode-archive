@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,6 +15,7 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
@@ -26,7 +25,6 @@ import (
 	"github.com/bitrise-tools/go-xcode/xcodeproj"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
-	"github.com/ryanuber/go-glob"
 )
 
 const (
@@ -202,6 +200,59 @@ func (configs ConfigsModel) validate() error {
 	}
 
 	return nil
+}
+
+func printCertificate(certInfo certificateutil.CertificateInfoModel) {
+	if certInfo.CommonName != "" && certInfo.TeamID != "" {
+		log.Printf(certInfo.CommonName)
+		log.Printf("serial: %s", certInfo.Serial)
+		log.Printf("teamID: %s", certInfo.TeamID)
+	} else {
+		log.Printf(certInfo.RawSubject)
+		log.Printf("serial: %s", certInfo.Serial)
+	}
+
+	if certInfo.EndDate.IsZero() {
+		log.Printf(certInfo.RawEndDate)
+	} else {
+		log.Printf("endDate: %s", certInfo.EndDate)
+
+		if certInfo.IsExpired() {
+			log.Errorf("[X] certificate expired")
+		}
+	}
+}
+
+func printProfile(profileInfo profileutil.ProfileInfoModel, installedCertificates []certificateutil.CertificateInfoModel) {
+	log.Printf("%s (%s)", profileInfo.Name, profileInfo.UUID)
+	log.Printf("exportType: %s", string(profileInfo.ExportType))
+	log.Printf("teamID: %s", profileInfo.TeamIdentifier)
+	log.Printf("bundleID: %s", profileInfo.BundleIdentifier)
+	log.Printf("expirationDate: %s", profileInfo.ExpirationDate)
+	log.Printf("certificates:")
+
+	for _, certInfo := range profileInfo.DeveloperCertificates {
+		if certInfo.CommonName != "" && certInfo.TeamID != "" {
+			log.Printf("- %s", certInfo.CommonName)
+			log.Printf("  serial: %s", certInfo.Serial)
+			log.Printf("  teamID: %s", certInfo.TeamID)
+		} else {
+			log.Printf("- %s", certInfo.RawSubject)
+			log.Printf("  serial: %s", certInfo.Serial)
+		}
+	}
+
+	if !profileInfo.HasInstalledCertificate(installedCertificates) {
+		log.Errorf("[X] none of the profile's certificates are installed")
+	}
+
+	if profileInfo.IsXcodeManaged() {
+		log.Warnf("[!] xcode managed profile")
+	}
+
+	if profileInfo.IsExpired() {
+		log.Errorf("[X] profile expired")
+	}
 }
 
 func fail(format string, v ...interface{}) {
@@ -418,8 +469,6 @@ or use 'xcodebuild' as 'output_tool'.`)
 		archiveCmd.SetCustomOptions(options)
 	}
 
-	archiveOutputLog := ""
-
 	if configs.OutputTool == "xcpretty" {
 		xcprettyCmd := xcpretty.New(archiveCmd)
 
@@ -436,43 +485,21 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 
 			fail("Archive failed, error: %s", err)
-		} else {
-			archiveOutputLog = rawXcodebuildOut
 		}
 	} else {
 		logWithTimestamp(colorstring.Green, "$ %s", archiveCmd.PrintableCmd())
 		fmt.Println()
 
 		archiveRootCmd := archiveCmd.Command()
-
-		logBuffer := new(bytes.Buffer)
-		logMultiWriter := io.MultiWriter(os.Stdout, logBuffer)
-		archiveRootCmd.SetStdout(logMultiWriter)
+		archiveRootCmd.SetStdout(os.Stdout)
 		archiveRootCmd.SetStderr(os.Stderr)
 
 		if err := archiveRootCmd.Run(); err != nil {
 			fail("Archive failed, error: %s", err)
 		}
-
-		archiveOutputLog = logBuffer.String()
 	}
 
 	fmt.Println()
-
-	archiveTeamID := ""
-	if matches := regexp.MustCompile(`"com\.apple\.developer\.team-identifier" = (.*?);`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
-		archiveTeamID = matches[1]
-	}
-
-	archiveSigningIdentity := ""
-	if matches := regexp.MustCompile(`Signing Identity:.* "(.*?)"`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
-		archiveSigningIdentity = matches[1]
-	}
-
-	// archiveProfileUUID := ""
-	// if matches := regexp.MustCompile(`Provisioning Profile:.*?"\n.*?\((.*?)\)`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
-	// 	archiveProfileUUID = matches[1]
-	// }
 
 	// Ensure xcarchive exists
 	if exist, err := pathutil.IsPathExists(tmpArchivePath); err != nil {
@@ -480,6 +507,34 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	} else if !exist {
 		fail("No archive generated at: %s", tmpArchivePath)
 	}
+
+	archiveTeamID := ""
+	archiveProfileName := ""
+	var archiveExportMethod exportoptions.Method
+	archiveCodeSignIsXcodeManaged := false
+	{
+		embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
+		if err != nil {
+			fail("Failed to get embedded profile path, error: %s", err)
+		}
+
+		profile, err := provisioningprofile.NewProfileFromFile(embeddedProfilePth)
+		if err != nil {
+			fail("Failed to create provisioning profile model, error: %s", err)
+		}
+
+		archiveTeamID = profile.GetTeamID()
+		archiveProfileName = profile.GetName()
+		archiveExportMethod = profile.GetExportMethod()
+		archiveCodeSignIsXcodeManaged = profileutil.IsXcodeManaged(profile.GetName())
+	}
+
+	log.Infof("Archive infos:")
+	log.Printf("archiveTeamID: %s", archiveTeamID)
+	log.Printf("archiveProfileName: %s", archiveProfileName)
+	log.Printf("archiveExportMethod: %s", archiveExportMethod)
+	log.Printf("archiveCodeSignIsXcodeManaged: %v", archiveCodeSignIsXcodeManaged)
+	fmt.Println()
 
 	//
 	// Exporting the ipa with Xcode Command Line tools
@@ -556,55 +611,40 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 		}
 	} else {
-		log.Printf("Using export options")
+		log.Printf("Exporting ipa with ExportOptions.plist")
 
 		if configs.CustomExportOptionsPlistContent != "" {
-			log.Printf("Custom export options content provided:")
+			log.Printf("Custom export options content provided, using it:")
 			fmt.Println(configs.CustomExportOptionsPlistContent)
 
 			if err := fileutil.WriteStringToFile(exportOptionsPath, configs.CustomExportOptionsPlistContent); err != nil {
 				fail("Failed to write export options to file, error: %s", err)
 			}
 		} else {
-			log.Printf("Generating export options")
+			log.Printf("No custom export options content provided, generating export options...")
 
 			var exportMethod exportoptions.Method
 			exportTeamID := ""
 			exportCodeSignIdentity := ""
-			exportProfileUUID := ""
+			exportCodeSignStyle := ""
+			exportProfileMapping := map[string]string{}
 
 			if configs.ExportMethod == "auto-detect" {
-				log.Printf("auto-detect export method, based on embedded profile")
+				log.Printf("auto-detect export method specified")
+				exportMethod = archiveExportMethod
 
-				embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
-				if err != nil {
-					fail("Failed to get embedded profile path, error: %s", err)
-				}
-
-				profile, err := provisioningprofile.NewProfileFromFile(embeddedProfilePth)
-				if err != nil {
-					fail("Failed to create provisioning profile model, error: %s", err)
-				}
-
-				exportMethod = profile.GetExportMethod()
-				exportTeamID = archiveTeamID
-				exportCodeSignIdentity = archiveSigningIdentity
-				exportProfileUUID = profile.GetUUID()
-
-				log.Printf("embedded provisioning profile: %s (%s) - export method: %s", profile.GetName(), exportProfileUUID, exportMethod)
+				log.Printf("using the archive profile's (%s) export method: %s", archiveProfileName, exportMethod)
 			} else {
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
 					fail("Failed to parse export options, error: %s", err)
 				}
 				exportMethod = parsedMethod
-				log.Printf("using export-method input: %s", configs.ExportMethod)
+				log.Printf("export-method specified: %s", configs.ExportMethod)
 			}
 
-			profileMapping := map[string]string{}
-
 			if xcodeMajorVersion >= 9 {
-				log.Printf("xcode major version > 9, generating exportOptions with provisioningProfiles node")
+				log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
 				user := os.Getenv("USER")
 				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, configs.Configuration, user)
@@ -616,96 +656,163 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					os.Exit(1)
 				}
 
-				for _, codeSignInfo := range targetCodeSignInfoMap {
-					manualFinalProfileUUID := ""
+				bundleIDs := []string{}
 
-					if configs.ExportMethod != "auto-detect" {
-						manualProfileName := ""
-						manualProfileUUID := ""
+				fmt.Println()
+				fmt.Printf("Target - CodeSignInfo mapping:\n")
+				for target, info := range targetCodeSignInfoMap {
+					bundleIDs = append(bundleIDs, info.BundleIdentifier)
+					fmt.Printf("%s:\n", target)
+					fmt.Printf("  BundleIdentifier: %s\n", info.BundleIdentifier)
+					fmt.Printf("  DevelopmentTeam: %s\n", info.DevelopmentTeam)
+					fmt.Printf("  CodeSignIdentity: %s\n", info.CodeSignIdentity)
+					profile := info.ProvisioningProfileSpecifier
+					if profile == "" {
+						profile = info.ProvisioningProfile
+					}
+					fmt.Printf("  Profile: %s\n", profile)
+				}
+				fmt.Println()
 
-						if codeSignInfo.ProvisioningProfileSpecifier != "" {
-							manualProfileName = codeSignInfo.ProvisioningProfileSpecifier
-							log.Printf("using provisioning profile specifier: %s to sign: %s", manualProfileName, codeSignInfo.BundleIdentifier)
-						} else if codeSignInfo.ProvisioningProfile != "" {
-							manualProfileUUID = codeSignInfo.ProvisioningProfile
-							log.Printf("using provisioning profile: %s to sign: %s", manualProfileUUID, codeSignInfo.BundleIdentifier)
+				certs, err := certificateutil.InstalledCertificates()
+				if err != nil {
+					fail("Failed to get installed certificates, error: %s", err)
+				}
+
+				fmt.Printf("Installed certificates:\n")
+				for _, certInfo := range certs {
+					printCertificate(certInfo)
+					fmt.Println()
+				}
+				fmt.Println()
+
+				profs, err := utils.InstalledIosProfiles()
+				if err != nil {
+					fail("Failed to get installed provisioning profiles, error: %s", err)
+				}
+
+				fmt.Printf("Installed profiles:\n")
+				for _, profileInfo := range profs {
+					printProfile(profileInfo, certs)
+					fmt.Println()
+				}
+				fmt.Println()
+
+				fmt.Printf("Resolving CodeSignGroups:\n")
+				codeSignGroups := utils.ResolveCodeSignGroupItems(bundleIDs, exportoptions.Method(exportMethod), profs, certs)
+				if err != nil {
+					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
+				}
+				fmt.Println()
+
+				fmt.Printf("Resolved CodeSignGroups:\n")
+				for _, group := range codeSignGroups {
+					fmt.Printf("codeSignIdentity: %s\n", group.Certificate.RawSubject)
+					for bundleID, prof := range group.BundleIDProfileMap {
+						fmt.Printf("bundle ID: %s is provisioned by: %s\n", bundleID, prof.Name)
+					}
+					fmt.Println()
+				}
+				fmt.Println()
+
+				codeSignGroupsFound := len(codeSignGroups) > 0
+
+				if !codeSignGroupsFound {
+					log.Errorf("Failed to find code singing groups for specified export method (%s)", exportMethod)
+				}
+
+				// Handle if archive used NON xcode managed profile
+				if codeSignGroupsFound && !archiveCodeSignIsXcodeManaged {
+					log.Warnf("App was signed with NON xcode managed profile when archiving,")
+					log.Warnf("only NOT xcode managed profiles are allowed to sign when exporting the archive.")
+					log.Warnf("Removing xcode managed CodeSignInfo groups")
+
+					filteredCodeSignGroups := []utils.CodeSignGroupItem{}
+					for _, codeSignGroup := range codeSignGroups {
+						xcodeManagedGroup := false
+						for _, profile := range codeSignGroup.BundleIDProfileMap {
+							isXcodeManaged := profileutil.IsXcodeManaged(profile.Name)
+							if isXcodeManaged {
+								xcodeManagedGroup = true
+								break
+							}
 						}
-
-						if err := utils.WalkIOSProvProfiles(func(profile provisioningprofile.Profile) bool {
-							uuid := profile.GetUUID()
-							name := profile.GetName()
-							method := profile.GetExportMethod()
-							bundleID := profile.GetBundleIdentifier()
-
-							profileMatch := false
-							if manualProfileUUID != "" {
-								if manualProfileUUID == uuid {
-									profileMatch = true
-								}
-							} else if manualProfileName != "" {
-								if manualProfileName == name {
-									profileMatch = true
-								}
-							} else {
-								if glob.Glob(bundleID, codeSignInfo.BundleIdentifier) && method == exportMethod {
-									profileMatch = true
-								}
-							}
-
-							if profileMatch {
-								expire := profile.GetExpirationDate()
-								if isExpired(expire) {
-									log.Warnf("Profile found: %s (%s), but it expired at: %s", name, uuid, expire.String())
-								}
-
-								manualFinalProfileUUID = uuid
-								return true
-							}
-
-							return false
-						}); err != nil {
-							fail("Failed to search for profile, error: %s", err)
+						if !xcodeManagedGroup {
+							filteredCodeSignGroups = append(filteredCodeSignGroups, codeSignGroup)
 						}
+					}
 
-						if manualFinalProfileUUID == "" {
-							message := ""
-							if manualProfileUUID != "" {
-								message = fmt.Sprintf("Failed to find installed provisioning profile with UUID: %s", manualProfileUUID)
-							} else if manualProfileName != "" {
-								message = fmt.Sprintf("Failed to find installed provisioning profile with name: %s", manualProfileName)
-							} else {
-								message = fmt.Sprintf("Failed to find installed provisioning profile for bundle id: %s, export method: %s", codeSignInfo.BundleIdentifier, exportMethod)
-							}
+					codeSignGroups = filteredCodeSignGroups
 
-							fmt.Println()
-							log.Errorf(message)
-							log.Printf("Installed profile infos:")
-							if err := utils.WalkIOSProvProfilesPth(func(pth string) bool {
-								profile, err := profileutil.ProfileFromFile(pth)
-								if err != nil {
-									log.Warnf("Failed to read profile infos from: %s", pth)
-								} else {
-									log.Printf("%s profile for team (%s): %s (%s)", profile.ExportType, profile.TeamIdentifier, profile.Name, profile.UUID)
-									for _, cert := range profile.DeveloperCertificates {
-										if cert.CommonName != "" && cert.TeamID != "" && !cert.EndDate.IsZero() {
-											log.Printf("- %s expire: %s", cert.CommonName, cert.EndDate.String())
-										} else {
-											log.Printf("- %s expire: %s", cert.RawSubject, cert.RawEndDate)
-										}
-									}
-									fmt.Println()
-								}
-								return false
-							}); err != nil {
-								log.Warnf("Failed to list installed profiles, error: %s", err)
-							}
+					if len(codeSignGroups) == 0 {
+						codeSignGroupsFound = false
+						log.Errorf("Failed to find code singing groups for specified export method (%s) and WITHOUT xcode managed profiles", exportMethod)
+					}
+				}
 
-							fail("Failed to create export options")
+				// Filter for specified export team
+				if codeSignGroupsFound && configs.TeamID != "" {
+					log.Printf("Export TeamID specified: %s, filtering CodeSignInfo groups...", configs.TeamID)
+
+					filteredGroups := []utils.CodeSignGroupItem{}
+					for _, group := range codeSignGroups {
+						if group.Certificate.TeamID == configs.TeamID {
+							filteredGroups = append(filteredGroups, group)
 						}
+					}
 
-						profileMapping[codeSignInfo.BundleIdentifier] = manualFinalProfileUUID
-					} else {
-						profileMapping[codeSignInfo.BundleIdentifier] = exportProfileUUID
+					codeSignGroups = filteredGroups
+
+					if len(codeSignGroups) == 0 {
+						codeSignGroupsFound = false
+						log.Errorf("Failed to find code singing groups for specified export method (%s) and team (%s)", exportMethod, configs.TeamID)
+					}
+				}
+
+				if codeSignGroupsFound {
+					codeSignGroup := utils.CodeSignGroupItem{}
+
+					if len(codeSignGroups) == 1 {
+						codeSignGroup = codeSignGroups[0]
+					} else if len(codeSignGroups) > 1 {
+						log.Warnf("Multiple code singing groups found")
+
+						codeSignGroup = codeSignGroups[0]
+
+						found := false
+						if archiveTeamID != "" {
+							for i, group := range codeSignGroups {
+								if group.Certificate.TeamID == exportTeamID && i != 0 {
+									log.Warnf("Prefering code singing group with the team used for the archive")
+									codeSignGroup = group
+									found = true
+									break
+								}
+							}
+						}
+						if !found {
+							log.Warnf("Using first group")
+						}
+					}
+
+					exportTeamID = codeSignGroup.Certificate.TeamID
+					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
+
+					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
+						exportProfileMapping[bundleID] = profileInfo.UUID
+
+						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
+						if isXcodeManaged {
+							if exportCodeSignStyle != "" && exportCodeSignStyle != "automatic" {
+								log.Errorf("Both xcode managed and NON xcode managed profiles in code singing group")
+							}
+							exportCodeSignStyle = "automatic"
+						} else {
+							if exportCodeSignStyle != "" && exportCodeSignStyle != "manual" {
+								log.Errorf("Both xcode managed and NON xcode managed profiles in code singing group")
+							}
+							exportCodeSignStyle = "manual"
+						}
 					}
 				}
 			}
@@ -715,15 +822,18 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				options := exportoptions.NewAppStoreOptions()
 				options.UploadBitcode = (configs.UploadBitcode == "yes")
 
-				if configs.TeamID != "" {
-					options.TeamID = configs.TeamID
-				} else if exportTeamID != "" {
-					options.TeamID = exportTeamID
-				}
-
 				if xcodeMajorVersion >= 9 {
-					options.BundleIDProvisioningProfileMapping = profileMapping
+					options.BundleIDProvisioningProfileMapping = exportProfileMapping
 					options.SigningCertificate = exportCodeSignIdentity
+					options.TeamID = exportTeamID
+
+					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
+						log.Warnf("App was signed with xcode managed profile when archiving,")
+						log.Warnf("ipa export uses manual code singing.")
+						log.Warnf(`Setting "signingStyle" to "manual"`)
+
+						options.SigningStyle = "manual"
+					}
 				}
 
 				exportOpts = options
@@ -731,20 +841,24 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				options := exportoptions.NewNonAppStoreOptions(exportMethod)
 				options.CompileBitcode = (configs.CompileBitcode == "yes")
 
-				if configs.TeamID != "" {
-					options.TeamID = configs.TeamID
-				} else if exportTeamID != "" {
-					options.TeamID = exportTeamID
-				}
-
 				if xcodeMajorVersion >= 9 {
-					options.BundleIDProvisioningProfileMapping = profileMapping
+					options.BundleIDProvisioningProfileMapping = exportProfileMapping
 					options.SigningCertificate = exportCodeSignIdentity
+					options.TeamID = exportTeamID
+
+					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
+						log.Warnf("App was signed with xcode managed profile when archiving,")
+						log.Warnf("ipa export uses manual code singing.")
+						log.Warnf(`Setting "signingStyle" to "manual"`)
+
+						options.SigningStyle = "manual"
+					}
 				}
 
 				exportOpts = options
 			}
 
+			fmt.Println()
 			log.Printf("generated export options content:")
 			fmt.Println()
 			fmt.Println(exportOpts.String())
