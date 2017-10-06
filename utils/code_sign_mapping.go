@@ -3,6 +3,7 @@ package utils
 import (
 	"sort"
 
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
@@ -18,11 +19,16 @@ type CodeSignGroupItem struct {
 func isCertificateInstalled(installedCertificates []certificateutil.CertificateInfoModel, certificate certificateutil.CertificateInfoModel) bool {
 	installed := false
 	for _, installedCertificate := range installedCertificates {
-		if certificate.RawSubject == installedCertificate.RawSubject && certificate.RawEndDate == installedCertificate.RawEndDate {
+		if certificate.Serial == installedCertificate.Serial {
 			installed = true
 			break
 		}
 	}
+
+	if installed {
+		log.Printf("certificate: %s installed", certificate.CommonName)
+	}
+
 	return installed
 }
 
@@ -30,17 +36,21 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, c
 	createCertificateProfilesMap := map[string][]profileutil.ProfileInfoModel{}
 	for _, profile := range profiles {
 		for _, embeddedCert := range profile.DeveloperCertificates {
-			if embeddedCert.RawSubject == "" {
-				continue
-			}
 			if !isCertificateInstalled(certificates, embeddedCert) {
 				continue
 			}
 
-			if _, ok := createCertificateProfilesMap[embeddedCert.RawSubject]; !ok {
-				createCertificateProfilesMap[embeddedCert.RawSubject] = []profileutil.ProfileInfoModel{}
+			if _, ok := createCertificateProfilesMap[embeddedCert.Serial]; !ok {
+				createCertificateProfilesMap[embeddedCert.Serial] = []profileutil.ProfileInfoModel{}
 			}
-			createCertificateProfilesMap[embeddedCert.RawSubject] = append(createCertificateProfilesMap[embeddedCert.RawSubject], profile)
+			createCertificateProfilesMap[embeddedCert.Serial] = append(createCertificateProfilesMap[embeddedCert.Serial], profile)
+		}
+	}
+
+	for subject, profiles := range createCertificateProfilesMap {
+		log.Printf("certificate: %s profiles:", subject)
+		for _, profile := range profiles {
+			log.Printf("- %s", profile.Name)
 		}
 	}
 
@@ -49,28 +59,36 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, c
 
 func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoModel, bundleIDs []string, exportMethod exportoptions.Method) []CodeSignGroupItem {
 	filteredCodeSignGroupItems := []CodeSignGroupItem{}
-	for groupItemCertificateSubject, bundleIDProfileMap := range profileGroups {
-		sort.Sort(ByBundleIDLength(bundleIDProfileMap))
+	for groupItemCertificateSerial, profiles := range profileGroups {
+		sort.Sort(ByBundleIDLength(profiles))
 
 		bundleIDProfileMap := map[string]profileutil.ProfileInfoModel{}
 		for _, bundleID := range bundleIDs {
-			for _, profile := range bundleIDProfileMap {
+			for _, profile := range profiles {
 				if profile.ExportType != exportMethod {
+					log.Printf("profile: %s is not for export method: %s", profile.Name, exportMethod)
 					continue
 				}
 
-				if glob.Glob(profile.BundleIdentifier, bundleID) {
-					bundleIDProfileMap[bundleID] = profile
-					break
+				if !glob.Glob(profile.BundleIdentifier, bundleID) {
+					log.Printf("profile: %s is not for bundle id: %s", profile.Name, profile.BundleIdentifier)
+					continue
 				}
+
+				log.Printf("profile: %s MATCHES for: %s", profile.Name, bundleID)
+
+				bundleIDProfileMap[bundleID] = profile
+				break
 			}
 		}
+
+		log.Printf("len(bundleIDProfileMap): %d <-> len(bundleIDs): %d", len(bundleIDProfileMap), len(bundleIDs))
 
 		if len(bundleIDProfileMap) == len(bundleIDs) {
 			groupItemCertificate := certificateutil.CertificateInfoModel{}
 			for _, profile := range bundleIDProfileMap {
 				for _, certificate := range profile.DeveloperCertificates {
-					if groupItemCertificateSubject == certificate.RawSubject {
+					if groupItemCertificateSerial == certificate.Serial {
 						groupItemCertificate = certificate
 					}
 				}

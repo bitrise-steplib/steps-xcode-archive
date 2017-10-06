@@ -748,12 +748,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					codeSignGroup := codeSignGroups[0]
 
 					exportTeamID = codeSignGroup.Certificate.TeamID
-					exportCodeSignIdentity = codeSignGroup.Certificate.Name
+					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
 					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
 						exportProfileMapping[bundleID] = profileInfo.UUID
 					}
 				} else if len(codeSignGroups) > 1 {
-					log.Warnf("Multiple code singing groups found")
 					codeSignGroup := codeSignGroups[0]
 
 					found := false
@@ -772,7 +771,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					}
 
 					exportTeamID = codeSignGroup.Certificate.TeamID
-					exportCodeSignIdentity = codeSignGroup.Certificate.Name
+					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
 					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
 						exportProfileMapping[bundleID] = profileInfo.UUID
 					}
