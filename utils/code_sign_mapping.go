@@ -3,25 +3,16 @@ package utils
 import (
 	"sort"
 
-	"github.com/bitrise-tools/go-xcode/exportoptions"
-	"github.com/davecgh/go-spew/spew"
-	glob "github.com/ryanuber/go-glob"
-
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
+	"github.com/bitrise-tools/go-xcode/exportoptions"
+	"github.com/ryanuber/go-glob"
 )
 
 // CodeSignGroupItem ...
 type CodeSignGroupItem struct {
 	Certificate        certificateutil.CertificateInfosModel
 	BundleIDProfileMap map[string]profileutil.ProfileModel
-}
-
-// ResolveCodeSignGroupItems ...
-func ResolveCodeSignGroupItems(bundleIDs []string, exportMethod exportoptions.Method, profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) []CodeSignGroupItem {
-	certificateProfilesMapping := createCertificateProfilesMapping(profiles, certificates, exportMethod)
-	spew.Dump(certificateProfilesMapping)
-	return createCodeSignGroupItem(certificateProfilesMapping, bundleIDs)
 }
 
 func isCertificateInstalled(installedCertificates []certificateutil.CertificateInfosModel, certificate certificateutil.CertificateInfosModel) bool {
@@ -35,12 +26,9 @@ func isCertificateInstalled(installedCertificates []certificateutil.CertificateI
 	return installed
 }
 
-func createCertificateProfilesMapping(profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel, exportMethod exportoptions.Method) map[string][]profileutil.ProfileModel {
+func createCertificateProfilesMapping(profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) map[string][]profileutil.ProfileModel {
 	createCertificateProfilesMap := map[string][]profileutil.ProfileModel{}
 	for _, profile := range profiles {
-		if profile.ExportType != exportMethod {
-			continue
-		}
 		for _, embeddedCert := range profile.DeveloperCertificates {
 			if embeddedCert.RawSubject == "" {
 				continue
@@ -59,7 +47,7 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileModel, certi
 	return createCertificateProfilesMap
 }
 
-func createCodeSignGroupItem(profileGroups map[string][]profileutil.ProfileModel, bundleIDs []string) []CodeSignGroupItem {
+func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileModel, bundleIDs []string, exportMethod exportoptions.Method) []CodeSignGroupItem {
 	filteredCodeSignGroupItems := []CodeSignGroupItem{}
 	for groupItemCertificateSubject, bundleIDProfileMap := range profileGroups {
 		sort.Sort(ByBundleIDLength(bundleIDProfileMap))
@@ -67,6 +55,10 @@ func createCodeSignGroupItem(profileGroups map[string][]profileutil.ProfileModel
 		bundleIDProfileMap := map[string]profileutil.ProfileModel{}
 		for _, bundleID := range bundleIDs {
 			for _, profile := range bundleIDProfileMap {
+				if profile.ExportType != exportMethod {
+					continue
+				}
+
 				if glob.Glob(profile.BundleIdentifier, bundleID) {
 					bundleIDProfileMap[bundleID] = profile
 					break
@@ -88,4 +80,10 @@ func createCodeSignGroupItem(profileGroups map[string][]profileutil.ProfileModel
 		}
 	}
 	return filteredCodeSignGroupItems
+}
+
+// ResolveCodeSignGroupItems ...
+func ResolveCodeSignGroupItems(bundleIDs []string, exportMethod exportoptions.Method, profiles []profileutil.ProfileModel, certificates []certificateutil.CertificateInfosModel) []CodeSignGroupItem {
+	certificateProfilesMapping := createCertificateProfilesMapping(profiles, certificates)
+	return createCodeSignGroups(certificateProfilesMapping, bundleIDs, exportMethod)
 }
