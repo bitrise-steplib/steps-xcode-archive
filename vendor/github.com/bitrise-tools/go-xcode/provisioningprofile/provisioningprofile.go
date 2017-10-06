@@ -75,6 +75,15 @@ func (profile Profile) GetApplicationIdentifier() string {
 // GetBundleIdentifier ...
 func (profile Profile) GetBundleIdentifier() string {
 	applicationID := profile.GetApplicationIdentifier()
+
+	plistData := plistutil.PlistData(profile)
+	prefixes, found := plistData.GetStringArray("ApplicationIdentifierPrefix")
+	if found {
+		for _, prefix := range prefixes {
+			applicationID = strings.TrimPrefix(applicationID, prefix+".")
+		}
+	}
+
 	teamID := profile.GetTeamID()
 	return strings.TrimPrefix(applicationID, teamID+".")
 }
