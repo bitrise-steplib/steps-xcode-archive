@@ -75,15 +75,6 @@ func (profile Profile) GetApplicationIdentifier() string {
 // GetBundleIdentifier ...
 func (profile Profile) GetBundleIdentifier() string {
 	applicationID := profile.GetApplicationIdentifier()
-
-	plistData := plistutil.PlistData(profile)
-	prefixes, found := plistData.GetStringArray("ApplicationIdentifierPrefix")
-	if found {
-		for _, prefix := range prefixes {
-			applicationID = strings.TrimPrefix(applicationID, prefix+".")
-		}
-	}
-
 	teamID := profile.GetTeamID()
 	return strings.TrimPrefix(applicationID, teamID+".")
 }
@@ -126,4 +117,18 @@ func (profile Profile) GetExpirationDate() time.Time {
 	data := plistutil.PlistData(profile)
 	expiry, _ := data.GetTime("ExpirationDate")
 	return expiry
+}
+
+// GetProvisionedDevices ...
+func (profile Profile) GetProvisionedDevices() []string {
+	data := plistutil.PlistData(profile)
+	devices, _ := data.GetStringArray("ProvisionedDevices")
+	return devices
+}
+
+// GetDeveloperCertificates ...
+func (profile Profile) GetDeveloperCertificates() [][]byte {
+	data := plistutil.PlistData(profile)
+	developerCertificates, _ := data.GetByteArrayArray("DeveloperCertificates")
+	return developerCertificates
 }

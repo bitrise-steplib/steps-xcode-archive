@@ -142,6 +142,34 @@ func (data PlistData) GetStringArray(forKey string) ([]string, bool) {
 	return array, true
 }
 
+// GetByteArrayArray ...
+func (data PlistData) GetByteArrayArray(forKey string) ([][]byte, bool) {
+	value, ok := data[forKey]
+	if !ok {
+		return nil, false
+	}
+
+	if casted, ok := value.([][]byte); ok {
+		return casted, true
+	}
+
+	casted, ok := value.([]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	array := [][]byte{}
+	for _, v := range casted {
+		casted, ok := v.([]byte)
+		if !ok {
+			return nil, false
+		}
+
+		array = append(array, casted)
+	}
+	return array, true
+}
+
 // GetMapStringInterface ...
 func (data PlistData) GetMapStringInterface(forKey string) (PlistData, bool) {
 	value, ok := data[forKey]

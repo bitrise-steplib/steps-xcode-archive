@@ -1,18 +1,17 @@
 package profileutil
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
-	"github.com/bitrise-tools/go-xcode/plistutil"
 	"github.com/bitrise-tools/go-xcode/provisioningprofile"
+	"github.com/pkg/errors"
 )
 
-// ProfileModel ...
-type ProfileModel struct {
+// ProfileInfoModel ...
+type ProfileInfoModel struct {
 	Name                  string
 	TeamIdentifier        string
 	UUID                  string
@@ -21,17 +20,45 @@ type ProfileModel struct {
 	ProvisionedDevices    []string
 	ExpirationDate        time.Time
 	ExportType            exportoptions.Method
-	DeveloperCertificates []certificateutil.CertificateInfosModel
+	DeveloperCertificates []certificateutil.CertificateInfoModel
+}
+
+// IsXcodeManaged ...
+func (prof ProfileInfoModel) IsXcodeManaged() bool {
+	return strings.HasPrefix(prof.Name, "iOS Team Provisioning Profile") || strings.HasPrefix(prof.Name, "XC:") || strings.HasPrefix(prof.Name, "XC iOS:")
+}
+
+// IsExpired ...
+func (prof ProfileInfoModel) IsExpired() bool {
+	if prof.ExpirationDate.IsZero() {
+		return false
+	}
+
+	return prof.ExpirationDate.Before(time.Now())
+}
+
+// HasInstalledCertificate ...
+func (prof ProfileInfoModel) HasInstalledCertificate(installedCertificates []certificateutil.CertificateInfoModel) bool {
+	has := false
+	for _, certificate := range prof.DeveloperCertificates {
+		for _, installedCertificate := range installedCertificates {
+			if certificate.RawEndDate == installedCertificate.RawEndDate && certificate.RawSubject == installedCertificate.RawSubject {
+				has = true
+				break
+			}
+		}
+	}
+	return has
 }
 
 // ProfileFromFile ...
-func ProfileFromFile(provPath string) (ProfileModel, error) {
-	profile, err := provisioningprofile.NewProfileFromFile(provPath)
+func ProfileFromFile(profilePth string) (ProfileInfoModel, error) {
+	profile, err := provisioningprofile.NewProfileFromFile(profilePth)
 	if err != nil {
-		return ProfileModel{}, err
+		return ProfileInfoModel{}, err
 	}
 
-	profileModel := ProfileModel{
+	profileModel := ProfileInfoModel{
 		Name:                  profile.GetName(),
 		UUID:                  profile.GetUUID(),
 		TeamIdentifier:        profile.GetTeamID(),
@@ -41,82 +68,19 @@ func ProfileFromFile(provPath string) (ProfileModel, error) {
 		ApplicationIdentifier: profile.GetApplicationIdentifier(),
 	}
 
-	profilePlistData := plistutil.PlistData(profile)
-
-	if profile.GetExportMethod() == exportoptions.MethodDevelopment {
-		if devicesList, ok := profilePlistData.GetStringArray("ProvisionedDevices"); ok {
-			profileModel.ProvisionedDevices = devicesList
-		}
+	if devicesList := profile.GetProvisionedDevices(); devicesList != nil {
+		profileModel.ProvisionedDevices = devicesList
 	}
 
-	if certData, ok := GetByteArray(profilePlistData, "DeveloperCertificates"); ok {
+	if certData := profile.GetDeveloperCertificates(); certData != nil {
 		for _, cert := range certData {
 			certModel, err := certificateutil.CertificateInfosFromDerContent(cert)
 			if err != nil {
-				return ProfileModel{}, fmt.Errorf("Failed to get certificate info from profile(%s), error: %s", profileModel.UUID, err)
+				return ProfileInfoModel{}, errors.Wrapf(err, "failed to parse profile's (%s)", profileModel.UUID)
 			}
 			profileModel.DeveloperCertificates = append(profileModel.DeveloperCertificates, certModel)
 		}
 	}
 
 	return profileModel, nil
-}
-
-// GetByteArray ...
-func GetByteArray(data plistutil.PlistData, forKey string) ([][]byte, bool) {
-	value, ok := data[forKey]
-	if !ok {
-		return nil, false
-	}
-
-	if casted, ok := value.([][]byte); ok {
-		return casted, true
-	}
-
-	casted, ok := value.([]interface{})
-	if !ok {
-		return nil, false
-	}
-
-	array := [][]byte{}
-	for _, v := range casted {
-		casted, ok := v.([]byte)
-		if !ok {
-			return nil, false
-		}
-
-		array = append(array, casted)
-	}
-	return array, true
-}
-
-func (profileModel ProfileModel) String() string {
-	certInfoString := ""
-
-	certInfoString += fmt.Sprintf("- BundleIdentifier: %s\n", profileModel.BundleIdentifier)
-	certInfoString += fmt.Sprintf("- ExpirationDate: %s\n", profileModel.ExpirationDate)
-	certInfoString += fmt.Sprintf("- ExportType: %s\n", profileModel.ExportType)
-	certInfoString += fmt.Sprintf("- TeamIdentifier: %s\n", profileModel.TeamIdentifier)
-	certInfoString += fmt.Sprintf("- UUID: %s\n", profileModel.UUID)
-
-	if len(profileModel.DeveloperCertificates) > 0 {
-		certInfoString += fmt.Sprintf("- DeveloperCertificates: \n")
-		for _, devCert := range profileModel.DeveloperCertificates {
-			certInfoString += fmt.Sprintf("  %s\n", devCert.CommonName)
-			certInfoString += fmt.Sprintf("  - TeamID: %s\n", devCert.TeamID)
-			certInfoString += fmt.Sprintf("  - EndDate: %s\n", devCert.EndDate)
-			certInfoString += fmt.Sprintf("  - IsDevelopment: %t", devCert.IsDevelopement)
-		}
-	}
-
-	if len(profileModel.ProvisionedDevices) > 0 {
-		certInfoString += "\n"
-		redactedDeviceList := []string{}
-		for _, deviceUUID := range profileModel.ProvisionedDevices {
-			redactedDeviceList = append(redactedDeviceList, fmt.Sprintf("%s...%s", deviceUUID[:3], deviceUUID[len(deviceUUID)-3:]))
-		}
-		certInfoString += fmt.Sprintf("- ProvisionedDevices: %s", strings.Join(redactedDeviceList, ", "))
-	}
-
-	return certInfoString
 }
