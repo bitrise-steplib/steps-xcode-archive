@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -471,8 +469,6 @@ or use 'xcodebuild' as 'output_tool'.`)
 		archiveCmd.SetCustomOptions(options)
 	}
 
-	archiveOutputLog := ""
-
 	if configs.OutputTool == "xcpretty" {
 		xcprettyCmd := xcpretty.New(archiveCmd)
 
@@ -489,43 +485,21 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 
 			fail("Archive failed, error: %s", err)
-		} else {
-			archiveOutputLog = rawXcodebuildOut
 		}
 	} else {
 		logWithTimestamp(colorstring.Green, "$ %s", archiveCmd.PrintableCmd())
 		fmt.Println()
 
 		archiveRootCmd := archiveCmd.Command()
-
-		logBuffer := new(bytes.Buffer)
-		logMultiWriter := io.MultiWriter(os.Stdout, logBuffer)
-		archiveRootCmd.SetStdout(logMultiWriter)
+		archiveRootCmd.SetStdout(os.Stdout)
 		archiveRootCmd.SetStderr(os.Stderr)
 
 		if err := archiveRootCmd.Run(); err != nil {
 			fail("Archive failed, error: %s", err)
 		}
-
-		archiveOutputLog = logBuffer.String()
 	}
 
 	fmt.Println()
-
-	archiveTeamID := ""
-	if matches := regexp.MustCompile(`"com\.apple\.developer\.team-identifier" = (.*?);`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
-		archiveTeamID = matches[1]
-	}
-
-	// archiveSigningIdentity := ""
-	// if matches := regexp.MustCompile(`Signing Identity:.* "(.*?)"`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
-	// 	archiveSigningIdentity = matches[1]
-	// }
-
-	// archiveProfileUUID := ""
-	// if matches := regexp.MustCompile(`Provisioning Profile:.*?"\n.*?\((.*?)\)`).FindStringSubmatch(archiveOutputLog); len(matches) == 2 {
-	// 	archiveProfileUUID = matches[1]
-	// }
 
 	// Ensure xcarchive exists
 	if exist, err := pathutil.IsPathExists(tmpArchivePath); err != nil {
@@ -533,6 +507,34 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	} else if !exist {
 		fail("No archive generated at: %s", tmpArchivePath)
 	}
+
+	archiveTeamID := ""
+	archiveProfileName := ""
+	var archiveExportMethod exportoptions.Method
+	archiveCodeSignIsXcodeManaged := false
+	{
+		embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
+		if err != nil {
+			fail("Failed to get embedded profile path, error: %s", err)
+		}
+
+		profile, err := provisioningprofile.NewProfileFromFile(embeddedProfilePth)
+		if err != nil {
+			fail("Failed to create provisioning profile model, error: %s", err)
+		}
+
+		archiveTeamID = profile.GetTeamID()
+		archiveProfileName = profile.GetName()
+		archiveExportMethod = profile.GetExportMethod()
+		archiveCodeSignIsXcodeManaged = profileutil.IsXcodeManaged(profile.GetName())
+	}
+
+	log.Infof("Archive infos:")
+	log.Printf("archiveTeamID: %s", archiveTeamID)
+	log.Printf("archiveProfileName: %s", archiveProfileName)
+	log.Printf("archiveExportMethod: %s", archiveExportMethod)
+	log.Printf("archiveCodeSignIsXcodeManaged: %v", archiveCodeSignIsXcodeManaged)
+	fmt.Println()
 
 	//
 	// Exporting the ipa with Xcode Command Line tools
@@ -628,21 +630,9 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 			if configs.ExportMethod == "auto-detect" {
 				log.Printf("auto-detect export method, based on embedded profile")
+				exportMethod = archiveExportMethod
 
-				embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
-				if err != nil {
-					fail("Failed to get embedded profile path, error: %s", err)
-				}
-
-				profile, err := provisioningprofile.NewProfileFromFile(embeddedProfilePth)
-				if err != nil {
-					fail("Failed to create provisioning profile model, error: %s", err)
-				}
-
-				exportMethod = profile.GetExportMethod()
-				exportTeamID = archiveTeamID
-
-				log.Printf("embedded provisioning profile: %s (%s) - export method: %s", profile.GetName(), profile.GetUUID(), exportMethod)
+				log.Printf("embedded provisioning profile: %s - export method: %s", archiveProfileName, exportMethod)
 			} else {
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
@@ -721,59 +711,94 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				fmt.Println()
 
-				if configs.TeamID != "" {
+				codeSignGroupsFound := len(codeSignGroups) > 0
+
+				if !codeSignGroupsFound {
+					log.Errorf("Failed to find code singing groups for specified export method (%s)", exportMethod)
+				}
+
+				// Handle if archive used NON xcode managed profile
+				if codeSignGroupsFound && !archiveCodeSignIsXcodeManaged {
+					log.Warnf("App was signed with NON xcode managed profile when archiving")
+					log.Warnf("only NOT xcode managed profiles are allowed to sign when exporting the archive.")
+					log.Warnf("Removing xcode managed CodeSignInfo groups ")
+
+					filteredCodeSignGroups := []utils.CodeSignGroupItem{}
+					for _, codeSignGroup := range codeSignGroups {
+						xcodeManagedGroup := false
+						for _, profile := range codeSignGroup.BundleIDProfileMap {
+							isXcodeManaged := profileutil.IsXcodeManaged(profile.Name)
+							if isXcodeManaged {
+								xcodeManagedGroup = true
+								break
+							}
+						}
+						if !xcodeManagedGroup {
+							filteredCodeSignGroups = append(filteredCodeSignGroups, codeSignGroup)
+						}
+					}
+
+					codeSignGroups = filteredCodeSignGroups
+
+					if len(codeSignGroups) == 0 {
+						codeSignGroupsFound = false
+						log.Errorf("Failed to find code singing groups for specified export method (%s) and WITHOUT xcode managed profiles", exportMethod)
+					}
+				}
+
+				// Filter for specified export team
+				if codeSignGroupsFound && configs.TeamID != "" {
 					log.Printf("Export TeamID specified: %s, filtering CodeSignInfo groups...", configs.TeamID)
+
 					filteredGroups := []utils.CodeSignGroupItem{}
 					for _, group := range codeSignGroups {
 						if group.Certificate.TeamID == configs.TeamID {
 							filteredGroups = append(filteredGroups, group)
 						}
 					}
+
 					codeSignGroups = filteredGroups
 
 					if len(codeSignGroups) == 0 {
+						codeSignGroupsFound = false
 						log.Errorf("Failed to find code singing groups for specified export method (%s) and team (%s)", exportMethod, configs.TeamID)
-					} else if len(codeSignGroups) > 1 {
-						log.Warnf("Multiple code singing groups found for specified export method (%s) and team (%s)", exportMethod, configs.TeamID)
-					}
-				} else {
-					if len(codeSignGroups) == 0 {
-						log.Errorf("Failed to find code singing groups for specified export method (%s)", exportMethod)
-					} else if len(codeSignGroups) > 1 {
-						log.Warnf("Multiple code singing groups found for specified export method (%s)", exportMethod)
 					}
 				}
 
-				if len(codeSignGroups) == 1 {
-					codeSignGroup := codeSignGroups[0]
+				if codeSignGroupsFound {
+					if len(codeSignGroups) == 1 {
+						codeSignGroup := codeSignGroups[0]
 
-					exportTeamID = codeSignGroup.Certificate.TeamID
-					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
-					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
-						exportProfileMapping[bundleID] = profileInfo.UUID
-					}
-				} else if len(codeSignGroups) > 1 {
-					codeSignGroup := codeSignGroups[0]
+						exportTeamID = codeSignGroup.Certificate.TeamID
+						exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
+						for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
+							exportProfileMapping[bundleID] = profileInfo.UUID
+						}
+					} else if len(codeSignGroups) > 1 {
+						log.Warnf("Multiple code singing groups found")
 
-					found := false
-					if exportTeamID != "" {
-						for i, group := range codeSignGroups {
-							if group.Certificate.TeamID == exportTeamID && i != 0 {
-								log.Warnf("Prefering code singing group with the team used for the archive")
-								codeSignGroup = group
-								found = true
-								break
+						codeSignGroup := codeSignGroups[0]
+
+						found := false
+						if archiveTeamID != "" {
+							for i, group := range codeSignGroups {
+								if group.Certificate.TeamID == exportTeamID && i != 0 {
+									log.Warnf("Prefering code singing group with the team used for the archive")
+									codeSignGroup = group
+									found = true
+									break
+								}
 							}
 						}
-					}
-					if !found {
-						log.Warnf("Using first group")
-					}
+						if !found {
+							log.Warnf("Using first group")
+						}
 
-					exportTeamID = codeSignGroup.Certificate.TeamID
-					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
-					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
-						exportProfileMapping[bundleID] = profileInfo.UUID
+						exportTeamID = codeSignGroup.Certificate.TeamID
+						exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
+						for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
+							exportProfileMapping[bundleID] = profileInfo.UUID
+						}
 					}
 				}
 			}
@@ -803,6 +828,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				exportOpts = options
 			}
 
+			fmt.Println()
 			log.Printf("generated export options content:")
 			fmt.Println()
 			fmt.Println(exportOpts.String())
