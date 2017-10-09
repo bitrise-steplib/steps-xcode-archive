@@ -771,9 +771,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				if len(codeSignGroups) > 1 {
 					defaultProfile, err := utils.GetDefaultProvisioningProfile()
-					if err != nil {
-						log.Warnf("Unable to get default profile.")
-					} else if teamID := defaultProfile.TeamIdentifier; teamID != "" {
+					if teamID := defaultProfile.TeamIdentifier; err == nil && teamID != "" {
 						if configs.TeamID != teamID && exportTeamID != teamID {
 							filteredGroups := []utils.CodeSignGroupItem{}
 							for _, group := range codeSignGroups {
