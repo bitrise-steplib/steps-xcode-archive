@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -72,4 +74,50 @@ func WalkIOSProvProfiles(walkFunc func(profile provisioningprofile.Profile) bool
 	}
 
 	return profileErr
+}
+
+// GetDefaultProvisioningProfile ...
+func GetDefaultProvisioningProfile() (profileutil.ProfileInfoModel, error) {
+	defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
+	if defaultProfileURL == "" {
+		return profileutil.ProfileInfoModel{}, nil
+	}
+
+	tmpDir, err := pathutil.NormalizedOSTempDirPath("tmp_default_profile")
+	if err != nil {
+		return profileutil.ProfileInfoModel{}, err
+	}
+
+	tmpDst := filepath.Join(tmpDir, "default.mobileprovision")
+	tmpDstFile, err := os.Create(tmpDst)
+	if err != nil {
+		return profileutil.ProfileInfoModel{}, err
+	}
+	defer func() {
+		if err := tmpDstFile.Close(); err != nil {
+			log.Errorf("Failed to close file (%s), error: %s", tmpDst, err)
+		}
+	}()
+
+	response, err := http.Get(defaultProfileURL)
+	if err != nil {
+		return profileutil.ProfileInfoModel{}, err
+	}
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			log.Errorf("Failed to close response body, error: %s", err)
+		}
+	}()
+
+	_, err = io.Copy(tmpDstFile, response.Body)
+	if err != nil {
+		return profileutil.ProfileInfoModel{}, err
+	}
+
+	defaultProfile, err := profileutil.ProfileFromFile(tmpDst)
+	if err != nil {
+		return profileutil.ProfileInfoModel{}, err
+	}
+
+	return defaultProfile, nil
 }
