@@ -769,6 +769,23 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					}
 				}
 
+				if len(codeSignGroups) > 1 && configs.TeamID == "" {
+					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil && defaultProfile.TeamIdentifier != "" {
+						if exportTeamID != defaultProfile.TeamIdentifier {
+							filteredGroups := []utils.CodeSignGroupItem{}
+							for _, group := range codeSignGroups {
+								if group.Certificate.TeamID != defaultProfile.TeamIdentifier {
+									filteredGroups = append(filteredGroups, group)
+								}
+							}
+
+							if len(filteredGroups) > 0 {
+								codeSignGroups = filteredGroups
+							}
+						}
+					}
+				}
+
 				if codeSignGroupsFound {
 					codeSignGroup := utils.CodeSignGroupItem{}
 
