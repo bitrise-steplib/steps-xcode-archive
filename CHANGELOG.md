@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.3.3)
+## Changelog (Current version: 2.3.4)
 
 -----------------
+
+### 2.3.4 (2017 Oct 09)
+
+* [68da17e] Prepare for 2.3.4
+* [cc78dcd] Default profile priority (#83)
 
 ### 2.3.3 (2017 Oct 06)
 
@@ -316,4 +321,4 @@
 
 -----------------
 
-Updated: 2017 Oct 06
+Updated: 2017 Oct 09
