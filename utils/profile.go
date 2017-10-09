@@ -109,8 +109,7 @@ func GetDefaultProvisioningProfile() (profileutil.ProfileInfoModel, error) {
 		}
 	}()
 
-	_, err = io.Copy(tmpDstFile, response.Body)
-	if err != nil {
+	if _, err = io.Copy(tmpDstFile, response.Body); err != nil {
 		return profileutil.ProfileInfoModel{}, err
 	}
 
