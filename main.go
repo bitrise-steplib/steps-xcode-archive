@@ -769,21 +769,23 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					}
 				}
 
-				defaultProfile, err := utils.GetDefaultProvisioningProfile()
-				if err != nil {
-					log.Warnf("Unable to get default profile.")
-				}
+				if len(codeSignGroups) > 1 {
+					defaultProfile, err := utils.GetDefaultProvisioningProfile()
+					if err != nil {
+						log.Warnf("Unable to get default profile.")
+					} else if teamID := defaultProfile.TeamIdentifier; teamID != "" {
+						if configs.TeamID != teamID && exportTeamID != teamID {
+							filteredGroups := []utils.CodeSignGroupItem{}
+							for _, group := range codeSignGroups {
+								if group.Certificate.TeamID != teamID {
+									filteredGroups = append(filteredGroups, group)
+								}
+							}
 
-				if teamID := defaultProfile.TeamIdentifier; len(codeSignGroups) > 1 && codeSignGroupsFound && teamID != "" && configs.TeamID != teamID && exportTeamID != teamID {
-					filteredGroups := []utils.CodeSignGroupItem{}
-					for _, group := range codeSignGroups {
-						if group.Certificate.TeamID != teamID {
-							filteredGroups = append(filteredGroups, group)
+							if len(filteredGroups) > 0 {
+								codeSignGroups = filteredGroups
+							}
 						}
-					}
-
-					if len(filteredGroups) > 0 {
-						codeSignGroups = filteredGroups
 					}
 				}
 
