@@ -82,7 +82,7 @@ func createConfigsModelFromEnvs() ConfigsModel {
 		ForceProvisioningProfileSpecifier: os.Getenv("force_provisioning_profile_specifier"),
 		ForceProvisioningProfile:          os.Getenv("force_provisioning_profile"),
 		ForceCodeSignIdentity:             os.Getenv("force_code_sign_identity"),
-		CustomExportOptionsPlistContent:   os.Getenv("custom_export_options_plist_content"),
+		CustomExportOptionsPlistContent:   strings.TrimSpace(os.Getenv("custom_export_options_plist_content")),
 
 		OutputTool:        os.Getenv("output_tool"),
 		Workdir:           os.Getenv("workdir"),
