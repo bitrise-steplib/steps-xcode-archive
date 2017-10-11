@@ -101,22 +101,10 @@ func createConfigsModelFromEnvs() ConfigsModel {
 
 func (configs ConfigsModel) print() {
 	log.Infof("ipa export configs:")
-
-	useCustomExportOptions := (configs.CustomExportOptionsPlistContent != "")
-	if useCustomExportOptions {
-		fmt.Println()
-		log.Warnf("Ignoring the following options because CustomExportOptionsPlistContent provided:")
-	}
-
 	log.Printf("- ExportMethod: %s", configs.ExportMethod)
 	log.Printf("- UploadBitcode: %s", configs.UploadBitcode)
 	log.Printf("- CompileBitcode: %s", configs.CompileBitcode)
 	log.Printf("- TeamID: %s", configs.TeamID)
-
-	if useCustomExportOptions {
-		log.Warnf("----------")
-	}
-
 	log.Printf("- UseDeprecatedExport: %s", configs.UseDeprecatedExport)
 	log.Printf("- CustomExportOptionsPlistContent:")
 	if configs.CustomExportOptionsPlistContent != "" {
@@ -340,27 +328,46 @@ or use 'xcodebuild' as 'output_tool'.`)
 	}
 
 	// Validation CustomExportOptionsPlistContent
-	if configs.CustomExportOptionsPlistContent != "" &&
-		xcodeMajorVersion < 7 {
-		log.Warnf("CustomExportOptionsPlistContent is set, but CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
-		configs.CustomExportOptionsPlistContent = ""
+	customExportOptionsPlistContent := strings.TrimSpace(configs.CustomExportOptionsPlistContent)
+	if customExportOptionsPlistContent != configs.CustomExportOptionsPlistContent {
+		fmt.Println()
+		log.Warnf("CustomExportOptionsPlistContent is stripped to remove spaces and new lines:")
+		log.Printf(customExportOptionsPlistContent)
 	}
 
-	customExportOptionsPlistContent := strings.TrimSpace(configs.CustomExportOptionsPlistContent)
+	if customExportOptionsPlistContent != "" {
+		if xcodeMajorVersion < 7 {
+			fmt.Println()
+			log.Warnf("CustomExportOptionsPlistContent is set, but CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
+			customExportOptionsPlistContent = ""
+		} else {
+			fmt.Println()
+			log.Warnf("Ignoring the following options because CustomExportOptionsPlistContent provided:")
+			log.Printf("- ExportMethod: %s", configs.ExportMethod)
+			log.Printf("- UploadBitcode: %s", configs.UploadBitcode)
+			log.Printf("- CompileBitcode: %s", configs.CompileBitcode)
+			log.Printf("- TeamID: %s", configs.TeamID)
+			fmt.Println()
+		}
+	}
+
 	if configs.ForceProvisioningProfileSpecifier != "" &&
 		xcodeMajorVersion < 8 {
+		fmt.Println()
 		log.Warnf("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
 		configs.ForceProvisioningProfileSpecifier = ""
 	}
 
 	if configs.ForceTeamID != "" &&
 		xcodeMajorVersion < 8 {
+		fmt.Println()
 		log.Warnf("ForceTeamID is set, but ForceTeamID only used if xcodeMajorVersion > 7")
 		configs.ForceTeamID = ""
 	}
 
 	if configs.ForceProvisioningProfileSpecifier != "" &&
 		configs.ForceProvisioningProfile != "" {
+		fmt.Println()
 		log.Warnf("both ForceProvisioningProfileSpecifier and ForceProvisioningProfile are set, using ForceProvisioningProfileSpecifier")
 		configs.ForceProvisioningProfile = ""
 	}

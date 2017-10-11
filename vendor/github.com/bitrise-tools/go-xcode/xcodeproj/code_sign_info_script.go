@@ -7,16 +7,19 @@ def contained_projects(project_or_workspace_pth)
   if File.extname(project_or_workspace_pth) == '.xcodeproj'
     [File.expand_path(project_or_workspace_pth)]
   else
-    workspace_contents_pth = File.join(project_or_workspace_pth, 'contents.xcworkspacedata')
-    workspace_contents = File.read(workspace_contents_pth)
+    workspace = Xcodeproj::Workspace.new_from_xcworkspace(project_or_workspace_pth)
+    workspace_dir = File.dirname(project_or_workspace_pth)
+    project_paths = []
+    workspace.file_references.each do |ref|
+      pth = ref.path
+      next unless File.extname(pth) == ".xcodeproj"
+      next if pth.end_with?('Pods/Pods.xcodeproj')
 
-    project_paths = workspace_contents.scan(/\"group:(.*)\"/).collect do |current_match|
-      File.join(File.expand_path('..', project_or_workspace_pth), current_match.first)
+      project_path = File.expand_path(pth, workspace_dir)
+      project_paths << project_path
     end
 
-    project_paths.find_all do |current_match|
-      !current_match.end_with?('Pods/Pods.xcodeproj')
-    end
+    project_paths
   end
 end
 
