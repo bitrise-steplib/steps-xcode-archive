@@ -339,7 +339,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		if xcodeMajorVersion < 7 {
 			fmt.Println()
 			log.Warnf("CustomExportOptionsPlistContent is set, but CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
-			configs.CustomExportOptionsPlistContent = ""
+			customExportOptionsPlistContent = ""
 		} else {
 			fmt.Println()
 			log.Warnf("Ignoring the following options because CustomExportOptionsPlistContent provided:")
