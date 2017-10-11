@@ -346,6 +346,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		configs.CustomExportOptionsPlistContent = ""
 	}
 
+	customExportOptionsPlistContent := strings.TrimSpace(configs.CustomExportOptionsPlistContent)
 	if configs.ForceProvisioningProfileSpecifier != "" &&
 		xcodeMajorVersion < 8 {
 		log.Warnf("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
@@ -613,11 +614,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	} else {
 		log.Printf("Exporting ipa with ExportOptions.plist")
 
-		if configs.CustomExportOptionsPlistContent != "" {
+		if customExportOptionsPlistContent != "" {
 			log.Printf("Custom export options content provided, using it:")
-			fmt.Println(configs.CustomExportOptionsPlistContent)
+			fmt.Println(customExportOptionsPlistContent)
 
-			if err := fileutil.WriteStringToFile(exportOptionsPath, configs.CustomExportOptionsPlistContent); err != nil {
+			if err := fileutil.WriteStringToFile(exportOptionsPath, customExportOptionsPlistContent); err != nil {
 				fail("Failed to write export options to file, error: %s", err)
 			}
 		} else {
