@@ -1,6 +1,12 @@
-## Changelog (Current version: 2.3.4)
+## Changelog (Current version: 2.3.5)
 
 -----------------
+
+### 2.3.5 (2017 Oct 11)
+
+* [624321d] prepare for 2.3.5
+* [340f3f6] strip custom export options, fixed scheme - targets mapping, fixed xc… (#85)
+* [e958690] Trim CustomExportOptionsPlistContent (#84)
 
 ### 2.3.4 (2017 Oct 09)
 
@@ -321,4 +327,4 @@
 
 -----------------
 
-Updated: 2017 Oct 09
+Updated: 2017 Oct 11
