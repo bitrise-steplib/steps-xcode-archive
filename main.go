@@ -99,12 +99,6 @@ func createConfigsModelFromEnvs() ConfigsModel {
 	}
 }
 
-func strip(str string) string {
-	str = strings.TrimPrefix(str, "\n")
-	str = strings.TrimSuffix(str, "\n")
-	return strings.TrimSpace(str)
-}
-
 func (configs ConfigsModel) print() {
 	log.Infof("ipa export configs:")
 	log.Printf("- ExportMethod: %s", configs.ExportMethod)
@@ -334,7 +328,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 	}
 
 	// Validation CustomExportOptionsPlistContent
-	customExportOptionsPlistContent := strip(configs.CustomExportOptionsPlistContent)
+	customExportOptionsPlistContent := strings.TrimSpace(configs.CustomExportOptionsPlistContent)
 	if customExportOptionsPlistContent != configs.CustomExportOptionsPlistContent {
 		fmt.Println()
 		log.Warnf("CustomExportOptionsPlistContent is stripped to remove spaces and new lines:")
