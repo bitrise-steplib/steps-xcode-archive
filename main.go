@@ -655,7 +655,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
 				user := os.Getenv("USER")
-				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, configs.Configuration, user)
+				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, user)
 				if err != nil {
 					log.Errorf("Failed to create scheme - target mapping, error: %s", err)
 					log.Errorf("Please contact us on bitrise on-site-chat and")

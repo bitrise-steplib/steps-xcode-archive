@@ -3,47 +3,47 @@ package xcodeproj
 const codeSignInfoScriptContent = `require 'xcodeproj'
 require 'json'
 
-def contained_projects(project_or_workspace_pth)
-  if File.extname(project_or_workspace_pth) == '.xcodeproj'
-    [File.expand_path(project_or_workspace_pth)]
-  else
-    workspace = Xcodeproj::Workspace.new_from_xcworkspace(project_or_workspace_pth)
-    workspace_dir = File.dirname(project_or_workspace_pth)
-    project_paths = []
-    workspace.file_references.each do |ref|
-      pth = ref.path
-      next unless File.extname(pth) == ".xcodeproj"
-      next if pth.end_with?('Pods/Pods.xcodeproj')
+def workspace_contained_projects(workspace_pth)
+  workspace = Xcodeproj::Workspace.new_from_xcworkspace(workspace_pth)
+  workspace_dir = File.dirname(workspace_pth)
+  project_paths = []
+  workspace.file_references.each do |ref|
+    pth = ref.path
+    next unless File.extname(pth) == '.xcodeproj'
+    next if pth.end_with?('Pods/Pods.xcodeproj')
 
-      project_path = File.expand_path(pth, workspace_dir)
-      project_paths << project_path
-    end
-
-    project_paths
+    project_path = File.expand_path(pth, workspace_dir)
+    project_paths << project_path
   end
+
+  project_paths
+end
+
+def shared_scheme_path(project_or_workspace_pth, scheme_name)
+  File.join(project_or_workspace_pth, 'xcshareddata', 'xcschemes', scheme_name + '.xcscheme')
+end
+
+def user_scheme_path(project_or_workspace_pth, scheme_name, user_name)
+  File.join(project_or_workspace_pth, 'xcuserdata', user_name + '.xcuserdatad', 'xcschemes', scheme_name + '.xcscheme')
 end
 
 def read_scheme(project_or_workspace_pth, scheme_name, user_name)
-  project_paths = contained_projects(project_or_workspace_pth)
-  project_paths.each do |project_path|
-    scheme_pth = File.join(project_path, 'xcshareddata', 'xcschemes', scheme_name + '.xcscheme')
-    if File.exist?(scheme_pth)
-      scheme = Xcodeproj::XCScheme.new(scheme_pth)
-      project = Xcodeproj::Project.open(project_path)
-      return {
-        scheme: scheme,
-        project: project
-      }
-    end
+  project_paths = [project_or_workspace_pth]
+  if File.extname(project_or_workspace_pth) == '.xcworkspace'
+    project_paths + workspace_contained_projects(project_or_workspace_pth)
+  end
 
-    scheme_pth = File.join(project_path, 'xcuserdata', user_name + '.xcuserdatad', 'xcschemes', scheme_name + '.xcscheme')
+  project_paths.each do |project_path|
+    scheme_pth = shared_scheme_path(project_path, scheme_name)
+    scheme_pth = user_scheme_path(project_path, scheme_name, user_name) unless File.exist?(scheme_pth)
     next unless File.exist?(scheme_pth)
 
     scheme = Xcodeproj::XCScheme.new(scheme_pth)
-    project = Xcodeproj::Project.open(project_path)
+    container_dir = File.dirname(project_path)
+
     return {
       scheme: scheme,
-      project: project
+      container_dir: container_dir
     }
   end
 
@@ -55,21 +55,21 @@ def project_buildable_target_mapping(project_dir, scheme)
   return nil unless build_action
 
   entries = build_action.entries || []
-  return nil unless entries.count > 0
+  return nil if entries.empty?
 
   entries = entries.select(&:build_for_archiving?) || []
-  return nil unless entries.count > 0
+  return nil if entries.empty?
 
   mapping = {}
 
   entries.each do |entry|
     buildable_references = entry.buildable_references || []
-    next unless buildable_references.count > 0
+    next if buildable_references.empty?
 
     buildable_references = buildable_references.reject do |r|
       r.target_name.to_s.empty? || r.target_referenced_container.to_s.empty?
     end
-    next unless buildable_references.count > 0
+    next if buildable_references.empty?
 
     buildable_reference = entry.buildable_references.first
 
@@ -87,9 +87,9 @@ def project_buildable_target_mapping(project_dir, scheme)
     next unless target
     next unless runnable_target?(target)
 
-    targets = mapping[project] || []
-    targets.push(target)
-    mapping[project] = targets
+    targets = mapping[project_pth] || []
+    targets << target
+    mapping[project_pth] = targets
   end
 
   mapping
@@ -104,15 +104,8 @@ def runnable_target?(target)
   product_reference.path.end_with?('.app', '.appex')
 end
 
-def find_archive_action_build_configuration_name(scheme)
-  archive_action = scheme.archive_action
-  return nil unless archive_action
-
-  archive_action.build_configuration
-end
-
 def collect_dependent_targets(target, dependent_targets)
-  dependent_targets.push(target)
+  dependent_targets << target
 
   dependencies = target.dependencies || []
   return dependent_targets if dependencies.empty?
@@ -128,52 +121,51 @@ def collect_dependent_targets(target, dependent_targets)
   dependent_targets
 end
 
-def read_scheme_target_mapping(project_or_workspace_pth, scheme_name, user_name, build_configuration_name)
-  mapping = {}
+def find_archive_action_build_configuration_name(scheme)
+  archive_action = scheme.archive_action
+  return nil unless archive_action
 
-  scheme_project_hash = read_scheme(project_or_workspace_pth, scheme_name, user_name)
-  raise "project (#{project_or_workspace_pth}) does not contain scheme: #{scheme_name}" unless scheme_project_hash
-  scheme = scheme_project_hash[:scheme]
-  project = scheme_project_hash[:project]
+  archive_action.build_configuration
+end
 
-  if build_configuration_name.to_s.empty?
-    build_configuration_name = find_archive_action_build_configuration_name(scheme)
-    raise 'no default configuration found for archive action' unless build_configuration_name
-  end
+def read_scheme_target_mapping(project_or_workspace_pth, scheme_name, user_name)
+  scheme_container_dir = read_scheme(project_or_workspace_pth, scheme_name, user_name)
+  raise "project (#{project_or_workspace_pth}) does not contain scheme: #{scheme_name}" unless scheme_container_dir
+  scheme = scheme_container_dir[:scheme]
+  container_dir = scheme_container_dir[:container_dir]
 
-  mapping[:configuration] = build_configuration_name
+  configuration = find_archive_action_build_configuration_name(scheme)
 
-  project_dir = File.dirname(project.path)
-  target_mapping = project_buildable_target_mapping(project_dir, scheme) || []
-  raise 'scheme does not contain buildable target' unless target_mapping.count > 0
+  target_mapping = project_buildable_target_mapping(container_dir, scheme) || []
+  raise 'scheme does not contain buildable target' if target_mapping.empty?
 
-  project_target_map = {}
-  target_mapping.each do |proj, targets|
+  project_targets = {}
+  target_mapping.each do |project_pth, targets|
     targets.each do |target|
       dependent_targets = []
       dependent_targets = collect_dependent_targets(target, dependent_targets)
 
-      project_target_map[proj.path] = dependent_targets.collect(&:name)
+      project_targets[project_pth] = dependent_targets.collect(&:name)
     end
   end
-  raise 'failed to collect runnable targets' if project_target_map.empty?
+  raise 'failed to collect buildable targets' if project_targets.empty?
 
-  mapping[:targets] = project_target_map
-
-  mapping
+  {
+    configuration: configuration,
+    project_targets: project_targets
+  }
 end
 
 begin
   project_path = ENV['project']
   scheme_name = ENV['scheme']
   user_name = ENV['user']
-  configuration = ENV['configuration']
 
   raise 'missing project_path' if project_path.to_s.empty?
   raise 'missing scheme_name' if scheme_name.to_s.empty?
   raise 'missing user_name' if user_name.to_s.empty?
 
-  mapping = read_scheme_target_mapping(project_path, scheme_name, user_name, configuration)
+  mapping = read_scheme_target_mapping(project_path, scheme_name, user_name)
   result = {
     data: mapping
   }
