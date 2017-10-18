@@ -808,7 +808,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
 
 					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
-						exportProfileMapping[bundleID] = profileInfo.UUID
+						exportProfileMapping[bundleID] = profileInfo.Name
 
 						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
 						if isXcodeManaged {
