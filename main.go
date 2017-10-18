@@ -666,7 +666,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				fmt.Println()
 
-				certs, err := certificateutil.InstalledCertificateInfos()
+				certs, err := certificateutil.InstalledCodesigningCertificateInfos()
 				if err != nil {
 					fail("Failed to get installed certificates, error: %s", err)
 				}

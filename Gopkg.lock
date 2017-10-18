@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/bitrise-io/steps-certificate-and-profile-installer"
   packages = ["certificateutil","profileutil"]
-  revision = "77287ae5704d9f14e902826b8ce5788264eb1e88"
+  revision = "a8db7c2e5323df48273d6bae0115f1a58f557937"
 
 [[projects]]
   branch = "master"

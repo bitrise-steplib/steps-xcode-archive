@@ -60,8 +60,8 @@ func NewCertificateInfosFromPKCS12(pkcs12Pth, password string) ([]CertificateInf
 	return CertificateInfos(certificates), nil
 }
 
-// InstalledCertificateInfos ...
-func InstalledCertificateInfos() ([]CertificateInfoModel, error) {
+// InstalledCodesigningCertificateInfos ...
+func InstalledCodesigningCertificateInfos() ([]CertificateInfoModel, error) {
 	certificates, err := InstalledCodesigningCertificates()
 	if err != nil {
 		return nil, err
