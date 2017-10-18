@@ -8,27 +8,35 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/colorstring",
-			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/command",
-			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/errorutil",
-			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/fileutil",
-			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/log",
-			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/pathutil",
-			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
+		},
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/pkcs12",
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
+		},
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/pkcs12/internal/rc2",
+			"Rev": "961320f9011cedf55e1da0578949bf63450a96c0"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-steputils/input",
@@ -36,20 +44,24 @@
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/exportoptions",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "2e7e0b318c0143aad4aca6dd7d6ed43db68eff8e"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/plistutil",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "2e7e0b318c0143aad4aca6dd7d6ed43db68eff8e"
 		},
 		{
 			"ImportPath": "github.com/bitrise-tools/go-xcode/provisioningprofile",
-			"Rev": "5fd7d023fe0ded4fe884825ded0fc21f98fb743c"
+			"Rev": "2e7e0b318c0143aad4aca6dd7d6ed43db68eff8e"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
 			"Comment": "v1.1.0-9-gecdeabc",
 			"Rev": "ecdeabc65495df2dec95d7c4a4c3e021903035e5"
+		},
+		{
+			"ImportPath": "github.com/fullsailor/pkcs7",
+			"Rev": "a009d8d7de53d9503c797cb8ec66fa3b21eed209"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-version",
@@ -67,17 +79,17 @@
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
-			"Comment": "v1.1.4-71-g890a5c3",
-			"Rev": "890a5c3458b43e6104ff5da8dfa139d013d77544"
+			"Comment": "v1.1.4-72-g2aa2c17",
+			"Rev": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/require",
-			"Comment": "v1.1.4-71-g890a5c3",
-			"Rev": "890a5c3458b43e6104ff5da8dfa139d013d77544"
+			"Comment": "v1.1.4-72-g2aa2c17",
+			"Rev": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
 		},
 		{
 			"ImportPath": "howett.net/plist",
-			"Rev": "2f847ea62b17703c861484a09f0e5841328a2cb9"
+			"Rev": "f00f32b327ca6ad11a7c53d9ccc34d031b3795b8"
 		}
 	]
 }

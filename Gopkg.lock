@@ -4,20 +4,26 @@
 [[projects]]
   branch = "master"
   name = "github.com/bitrise-io/go-utils"
-  packages = ["colorstring","command","command/rubyscript","errorutil","fileutil","log","pathutil"]
-  revision = "4ea9c35054b7f8cce3940bf73b5dcd395e9c9226"
+  packages = ["colorstring","command","command/rubyscript","errorutil","fileutil","log","pathutil","pkcs12","pkcs12/internal/rc2"]
+  revision = "961320f9011cedf55e1da0578949bf63450a96c0"
 
 [[projects]]
   branch = "master"
   name = "github.com/bitrise-io/steps-certificate-and-profile-installer"
   packages = ["certificateutil","profileutil"]
-  revision = "bb7c38c8de254101bb0440f4a572afad0ca0097e"
+  revision = "77287ae5704d9f14e902826b8ce5788264eb1e88"
 
 [[projects]]
   branch = "master"
   name = "github.com/bitrise-tools/go-xcode"
   packages = ["exportoptions","models","plistutil","provisioningprofile","utility","xcarchive","xcodebuild","xcodeproj","xcpretty"]
   revision = "2e7e0b318c0143aad4aca6dd7d6ed43db68eff8e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/fullsailor/pkcs7"
+  packages = ["."]
+  revision = "a009d8d7de53d9503c797cb8ec66fa3b21eed209"
 
 [[projects]]
   branch = "master"

@@ -248,56 +248,47 @@ func appendWithoutDuplicatesAndKeepOrder(items []string, item string) []string {
 	return result
 }
 
-func printCertificate(certInfo certificateutil.CertificateInfoModel) {
-	if certInfo.CommonName != "" && certInfo.TeamID != "" {
-		log.Donef(certInfo.CommonName)
-		log.Printf("serial: %s", certInfo.Serial)
-		log.Printf("teamID: %s", certInfo.TeamID)
-	} else {
-		log.Donef(certInfo.RawSubject)
-		log.Printf("serial: %s", certInfo.Serial)
-	}
+func printCertificateInfo(info certificateutil.CertificateInfoModel) {
+	log.Donef(info.CommonName)
+	log.Printf("serial: %s", info.Serial)
+	log.Printf("team: %s (%s)", info.TeamName, info.TeamID)
+	log.Printf("expire: %s", info.EndDate)
 
-	if certInfo.EndDate.IsZero() {
-		log.Printf(certInfo.RawEndDate)
-	} else {
-		log.Printf("endDate: %s", certInfo.EndDate)
-
-		if certInfo.IsExpired() {
-			log.Errorf("[X] certificate expired")
-		}
+	if info.IsExpired() {
+		log.Errorf("[X] certificate expired")
 	}
 }
 
-func printProfile(profileInfo profileutil.ProfileInfoModel, installedCertificates []certificateutil.CertificateInfoModel) {
-	log.Donef("%s (%s)", profileInfo.Name, profileInfo.UUID)
-	log.Printf("exportType: %s", string(profileInfo.ExportType))
-	log.Printf("teamID: %s", profileInfo.TeamIdentifier)
-	log.Printf("bundleID: %s", profileInfo.BundleIdentifier)
-	log.Printf("expirationDate: %s", profileInfo.ExpirationDate)
-	log.Printf("certificates:")
+func printProfileInfo(info profileutil.ProvisioningProfileInfoModel, installedCertificates []certificateutil.CertificateInfoModel) {
+	log.Donef("%s (%s)", info.Name, info.UUID)
+	log.Printf("exportType: %s", string(info.ExportType))
+	log.Printf("team: %s (%s)", info.TeamName, info.TeamID)
+	log.Printf("bundleID: %s", info.BundleID)
 
-	for _, certInfo := range profileInfo.DeveloperCertificates {
-		if certInfo.CommonName != "" && certInfo.TeamID != "" {
-			log.Printf("- %s", certInfo.CommonName)
-			log.Printf("  serial: %s", certInfo.Serial)
-			log.Printf("  teamID: %s", certInfo.TeamID)
-		} else {
-			log.Printf("- %s", certInfo.RawSubject)
-			log.Printf("  serial: %s", certInfo.Serial)
-		}
+	log.Printf("certificates:")
+	for _, certificateInfo := range info.DeveloperCertificates {
+		log.Printf("- %s", certificateInfo.CommonName)
+		log.Printf("  serial: %s", certificateInfo.Serial)
+		log.Printf("  teamID: %s", certificateInfo.TeamID)
 	}
 
-	if !profileInfo.HasInstalledCertificate(installedCertificates) {
+	log.Printf("devices:")
+	for _, deviceID := range info.ProvisionedDevices {
+		log.Printf("- %s", deviceID)
+	}
+
+	log.Printf("expire: %s", info.ExpirationDate)
+
+	if !info.HasInstalledCertificate(installedCertificates) {
 		log.Errorf("[X] none of the profile's certificates are installed")
 	}
 
-	if profileInfo.IsXcodeManaged() {
-		log.Warnf("[!] xcode managed profile")
+	if info.IsExpired() {
+		log.Errorf("[X] profile expired")
 	}
 
-	if profileInfo.IsExpired() {
-		log.Errorf("[X] profile expired")
+	if info.IsXcodeManaged() {
+		log.Warnf("[!] xcode managed profile")
 	}
 }
 
@@ -443,14 +434,14 @@ func main() {
 	installedCertificates := []certificateutil.CertificateInfoModel{}
 
 	for cert, pass := range certificatePassphraseMap {
-		certInfos, err := certificateutil.CertificateInfosFromP12(cert, pass)
+		certInfos, err := certificateutil.NewCertificateInfosFromPKCS12(cert, pass)
 		if err != nil {
 			failF("Failed to parse certificate, error: %s", err)
 		}
 		installedCertificates = append(installedCertificates, certInfos...)
 
 		for _, certInfo := range certInfos {
-			printCertificate(certInfo)
+			printCertificateInfo(certInfo)
 		}
 		fmt.Println()
 
@@ -542,7 +533,7 @@ func main() {
 			failF("Download failed, err: %s", err)
 		}
 
-		profile, err := profileutil.ProfileFromFile(profileTmpPth)
+		profile, err := profileutil.NewProvisioningProfileInfoFromFile(profileTmpPth)
 		if err != nil {
 			failF("Failed to parse profile, error: %s", err)
 		}
@@ -556,6 +547,6 @@ func main() {
 		}
 
 		fmt.Println()
-		printProfile(profile, installedCertificates)
+		printProfileInfo(profile, installedCertificates)
 	}
 }

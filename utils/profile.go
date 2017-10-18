@@ -9,89 +9,24 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
-	"github.com/bitrise-tools/go-xcode/provisioningprofile"
-	"github.com/pkg/errors"
 )
-
-const (
-	provProfileSystemDirPath = "~/Library/MobileDevice/Provisioning Profiles"
-)
-
-// InstalledIosProfiles ...
-func InstalledIosProfiles() ([]profileutil.ProfileInfoModel, error) {
-	profiles := []profileutil.ProfileInfoModel{}
-
-	if err := WalkIOSProvProfilesPth(func(pth string) bool {
-		profile, err := profileutil.ProfileFromFile(pth)
-		if err != nil {
-			log.Errorf("Failed to walk provisioning profiles, error: %s", err)
-			os.Exit(1)
-		}
-
-		profiles = append(profiles, profile)
-		return false
-	}); err != nil {
-		return nil, err
-	}
-
-	return profiles, nil
-}
-
-// WalkIOSProvProfilesPth ...
-func WalkIOSProvProfilesPth(walkFunc func(pth string) bool) error {
-	absProvProfileDirPath, err := pathutil.AbsPath(provProfileSystemDirPath)
-	if err != nil {
-		return errors.Wrap(err, "failed to get Absolute path of Provisioning Profiles dir")
-	}
-
-	pths, err := filepath.Glob(absProvProfileDirPath + "/*.mobileprovision")
-	if err != nil {
-		return errors.Wrap(err, "failed to perform *.mobileprovision search")
-	}
-
-	for _, pth := range pths {
-		if breakWalk := walkFunc(pth); breakWalk {
-			break
-		}
-	}
-
-	return nil
-}
-
-// WalkIOSProvProfiles ...
-func WalkIOSProvProfiles(walkFunc func(profile provisioningprofile.Profile) bool) error {
-	var profileErr error
-	if walkErr := WalkIOSProvProfilesPth(func(pth string) bool {
-		profile, err := provisioningprofile.NewProfileFromFile(pth)
-		if err != nil {
-			profileErr = err
-			return true
-		}
-
-		return walkFunc(profile)
-	}); walkErr != nil {
-		return walkErr
-	}
-
-	return profileErr
-}
 
 // GetDefaultProvisioningProfile ...
-func GetDefaultProvisioningProfile() (profileutil.ProfileInfoModel, error) {
+func GetDefaultProvisioningProfile() (profileutil.ProvisioningProfileInfoModel, error) {
 	defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
 	if defaultProfileURL == "" {
-		return profileutil.ProfileInfoModel{}, nil
+		return profileutil.ProvisioningProfileInfoModel{}, nil
 	}
 
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("tmp_default_profile")
 	if err != nil {
-		return profileutil.ProfileInfoModel{}, err
+		return profileutil.ProvisioningProfileInfoModel{}, err
 	}
 
 	tmpDst := filepath.Join(tmpDir, "default.mobileprovision")
 	tmpDstFile, err := os.Create(tmpDst)
 	if err != nil {
-		return profileutil.ProfileInfoModel{}, err
+		return profileutil.ProvisioningProfileInfoModel{}, err
 	}
 	defer func() {
 		if err := tmpDstFile.Close(); err != nil {
@@ -101,7 +36,7 @@ func GetDefaultProvisioningProfile() (profileutil.ProfileInfoModel, error) {
 
 	response, err := http.Get(defaultProfileURL)
 	if err != nil {
-		return profileutil.ProfileInfoModel{}, err
+		return profileutil.ProvisioningProfileInfoModel{}, err
 	}
 	defer func() {
 		if err := response.Body.Close(); err != nil {
@@ -110,12 +45,12 @@ func GetDefaultProvisioningProfile() (profileutil.ProfileInfoModel, error) {
 	}()
 
 	if _, err := io.Copy(tmpDstFile, response.Body); err != nil {
-		return profileutil.ProfileInfoModel{}, err
+		return profileutil.ProvisioningProfileInfoModel{}, err
 	}
 
-	defaultProfile, err := profileutil.ProfileFromFile(tmpDst)
+	defaultProfile, err := profileutil.NewProvisioningProfileInfoFromFile(tmpDst)
 	if err != nil {
-		return profileutil.ProfileInfoModel{}, err
+		return profileutil.ProvisioningProfileInfoModel{}, err
 	}
 
 	return defaultProfile, nil

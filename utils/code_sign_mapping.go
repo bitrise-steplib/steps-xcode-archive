@@ -14,7 +14,7 @@ import (
 // CodeSignGroupItem ...
 type CodeSignGroupItem struct {
 	Certificate        certificateutil.CertificateInfoModel
-	BundleIDProfileMap map[string]profileutil.ProfileInfoModel
+	BundleIDProfileMap map[string]profileutil.ProvisioningProfileInfoModel
 }
 
 func isCertificateInstalled(installedCertificates []certificateutil.CertificateInfoModel, certificate certificateutil.CertificateInfoModel) bool {
@@ -33,8 +33,8 @@ func isCertificateInstalled(installedCertificates []certificateutil.CertificateI
 	return installed
 }
 
-func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, certificates []certificateutil.CertificateInfoModel) map[string][]profileutil.ProfileInfoModel {
-	createCertificateProfilesMap := map[string][]profileutil.ProfileInfoModel{}
+func createCertificateProfilesMapping(profiles []profileutil.ProvisioningProfileInfoModel, certificates []certificateutil.CertificateInfoModel) map[string][]profileutil.ProvisioningProfileInfoModel {
+	createCertificateProfilesMap := map[string][]profileutil.ProvisioningProfileInfoModel{}
 	for _, profile := range profiles {
 		for _, embeddedCert := range profile.DeveloperCertificates {
 			if !isCertificateInstalled(certificates, embeddedCert) {
@@ -42,7 +42,7 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, c
 			}
 
 			if _, ok := createCertificateProfilesMap[embeddedCert.Serial]; !ok {
-				createCertificateProfilesMap[embeddedCert.Serial] = []profileutil.ProfileInfoModel{}
+				createCertificateProfilesMap[embeddedCert.Serial] = []profileutil.ProvisioningProfileInfoModel{}
 			}
 			createCertificateProfilesMap[embeddedCert.Serial] = append(createCertificateProfilesMap[embeddedCert.Serial], profile)
 		}
@@ -61,13 +61,13 @@ func createCertificateProfilesMapping(profiles []profileutil.ProfileInfoModel, c
 	return createCertificateProfilesMap
 }
 
-func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoModel, bundleIDs []string, exportMethod exportoptions.Method) []CodeSignGroupItem {
+func createCodeSignGroups(profileGroups map[string][]profileutil.ProvisioningProfileInfoModel, bundleIDs []string, exportMethod exportoptions.Method) []CodeSignGroupItem {
 	filteredCodeSignGroupItems := []CodeSignGroupItem{}
 	for groupItemCertificateSerial, profiles := range profileGroups {
 		log.Printf("checking certificate (%s) group:", groupItemCertificateSerial)
 		sort.Sort(ByBundleIDLength(profiles))
 
-		bundleIDProfileMap := map[string]profileutil.ProfileInfoModel{}
+		bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
 		for _, bundleID := range bundleIDs {
 			for _, profile := range profiles {
 				if profile.ExportType != exportMethod {
@@ -75,8 +75,8 @@ func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoMode
 					continue
 				}
 
-				if !glob.Glob(profile.BundleIdentifier, bundleID) {
-					log.Printf("profile (%s) does not provision bundle id: %s", profile.Name, profile.BundleIdentifier)
+				if !glob.Glob(profile.BundleID, bundleID) {
+					log.Printf("profile (%s) does not provision bundle id: %s", profile.Name, profile.BundleID)
 					continue
 				}
 
@@ -107,7 +107,7 @@ func createCodeSignGroups(profileGroups map[string][]profileutil.ProfileInfoMode
 }
 
 // ResolveCodeSignGroupItems ...
-func ResolveCodeSignGroupItems(bundleIDs []string, exportMethod exportoptions.Method, profiles []profileutil.ProfileInfoModel, certificates []certificateutil.CertificateInfoModel) []CodeSignGroupItem {
+func ResolveCodeSignGroupItems(bundleIDs []string, exportMethod exportoptions.Method, profiles []profileutil.ProvisioningProfileInfoModel, certificates []certificateutil.CertificateInfoModel) []CodeSignGroupItem {
 	log.Printf("Creating certificate profiles mapping")
 	certificateProfilesMapping := createCertificateProfilesMapping(profiles, certificates)
 	fmt.Println()
