@@ -30,7 +30,7 @@ end
 def read_scheme(project_or_workspace_pth, scheme_name, user_name)
   project_paths = [project_or_workspace_pth]
   if File.extname(project_or_workspace_pth) == '.xcworkspace'
-    project_paths + workspace_contained_projects(project_or_workspace_pth)
+    project_paths += workspace_contained_projects(project_or_workspace_pth)
   end
 
   project_paths.each do |project_path|
