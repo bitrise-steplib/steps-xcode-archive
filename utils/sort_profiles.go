@@ -3,7 +3,7 @@ package utils
 import "github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
 
 // ByBundleIDLength ...
-type ByBundleIDLength []profileutil.ProfileInfoModel
+type ByBundleIDLength []profileutil.ProvisioningProfileInfoModel
 
 // Len ..
 func (s ByBundleIDLength) Len() int {
@@ -17,5 +17,5 @@ func (s ByBundleIDLength) Swap(i, j int) {
 
 // Less ...
 func (s ByBundleIDLength) Less(i, j int) bool {
-	return len(s[i].BundleIdentifier) > len(s[j].BundleIdentifier)
+	return len(s[i].BundleID) > len(s[j].BundleID)
 }

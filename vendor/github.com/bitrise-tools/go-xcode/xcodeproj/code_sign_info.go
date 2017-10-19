@@ -25,11 +25,11 @@ type CodeSignInfo struct {
 
 // TargetMapping ...
 type TargetMapping struct {
-	Configuration string              `json:"configuration"`
-	Targets       map[string][]string `json:"targets"`
+	Configuration  string              `json:"configuration"`
+	ProjectTargets map[string][]string `json:"project_targets"`
 }
 
-func readSchemeTargetMapping(projectPth, scheme, configuration, user string) (TargetMapping, error) {
+func readSchemeTargetMapping(projectPth, scheme, user string) (TargetMapping, error) {
 	runner := rubyscript.New(codeSignInfoScriptContent)
 	bundleInstallCmd, err := runner.BundleInstallCommand(gemfileContent, "")
 	if err != nil {
@@ -48,7 +48,6 @@ func readSchemeTargetMapping(projectPth, scheme, configuration, user string) (Ta
 	envsToAppend := []string{
 		"project=" + projectPth,
 		"scheme=" + scheme,
-		"configuration=" + configuration,
 		"user=" + user}
 	envs := append(runCmd.GetCmd().Env, envsToAppend...)
 
@@ -148,19 +147,14 @@ func firstNonEmpty(values ...string) string {
 }
 
 // ResolveCodeSignInfo ...
-func ResolveCodeSignInfo(projectOrWorkspacePth, scheme, configuration, user string) (map[string]CodeSignInfo, error) {
-	projectTargetsMapping, err := readSchemeTargetMapping(projectOrWorkspacePth, scheme, configuration, user)
+func ResolveCodeSignInfo(projectOrWorkspacePth, scheme, user string) (map[string]CodeSignInfo, error) {
+	projectTargetsMapping, err := readSchemeTargetMapping(projectOrWorkspacePth, scheme, user)
 	if err != nil {
 		return nil, err
 	}
 
 	resolvedCodeSignInfoMap := map[string]CodeSignInfo{}
-
-	if configuration == "" {
-		configuration = projectTargetsMapping.Configuration
-	}
-
-	for projectPth, targets := range projectTargetsMapping.Targets {
+	for projectPth, targets := range projectTargetsMapping.ProjectTargets {
 		for _, targetName := range targets {
 			if targetName == "" {
 				return nil, errors.New("target name is empty")
@@ -170,7 +164,7 @@ func ResolveCodeSignInfo(projectOrWorkspacePth, scheme, configuration, user stri
 				return nil, fmt.Errorf("failed to resolve which project contains target: %s", targetName)
 			}
 
-			buildSettings, err := getTargetBuildSettingsWithXcodebuild(projectPth, targetName, configuration)
+			buildSettings, err := getTargetBuildSettingsWithXcodebuild(projectPth, targetName, projectTargetsMapping.Configuration)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read project build settings, error: %s", err)
 			}

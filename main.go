@@ -190,56 +190,47 @@ func (configs ConfigsModel) validate() error {
 	return nil
 }
 
-func printCertificate(certInfo certificateutil.CertificateInfoModel) {
-	if certInfo.CommonName != "" && certInfo.TeamID != "" {
-		log.Printf(certInfo.CommonName)
-		log.Printf("serial: %s", certInfo.Serial)
-		log.Printf("teamID: %s", certInfo.TeamID)
-	} else {
-		log.Printf(certInfo.RawSubject)
-		log.Printf("serial: %s", certInfo.Serial)
-	}
+func printCertificateInfo(info certificateutil.CertificateInfoModel) {
+	log.Donef(info.CommonName)
+	log.Printf("serial: %s", info.Serial)
+	log.Printf("team: %s (%s)", info.TeamName, info.TeamID)
+	log.Printf("expire: %s", info.EndDate)
 
-	if certInfo.EndDate.IsZero() {
-		log.Printf(certInfo.RawEndDate)
-	} else {
-		log.Printf("endDate: %s", certInfo.EndDate)
-
-		if certInfo.IsExpired() {
-			log.Errorf("[X] certificate expired")
-		}
+	if info.IsExpired() {
+		log.Errorf("[X] certificate expired")
 	}
 }
 
-func printProfile(profileInfo profileutil.ProfileInfoModel, installedCertificates []certificateutil.CertificateInfoModel) {
-	log.Printf("%s (%s)", profileInfo.Name, profileInfo.UUID)
-	log.Printf("exportType: %s", string(profileInfo.ExportType))
-	log.Printf("teamID: %s", profileInfo.TeamIdentifier)
-	log.Printf("bundleID: %s", profileInfo.BundleIdentifier)
-	log.Printf("expirationDate: %s", profileInfo.ExpirationDate)
-	log.Printf("certificates:")
+func printProfileInfo(info profileutil.ProvisioningProfileInfoModel, installedCertificates []certificateutil.CertificateInfoModel) {
+	log.Donef("%s (%s)", info.Name, info.UUID)
+	log.Printf("exportType: %s", string(info.ExportType))
+	log.Printf("team: %s (%s)", info.TeamName, info.TeamID)
+	log.Printf("bundleID: %s", info.BundleID)
 
-	for _, certInfo := range profileInfo.DeveloperCertificates {
-		if certInfo.CommonName != "" && certInfo.TeamID != "" {
-			log.Printf("- %s", certInfo.CommonName)
-			log.Printf("  serial: %s", certInfo.Serial)
-			log.Printf("  teamID: %s", certInfo.TeamID)
-		} else {
-			log.Printf("- %s", certInfo.RawSubject)
-			log.Printf("  serial: %s", certInfo.Serial)
-		}
+	log.Printf("certificates:")
+	for _, certificateInfo := range info.DeveloperCertificates {
+		log.Printf("- %s", certificateInfo.CommonName)
+		log.Printf("  serial: %s", certificateInfo.Serial)
+		log.Printf("  teamID: %s", certificateInfo.TeamID)
 	}
 
-	if !profileInfo.HasInstalledCertificate(installedCertificates) {
+	log.Printf("devices:")
+	for _, deviceID := range info.ProvisionedDevices {
+		log.Printf("- %s", deviceID)
+	}
+
+	log.Printf("expire: %s", info.ExpirationDate)
+
+	if !info.HasInstalledCertificate(installedCertificates) {
 		log.Errorf("[X] none of the profile's certificates are installed")
 	}
 
-	if profileInfo.IsXcodeManaged() {
-		log.Warnf("[!] xcode managed profile")
+	if info.IsExpired() {
+		log.Errorf("[X] profile expired")
 	}
 
-	if profileInfo.IsExpired() {
-		log.Errorf("[X] profile expired")
+	if info.IsXcodeManaged() {
+		log.Warnf("[!] xcode managed profile")
 	}
 }
 
@@ -279,13 +270,6 @@ func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}
 	message := fmt.Sprintf(format, v...)
 	messageWithTimeStamp := fmt.Sprintf("[%s] %s", currentTimestamp(), coloringFunc(message))
 	fmt.Println(messageWithTimeStamp)
-}
-
-func isExpired(t time.Time) bool {
-	if t.IsZero() {
-		return false
-	}
-	return t.Before(time.Now())
 }
 
 func main() {
@@ -655,7 +639,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
 				user := os.Getenv("USER")
-				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, configs.Configuration, user)
+				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, user)
 				if err != nil {
 					log.Errorf("Failed to create scheme - target mapping, error: %s", err)
 					log.Errorf("Please contact us on bitrise on-site-chat and")
@@ -682,26 +666,26 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				fmt.Println()
 
-				certs, err := certificateutil.InstalledCertificates()
+				certs, err := certificateutil.InstalledCodesigningCertificateInfos()
 				if err != nil {
 					fail("Failed to get installed certificates, error: %s", err)
 				}
 
 				fmt.Printf("Installed certificates:\n")
 				for _, certInfo := range certs {
-					printCertificate(certInfo)
+					printCertificateInfo(certInfo)
 					fmt.Println()
 				}
 				fmt.Println()
 
-				profs, err := utils.InstalledIosProfiles()
+				profs, err := profileutil.InstalledIosProvisioningProfileInfos()
 				if err != nil {
 					fail("Failed to get installed provisioning profiles, error: %s", err)
 				}
 
 				fmt.Printf("Installed profiles:\n")
 				for _, profileInfo := range profs {
-					printProfile(profileInfo, certs)
+					printProfileInfo(profileInfo, certs)
 					fmt.Println()
 				}
 				fmt.Println()
@@ -715,7 +699,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				fmt.Printf("Resolved CodeSignGroups:\n")
 				for _, group := range codeSignGroups {
-					fmt.Printf("codeSignIdentity: %s\n", group.Certificate.RawSubject)
+					fmt.Printf("codeSignIdentity: %s\n", group.Certificate.CommonName)
 					for bundleID, prof := range group.BundleIDProfileMap {
 						fmt.Printf("bundle ID: %s is provisioned by: %s\n", bundleID, prof.Name)
 					}
@@ -778,11 +762,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				if len(codeSignGroups) > 1 && configs.TeamID == "" {
-					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil && defaultProfile.TeamIdentifier != "" {
-						if exportTeamID != defaultProfile.TeamIdentifier {
+					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil && defaultProfile.TeamID != "" {
+						if exportTeamID != defaultProfile.TeamID {
 							filteredGroups := []utils.CodeSignGroupItem{}
 							for _, group := range codeSignGroups {
-								if group.Certificate.TeamID != defaultProfile.TeamIdentifier {
+								if group.Certificate.TeamID != defaultProfile.TeamID {
 									filteredGroups = append(filteredGroups, group)
 								}
 							}
@@ -824,7 +808,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
 
 					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
-						exportProfileMapping[bundleID] = profileInfo.UUID
+						exportProfileMapping[bundleID] = profileInfo.Name
 
 						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
 						if isXcodeManaged {
