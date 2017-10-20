@@ -1,6 +1,12 @@
-## Changelog (Current version: 2.3.5)
+## Changelog (Current version: 2.3.6)
 
 -----------------
+
+### 2.3.6 (2017 Oct 20)
+
+* [0a46556] prepare for 2.3.6
+* [e8f361f] filter for capabilities (#90)
+* [fa1400f] Dep (#88)
 
 ### 2.3.5 (2017 Oct 11)
 
@@ -327,4 +333,4 @@
 
 -----------------
 
-Updated: 2017 Oct 11
+Updated: 2017 Oct 20
