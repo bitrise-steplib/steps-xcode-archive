@@ -659,6 +659,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					log.Printf("  BundleIdentifier: %s", info.BundleIdentifier)
 					log.Printf("  DevelopmentTeam: %s", info.DevelopmentTeam)
 					log.Printf("  CodeSignIdentity: %s", info.CodeSignIdentity)
+
 					profile := info.ProvisioningProfileSpecifier
 					if profile == "" {
 						profile = info.ProvisioningProfile
@@ -807,6 +808,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 								}
 
 								validGroup = false
+								continue
 							}
 						}
 
@@ -821,7 +823,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					codeSignGroups = filteredGroups
 
 					if len(codeSignGroups) == 0 {
-						log.Errorf("Failed to find code singing groups for specified export method (%s) and team (%s)", exportMethod, configs.TeamID)
+						log.Errorf("Failed to find code singing groups for specified export method (%s) and project capabilities", exportMethod)
 					}
 				}
 
@@ -829,15 +831,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				if len(codeSignGroups) > 0 && configs.TeamID == "" {
 					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil && defaultProfile.TeamID != "" {
 						if exportTeamID != defaultProfile.TeamID {
-							log.Warnf("Filtering default code sign files")
-
 							filteredGroups := []utils.CodeSignGroupItem{}
 							for _, group := range codeSignGroups {
 								if group.Certificate.TeamID != defaultProfile.TeamID {
 									filteredGroups = append(filteredGroups, group)
-								} else {
-									log.Warnf("removing CodeSignGroup: %s", group.Certificate.CommonName)
-									fmt.Println()
 								}
 							}
 
