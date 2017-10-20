@@ -6,10 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
+	"github.com/bitrise-tools/go-xcode/certificateutil"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/plistutil"
-	"github.com/bitrise-tools/go-xcode/provisioningprofile"
 	"github.com/fullsailor/pkcs7"
 	"howett.net/plist"
 )
@@ -25,6 +24,7 @@ type ProvisioningProfileInfoModel struct {
 	ProvisionedDevices    []string
 	DeveloperCertificates []certificateutil.CertificateInfoModel
 	ExpirationDate        time.Time
+	Entitlements          plistutil.PlistData
 }
 
 // IsXcodeManaged ...
@@ -68,7 +68,7 @@ func NewProvisioningProfileInfo(provisioningProfile pkcs7.PKCS7) (ProvisioningPr
 	}
 
 	teamName, _ := data.GetString("TeamName")
-	profile := provisioningprofile.Profile(data)
+	profile := PlistData(data)
 	info := ProvisioningProfileInfoModel{
 		UUID:           profile.GetUUID(),
 		Name:           profile.GetName(),
@@ -94,6 +94,8 @@ func NewProvisioningProfileInfo(provisioningProfile pkcs7.PKCS7) (ProvisioningPr
 		}
 		info.DeveloperCertificates = certificateutil.CertificateInfos(certificates)
 	}
+
+	info.Entitlements = profile.GetEntitlements()
 
 	return info, nil
 }

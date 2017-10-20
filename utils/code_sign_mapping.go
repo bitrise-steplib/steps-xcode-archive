@@ -5,9 +5,9 @@ import (
 	"sort"
 
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/steps-certificate-and-profile-installer/certificateutil"
-	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
+	"github.com/bitrise-tools/go-xcode/certificateutil"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
+	"github.com/bitrise-tools/go-xcode/profileutil"
 	"github.com/ryanuber/go-glob"
 )
 
@@ -108,13 +108,11 @@ func createCodeSignGroups(profileGroups map[string][]profileutil.ProvisioningPro
 
 // ResolveCodeSignGroupItems ...
 func ResolveCodeSignGroupItems(bundleIDs []string, exportMethod exportoptions.Method, profiles []profileutil.ProvisioningProfileInfoModel, certificates []certificateutil.CertificateInfoModel) []CodeSignGroupItem {
-	log.Printf("Creating certificate profiles mapping")
+	log.Printf("Creating certificate profiles mapping...")
 	certificateProfilesMapping := createCertificateProfilesMapping(profiles, certificates)
-	fmt.Println()
 
-	log.Printf("Creating CodeSignGroups")
+	log.Printf("Creating CodeSignGroups...")
 	groups := createCodeSignGroups(certificateProfilesMapping, bundleIDs, exportMethod)
-	fmt.Println()
 
 	return groups
 }
