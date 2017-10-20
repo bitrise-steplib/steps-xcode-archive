@@ -91,3 +91,4 @@ workflows:
             go get -u -v github.com/hashicorp/go-version
             go get -u -v howett.net/plist
             go get -u -v github.com/pkg/errors
+            go get -u -v github.com/fullsailor/pkcs7

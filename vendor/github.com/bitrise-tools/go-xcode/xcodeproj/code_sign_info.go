@@ -16,11 +16,12 @@ import (
 
 // CodeSignInfo ...
 type CodeSignInfo struct {
-	BundleIdentifier             string `json:"bundle_id"`
-	CodeSignIdentity             string `json:"code_sign_identity"`
-	ProvisioningProfileSpecifier string `json:"provisioning_profile_specifier"`
-	ProvisioningProfile          string `json:"provisioning_profile"`
-	DevelopmentTeam              string `json:"development_team"`
+	CodeSignEntitlementsPath     string
+	BundleIdentifier             string
+	CodeSignIdentity             string
+	ProvisioningProfileSpecifier string
+	ProvisioningProfile          string
+	DevelopmentTeam              string
 }
 
 // TargetMapping ...
@@ -55,10 +56,9 @@ func readSchemeTargetMapping(projectPth, scheme, user string) (TargetMapping, er
 
 	out, err := runCmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return TargetMapping{}, fmt.Errorf("failed to run ruby script, output: %s, error: %s", out, err)
+		return TargetMapping{}, fmt.Errorf("failed to run code signing analyzer script, output: %s, error: %s", out, err)
 	}
 
-	// OutputModel ...
 	type OutputModel struct {
 		Data  TargetMapping `json:"data"`
 		Error string        `json:"error"`
@@ -193,12 +193,14 @@ func ResolveCodeSignInfo(projectOrWorkspacePth, scheme, user string) (map[string
 			}
 			// ---
 
+			codeSignEntitlementsPth := buildSettings["CODE_SIGN_ENTITLEMENTS"]
 			codeSignIdentity := buildSettings["CODE_SIGN_IDENTITY"]
 			provisioningProfileSpecifier := buildSettings["PROVISIONING_PROFILE_SPECIFIER"]
 			provisioningProfile := buildSettings["PROVISIONING_PROFILE"]
 			developmentTeam := buildSettings["DEVELOPMENT_TEAM"]
 
 			resolvedCodeSignInfo := CodeSignInfo{
+				CodeSignEntitlementsPath:     codeSignEntitlementsPth,
 				BundleIdentifier:             bundleID,
 				CodeSignIdentity:             codeSignIdentity,
 				ProvisioningProfileSpecifier: provisioningProfileSpecifier,

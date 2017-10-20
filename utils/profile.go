@@ -8,7 +8,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
+	"github.com/bitrise-tools/go-xcode/profileutil"
 )
 
 // GetDefaultProvisioningProfile ...

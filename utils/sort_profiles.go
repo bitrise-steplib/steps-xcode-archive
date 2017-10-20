@@ -1,6 +1,6 @@
 package utils
 
-import "github.com/bitrise-io/steps-certificate-and-profile-installer/profileutil"
+import "github.com/bitrise-tools/go-xcode/profileutil"
 
 // ByBundleIDLength ...
 type ByBundleIDLength []profileutil.ProvisioningProfileInfoModel

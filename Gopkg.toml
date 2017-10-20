@@ -3,10 +3,6 @@
   branch = "master"
 
 [[constraint]]
-  name = "github.com/bitrise-io/steps-certificate-and-profile-installer"
-  branch = "master"
-
-[[constraint]]
   name = "github.com/bitrise-tools/go-xcode"
   branch = "master"
 
@@ -16,10 +12,6 @@
 
 [[constraint]]
   name = "github.com/kballard/go-shellquote"
-  branch = "master"
-
-[[constraint]]
-  name = "github.com/pkg/errors"
   branch = "master"
 
 [[constraint]]

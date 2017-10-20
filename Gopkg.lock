@@ -9,15 +9,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/bitrise-io/steps-certificate-and-profile-installer"
-  packages = ["certificateutil","profileutil"]
-  revision = "a8db7c2e5323df48273d6bae0115f1a58f557937"
-
-[[projects]]
-  branch = "master"
   name = "github.com/bitrise-tools/go-xcode"
-  packages = ["exportoptions","models","plistutil","provisioningprofile","utility","xcarchive","xcodebuild","xcodeproj","xcpretty"]
-  revision = "c20a612162c12f29d2a80a231ac2a9b4026c00d6"
+  packages = ["certificateutil","exportoptions","models","plistutil","profileutil","utility","xcarchive","xcodebuild","xcodeproj","xcpretty"]
+  revision = "122319b199b766f321faffb953f2dfb326d93e50"
 
 [[projects]]
   branch = "master"
@@ -53,11 +47,11 @@
   branch = "master"
   name = "howett.net/plist"
   packages = ["."]
-  revision = "f00f32b327ca6ad11a7c53d9ccc34d031b3795b8"
+  revision = "487325fdf24d0b27ca779dbbfcad9ab36dbcc420"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4d3b94cb119272540c398eab106a4cb3f414d10a84c5fb9b43e27c3f5dbc90b4"
+  inputs-digest = "181777a2a184179a36da502917637152266ee9c22209e41b7cdab0152042d69c"
   solver-name = "gps-cdcl"
   solver-version = 1
