@@ -3,7 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - STEP_VERSION: 2.3.5
+  - STEP_VERSION: 2.3.6
 
   - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
 
