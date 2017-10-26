@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.3.6)
+## Changelog (Current version: 2.3.7)
 
 -----------------
+
+### 2.3.7 (2017 Oct 26)
+
+* [b9bc10a] prepare for 2.3.7
+* [f1de1f7] dep update (#92)
 
 ### 2.3.6 (2017 Oct 20)
 
@@ -333,4 +338,4 @@
 
 -----------------
 
-Updated: 2017 Oct 20
+Updated: 2017 Oct 26
