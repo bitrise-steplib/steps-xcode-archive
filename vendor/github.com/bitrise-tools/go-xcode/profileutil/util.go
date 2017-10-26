@@ -8,6 +8,18 @@ import (
 	"github.com/fullsailor/pkcs7"
 )
 
+// ProfileType ...
+type ProfileType string
+
+// ProfileTypeIos ...
+const ProfileTypeIos ProfileType = "ios"
+
+// ProfileTypeMacOs ...
+const ProfileTypeMacOs ProfileType = "macOs"
+
+// ProvProfileSystemDirPath ...
+const ProvProfileSystemDirPath = "~/Library/MobileDevice/Provisioning Profiles"
+
 // ProvisioningProfileFromContent ...
 func ProvisioningProfileFromContent(content []byte) (*pkcs7.PKCS7, error) {
 	return pkcs7.Parse(content)
@@ -22,14 +34,20 @@ func ProvisioningProfileFromFile(pth string) (*pkcs7.PKCS7, error) {
 	return ProvisioningProfileFromContent(content)
 }
 
-// InstalledIosProvisioningProfiles ...
-func InstalledIosProvisioningProfiles() ([]*pkcs7.PKCS7, error) {
-	provProfileSystemDirPath := "~/Library/MobileDevice/Provisioning Profiles"
-	absProvProfileDirPath, err := pathutil.AbsPath(provProfileSystemDirPath)
+// InstalledProvisioningProfiles ...
+func InstalledProvisioningProfiles(profileType ProfileType) ([]*pkcs7.PKCS7, error) {
+	ext := ".mobileprovision"
+	if profileType == ProfileTypeMacOs {
+		ext = ".provisionprofile"
+	}
+
+	absProvProfileDirPath, err := pathutil.AbsPath(ProvProfileSystemDirPath)
 	if err != nil {
 		return nil, err
 	}
-	pths, err := filepath.Glob(absProvProfileDirPath + "/*.mobileprovision")
+
+	pattern := filepath.Join(absProvProfileDirPath, "*"+ext)
+	pths, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
 	}
