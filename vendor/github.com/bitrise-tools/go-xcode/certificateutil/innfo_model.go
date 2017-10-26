@@ -2,6 +2,7 @@ package certificateutil
 
 import (
 	"crypto/x509"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -12,18 +13,23 @@ type CertificateInfoModel struct {
 	TeamName   string
 	TeamID     string
 	EndDate    time.Time
+	StartDate  time.Time
 
 	Serial string
 
 	certificate x509.Certificate
 }
 
-// IsExpired ...
-func (info CertificateInfoModel) IsExpired() bool {
-	if info.EndDate.IsZero() {
-		return false
+// CheckValidity ...
+func (info CertificateInfoModel) CheckValidity() error {
+	timeNow := time.Now()
+	if !timeNow.After(info.StartDate) {
+		return fmt.Errorf("Certificate is not yet valid - validity starts at: %s", info.StartDate)
 	}
-	return info.EndDate.Before(time.Now())
+	if !timeNow.Before(info.EndDate) {
+		return fmt.Errorf("Certificate is not valid anymore - validity ended at: %s", info.EndDate)
+	}
+	return nil
 }
 
 // NewCertificateInfo ...
@@ -33,6 +39,7 @@ func NewCertificateInfo(certificate x509.Certificate) CertificateInfoModel {
 		TeamName:    strings.Join(certificate.Subject.Organization, " "),
 		TeamID:      strings.Join(certificate.Subject.OrganizationalUnit, " "),
 		EndDate:     certificate.NotAfter,
+		StartDate:   certificate.NotBefore,
 		Serial:      certificate.SerialNumber.String(),
 		certificate: certificate,
 	}
