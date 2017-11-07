@@ -35,7 +35,7 @@ inputs:
       title: "Select method for export"
       summary: ""
       description: |-
-        Auto-detect option is **DEPRECATED** - Use direct export methods
+        `auto-detect` option is **DEPRECATED** - use direct export methods!
 
         Describes how Xcode should export the archive.
 
