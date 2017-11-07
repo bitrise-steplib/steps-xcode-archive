@@ -75,3 +75,23 @@ func InstalledCodesigningCertificateInfos() ([]CertificateInfoModel, error) {
 	}
 	return CertificateInfos(certificates), nil
 }
+
+// FilterValidCertificateInfos ...
+func FilterValidCertificateInfos(certificateInfos []CertificateInfoModel) []CertificateInfoModel {
+	certificateInfosByName := map[string]CertificateInfoModel{}
+
+	for _, certificateInfo := range certificateInfos {
+		if certificateInfo.CheckValidity() == nil {
+			activeCertificate, ok := certificateInfosByName[certificateInfo.CommonName]
+			if !ok || certificateInfo.EndDate.After(activeCertificate.EndDate) {
+				certificateInfosByName[certificateInfo.CommonName] = certificateInfo
+			}
+		}
+	}
+
+	validCertificates := []CertificateInfoModel{}
+	for _, validCertificate := range certificateInfosByName {
+		validCertificates = append(validCertificates, validCertificate)
+	}
+	return validCertificates
+}
