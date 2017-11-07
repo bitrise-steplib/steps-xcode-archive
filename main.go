@@ -100,8 +100,13 @@ func createConfigsModelFromEnvs() ConfigsModel {
 }
 
 func (configs ConfigsModel) print() {
+
 	log.Infof("ipa export configs:")
 	log.Printf("- ExportMethod: %s", configs.ExportMethod)
+	if configs.ExportMethod == "auto-detect" {
+		log.Warnf("  Export method: auto-detect is DEPRECATED, use a direct export method [app-store ad-hoc enterprise development]")
+		fmt.Println()
+	}
 	log.Printf("- UploadBitcode: %s", configs.UploadBitcode)
 	log.Printf("- CompileBitcode: %s", configs.CompileBitcode)
 	log.Printf("- TeamID: %s", configs.TeamID)
