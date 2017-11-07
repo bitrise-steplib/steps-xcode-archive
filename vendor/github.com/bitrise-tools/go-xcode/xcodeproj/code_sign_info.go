@@ -225,6 +225,11 @@ func ResolveCodeSignInfo(projectOrWorkspacePth, scheme, user string) (map[string
 			// ---
 
 			codeSignEntitlementsPth := buildSettings["CODE_SIGN_ENTITLEMENTS"]
+			if codeSignEntitlementsPth != "" {
+				projectDir := filepath.Dir(projectPth)
+				codeSignEntitlementsPth = filepath.Join(projectDir, codeSignEntitlementsPth)
+			}
+
 			codeSignIdentity := buildSettings["CODE_SIGN_IDENTITY"]
 			provisioningProfileSpecifier := buildSettings["PROVISIONING_PROFILE_SPECIFIER"]
 			provisioningProfile := buildSettings["PROVISIONING_PROFILE"]

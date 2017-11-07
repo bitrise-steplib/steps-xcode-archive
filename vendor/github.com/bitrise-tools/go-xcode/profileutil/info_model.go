@@ -132,3 +132,20 @@ func InstalledProvisioningProfileInfos(profileType ProfileType) ([]ProvisioningP
 	}
 	return infos, nil
 }
+
+// FindProvisioningProfileInfo ...
+func FindProvisioningProfileInfo(uuid string) (ProvisioningProfileInfoModel, string, error) {
+	profile, pth, err := FindProvisioningProfile(uuid)
+	if err != nil {
+		return ProvisioningProfileInfoModel{}, "", err
+	}
+	if pth == "" || profile == nil {
+		return ProvisioningProfileInfoModel{}, "", nil
+	}
+
+	info, err := NewProvisioningProfileInfo(*profile)
+	if err != nil {
+		return ProvisioningProfileInfoModel{}, "", err
+	}
+	return info, pth, nil
+}

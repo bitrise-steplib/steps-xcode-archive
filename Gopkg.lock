@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/bitrise-tools/go-xcode"
   packages = ["certificateutil","exportoptions","models","plistutil","profileutil","utility","xcarchive","xcodebuild","xcodeproj","xcpretty"]
-  revision = "e8b00568130d086092fd20f8499e0f1b5ded4a25"
+  revision = "c820668f24b67aa8cb58e687a87ec024fafbdf3b"
 
 [[projects]]
   branch = "master"
@@ -47,7 +47,7 @@
   branch = "master"
   name = "howett.net/plist"
   packages = ["."]
-  revision = "487325fdf24d0b27ca779dbbfcad9ab36dbcc420"
+  revision = "233df3c4f07b0c562da0e8a6fb850681ac49bb90"
 
 [solve-meta]
   analyzer-name = "dep"

@@ -86,24 +86,25 @@ func InstalledCodesigningCertificateNames() ([]string, error) {
 	return installedCodesigningCertificateNamesFromOutput(out)
 }
 
-func normalizeFindCertificateOut(out string) (string, error) {
+func normalizeFindCertificateOut(out string) ([]string, error) {
+	certificateContents := []string{}
 	pattern := `(?s)(-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----)`
 	matches := regexp.MustCompile(pattern).FindAllString(out, -1)
 	if len(matches) == 0 {
-		return "", fmt.Errorf("no certificates found in: %s", out)
-	}
-	if len(matches) > 1 {
-		return "", fmt.Errorf("multiple certificates found in: %s", out)
+		return nil, fmt.Errorf("no certificates found in: %s", out)
 	}
 
-	certificateContent := matches[0]
-	if !strings.HasPrefix(certificateContent, "\n") {
-		certificateContent = "\n" + certificateContent
+	for _, certificateContent := range matches {
+		if !strings.HasPrefix(certificateContent, "\n") {
+			certificateContent = "\n" + certificateContent
+		}
+		if !strings.HasSuffix(certificateContent, "\n") {
+			certificateContent = certificateContent + "\n"
+		}
+		certificateContents = append(certificateContents, certificateContent)
 	}
-	if !strings.HasSuffix(certificateContent, "\n") {
-		certificateContent = certificateContent + "\n"
-	}
-	return certificateContent, nil
+
+	return certificateContents, nil
 }
 
 // InstalledCodesigningCertificates ...
@@ -115,23 +116,25 @@ func InstalledCodesigningCertificates() ([]*x509.Certificate, error) {
 
 	certificates := []*x509.Certificate{}
 	for _, name := range certificateNames {
-		cmd := command.New("security", "find-certificate", "-c", name, "-p")
+		cmd := command.New("security", "find-certificate", "-c", name, "-p", "-a")
 		out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
 			return nil, commandError(cmd.PrintableCommandArgs(), out, err)
 		}
 
-		normalizedOut, err := normalizeFindCertificateOut(out)
+		normalizedOuts, err := normalizeFindCertificateOut(out)
 		if err != nil {
 			return nil, err
 		}
 
-		certificate, err := CeritifcateFromPemContent([]byte(normalizedOut))
-		if err != nil {
-			return nil, err
-		}
+		for _, normalizedOut := range normalizedOuts {
+			certificate, err := CeritifcateFromPemContent([]byte(normalizedOut))
+			if err != nil {
+				return nil, err
+			}
 
-		certificates = append(certificates, certificate)
+			certificates = append(certificates, certificate)
+		}
 	}
 
 	return certificates, nil
