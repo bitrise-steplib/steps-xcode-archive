@@ -505,32 +505,31 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		fail("No archive generated at: %s", tmpArchivePath)
 	}
 
-	archiveTeamID := ""
-	archiveProfileName := ""
-	var archiveExportMethod exportoptions.Method
-	archiveCodeSignIsXcodeManaged := false
-	{
-		embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
-		if err != nil {
-			fail("Failed to get embedded profile path, error: %s", err)
-		}
-
-		profile, err := profileutil.NewPlistDataFromFile(embeddedProfilePth)
-		if err != nil {
-			fail("Failed to create provisioning profile model, error: %s", err)
-		}
-
-		archiveTeamID = profile.GetTeamID()
-		archiveProfileName = profile.GetName()
-		archiveExportMethod = profile.GetExportMethod()
-		archiveCodeSignIsXcodeManaged = profileutil.IsXcodeManaged(profile.GetName())
+	if xcodeMajorVersion >= 9 && configs.UseDeprecatedExport == "yes" {
+		fail("Legacy export method (using '-exportFormat ipa' flag) is not supported from Xcode version 9")
 	}
 
+	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
+	for _, key := range envsToUnset {
+		if err := os.Unsetenv(key); err != nil {
+			fail("Failed to unset (%s), error: %s", key, err)
+		}
+	}
+
+	archive, err := xcarchive.NewXCArchive(tmpArchivePath)
+	if err != nil {
+		fail("Failed to parse archive, error: %s", err)
+	}
+
+	mainApplication := archive.Applications.MainApplication
+	archiveExportMethod := mainApplication.ProvisioningProfile.ExportType
+	archiveCodeSignIsXcodeManaged := profileutil.IsXcodeManaged(mainApplication.ProvisioningProfile.Name)
+
 	log.Infof("Archive infos:")
-	log.Printf("archiveTeamID: %s", archiveTeamID)
-	log.Printf("archiveProfileName: %s", archiveProfileName)
-	log.Printf("archiveExportMethod: %s", archiveExportMethod)
-	log.Printf("archiveCodeSignIsXcodeManaged: %v", archiveCodeSignIsXcodeManaged)
+	log.Printf("team: %s (%s)", mainApplication.ProvisioningProfile.TeamName, mainApplication.ProvisioningProfile.TeamID)
+	log.Printf("profile: %s (%s)", mainApplication.ProvisioningProfile.Name, mainApplication.ProvisioningProfile.UUID)
+	log.Printf("export: %s", archiveExportMethod)
+	log.Printf("xcode managed profile: %v", archiveCodeSignIsXcodeManaged)
 	fmt.Println()
 
 	//
@@ -548,14 +547,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 	log.Infof("Exporting ipa from the archive...")
 	fmt.Println()
 
-	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
-	for _, key := range envsToUnset {
-		if err := os.Unsetenv(key); err != nil {
-			fail("Failed to unset (%s), error: %s", key, err)
-		}
-	}
-
-	if xcodeMajorVersion == 6 || configs.UseDeprecatedExport == "yes" {
+	if xcodeMajorVersion <= 6 || configs.UseDeprecatedExport == "yes" {
 		log.Printf("Using legacy export")
 		/*
 			Get the name of the profile which was used for creating the archive
@@ -564,23 +556,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			under the Products/Applications folder
 		*/
 
-		embeddedProfilePth, err := xcarchive.FindEmbeddedMobileProvision(tmpArchivePath)
-		if err != nil {
-			fail("Failed to get embedded profile path, error: %s", err)
-		}
-
-		profile, err := profileutil.NewPlistDataFromFile(embeddedProfilePth)
-		if err != nil {
-			fail("Failed to create provisioning profile model, error: %s", err)
-		}
-
-		name := profile.GetName()
-
 		legacyExportCmd := xcodebuild.NewLegacyExportCommand()
 		legacyExportCmd.SetExportFormat("ipa")
 		legacyExportCmd.SetArchivePath(tmpArchivePath)
 		legacyExportCmd.SetExportPath(ipaPath)
-		legacyExportCmd.SetExportProvisioningProfileName(name)
+		legacyExportCmd.SetExportProvisioningProfileName(mainApplication.ProvisioningProfile.Name)
 
 		if configs.OutputTool == "xcpretty" {
 			xcprettyCmd := xcpretty.New(legacyExportCmd)
@@ -630,7 +610,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("auto-detect export method specified")
 				exportMethod = archiveExportMethod
 
-				log.Printf("using the archive profile's (%s) export method: %s", archiveProfileName, exportMethod)
+				log.Printf("using the archive profile's (%s) export method: %s", mainApplication.ProvisioningProfile.Name, exportMethod)
 			} else {
 				parsedMethod, err := exportoptions.ParseMethod(configs.ExportMethod)
 				if err != nil {
@@ -661,15 +641,15 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("Target - CodeSignInfo mapping:")
 				for target, info := range targetCodeSignInfoMap {
 					log.Printf(target)
-					log.Printf("  BundleIdentifier: %s", info.BundleIdentifier)
-					log.Printf("  DevelopmentTeam: %s", info.DevelopmentTeam)
-					log.Printf("  CodeSignIdentity: %s", info.CodeSignIdentity)
+					log.Printf("  bundleIdentifier: %s", info.BundleIdentifier)
+					log.Printf("  developmentTeam: %s", info.DevelopmentTeam)
+					log.Printf("  codeSignIdentity: %s", info.CodeSignIdentity)
 
 					profile := info.ProvisioningProfileSpecifier
 					if profile == "" {
 						profile = info.ProvisioningProfile
 					}
-					log.Printf("  Profile: %s", profile)
+					log.Printf("  profile: %s", profile)
 
 					bundleIDs = append(bundleIDs, info.BundleIdentifier)
 					bundleIDTargetMap[info.BundleIdentifier] = target
@@ -872,7 +852,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						codeSignGroup = codeSignGroups[0]
 
 						found := false
-						if archiveTeamID != "" {
+						if mainApplication.ProvisioningProfile.TeamName != "" {
 							for i, group := range codeSignGroups {
 								if group.Certificate.TeamID == exportTeamID && i != 0 {
 									log.Warnf("Prefering code singing group with the team used for the archive")
@@ -1109,10 +1089,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	// Export .app
 	fmt.Println()
 
-	exportedApp, err := xcarchive.FindApp(tmpArchivePath)
-	if err != nil {
-		fail("Failed to find app, error: %s", err)
-	}
+	exportedApp := mainApplication.Path
 
 	if err := utils.ExportOutputDir(exportedApp, exportedApp, bitriseAppDirPthEnvKey); err != nil {
 		fail("Failed to export %s, error: %s", bitriseAppDirPthEnvKey, err)
@@ -1132,7 +1109,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	// Export .dSYMs
 	fmt.Println()
 
-	appDSYM, frameworkDSYMs, err := xcarchive.FindDSYMs(tmpArchivePath)
+	appDSYM, frameworkDSYMs, err := archive.FindDSYMs()
 	if err != nil {
 		if err.Error() == "no dsym found" {
 			log.Warnf("no app nor framework dsyms found")

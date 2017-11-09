@@ -1,6 +1,7 @@
 package certificateutil
 
 import (
+	"crypto/sha1"
 	"crypto/x509"
 	"fmt"
 	"strings"
@@ -15,7 +16,8 @@ type CertificateInfoModel struct {
 	EndDate    time.Time
 	StartDate  time.Time
 
-	Serial string
+	Serial          string
+	SHA1Fingerprint string
 
 	certificate x509.Certificate
 }
@@ -34,14 +36,18 @@ func (info CertificateInfoModel) CheckValidity() error {
 
 // NewCertificateInfo ...
 func NewCertificateInfo(certificate x509.Certificate) CertificateInfoModel {
+	fingerprint := sha1.Sum(certificate.Raw)
+	fingerprintStr := fmt.Sprintf("%x", fingerprint)
+
 	return CertificateInfoModel{
-		CommonName:  certificate.Subject.CommonName,
-		TeamName:    strings.Join(certificate.Subject.Organization, " "),
-		TeamID:      strings.Join(certificate.Subject.OrganizationalUnit, " "),
-		EndDate:     certificate.NotAfter,
-		StartDate:   certificate.NotBefore,
-		Serial:      certificate.SerialNumber.String(),
-		certificate: certificate,
+		CommonName:      certificate.Subject.CommonName,
+		TeamName:        strings.Join(certificate.Subject.Organization, " "),
+		TeamID:          strings.Join(certificate.Subject.OrganizationalUnit, " "),
+		EndDate:         certificate.NotAfter,
+		StartDate:       certificate.NotBefore,
+		Serial:          certificate.SerialNumber.String(),
+		SHA1Fingerprint: fingerprintStr,
+		certificate:     certificate,
 	}
 }
 

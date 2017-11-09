@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/bitrise-tools/go-xcode"
   packages = ["certificateutil","exportoptions","models","plistutil","profileutil","utility","xcarchive","xcodebuild","xcodeproj","xcpretty"]
-  revision = "c820668f24b67aa8cb58e687a87ec024fafbdf3b"
+  revision = "69c79f6039848745dc3942f8cf1db920264ee1ce"
 
 [[projects]]
   branch = "master"
