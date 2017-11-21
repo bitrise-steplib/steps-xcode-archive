@@ -35,7 +35,7 @@ workflows:
   test_objc:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - BRANCH: master
+    - COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - OUTPUT_TOOL: xcodebuild
@@ -47,7 +47,7 @@ workflows:
   test_xcode_8:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
-    - BRANCH: master
+    - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
     - FORCE_TEAM_ID: 72SA8V3WYL
@@ -58,7 +58,7 @@ workflows:
   test_multi_target:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - BRANCH: master
+    - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
@@ -69,7 +69,7 @@ workflows:
   test_entitlements:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - BRANCH: entitlements
+    - COMMIT: "0562d74e591e1cfdf6cdfeb603880f64f31f000c"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - FORCE_CODE_SIGN_IDENTITY: ""
@@ -97,9 +97,9 @@ workflows:
         inputs:
         - repository_url: $SAMPLE_APP_URL
         - clone_into_dir: "$ORIG_BITRISE_SOURCE_DIR/_tmp"
-        - commit: ""
+        - commit: $COMMIT
         - tag: ""
-        - branch: $BRANCH
+        - branch: ""
         - pull_request_id: ""
         - clone_depth: ""
     - certificate-and-profile-installer:
