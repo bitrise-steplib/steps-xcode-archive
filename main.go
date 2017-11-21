@@ -107,7 +107,8 @@ func (configs ConfigsModel) print() {
 	log.Infof("ipa export configs:")
 	log.Printf("- ExportMethod: %s", configs.ExportMethod)
 	if configs.ExportMethod == "auto-detect" {
-		log.Warnf("  Export method: auto-detect is DEPRECATED, use a direct export method [app-store ad-hoc enterprise development]")
+		exportMethods := []exportoptions.Method{exportoptions.MethodAppStore, exportoptions.MethodAdHoc, exportoptions.MethodEnterprise, exportoptions.MethodDevelopment}
+		log.Warnf("  Export method: auto-detect is DEPRECATED, use a direct export method %s", exportMethods)
 		fmt.Println()
 	}
 	log.Printf("- UploadBitcode: %s", configs.UploadBitcode)
@@ -247,9 +248,7 @@ func main() {
 		fail("Issue with input: %s", err)
 	}
 
-	if configs.VerboseLog == "yes" {
-		log.SetEnableDebugLog(true)
-	}
+	log.SetEnableDebugLog(configs.VerboseLog == "yes")
 
 	log.Infof("step determined configs:")
 
