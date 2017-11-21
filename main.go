@@ -668,11 +668,8 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				log.Printf("Resolving CodeSignGroups...")
 				codeSignGroups := export.CreateSelectableCodeSignGroups(certs, profs, bundleIDs)
-				if err != nil {
-					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
-				}
 				if len(codeSignGroups) == 0 {
-					log.Errorf("Failed to find code singing groups for specified export method (%s)", exportMethod)
+					log.Errorf("Failed to find code signing groups for specified export method (%s)", exportMethod)
 				}
 
 				for _, group := range codeSignGroups {
@@ -705,9 +702,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
 				if configs.TeamID == "" && defaultProfileURL != "" {
 					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil {
-						fmt.Println()
-						log.Donef("default profile: %v", defaultProfile)
-						fmt.Println()
+						log.Debugf("\ndefault profile: %v\n", defaultProfile)
 						filteredCodeSignGroups := export.FilterSelectableCodeSignGroups(codeSignGroups,
 							export.CreateExcludeProfileNameSelectableCodeSignGroupFilter(defaultProfile.Name))
 						if len(filteredCodeSignGroups) > 0 {
@@ -721,11 +716,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				if len(iosCodeSignGroups) > 0 {
 					codeSignGroup := export.IosCodeSignGroup{}
 
-					if len(codeSignGroups) >= 1 {
+					if len(iosCodeSignGroups) >= 1 {
 						codeSignGroup = iosCodeSignGroups[0]
 					}
-					if len(codeSignGroups) > 1 {
-						log.Warnf("Multiple code singing groups found! Using the first code signing group")
+					if len(iosCodeSignGroups) > 1 {
+						log.Warnf("Multiple code signing groups found! Using the first code signing group")
 					}
 
 					exportTeamID = codeSignGroup.Certificate.TeamID
@@ -737,16 +732,18 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
 						if isXcodeManaged {
 							if exportCodeSignStyle != "" && exportCodeSignStyle != "automatic" {
-								log.Errorf("Both xcode managed and NON xcode managed profiles in code singing group")
+								log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
 							}
 							exportCodeSignStyle = "automatic"
 						} else {
 							if exportCodeSignStyle != "" && exportCodeSignStyle != "manual" {
-								log.Errorf("Both xcode managed and NON xcode managed profiles in code singing group")
+								log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
 							}
 							exportCodeSignStyle = "manual"
 						}
 					}
+				} else {
+					log.Errorf("Failed to find Codesign Groups")
 				}
 			}
 
@@ -762,7 +759,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
 						log.Warnf("App was signed with xcode managed profile when archiving,")
-						log.Warnf("ipa export uses manual code singing.")
+						log.Warnf("ipa export uses manual code signing.")
 						log.Warnf(`Setting "signingStyle" to "manual"`)
 
 						options.SigningStyle = "manual"
@@ -781,7 +778,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
 						log.Warnf("App was signed with xcode managed profile when archiving,")
-						log.Warnf("ipa export uses manual code singing.")
+						log.Warnf("ipa export uses manual code signing.")
 						log.Warnf(`Setting "signingStyle" to "manual"`)
 
 						options.SigningStyle = "manual"

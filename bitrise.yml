@@ -39,6 +39,8 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - OUTPUT_TOOL: xcodebuild
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    - FORCE_TEAM_ID: 72SA8V3WYL
     after_run:
     - _common
 
