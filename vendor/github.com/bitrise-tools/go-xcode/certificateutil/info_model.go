@@ -3,9 +3,12 @@ package certificateutil
 import (
 	"crypto/sha1"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/bitrise-io/go-utils/log"
 )
 
 // CertificateInfoModel ...
@@ -22,16 +25,46 @@ type CertificateInfoModel struct {
 	certificate x509.Certificate
 }
 
-// CheckValidity ...
-func (info CertificateInfoModel) CheckValidity() error {
-	timeNow := time.Now()
-	if !timeNow.After(info.StartDate) {
-		return fmt.Errorf("Certificate is not yet valid - validity starts at: %s", info.StartDate)
+// String ...
+func (info CertificateInfoModel) String() string {
+	printable := map[string]interface{}{}
+	printable["name"] = info.CommonName
+	printable["serial"] = info.Serial
+	printable["team"] = fmt.Sprintf("%s (%s)", info.TeamName, info.TeamID)
+	printable["expire"] = info.EndDate.String()
+
+	errors := []string{}
+	if err := info.CheckValidity(); err != nil {
+		errors = append(errors, err.Error())
 	}
-	if !timeNow.Before(info.EndDate) {
-		return fmt.Errorf("Certificate is not valid anymore - validity ended at: %s", info.EndDate)
+	if len(errors) > 0 {
+		printable["errors"] = errors
+	}
+
+	data, err := json.MarshalIndent(printable, "", "\t")
+	if err != nil {
+		log.Errorf("Failed to marshal: %v, error: %s", printable, err)
+		return ""
+	}
+
+	return string(data)
+}
+
+// CheckValidity ...
+func CheckValidity(certificate x509.Certificate) error {
+	timeNow := time.Now()
+	if !timeNow.After(certificate.NotBefore) {
+		return fmt.Errorf("Certificate is not yet valid - validity starts at: %s", certificate.NotBefore)
+	}
+	if !timeNow.Before(certificate.NotAfter) {
+		return fmt.Errorf("Certificate is not valid anymore - validity ended at: %s", certificate.NotAfter)
 	}
 	return nil
+}
+
+// CheckValidity ...
+func (info CertificateInfoModel) CheckValidity() error {
+	return CheckValidity(info.certificate)
 }
 
 // NewCertificateInfo ...
@@ -82,22 +115,11 @@ func InstalledCodesigningCertificateInfos() ([]CertificateInfoModel, error) {
 	return CertificateInfos(certificates), nil
 }
 
-// FilterValidCertificateInfos ...
-func FilterValidCertificateInfos(certificateInfos []CertificateInfoModel) []CertificateInfoModel {
-	certificateInfosByName := map[string]CertificateInfoModel{}
-
-	for _, certificateInfo := range certificateInfos {
-		if certificateInfo.CheckValidity() == nil {
-			activeCertificate, ok := certificateInfosByName[certificateInfo.CommonName]
-			if !ok || certificateInfo.EndDate.After(activeCertificate.EndDate) {
-				certificateInfosByName[certificateInfo.CommonName] = certificateInfo
-			}
-		}
+// InstalledMacAppStoreCertificateInfos ...
+func InstalledMacAppStoreCertificateInfos() ([]CertificateInfoModel, error) {
+	certificates, err := InstalledMacAppStoreCertificates()
+	if err != nil {
+		return nil, err
 	}
-
-	validCertificates := []CertificateInfoModel{}
-	for _, validCertificate := range certificateInfosByName {
-		validCertificates = append(validCertificates, validCertificate)
-	}
-	return validCertificates
+	return CertificateInfos(certificates), nil
 }

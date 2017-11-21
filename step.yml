@@ -277,6 +277,14 @@ inputs:
       - "yes"
       - "no"
       is_required: true
+  - verbose_log: "yes"
+    opts:
+      title: "Enable verbose logging?"
+      description: Enable verbose logging?
+      is_required: true
+      value_options:
+      - "yes"
+      - "no"
 outputs:
   - BITRISE_IPA_PATH:
     opts:

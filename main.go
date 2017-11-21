@@ -17,6 +17,7 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
 	"github.com/bitrise-tools/go-xcode/certificateutil"
+	"github.com/bitrise-tools/go-xcode/export"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/plistutil"
 	"github.com/bitrise-tools/go-xcode/profileutil"
@@ -68,6 +69,7 @@ type ConfigsModel struct {
 	IsExportXcarchiveZip string
 	ExportAllDsyms       string
 	ArtifactName         string
+	VerboseLog           string
 }
 
 func createConfigsModelFromEnvs() ConfigsModel {
@@ -96,6 +98,7 @@ func createConfigsModelFromEnvs() ConfigsModel {
 		IsExportXcarchiveZip: os.Getenv("is_export_xcarchive_zip"),
 		ExportAllDsyms:       os.Getenv("export_all_dsyms"),
 		ArtifactName:         os.Getenv("artifact_name"),
+		VerboseLog:           os.Getenv("verbose_log"),
 	}
 }
 
@@ -136,6 +139,7 @@ func (configs ConfigsModel) print() {
 	log.Printf("- IsExportXcarchiveZip: %s", configs.IsExportXcarchiveZip)
 	log.Printf("- ExportAllDsyms: %s", configs.ExportAllDsyms)
 	log.Printf("- ArtifactName: %s", configs.ArtifactName)
+	log.Printf("- VerboseLog: %s", configs.VerboseLog)
 	fmt.Println()
 }
 
@@ -195,50 +199,6 @@ func (configs ConfigsModel) validate() error {
 	return nil
 }
 
-func printCertificateInfo(info certificateutil.CertificateInfoModel) {
-	log.Printf(info.CommonName)
-	log.Printf("serial: %s", info.Serial)
-	log.Printf("team: %s (%s)", info.TeamName, info.TeamID)
-	log.Printf("expire: %s", info.EndDate)
-
-	if err := info.CheckValidity(); err != nil {
-		log.Errorf("[X] %s", err)
-	}
-}
-
-func printProfileInfo(info profileutil.ProvisioningProfileInfoModel, installedCertificates []certificateutil.CertificateInfoModel) {
-	log.Printf("%s (%s)", info.Name, info.UUID)
-	log.Printf("exportType: %s", string(info.ExportType))
-	log.Printf("team: %s (%s)", info.TeamName, info.TeamID)
-	log.Printf("bundleID: %s", info.BundleID)
-
-	log.Printf("certificates:")
-	for _, certificateInfo := range info.DeveloperCertificates {
-		log.Printf("- %s", certificateInfo.CommonName)
-		log.Printf("  serial: %s", certificateInfo.Serial)
-		log.Printf("  teamID: %s", certificateInfo.TeamID)
-	}
-
-	log.Printf("devices:")
-	for _, deviceID := range info.ProvisionedDevices {
-		log.Printf("- %s", deviceID)
-	}
-
-	log.Printf("expire: %s", info.ExpirationDate)
-
-	if !info.HasInstalledCertificate(installedCertificates) {
-		log.Errorf("[X] none of the profile's certificates are installed")
-	}
-
-	if err := info.CheckValidity(); err != nil {
-		log.Errorf("[X] %s", err)
-	}
-
-	if info.IsXcodeManaged() {
-		log.Warnf("[!] xcode managed profile")
-	}
-}
-
 func fail(format string, v ...interface{}) {
 	log.Errorf(format, v...)
 	os.Exit(1)
@@ -285,6 +245,10 @@ func main() {
 
 	if err := configs.validate(); err != nil {
 		fail("Issue with input: %s", err)
+	}
+
+	if configs.VerboseLog == "yes" {
+		log.SetEnableDebugLog(true)
 	}
 
 	log.Infof("step determined configs:")
@@ -516,12 +480,12 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		}
 	}
 
-	archive, err := xcarchive.NewXCArchive(tmpArchivePath)
+	archive, err := xcarchive.NewIosArchive(tmpArchivePath)
 	if err != nil {
 		fail("Failed to parse archive, error: %s", err)
 	}
 
-	mainApplication := archive.Applications.MainApplication
+	mainApplication := archive.Application
 	archiveExportMethod := mainApplication.ProvisioningProfile.ExportType
 	archiveCodeSignIsXcodeManaged := profileutil.IsXcodeManaged(mainApplication.ProvisioningProfile.Name)
 
@@ -635,7 +599,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				bundleIDs := []string{}
 				bundleIDTargetMap := map[string]string{}
-				bundleIDEntitlemnstMap := map[string]plistutil.PlistData{}
+				bundleIDEntitlementsMap := map[string]plistutil.PlistData{}
 
 				fmt.Println()
 				log.Printf("Target - CodeSignInfo mapping:")
@@ -672,7 +636,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						continue
 					}
 
-					bundleIDEntitlemnstMap[info.BundleIdentifier] = entitlements
+					bundleIDEntitlementsMap[info.BundleIdentifier] = entitlements
 
 					log.Printf("  Entitlements:")
 					for key := range entitlements {
@@ -687,10 +651,9 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 				certs = certificateutil.FilterValidCertificateInfos(certs)
 
-				log.Printf("Installed certificates:")
+				log.Debugf("Installed certificates:")
 				for _, certInfo := range certs {
-					printCertificateInfo(certInfo)
-					fmt.Println()
+					log.Debugf(certInfo.String())
 				}
 
 				profs, err := profileutil.InstalledProvisioningProfileInfos(profileutil.ProfileTypeIos)
@@ -698,173 +661,71 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					fail("Failed to get installed provisioning profiles, error: %s", err)
 				}
 
-				log.Printf("Installed profiles:")
+				log.Debugf("Installed profiles:")
 				for _, profileInfo := range profs {
-					printProfileInfo(profileInfo, certs)
-					fmt.Println()
+					log.Debugf(profileInfo.String(certs...))
 				}
 
 				log.Printf("Resolving CodeSignGroups...")
-				codeSignGroups := utils.ResolveCodeSignGroupItems(bundleIDs, exportoptions.Method(exportMethod), profs, certs)
+				codeSignGroups := export.CreateSelectableCodeSignGroups(certs, profs, bundleIDs)
 				if err != nil {
 					log.Errorf("Failed to get matching provisioning profiles, error: %s", err)
 				}
-
-				log.Printf("Resolved CodeSignGroups:")
-				for _, group := range codeSignGroups {
-					log.Printf("codeSignIdentity: %s", group.Certificate.CommonName)
-					for bundleID, prof := range group.BundleIDProfileMap {
-						log.Printf("bundle ID: %s is provisioned by: %s", bundleID, prof.Name)
-					}
-					fmt.Println()
-				}
-
 				if len(codeSignGroups) == 0 {
 					log.Errorf("Failed to find code singing groups for specified export method (%s)", exportMethod)
 				}
 
-				// Handle if archive used NON xcode managed profile
-				if len(codeSignGroups) > 0 && !archiveCodeSignIsXcodeManaged {
-					log.Warnf("App was signed with NON xcode managed profile when archiving,")
-					log.Warnf("only NOT xcode managed profiles are allowed to sign when exporting the archive.")
-					log.Warnf("Removing xcode managed CodeSignInfo groups")
-
-					filteredGroups := []utils.CodeSignGroupItem{}
-					for _, group := range codeSignGroups {
-						xcodeManagedGroup := false
-						for _, profile := range group.BundleIDProfileMap {
-							isXcodeManaged := profileutil.IsXcodeManaged(profile.Name)
-							if isXcodeManaged {
-								xcodeManagedGroup = true
-								break
-							}
-						}
-						if !xcodeManagedGroup {
-							filteredGroups = append(filteredGroups, group)
-						} else {
-							log.Warnf("removing CodeSignGroup: %s", group.Certificate.CommonName)
-						}
-					}
-
-					codeSignGroups = filteredGroups
-
-					if len(codeSignGroups) == 0 {
-						log.Errorf("Failed to find code singing groups for specified export method (%s) and WITHOUT xcode managed profiles", exportMethod)
-					}
-				}
-
-				// Filter for specified export team
-				if len(codeSignGroups) > 0 && configs.TeamID != "" {
-					log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", configs.TeamID)
-
-					filteredGroups := []utils.CodeSignGroupItem{}
-					for _, group := range codeSignGroups {
-						if group.Certificate.TeamID == configs.TeamID {
-							filteredGroups = append(filteredGroups, group)
-						} else {
-							log.Warnf("removing CodeSignGroup: %s", group.Certificate.CommonName)
-							fmt.Println()
-						}
-					}
-
-					codeSignGroups = filteredGroups
-
-					if len(codeSignGroups) == 0 {
-						log.Errorf("Failed to find code singing groups for specified export method (%s) and team (%s)", exportMethod, configs.TeamID)
-					}
-				}
-
-				// Filter for capabilities
-				if len(codeSignGroups) > 0 && len(bundleIDEntitlemnstMap) > 0 {
-					log.Warnf("Filtering CodeSignInfo groups for target capabilities")
-
-					filteredGroups := []utils.CodeSignGroupItem{}
-					for _, group := range codeSignGroups {
-						validGroup := true
-						for bundleID, profile := range group.BundleIDProfileMap {
-							targetEntitlements := bundleIDEntitlemnstMap[bundleID]
-							profileEntitlements := profile.Entitlements
-
-							missingEntitlements := profileutil.MatchTargetAndProfileEntitlements(targetEntitlements, profileEntitlements)
-							if len(missingEntitlements) > 0 {
-								target := bundleIDTargetMap[bundleID]
-								log.Printf("Entitlements missing from profile (%s) for target (%s)", profile.Name, target)
-								for _, entitlemntKey := range missingEntitlements {
-									log.Printf("- %s", entitlemntKey)
-								}
-
-								validGroup = false
-								continue
-							}
-						}
-
-						if validGroup {
-							filteredGroups = append(filteredGroups, group)
-						} else {
-							log.Warnf("removing CodeSignGroup: %s", group.Certificate.CommonName)
-							fmt.Println()
-						}
-					}
-
-					codeSignGroups = filteredGroups
-
-					if len(codeSignGroups) == 0 {
-						log.Errorf("Failed to find code singing groups for specified export method (%s) and project capabilities", exportMethod)
-					}
-				}
-
-				// Filter out default code sign files
-				if len(codeSignGroups) > 0 && configs.TeamID == "" {
-					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil && defaultProfile.TeamID != "" {
-						if exportTeamID != defaultProfile.TeamID {
-							filteredGroups := []utils.CodeSignGroupItem{}
-							for _, group := range codeSignGroups {
-								if group.Certificate.TeamID != defaultProfile.TeamID {
-									filteredGroups = append(filteredGroups, group)
-								}
-							}
-
-							if len(filteredGroups) > 0 {
-								codeSignGroups = filteredGroups
-							}
-						}
-					}
-				}
-
-				fmt.Println()
-				log.Printf("Filtered CodeSignGroups:")
 				for _, group := range codeSignGroups {
-					log.Printf("codeSignIdentity: %s", group.Certificate.CommonName)
-					for bundleID, prof := range group.BundleIDProfileMap {
-						log.Printf("bundle ID: %s is provisioned by: %s", bundleID, prof.Name)
-					}
-					fmt.Println()
+					log.Debugf(group.String())
 				}
 
-				if len(codeSignGroups) > 0 {
-					codeSignGroup := utils.CodeSignGroupItem{}
+				filters := []export.SelectableCodeSignGroupFilter{}
 
-					if len(codeSignGroups) == 1 {
-						codeSignGroup = codeSignGroups[0]
-					} else if len(codeSignGroups) > 1 {
-						log.Warnf("Multiple code singing groups found")
+				if !archiveCodeSignIsXcodeManaged {
+					log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
+						"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
+						"Removing xcode managed CodeSignInfo groups")
+					filters = append(filters, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
+				}
 
-						codeSignGroup = codeSignGroups[0]
+				if configs.TeamID != "" {
+					log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", configs.TeamID)
+					filters = append(filters,
+						export.CreateTeamSelectableCodeSignGroupFilter(configs.TeamID))
+				}
 
-						found := false
-						if mainApplication.ProvisioningProfile.TeamName != "" {
-							for i, group := range codeSignGroups {
-								if group.Certificate.TeamID == exportTeamID && i != 0 {
-									log.Warnf("Prefering code singing group with the team used for the archive")
-									codeSignGroup = group
-									found = true
-									break
-								}
-							}
+				if len(bundleIDEntitlementsMap) > 0 {
+					log.Warnf("Filtering CodeSignInfo groups for target capabilities")
+					filters = append(filters,
+						export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
+				}
+
+				codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, filters...)
+
+				defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
+				if configs.TeamID == "" && defaultProfileURL != "" {
+					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil {
+						fmt.Println()
+						log.Donef("default profile: %v", defaultProfile)
+						fmt.Println()
+						filteredCodeSignGroups := export.FilterSelectableCodeSignGroups(codeSignGroups,
+							export.CreateExcludeProfileNameSelectableCodeSignGroupFilter(defaultProfile.Name))
+						if len(filteredCodeSignGroups) > 0 {
+							codeSignGroups = filteredCodeSignGroups
 						}
-						if !found {
-							log.Warnf("Using first group")
-						}
+					}
+				}
+
+				iosCodeSignGroups := export.CreateIosCodeSignGroups(codeSignGroups)
+
+				if len(iosCodeSignGroups) > 0 {
+					codeSignGroup := export.IosCodeSignGroup{}
+
+					if len(codeSignGroups) >= 1 {
+						codeSignGroup = iosCodeSignGroups[0]
+					}
+					if len(codeSignGroups) > 1 {
+						log.Warnf("Multiple code singing groups found! Using the first code signing group")
 					}
 
 					exportTeamID = codeSignGroup.Certificate.TeamID

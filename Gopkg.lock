@@ -5,13 +5,13 @@
   branch = "master"
   name = "github.com/bitrise-io/go-utils"
   packages = ["colorstring","command","command/rubyscript","errorutil","fileutil","log","pathutil","pkcs12","pkcs12/internal/rc2"]
-  revision = "961320f9011cedf55e1da0578949bf63450a96c0"
+  revision = "e25bd13153e87e91289343f55b3ee8d3228fb7ac"
 
 [[projects]]
   branch = "master"
   name = "github.com/bitrise-tools/go-xcode"
-  packages = ["certificateutil","exportoptions","models","plistutil","profileutil","utility","xcarchive","xcodebuild","xcodeproj","xcpretty"]
-  revision = "69c79f6039848745dc3942f8cf1db920264ee1ce"
+  packages = ["certificateutil","export","exportoptions","models","plistutil","profileutil","utility","xcarchive","xcodebuild","xcodeproj","xcpretty"]
+  revision = "db797d413f8005c720c211e0353b5ce5492b2f5d"
 
 [[projects]]
   branch = "master"
@@ -52,6 +52,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "181777a2a184179a36da502917637152266ee9c22209e41b7cdab0152042d69c"
+  inputs-digest = "bcb178beda543acbed09313bc86e4db90da633bc6a6247c495c9311995dfe132"
   solver-name = "gps-cdcl"
   solver-version = 1
