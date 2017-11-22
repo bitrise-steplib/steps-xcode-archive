@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.1)
+## Changelog (Current version: 2.4.2)
 
 -----------------
+
+### 2.4.2 (2017 Nov 22)
+
+* [f54142a] Bump version to 2.4.2
+* [c40c0e5] Get BundleIDs from the archive (#97)
 
 ### 2.4.1 (2017 Nov 22)
 
