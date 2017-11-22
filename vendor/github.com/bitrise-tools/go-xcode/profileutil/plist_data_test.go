@@ -17,11 +17,14 @@ func TestPlistData(t *testing.T) {
 		require.Equal(t, "Bitrise Test Development", PlistData(profile).GetName())
 		require.Equal(t, "9NS44DLTN7.*", PlistData(profile).GetApplicationIdentifier())
 		require.Equal(t, "*", PlistData(profile).GetBundleIdentifier())
-		require.Equal(t, exportoptions.MethodDevelopment, PlistData(profile).GetExportMethod())
+		require.Equal(t, exportoptions.MethodDevelopment, PlistData(profile).GetExportMethod(ProfileTypeIos))
 		require.Equal(t, "9NS44DLTN7", PlistData(profile).GetTeamID())
+		require.Equal(t, "Some Dude", PlistData(profile).GetTeamName())
+		require.Equal(t, "2016-09-22T11:28:46Z", PlistData(profile).GetCreationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, "2017-09-22T11:28:46Z", PlistData(profile).GetExpirationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, []string{"b13813075ad9b298cb9a9f28555c49573d8bc322"}, PlistData(profile).GetProvisionedDevices())
 		require.Equal(t, [][]uint8{[]uint8{}}, PlistData(profile).GetDeveloperCertificates())
+		require.Equal(t, false, PlistData(profile).GetProvisionsAllDevices())
 	}
 
 	t.Log("app store profile specifies app-store export method")
@@ -32,11 +35,14 @@ func TestPlistData(t *testing.T) {
 		require.Equal(t, "Bitrise Test App Store", PlistData(profile).GetName())
 		require.Equal(t, "9NS44DLTN7.*", PlistData(profile).GetApplicationIdentifier())
 		require.Equal(t, "*", PlistData(profile).GetBundleIdentifier())
-		require.Equal(t, exportoptions.MethodAppStore, PlistData(profile).GetExportMethod())
+		require.Equal(t, exportoptions.MethodAppStore, PlistData(profile).GetExportMethod(ProfileTypeIos))
 		require.Equal(t, "9NS44DLTN7", PlistData(profile).GetTeamID())
+		require.Equal(t, "Some Dude", PlistData(profile).GetTeamName())
+		require.Equal(t, "2016-09-22T11:29:12Z", PlistData(profile).GetCreationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, "2017-09-21T13:20:06Z", PlistData(profile).GetExpirationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, []string(nil), PlistData(profile).GetProvisionedDevices())
 		require.Equal(t, [][]uint8{[]uint8{}}, PlistData(profile).GetDeveloperCertificates())
+		require.Equal(t, false, PlistData(profile).GetProvisionsAllDevices())
 	}
 
 	t.Log("ad hoc profile specifies ad-hoc export method")
@@ -47,11 +53,14 @@ func TestPlistData(t *testing.T) {
 		require.Equal(t, "Bitrise Test Ad Hoc", PlistData(profile).GetName())
 		require.Equal(t, "9NS44DLTN7.*", PlistData(profile).GetApplicationIdentifier())
 		require.Equal(t, "*", PlistData(profile).GetBundleIdentifier())
-		require.Equal(t, exportoptions.MethodAdHoc, PlistData(profile).GetExportMethod())
+		require.Equal(t, exportoptions.MethodAdHoc, PlistData(profile).GetExportMethod(ProfileTypeIos))
 		require.Equal(t, "9NS44DLTN7", PlistData(profile).GetTeamID())
+		require.Equal(t, "Some Dude", PlistData(profile).GetTeamName())
+		require.Equal(t, "2016-09-22T11:29:38Z", PlistData(profile).GetCreationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, "2017-09-21T13:20:06Z", PlistData(profile).GetExpirationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, []string{"b13813075ad9b298cb9a9f28555c49573d8bc322"}, PlistData(profile).GetProvisionedDevices())
 		require.Equal(t, [][]uint8{[]uint8{}}, PlistData(profile).GetDeveloperCertificates())
+		require.Equal(t, false, PlistData(profile).GetProvisionsAllDevices())
 	}
 
 	t.Log("it creates model from enterprise profile content")
@@ -62,11 +71,14 @@ func TestPlistData(t *testing.T) {
 		require.Equal(t, "Bitrise Test Enterprise", PlistData(profile).GetName())
 		require.Equal(t, "9NS44DLTN7.com.Bitrise.Test", PlistData(profile).GetApplicationIdentifier())
 		require.Equal(t, "com.Bitrise.Test", PlistData(profile).GetBundleIdentifier())
-		require.Equal(t, exportoptions.MethodEnterprise, PlistData(profile).GetExportMethod())
+		require.Equal(t, exportoptions.MethodEnterprise, PlistData(profile).GetExportMethod(ProfileTypeIos))
 		require.Equal(t, "9NS44DLTN7", PlistData(profile).GetTeamID())
+		require.Equal(t, "Bitrise", PlistData(profile).GetTeamName())
+		require.Equal(t, "2015-10-05T13:32:46Z", PlistData(profile).GetCreationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, "2016-10-04T13:32:46Z", PlistData(profile).GetExpirationDate().Format("2006-01-02T15:04:05Z"))
 		require.Equal(t, []string(nil), PlistData(profile).GetProvisionedDevices())
 		require.Equal(t, [][]uint8{[]uint8{}}, PlistData(profile).GetDeveloperCertificates())
+		require.Equal(t, true, PlistData(profile).GetProvisionsAllDevices())
 	}
 }
 

@@ -1,30 +1,60 @@
 package export
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-tools/go-xcode/certificateutil"
-	"github.com/bitrise-tools/go-xcode/plistutil"
 	"github.com/bitrise-tools/go-xcode/profileutil"
 	"github.com/ryanuber/go-glob"
 )
 
-func isCertificateInstalled(installedCertificates []certificateutil.CertificateInfoModel, certificate certificateutil.CertificateInfoModel) bool {
-	installedMap := map[string]bool{}
-	for _, certificate := range installedCertificates {
-		installedMap[certificate.Serial] = true
+// SelectableCodeSignGroup ...
+type SelectableCodeSignGroup struct {
+	Certificate         certificateutil.CertificateInfoModel
+	BundleIDProfilesMap map[string][]profileutil.ProvisioningProfileInfoModel
+}
+
+// String ...
+func (group SelectableCodeSignGroup) String() string {
+	printable := map[string]interface{}{}
+	printable["team"] = fmt.Sprintf("%s (%s)", group.Certificate.TeamName, group.Certificate.TeamID)
+	printable["certificate"] = fmt.Sprintf("%s (%s)", group.Certificate.CommonName, group.Certificate.Serial)
+
+	bundleIDProfiles := map[string][]string{}
+	for bundleID, profileInfos := range group.BundleIDProfilesMap {
+		printableProfiles := []string{}
+		for _, profileInfo := range profileInfos {
+			printableProfiles = append(printableProfiles, fmt.Sprintf("%s (%s)", profileInfo.Name, profileInfo.UUID))
+		}
+		bundleIDProfiles[bundleID] = printableProfiles
 	}
-	return installedMap[certificate.Serial]
+	printable["bundle_id_profiles"] = bundleIDProfiles
+
+	data, err := json.MarshalIndent(printable, "", "\t")
+	if err != nil {
+		log.Errorf("Failed to marshal: %v, error: %s", printable, err)
+		return ""
+	}
+
+	return string(data)
 }
 
-// CertificateProfilesGroup ...
-type CertificateProfilesGroup struct {
-	Certificate certificateutil.CertificateInfoModel
-	Profiles    []profileutil.ProvisioningProfileInfoModel
+func isCertificateInstalled(installedCertificates []certificateutil.CertificateInfoModel, certificate certificateutil.CertificateInfoModel) bool {
+	for _, cert := range installedCertificates {
+		if cert.Serial == certificate.Serial {
+			return true
+		}
+	}
+	return false
 }
 
-func createCertificateProfilesGroups(certificates []certificateutil.CertificateInfoModel, profiles []profileutil.ProvisioningProfileInfoModel) []CertificateProfilesGroup {
+// CreateSelectableCodeSignGroups ...
+func CreateSelectableCodeSignGroups(certificates []certificateutil.CertificateInfoModel, profiles []profileutil.ProvisioningProfileInfoModel, bundleIDs []string) []SelectableCodeSignGroup {
+	groups := []SelectableCodeSignGroup{}
+
 	serialProfilesMap := map[string][]profileutil.ProvisioningProfileInfoModel{}
 	serialCertificateMap := map[string]certificateutil.CertificateInfoModel{}
 	for _, profile := range profiles {
@@ -33,8 +63,8 @@ func createCertificateProfilesGroups(certificates []certificateutil.CertificateI
 				continue
 			}
 
-			certificateProfiles := serialProfilesMap[certificate.Serial]
-			if certificateProfiles == nil {
+			certificateProfiles, ok := serialProfilesMap[certificate.Serial]
+			if !ok {
 				certificateProfiles = []profileutil.ProvisioningProfileInfoModel{}
 			}
 			certificateProfiles = append(certificateProfiles, profile)
@@ -43,42 +73,15 @@ func createCertificateProfilesGroups(certificates []certificateutil.CertificateI
 		}
 	}
 
-	groups := []CertificateProfilesGroup{}
 	for serial, profiles := range serialProfilesMap {
 		certificate := serialCertificateMap[serial]
-		group := CertificateProfilesGroup{
-			Certificate: certificate,
-			Profiles:    profiles,
-		}
-		groups = append(groups, group)
-	}
-
-	return groups
-}
-
-// SelectableCodeSignGroup ..
-type SelectableCodeSignGroup struct {
-	Certificate         certificateutil.CertificateInfoModel
-	BundleIDProfilesMap map[string][]profileutil.ProvisioningProfileInfoModel
-}
-
-func createSelectableCodeSignGroups(certificateProfilesGroups []CertificateProfilesGroup, bundleIDCapabilitiesMap map[string]plistutil.PlistData) []SelectableCodeSignGroup {
-	groups := []SelectableCodeSignGroup{}
-
-	for _, certificateProfilesGroup := range certificateProfilesGroups {
-		certificate := certificateProfilesGroup.Certificate
-		profiles := certificateProfilesGroup.Profiles
 
 		bundleIDProfilesMap := map[string][]profileutil.ProvisioningProfileInfoModel{}
-		for bundleID, capabilities := range bundleIDCapabilitiesMap {
+		for _, bundleID := range bundleIDs {
 
 			matchingProfiles := []profileutil.ProvisioningProfileInfoModel{}
 			for _, profile := range profiles {
 				if !glob.Glob(profile.BundleID, bundleID) {
-					continue
-				}
-
-				if missingCapabilities := profileutil.MatchTargetAndProfileEntitlements(capabilities, profile.Entitlements); len(missingCapabilities) > 0 {
 					continue
 				}
 
@@ -91,7 +94,7 @@ func createSelectableCodeSignGroups(certificateProfilesGroups []CertificateProfi
 			}
 		}
 
-		if len(bundleIDProfilesMap) == len(bundleIDCapabilitiesMap) {
+		if len(bundleIDProfilesMap) == len(bundleIDs) {
 			group := SelectableCodeSignGroup{
 				Certificate:         certificate,
 				BundleIDProfilesMap: bundleIDProfilesMap,
@@ -103,255 +106,20 @@ func createSelectableCodeSignGroups(certificateProfilesGroups []CertificateProfi
 	return groups
 }
 
-// ResolveSelectableCodeSignGroups ...
-func ResolveSelectableCodeSignGroups(certificates []certificateutil.CertificateInfoModel, profiles []profileutil.ProvisioningProfileInfoModel, bundleIDCapabilities map[string]plistutil.PlistData) []SelectableCodeSignGroup {
-	certificateProfilesGroups := createCertificateProfilesGroups(certificates, profiles)
-	return createSelectableCodeSignGroups(certificateProfilesGroups, bundleIDCapabilities)
+// ByBundleIDLength ...
+type ByBundleIDLength []profileutil.ProvisioningProfileInfoModel
+
+// Len ..
+func (s ByBundleIDLength) Len() int {
+	return len(s)
 }
 
-// CodeSignGroup ...
-type CodeSignGroup struct {
-	Certificate        certificateutil.CertificateInfoModel
-	BundleIDProfileMap map[string]profileutil.ProvisioningProfileInfoModel
+// Swap ...
+func (s ByBundleIDLength) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
 
-func createCodeSignGroups(selectableGroups []SelectableCodeSignGroup) []CodeSignGroup {
-	alreadyUsedProfileUUIDMap := map[string]bool{}
-
-	singleWildcardGroups := []CodeSignGroup{}
-	xcodeManagedGroups := []CodeSignGroup{}
-	notXcodeManagedGroups := []CodeSignGroup{}
-	remainingGroups := []CodeSignGroup{}
-
-	for _, selectableGroup := range selectableGroups {
-		certificate := selectableGroup.Certificate
-		bundleIDProfilesMap := selectableGroup.BundleIDProfilesMap
-
-		bundleIDs := []string{}
-		profiles := []profileutil.ProvisioningProfileInfoModel{}
-		for bundleID, matchingProfiles := range bundleIDProfilesMap {
-			bundleIDs = append(bundleIDs, bundleID)
-			profiles = append(profiles, matchingProfiles...)
-		}
-
-		//
-		// create groups with single wildcard profiles
-		{
-			for _, profile := range profiles {
-				if alreadyUsedProfileUUIDMap[profile.UUID] {
-					continue
-				}
-
-				matchesForAllBundleID := true
-				for _, bundleID := range bundleIDs {
-					if !glob.Glob(profile.BundleID, bundleID) {
-						matchesForAllBundleID = false
-						break
-					}
-				}
-				if matchesForAllBundleID {
-					bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
-					for _, bundleID := range bundleIDs {
-						bundleIDProfileMap[bundleID] = profile
-					}
-
-					group := CodeSignGroup{
-						Certificate:        certificate,
-						BundleIDProfileMap: bundleIDProfileMap,
-					}
-					singleWildcardGroups = append(singleWildcardGroups, group)
-
-					alreadyUsedProfileUUIDMap[profile.UUID] = true
-				}
-			}
-		}
-
-		//
-		// create groups with xcode managed profiles
-		{
-			// collect xcode managed profiles
-			xcodeManagedProfiles := []profileutil.ProvisioningProfileInfoModel{}
-			for _, profile := range profiles {
-				if !alreadyUsedProfileUUIDMap[profile.UUID] && profile.IsXcodeManaged() {
-					xcodeManagedProfiles = append(xcodeManagedProfiles, profile)
-				}
-			}
-			sort.Sort(ByBundleIDLength(xcodeManagedProfiles))
-
-			// map profiles to bundle ids + remove the already used profiles
-			bundleIDMannagedProfilesMap := map[string][]profileutil.ProvisioningProfileInfoModel{}
-			for _, bundleID := range bundleIDs {
-				for _, profile := range xcodeManagedProfiles {
-					if !glob.Glob(profile.BundleID, bundleID) {
-						continue
-					}
-
-					matchingProfiles := bundleIDMannagedProfilesMap[bundleID]
-					if matchingProfiles == nil {
-						matchingProfiles = []profileutil.ProvisioningProfileInfoModel{}
-					}
-					matchingProfiles = append(matchingProfiles, profile)
-					bundleIDMannagedProfilesMap[bundleID] = matchingProfiles
-				}
-			}
-
-			if len(bundleIDMannagedProfilesMap) == len(bundleIDs) {
-				// if only one profile can sign a bundle id, remove it from bundleIDMannagedProfilesMap
-				alreadyUsedManagedProfileMap := map[string]bool{}
-				for _, profiles := range bundleIDMannagedProfilesMap {
-					if len(profiles) == 1 {
-						profile := profiles[0]
-						alreadyUsedManagedProfileMap[profile.UUID] = true
-					}
-				}
-
-				bundleIDMannagedProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
-				for bundleID, profiles := range bundleIDMannagedProfilesMap {
-					if len(profiles) == 1 {
-						bundleIDMannagedProfileMap[bundleID] = profiles[0]
-					} else {
-						remainingProfiles := []profileutil.ProvisioningProfileInfoModel{}
-						for _, profile := range profiles {
-							if !alreadyUsedManagedProfileMap[profile.UUID] {
-								remainingProfiles = append(remainingProfiles, profile)
-							}
-						}
-						if len(remainingProfiles) == 1 {
-							bundleIDMannagedProfileMap[bundleID] = remainingProfiles[0]
-						}
-					}
-				}
-
-				// create code sign group
-				if len(bundleIDMannagedProfileMap) == len(bundleIDs) {
-					for _, profile := range bundleIDMannagedProfileMap {
-						alreadyUsedProfileUUIDMap[profile.UUID] = true
-					}
-
-					group := CodeSignGroup{
-						Certificate:        certificate,
-						BundleIDProfileMap: bundleIDMannagedProfileMap,
-					}
-					xcodeManagedGroups = append(xcodeManagedGroups, group)
-				}
-			}
-		}
-
-		//
-		// create groups with NOT xcode managed profiles
-		{
-			// collect xcode managed profiles
-			notXcodeManagedProfiles := []profileutil.ProvisioningProfileInfoModel{}
-			for _, profile := range profiles {
-				if !alreadyUsedProfileUUIDMap[profile.UUID] && !profile.IsXcodeManaged() {
-					notXcodeManagedProfiles = append(notXcodeManagedProfiles, profile)
-				}
-			}
-			sort.Sort(ByBundleIDLength(notXcodeManagedProfiles))
-
-			// map profiles to bundle ids + remove the already used profiles
-			bundleIDNotMannagedProfilesMap := map[string][]profileutil.ProvisioningProfileInfoModel{}
-			for _, bundleID := range bundleIDs {
-				for _, profile := range notXcodeManagedProfiles {
-					if !glob.Glob(profile.BundleID, bundleID) {
-						continue
-					}
-
-					matchingProfiles := bundleIDNotMannagedProfilesMap[bundleID]
-					if matchingProfiles == nil {
-						matchingProfiles = []profileutil.ProvisioningProfileInfoModel{}
-					}
-					matchingProfiles = append(matchingProfiles, profile)
-					bundleIDNotMannagedProfilesMap[bundleID] = matchingProfiles
-				}
-			}
-
-			if len(bundleIDNotMannagedProfilesMap) == len(bundleIDs) {
-				// if only one profile can sign a bundle id, remove it from bundleIDNotMannagedProfilesMap
-				alreadyUsedNotManagedProfileMap := map[string]bool{}
-				for _, profiles := range bundleIDNotMannagedProfilesMap {
-					if len(profiles) == 1 {
-						profile := profiles[0]
-						alreadyUsedNotManagedProfileMap[profile.UUID] = true
-					}
-				}
-
-				bundleIDNotMannagedProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
-				for bundleID, profiles := range bundleIDNotMannagedProfilesMap {
-					if len(profiles) == 1 {
-						bundleIDNotMannagedProfileMap[bundleID] = profiles[0]
-					} else {
-						remainingProfiles := []profileutil.ProvisioningProfileInfoModel{}
-						for _, profile := range profiles {
-							if !alreadyUsedNotManagedProfileMap[profile.UUID] {
-								remainingProfiles = append(remainingProfiles, profile)
-							}
-						}
-						if len(remainingProfiles) == 1 {
-							bundleIDNotMannagedProfileMap[bundleID] = remainingProfiles[0]
-						}
-					}
-				}
-
-				// create code sign group
-				if len(bundleIDNotMannagedProfileMap) == len(bundleIDs) {
-					for _, profile := range bundleIDNotMannagedProfileMap {
-						alreadyUsedProfileUUIDMap[profile.UUID] = true
-					}
-
-					codeSignGroup := CodeSignGroup{
-						Certificate:        certificate,
-						BundleIDProfileMap: bundleIDNotMannagedProfileMap,
-					}
-					notXcodeManagedGroups = append(notXcodeManagedGroups, codeSignGroup)
-				}
-			}
-		}
-
-		//
-		// if there are remaining profiles we create a not exact group by using the first matching profile for every bundle id
-		{
-			if len(alreadyUsedProfileUUIDMap) != len(profiles) {
-				bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
-				for _, bundleID := range bundleIDs {
-					for _, profile := range profiles {
-						if alreadyUsedProfileUUIDMap[profile.UUID] {
-							continue
-						}
-
-						if !glob.Glob(profile.BundleID, bundleID) {
-							continue
-						}
-
-						bundleIDProfileMap[bundleID] = profile
-						break
-					}
-				}
-
-				if len(bundleIDProfileMap) == len(bundleIDs) {
-					group := CodeSignGroup{
-						Certificate:        certificate,
-						BundleIDProfileMap: bundleIDProfileMap,
-					}
-					remainingGroups = append(remainingGroups, group)
-				}
-			}
-		}
-
-		fmt.Println()
-	}
-
-	codeSignGroups := []CodeSignGroup{}
-	codeSignGroups = append(codeSignGroups, notXcodeManagedGroups...)
-	codeSignGroups = append(codeSignGroups, xcodeManagedGroups...)
-	codeSignGroups = append(codeSignGroups, singleWildcardGroups...)
-	codeSignGroups = append(codeSignGroups, remainingGroups...)
-
-	return codeSignGroups
-}
-
-// ResolveCodeSignGroups ...
-func ResolveCodeSignGroups(certificates []certificateutil.CertificateInfoModel, profiles []profileutil.ProvisioningProfileInfoModel, bundleIDCapabilities map[string]plistutil.PlistData) []CodeSignGroup {
-	selectableCodeSignGroups := ResolveSelectableCodeSignGroups(certificates, profiles, bundleIDCapabilities)
-	return createCodeSignGroups(selectableCodeSignGroups)
+// Less ...
+func (s ByBundleIDLength) Less(i, j int) bool {
+	return len(s[i].BundleID) > len(s[j].BundleID)
 }

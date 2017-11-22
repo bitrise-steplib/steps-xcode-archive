@@ -55,7 +55,10 @@ func (profile PlistData) GetApplicationIdentifier() string {
 
 	applicationID, ok := entitlements.GetString("application-identifier")
 	if !ok {
-		return ""
+		applicationID, ok = entitlements.GetString("com.apple.application-identifier")
+		if !ok {
+			return ""
+		}
 	}
 	return applicationID
 }
@@ -77,8 +80,20 @@ func (profile PlistData) GetBundleIdentifier() string {
 }
 
 // GetExportMethod ...
-func (profile PlistData) GetExportMethod() exportoptions.Method {
+func (profile PlistData) GetExportMethod(profileType ProfileType) exportoptions.Method {
 	data := plistutil.PlistData(profile)
+
+	if profileType == ProfileTypeMacOs {
+		_, ok := data.GetStringArray("ProvisionedDevices")
+		if !ok {
+			if allDevices, ok := data.GetBool("ProvisionsAllDevices"); ok && allDevices {
+				return exportoptions.MethodDeveloperID
+			}
+			return exportoptions.MethodAppStore
+		}
+		return exportoptions.MethodDevelopment
+	}
+
 	_, ok := data.GetStringArray("ProvisionedDevices")
 	if !ok {
 		if allDevices, ok := data.GetBool("ProvisionsAllDevices"); ok && allDevices {
@@ -135,4 +150,25 @@ func (profile PlistData) GetDeveloperCertificates() [][]byte {
 	data := plistutil.PlistData(profile)
 	developerCertificates, _ := data.GetByteArrayArray("DeveloperCertificates")
 	return developerCertificates
+}
+
+// GetTeamName ...
+func (profile PlistData) GetTeamName() string {
+	data := plistutil.PlistData(profile)
+	teamName, _ := data.GetString("TeamName")
+	return teamName
+}
+
+// GetCreationDate ...
+func (profile PlistData) GetCreationDate() time.Time {
+	data := plistutil.PlistData(profile)
+	creationDate, _ := data.GetTime("CreationDate")
+	return creationDate
+}
+
+// GetProvisionsAllDevices ...
+func (profile PlistData) GetProvisionsAllDevices() bool {
+	data := plistutil.PlistData(profile)
+	provisionsAlldevices, _ := data.GetBool("ProvisionsAllDevices")
+	return provisionsAlldevices
 }
