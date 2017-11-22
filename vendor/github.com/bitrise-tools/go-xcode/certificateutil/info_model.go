@@ -115,11 +115,16 @@ func InstalledCodesigningCertificateInfos() ([]CertificateInfoModel, error) {
 	return CertificateInfos(certificates), nil
 }
 
-// InstalledMacAppStoreCertificateInfos ...
-func InstalledMacAppStoreCertificateInfos() ([]CertificateInfoModel, error) {
+// InstalledInstallerCertificateInfos ...
+func InstalledInstallerCertificateInfos() ([]CertificateInfoModel, error) {
 	certificates, err := InstalledMacAppStoreCertificates()
 	if err != nil {
 		return nil, err
 	}
-	return CertificateInfos(certificates), nil
+
+	installerCertificates := FilterCertificateInfoModelsByFilterFunc(CertificateInfos(certificates), func(cert CertificateInfoModel) bool {
+		return strings.Contains(cert.CommonName, "Installer")
+	})
+
+	return installerCertificates, nil
 }

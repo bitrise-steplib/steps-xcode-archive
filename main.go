@@ -19,11 +19,9 @@ import (
 	"github.com/bitrise-tools/go-xcode/certificateutil"
 	"github.com/bitrise-tools/go-xcode/export"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
-	"github.com/bitrise-tools/go-xcode/plistutil"
 	"github.com/bitrise-tools/go-xcode/profileutil"
 	"github.com/bitrise-tools/go-xcode/xcarchive"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
-	"github.com/bitrise-tools/go-xcode/xcodeproj"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
 )
@@ -586,63 +584,24 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			if xcodeMajorVersion >= 9 {
 				log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
-				user := os.Getenv("USER")
-				targetCodeSignInfoMap, err := xcodeproj.ResolveCodeSignInfo(configs.ProjectPath, configs.Scheme, user)
-				if err != nil {
-					log.Errorf("Failed to create scheme - target mapping, error: %s", err)
-					log.Errorf("Please contact us on bitrise on-site-chat and")
-					log.Errorf("attach your failed build url and your project file(s) (.xcworkspace and/or .xcodeproj file(s)),")
-					log.Errorf("to let us identify the issue.")
-					os.Exit(1)
-				}
-
+				bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
 				bundleIDs := []string{}
-				bundleIDTargetMap := map[string]string{}
-				bundleIDEntitlementsMap := map[string]plistutil.PlistData{}
-
-				fmt.Println()
-				log.Printf("Target - CodeSignInfo mapping:")
-				for target, info := range targetCodeSignInfoMap {
-					log.Printf(target)
-					log.Printf("  bundleIdentifier: %s", info.BundleIdentifier)
-					log.Printf("  developmentTeam: %s", info.DevelopmentTeam)
-					log.Printf("  codeSignIdentity: %s", info.CodeSignIdentity)
-
-					profile := info.ProvisioningProfileSpecifier
-					if profile == "" {
-						profile = info.ProvisioningProfile
-					}
-					log.Printf("  profile: %s", profile)
-
-					bundleIDs = append(bundleIDs, info.BundleIdentifier)
-					bundleIDTargetMap[info.BundleIdentifier] = target
-
-					if info.CodeSignEntitlementsPath == "" {
-						continue
-					}
-
-					if exist, err := pathutil.IsPathExists(info.CodeSignEntitlementsPath); err != nil {
-						log.Warnf("Failed to check if target (%s) entitlements file exist, error: %s", target, err)
-						continue
-					} else if !exist {
-						log.Warnf("Target (%s) entitlements file not exist at: %s", target, info.CodeSignEntitlementsPath)
-						continue
-					}
-
-					entitlements, err := plistutil.NewPlistDataFromFile(info.CodeSignEntitlementsPath)
-					if err != nil {
-						log.Warnf("Failed to parse target (%s) entitlements", target)
-						continue
-					}
-
-					bundleIDEntitlementsMap[info.BundleIdentifier] = entitlements
-
-					log.Printf("  Entitlements:")
-					for key := range entitlements {
-						log.Printf("  - %s", key)
-					}
+				for bundleID := range bundleIDEntitlementsMap {
+					bundleIDs = append(bundleIDs, bundleID)
 				}
+
 				fmt.Println()
+				log.Printf("Target Bundle ID - Entitlements map")
+				for bundleID, entitlements := range bundleIDEntitlementsMap {
+					entitlementKeys := []string{}
+					for key := range entitlements {
+						entitlementKeys = append(entitlementKeys, key)
+					}
+					log.Printf("%s: %s", bundleID, entitlementKeys)
+				}
+
+				fmt.Println()
+				log.Printf("Resolving CodeSignGroups...")
 
 				certs, err := certificateutil.InstalledCodesigningCertificateInfos()
 				if err != nil {
