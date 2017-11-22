@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.0)
+## Changelog (Current version: 2.4.1)
 
 -----------------
+
+### 2.4.1 (2017 Nov 22)
+
+* [a7dbe78] Bump version to 2.4.1
+* [e29f97b] Filter for specified export method (#96)
 
 ### 2.4.0 (2017 Nov 22)
 
