@@ -1,6 +1,13 @@
-## Changelog (Current version: 2.3.7)
+## Changelog (Current version: 2.4.0)
 
 -----------------
+
+### 2.4.0 (2017 Nov 22)
+
+* [1411d87] Bump version to 2.4.0
+* [b66a619] Print archvive infos based on the xcarchive model (#95)
+* [4cd6cef] Deprecate 'auto-detect' export method (#94)
+* [c1471a8] Filter for valid certificates (#93)
 
 ### 2.3.7 (2017 Oct 26)
 
@@ -338,4 +345,4 @@
 
 -----------------
 
-Updated: 2017 Oct 26
+Updated: 2017 Nov 22
