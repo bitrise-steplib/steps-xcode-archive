@@ -677,12 +677,15 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				filters := []export.SelectableCodeSignGroupFilter{}
 
-				if !archiveCodeSignIsXcodeManaged {
-					log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
-						"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
-						"Removing xcode managed CodeSignInfo groups")
-					filters = append(filters, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
+				if len(bundleIDEntitlementsMap) > 0 {
+					log.Warnf("Filtering CodeSignInfo groups for target capabilities")
+					filters = append(filters,
+						export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
 				}
+
+				log.Warnf("Filtering CodeSignInfo groups for export method")
+				filters = append(filters,
+					export.CreateExportMethodSelectableCodeSignGroupFilter(exportMethod))
 
 				if configs.TeamID != "" {
 					log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", configs.TeamID)
@@ -690,10 +693,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						export.CreateTeamSelectableCodeSignGroupFilter(configs.TeamID))
 				}
 
-				if len(bundleIDEntitlementsMap) > 0 {
-					log.Warnf("Filtering CodeSignInfo groups for target capabilities")
-					filters = append(filters,
-						export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
+				if !archiveCodeSignIsXcodeManaged {
+					log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
+						"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
+						"Removing xcode managed CodeSignInfo groups")
+					filters = append(filters, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
 				}
 
 				codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, filters...)
