@@ -4,8 +4,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/bitrise-io/go-utils"
-  packages = ["colorstring","command","errorutil","fileutil","log","pathutil","pkcs12","pkcs12/internal/rc2"]
-  revision = "e25bd13153e87e91289343f55b3ee8d3228fb7ac"
+  packages = ["colorstring","command","errorutil","fileutil","log","pathutil","pkcs12","pkcs12/internal/rc2","stringutil"]
+  revision = "f1da7139131b85ab2a4bd4ffacbdc889a40018a1"
 
 [[projects]]
   branch = "master"
@@ -23,7 +23,7 @@
   branch = "master"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
-  revision = "fc61389e27c71d120f87031ca8c88a3428f372dd"
+  revision = "4fe82ae3040f80a03d04d2cccb5606a626b8e1ee"
 
 [[projects]]
   branch = "master"
@@ -52,6 +52,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4c3d9c010d2e063ad720fe923285071f9b5ff92390dcb481f2a0f2ffdca628f4"
+  inputs-digest = "a97639302e3f7cf7869dfdee91b1ed7f23db98684c97ca28210b9e81963560c8"
   solver-name = "gps-cdcl"
   solver-version = 1

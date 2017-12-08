@@ -17,7 +17,6 @@ workflows:
     - test_objc
     - test_xcode_8
     - test_multi_target
-    - test_entitlements
 
   test_xcode_7:
     before_run:
@@ -63,17 +62,6 @@ workflows:
     - BITRISE_SCHEME: code-sign-test
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
     - FORCE_TEAM_ID: 72SA8V3WYL
-    after_run:
-    - _common
-
-  test_entitlements:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - COMMIT: "0562d74e591e1cfdf6cdfeb603880f64f31f000c"
-    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-    - BITRISE_SCHEME: code-sign-test
-    - FORCE_CODE_SIGN_IDENTITY: ""
-    - FORCE_TEAM_ID: ""
     after_run:
     - _common
 
