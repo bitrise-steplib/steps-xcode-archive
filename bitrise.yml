@@ -17,7 +17,6 @@ workflows:
     - test_objc
     - test_xcode_8
     - test_multi_target
-    - test_entitlements
 
   test_xcode_7:
     before_run:
