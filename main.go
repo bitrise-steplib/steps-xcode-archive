@@ -435,7 +435,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		fmt.Println()
 
 		if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-			log.Errorf("\nLast lines of the Xcode build log:")
+			log.Errorf("\nLast lines of the Xcode's build log:")
 			fmt.Println(stringutil.LastNLines(rawXcodebuildOut, 10))
 
 			if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
