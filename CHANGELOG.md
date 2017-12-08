@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.2)
+## Changelog (Current version: 2.4.3)
 
 -----------------
+
+### 2.4.3 (2017 Dec 08)
+
+* [08d6a8d] Bump version to 2.4.3
+* [133ef0b] Print last lines of the raw xcodebuild log (#98)
 
 ### 2.4.2 (2017 Nov 22)
 
@@ -355,4 +360,4 @@
 
 -----------------
 
-Updated: 2017 Nov 22
+Updated: 2017 Dec 08
