@@ -31,7 +31,6 @@ toolkit:
 inputs:
   - export_method: "auto-detect"
     opts:
-      category: Export Options
       title: "Select method for export"
       summary: ""
       description: |-
@@ -49,7 +48,6 @@ inputs:
       - "development"
   - team_id:
     opts:
-      category: Export Options
       title: "The Developer Portal team to use for this export"
       summary: ""
       description: |-
@@ -63,7 +61,6 @@ inputs:
         - `1MZX23ABCD4`
   - upload_bitcode: "yes"
     opts:
-      category: Export Options
       title: "Include bitcode"
       summary: ""
       description: |-
@@ -73,7 +70,6 @@ inputs:
       - "no"
   - compile_bitcode: "yes"
     opts:
-      category: Export Options
       title: "Rebuild from bitcode"
       summary: ""
       description: |
@@ -83,7 +79,6 @@ inputs:
       - "no"
   - custom_export_options_plist_content:
     opts:
-      category: Export Options (debug)
       title: "Custom export options plist content"
       description: |-
         Used for Xcode version 7 and above.
