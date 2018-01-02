@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.3)
+## Changelog (Current version: 2.4.4)
 
 -----------------
+
+### 2.4.4 (2018 Jan 02)
+
+* [ef12984] Bump version to 2.4.4
+* [cce0d91] Remove category from Export options inputs (#99)
 
 ### 2.4.3 (2017 Dec 08)
 
@@ -360,4 +365,4 @@
 
 -----------------
 
-Updated: 2017 Dec 08
+Updated: 2018 Jan 02
