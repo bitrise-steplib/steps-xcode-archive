@@ -79,6 +79,7 @@ inputs:
       - "no"
   - custom_export_options_plist_content:
     opts:
+      category: Export Options (debug)
       title: "Custom export options plist content"
       description: |-
         Used for Xcode version 7 and above.
