@@ -17,6 +17,7 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
+	"github.com/bitrise-tools/go-steputils/input"
 	"github.com/bitrise-tools/go-xcode/certificateutil"
 	"github.com/bitrise-tools/go-xcode/export"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
@@ -25,6 +26,7 @@ import (
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
+	"howett.net/plist"
 )
 
 const (
@@ -102,7 +104,6 @@ func createConfigsModelFromEnvs() ConfigsModel {
 }
 
 func (configs ConfigsModel) print() {
-
 	log.Infof("ipa export configs:")
 	log.Printf("- ExportMethod: %s", configs.ExportMethod)
 	if configs.ExportMethod == "auto-detect" {
@@ -144,56 +145,59 @@ func (configs ConfigsModel) print() {
 }
 
 func (configs ConfigsModel) validate() error {
-	if configs.ProjectPath == "" {
-		return errors.New("no ProjectPath parameter specified")
+	// ipa export configs
+	if err := input.ValidateWithOptions(configs.ExportMethod, "auto-detect", "app-store", "ad-hoc", "enterprise", "development"); err != nil {
+		return errors.New("issue with input ExportMethod: " + err.Error())
 	}
-	if exist, err := pathutil.IsPathExists(configs.ProjectPath); err != nil {
-		return fmt.Errorf("failed to check if ProjectPath exist at: %s, error: %s", configs.ProjectPath, err)
-	} else if !exist {
-		return fmt.Errorf("projectPath not exist at: %s", configs.ProjectPath)
+	if err := input.ValidateWithOptions(configs.UploadBitcode, "yes", "no"); err != nil {
+		return errors.New("issue with input UploadBitcode: " + err.Error())
 	}
-
-	if configs.Scheme == "" {
-		return errors.New("no Scheme parameter specified")
+	if err := input.ValidateWithOptions(configs.CompileBitcode, "yes", "no"); err != nil {
+		return errors.New("issue with input CompileBitcode: " + err.Error())
 	}
 
-	if configs.OutputDir == "" {
-		return errors.New("no OutputDir parameter specified")
+	if err := input.ValidateWithOptions(configs.UseDeprecatedExport, "yes", "no"); err != nil {
+		return errors.New("issue with input UseDeprecatedExport: " + err.Error())
+	}
+	if configs.CustomExportOptionsPlistContent != "" {
+		var options interface{}
+		if _, err := plist.Unmarshal([]byte(configs.CustomExportOptionsPlistContent), &options); err != nil {
+			return errors.New("issue with input CustomExportOptionsPlistContent: " + err.Error())
+		}
 	}
 
-	if configs.OutputTool == "" {
-		return errors.New("no OutputTool parameter specified")
-	}
-	if configs.OutputTool != "xcpretty" && configs.OutputTool != "xcodebuild" {
-		return fmt.Errorf("invalid OutputTool specified (%s), valid options: [xcpretty xcodebuild]", configs.OutputTool)
+	// xcodebuild configs
+	if err := input.ValidateWithOptions(configs.OutputTool, "xcpretty", "xcodebuild"); err != nil {
+		return errors.New("issue with input OutputTool: " + err.Error())
 	}
 
-	if configs.IsCleanBuild == "" {
-		return errors.New("no IsCleanBuild parameter specified")
+	if configs.Workdir != "" {
+		if err := input.ValidateIfDirExists(configs.Workdir); err != nil {
+			return errors.New("issue with input Workdir: " + err.Error())
+		}
 	}
-	if configs.IsCleanBuild != "yes" && configs.IsCleanBuild != "no" {
-		return fmt.Errorf("invalid IsCleanBuild specified (%s), valid options: [yes no]", configs.IsCleanBuild)
+	if err := input.ValidateIfPathExists(configs.ProjectPath); err != nil {
+		return errors.New("issue with input ProjectPath: " + err.Error())
 	}
-
-	if configs.IsExportXcarchiveZip == "" {
-		return errors.New("no IsExportXcarchiveZip parameter specified")
+	if err := input.ValidateIfNotEmpty(configs.Scheme); err != nil {
+		return errors.New("issue with input Scheme: " + err.Error())
 	}
-	if configs.IsExportXcarchiveZip != "yes" && configs.IsExportXcarchiveZip != "no" {
-		return fmt.Errorf("invalid IsExportXcarchiveZip specified (%s), valid options: [yes no]", configs.IsExportXcarchiveZip)
+	if err := input.ValidateIfDirExists(configs.OutputDir); err != nil {
+		return errors.New("issue with input OutputDir: " + err.Error())
 	}
-
-	if configs.UseDeprecatedExport == "" {
-		return errors.New("no UseDeprecatedExport parameter specified")
-	}
-	if configs.UseDeprecatedExport != "yes" && configs.UseDeprecatedExport != "no" {
-		return fmt.Errorf("invalid UseDeprecatedExport specified (%s), valid options: [yes no]", configs.UseDeprecatedExport)
+	if err := input.ValidateWithOptions(configs.IsCleanBuild, "yes", "no"); err != nil {
+		return errors.New("issue with input IsCleanBuild: " + err.Error())
 	}
 
-	if configs.ExportAllDsyms == "" {
-		return errors.New("no ExportAllDsyms parameter specified")
+	// step output configs
+	if err := input.ValidateWithOptions(configs.IsExportXcarchiveZip, "yes", "no"); err != nil {
+		return errors.New("issue with input IsExportXcarchiveZip: " + err.Error())
 	}
-	if configs.ExportAllDsyms != "yes" && configs.ExportAllDsyms != "no" {
-		return fmt.Errorf("invalid ExportAllDsyms specified (%s), valid options: [yes no]", configs.ExportAllDsyms)
+	if err := input.ValidateWithOptions(configs.ExportAllDsyms, "yes", "no"); err != nil {
+		return errors.New("issue with input ExportAllDsyms: " + err.Error())
+	}
+	if err := input.ValidateWithOptions(configs.VerboseLog, "yes", "no"); err != nil {
+		return errors.New("issue with input VerboseLog: " + err.Error())
 	}
 
 	return nil
