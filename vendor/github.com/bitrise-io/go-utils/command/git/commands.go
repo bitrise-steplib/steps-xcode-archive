@@ -11,7 +11,7 @@ func (g *Git) Init() *command.Model {
 
 // Clone a repository into a new directory.
 func (g *Git) Clone(repo string) *command.Model {
-	return g.command("clone", repo)
+	return g.command("clone", repo, ".")
 }
 
 // RemoteList shows a list of existing remote urls with remote names.
