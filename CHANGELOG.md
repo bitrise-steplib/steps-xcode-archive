@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.4)
+## Changelog (Current version: 2.4.5)
 
 -----------------
+
+### 2.4.5 (2018 Jan 17)
+
+* [83caee1] prepare for 2.4.5
+* [2f6197c] input validation update (#101)
 
 ### 2.4.4 (2018 Jan 02)
 
@@ -365,4 +370,4 @@
 
 -----------------
 
-Updated: 2018 Jan 02
+Updated: 2018 Jan 17
