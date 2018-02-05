@@ -182,7 +182,7 @@ func (configs ConfigsModel) validate() error {
 	if err := input.ValidateIfNotEmpty(configs.Scheme); err != nil {
 		return errors.New("issue with input Scheme: " + err.Error())
 	}
-	if err := input.ValidateIfDirExists(configs.OutputDir); err != nil {
+	if err := input.ValidateIfNotEmpty(configs.OutputDir); err != nil {
 		return errors.New("issue with input OutputDir: " + err.Error())
 	}
 	if err := input.ValidateWithOptions(configs.IsCleanBuild, "yes", "no"); err != nil {
