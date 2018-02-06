@@ -160,7 +160,7 @@ func (configs ConfigsModel) validate() error {
 		return errors.New("issue with input UseDeprecatedExport: " + err.Error())
 	}
 	if configs.CustomExportOptionsPlistContent != "" {
-		var options interface{}
+		var options map[string]interface{}
 		if _, err := plist.Unmarshal([]byte(configs.CustomExportOptionsPlistContent), &options); err != nil {
 			return errors.New("issue with input CustomExportOptionsPlistContent: " + err.Error())
 		}
