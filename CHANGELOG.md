@@ -1,6 +1,12 @@
-## Changelog (Current version: 2.4.5)
+## Changelog (Current version: 2.4.6)
 
 -----------------
+
+### 2.4.6 (2018 Feb 07)
+
+* [8bb9c6f] Bump version to 2.4.6
+* [0b13da6] fixed custom export options validation (#103)
+* [707699d] Don't validate if output dir is exist (#102)
 
 ### 2.4.5 (2018 Jan 17)
 
@@ -370,4 +376,4 @@
 
 -----------------
 
-Updated: 2018 Jan 17
+Updated: 2018 Feb 07
