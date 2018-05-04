@@ -10,27 +10,6 @@ app:
 workflows:
   # ----------------------------------------------------------------
   # --- workflow to Step Test
-  test:
-    before_run:
-    - go-tests
-    after_run:
-    - test_objc
-    - test_xcode_8
-    - test_multi_target
-
-  test_xcode_7:
-    before_run:
-    - go-tests
-    after_run:
-    - test_objc
-
-  test_xcode_8:
-    before_run:
-    - go-tests
-    after_run:
-    - test_objc
-    - test_xcode_8
-
   test_objc:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
@@ -43,7 +22,20 @@ workflows:
     after_run:
     - _common
 
+  test_xcode_7:
+    steps:
+    - go-list:
+    - go-test:
+    after_run:
+    - test_objc
+    - _common
+
   test_xcode_8:
+    steps:
+    - go-list:
+    - golint:
+    - errcheck:
+    - go-test:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
     - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
@@ -52,9 +44,12 @@ workflows:
     - FORCE_TEAM_ID: 72SA8V3WYL
     - OUTPUT_TOOL: xcpretty
     after_run:
+    - test_objc
     - _common
 
   test_multi_target:
+    before_run:
+    - test_xcode_8
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
     - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
@@ -119,67 +114,6 @@ workflows:
             echo "-> BITRISE_XCARCHIVE_PATH:             $BITRISE_XCARCHIVE_PATH"
             echo "-> BITRISE_IDEDISTRIBUTION_LOGS_PATH:  $BITRISE_IDEDISTRIBUTION_LOGS_PATH"
             echo "-> BITRISE_XCODE_RAW_RESULT_TEXT_PATH: $BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
-
-  go-tests:
-    before_run:
-    - _install-test-tools
-    steps:
-    - script:
-        title: Export go files to test
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-
-            no_vendor_paths="$(go list ./... | grep -v vendor)"
-            envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
-    - script:
-        title: Err check
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-
-            errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
-    - script:
-        title: Go lint
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-
-            while read -r line; do
-              echo "-> Linting: $line"
-              golint_out="$(golint $line)"
-              if [[ "${golint_out}" != "" ]] ; then
-                echo "=> Golint issues found:"
-                echo "${golint_out}"
-                exit 1
-              fi
-            done <<< "$GOLIST_WITHOUT_VENDOR"
-    - script:
-        title: Go test
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-
-            go test $(go list ./... | grep -v vendor)
-
-  _install-test-tools:
-    steps:
-    - script:
-        title: Install required testing tools
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-
-            # Check for unhandled errors
-            go get -u -v github.com/kisielk/errcheck
-
-            # Go lint
-            go get -u -v github.com/golang/lint/golint
 
   # ----------------------------------------------------------------
   # --- Utility workflows
