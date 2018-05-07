@@ -29,6 +29,33 @@ toolkit:
   go:
     package_name: github.com/bitrise-io/steps-xcode-archive
 inputs:
+  - project_path: $BITRISE_PROJECT_PATH
+    opts:
+      title: "Project (or Workspace) path"
+      summary: ""
+      description: |-
+        A `.xcodeproj` or `.xcworkspace` path.
+      is_required: true
+  - scheme: $BITRISE_SCHEME
+    opts:
+      title: "Scheme name"
+      summary: ""
+      description: |-
+        The Scheme to use.
+      is_required: true
+  - configuration:
+    opts:
+      title: "Configuration name"
+      summary: ""
+      description: |-
+        (optional) The configuration to use. By default your Scheme
+        defines which configuration (Debug, Release, ...) should be used,
+        but you can overwrite it with this option.
+
+        **Make sure that the Configuration you specify actually exists
+        in your Xcode Project**. If it does not, if you have a typo
+        in the value of this input Xcode will simply use the Configuration
+        specified by the Scheme and will silently ignore this parameter!
   - export_method: "auto-detect"
     opts:
       title: "Select method for export"
@@ -59,15 +86,6 @@ inputs:
         Format example:
 
         - `1MZX23ABCD4`
-  - upload_bitcode: "yes"
-    opts:
-      title: "Include bitcode"
-      summary: ""
-      description: |-
-        For __App Store__ exports, should the package include bitcode?
-      value_options:
-      - "yes"
-      - "no"
   - compile_bitcode: "yes"
     opts:
       title: "Rebuild from bitcode"
@@ -77,9 +95,81 @@ inputs:
       value_options:
       - "yes"
       - "no"
+  - upload_bitcode: "yes"
+    opts:
+      title: "Include bitcode"
+      summary: ""
+      description: |-
+        For __App Store__ exports, should the package include bitcode?
+      value_options:
+      - "yes"
+      - "no"
+      - force_team_id:
+    opts:
+      category: Force Build Settings
+      title: "Force code signing with Development Team"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Development Team (DEVELOPMENT_TEAM).
+
+        Format example:
+
+        - `1MZX23ABCD4`
+  - force_code_sign_identity:
+    opts:
+      category: Force Build Settings
+      title: "Force code signing with Code Signing Identity"
+      description: |-
+        Force xcodebuild to use specified Code Signing Identity (CODE_SIGN_IDENTITY).
+
+        Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
+        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
+
+        You also have to **specify the Identity in the format it's stored in Xcode project settings**,
+        and **not how it's presented in the Xcode.app GUI**!
+        This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
+        `iPhone` (`iPhone Distribution` or `iPhone Development`).
+        **Capitalization also matters**, `iPhone Distribution` works but `iphone distribution` does not!
+  - force_provisioning_profile_specifier:
+    opts:
+      category: Force Build Settings
+      title: "Force code signing with Provisioning Profile Specifier"
+      description: |-
+        Used for Xcode version 8 and above.
+
+        Force xcodebuild to use specified Provisioning Profile (PROVISIONING_PROFILE_SPECIFIER).
+
+        How to get your Provisioning Profile Specifier:
+
+        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
+        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
+        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
+
+        Format example:
+
+        - `1MZX23ABCD4/My Provisioning Profile`
+  - force_provisioning_profile:
+    opts:
+      category: Force Build Settings
+      title: "Force code signing with Provisioning Profile"
+      description: |-
+        Force xcodebuild to use specified Provisioning Profile (PROVISIONING_PROFILE).
+
+        Use Provisioning Profile's UUID, profile's name is not acceptable by xcodebuild.
+
+        How to get your UUID:
+
+        - In xcode select your project -> Build Settings -> Code Signing
+        - Select the desired Provisioning Profile, then scroll down in profile list and click on Other...
+        - The popup will show your profile's UUID.
+
+        Format example:
+
+        - `c5be4123-1234-4f9d-9843-0d9be985a068`
   - custom_export_options_plist_content:
     opts:
-      category: Export Options (debug)
+      category: Debug
       title: "Custom export options plist content"
       description: |-
         Used for Xcode version 7 and above.
@@ -98,107 +188,21 @@ inputs:
         If step doesn't find export method based on provisioning profile, development will be use.
 
         Call `xcodebuild -help` for available export options.
-  - project_path: $BITRISE_PROJECT_PATH
-    opts:
-      category: Config
-      title: "Project (or Workspace) path"
-      summary: ""
-      description: |-
-        A `.xcodeproj` or `.xcworkspace` path.
-      is_required: true
-  - scheme: $BITRISE_SCHEME
-    opts:
-      category: Config
-      title: "Scheme name"
-      summary: ""
-      description: |-
-        The Scheme to use.
-      is_required: true
-  - configuration:
-    opts:
-      category: Config
-      title: "Configuration name"
-      summary: ""
-      description: |-
-        (optional) The configuration to use. By default your Scheme
-        defines which configuration (Debug, Release, ...) should be used,
-        but you can overwrite it with this option.
-
-        **Make sure that the Configuration you specify actually exists
-        in your Xcode Project**. If it does not, if you have a typo
-        in the value of this input Xcode will simply use the Configuration
-        specified by the Scheme and will silently ignore this parameter!
-  - force_team_id:
-    opts:
-      category: Force Signing Build Settings
-      title: "Force code signing with Development Team"
-      description: |-
-        Used for Xcode version 8 and above.
-
-        Force xcodebuild to use specified Development Team (DEVELOPMENT_TEAM).
-
-        Format example:
-
-        - `1MZX23ABCD4`
-  - force_code_sign_identity:
-    opts:
-      category: Force Signing Build Settings
-      title: "Force code signing with Code Signing Identity"
-      description: |-
-        Force xcodebuild to use specified Code Signing Identity (CODE_SIGN_IDENTITY).
-
-        Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
-        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
-
-        You also have to **specify the Identity in the format it's stored in Xcode project settings**,
-        and **not how it's presented in the Xcode.app GUI**!
-        This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
-        `iPhone` (`iPhone Distribution` or `iPhone Development`).
-        **Capitalization also matters**, `iPhone Distribution` works but `iphone distribution` does not!
-  - force_provisioning_profile_specifier:
-    opts:
-      category: Force Signing Build Settings
-      title: "Force code signing with Provisioning Profile Specifier"
-      description: |-
-        Used for Xcode version 8 and above.
-
-        Force xcodebuild to use specified Provisioning Profile (PROVISIONING_PROFILE_SPECIFIER).
-
-        How to get your Provisioning Profile Specifier:
-
-        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
-        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
-        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
-
-        Format example:
-
-        - `1MZX23ABCD4/My Provisioning Profile`
-  - force_provisioning_profile:
-    opts:
-      category: Force Signing Build Settings
-      title: "Force code signing with Provisioning Profile"
-      description: |-
-        Force xcodebuild to use specified Provisioning Profile (PROVISIONING_PROFILE).
-
-        Use Provisioning Profile's UUID, profile's name is not acceptable by xcodebuild.
-
-        How to get your UUID:
-
-        - In xcode select your project -> Build Settings -> Code Signing
-        - Select the desired Provisioning Profile, then scroll down in profile list and click on Other...
-        - The popup will show your profile's UUID.
-
-        Format example:
-
-        - `c5be4123-1234-4f9d-9843-0d9be985a068`
-  - output_dir: $BITRISE_DEPLOY_DIR
+  - artifact_name: ${scheme}
     opts:
       category: Debug
-      title: "Output directory path"
-      summary: ""
+      title: "Generated Artifact Name"
       description: |-
-        This directory will contain the generated .ipa and .dSYM.zip files.
-      is_required: true
+        This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
+  - xcodebuild_options: ""
+    opts:
+      category: Debug
+      title: Additional options for xcodebuild call
+      description: |-
+        Options added to the end of the xcodebuild call.
+
+        You can use multiple options, separated by a space
+        character. Example: `-xcconfig PATH -verbose`
   - workdir: $BITRISE_SOURCE_DIR
     opts:
       category: Debug
@@ -207,6 +211,14 @@ inputs:
       description: |-
         Working directory of the step.
         You can leave it empty to don't change it.
+  - output_dir: $BITRISE_DEPLOY_DIR
+    opts:
+      category: Debug
+      title: "Output directory path"
+      summary: ""
+      description: |-
+        This directory will contain the generated .ipa and .dSYM.zip files.
+      is_required: true
   - is_clean_build: "no"
     opts:
       category: Debug
@@ -227,15 +239,6 @@ inputs:
       - xcodebuild
       is_required: true
       is_expand: false
-  - xcodebuild_options: ""
-    opts:
-      category: Debug
-      title: Additional options for xcodebuild call
-      description: |-
-        Options added to the end of the xcodebuild call.
-
-        You can use multiple options, separated by a space
-        character. Example: `-xcconfig PATH -verbose`
   - is_export_xcarchive_zip: "no"
     opts:
       category: Debug
@@ -257,22 +260,6 @@ inputs:
       - "yes"
       - "no"
       is_required: true
-  - artifact_name: ${scheme}
-    opts:
-      category: Debug
-      title: "Generated Artifact Name"
-      description: |-
-        This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
-  - use_deprecated_export: "no"
-    opts:
-      category: Deprecated
-      title: Use deprecated ipa export method?
-      description: |-
-        If this input is set to `yes`, step will use deprecated ipa export method.
-      value_options:
-      - "yes"
-      - "no"
-      is_required: true
   - verbose_log: "yes"
     opts:
       category: Debug
@@ -282,6 +269,16 @@ inputs:
       value_options:
       - "yes"
       - "no"
+  - use_deprecated_export: "no"
+    opts:
+      category: Debug
+      title: Use deprecated ipa export method?
+      description: |-
+        If this input is set to `yes`, step will use deprecated ipa export method.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
 outputs:
   - BITRISE_IPA_PATH:
     opts:
