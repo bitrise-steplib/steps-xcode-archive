@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.6)
+## Changelog (Current version: 2.4.7)
 
 -----------------
+
+### 2.4.7 (2018 May 07)
+
+* [130aab7] Prepare for 2.4.7
+* [2f921ca] input grouping fix (#108)
 
 ### 2.4.6 (2018 Feb 07)
 
@@ -376,4 +381,4 @@
 
 -----------------
 
-Updated: 2018 Feb 07
+Updated: 2018 May 07
