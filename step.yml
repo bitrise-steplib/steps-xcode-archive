@@ -104,7 +104,7 @@ inputs:
       value_options:
       - "yes"
       - "no"
-      - force_team_id:
+  - force_team_id:
     opts:
       category: Force Build Settings
       title: "Force code signing with Development Team"
