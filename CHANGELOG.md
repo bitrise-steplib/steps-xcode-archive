@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.7)
+## Changelog (Current version: 2.4.8)
 
 -----------------
+
+### 2.4.8 (2018 May 08)
+
+* [d6c5a5f] Prepare for 2.4.8
+* [daa4a93] force_team_id input fix (#110)
 
 ### 2.4.7 (2018 May 07)
 
@@ -381,4 +386,4 @@
 
 -----------------
 
-Updated: 2018 May 07
+Updated: 2018 May 08
