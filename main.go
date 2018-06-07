@@ -589,18 +589,34 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("export-method specified: %s", configs.ExportMethod)
 			}
 
+			bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
+
+			// If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
+			// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
+			var iCloudContainerEnvironment exportoptions.ICloudContainerEnvironment
+			if exportMethod != exportoptions.MethodAppStore {
+				for _, entitlements := range bundleIDEntitlementsMap {
+					for key := range entitlements {
+						if key == "com.apple.developer.icloud-container-environment" {
+							if exportMethod == exportoptions.MethodDevelopment {
+								iCloudContainerEnvironment = exportoptions.ICloudContainerEnvironmentDevelopment
+							} else {
+								iCloudContainerEnvironment = exportoptions.ICloudContainerEnvironmentProduction
+							}
+						}
+					}
+				}
+			}
+
 			if xcodeMajorVersion >= 9 {
 				log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
-				bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
-				bundleIDs := []string{}
-				for bundleID := range bundleIDEntitlementsMap {
-					bundleIDs = append(bundleIDs, bundleID)
-				}
-
 				fmt.Println()
 				log.Printf("Target Bundle ID - Entitlements map")
+				bundleIDs := []string{}
 				for bundleID, entitlements := range bundleIDEntitlementsMap {
+					bundleIDs = append(bundleIDs, bundleID)
+
 					entitlementKeys := []string{}
 					for key := range entitlements {
 						entitlementKeys = append(entitlementKeys, key)
@@ -753,6 +769,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 						options.SigningStyle = "manual"
 					}
+				}
+
+				if iCloudContainerEnvironment != "" {
+					options.ICloudContainerEnvironment = iCloudContainerEnvironment
 				}
 
 				exportOpts = options
