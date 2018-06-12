@@ -206,9 +206,9 @@ func TestAppStoreOptionsWriteToFile(t *testing.T) {
 		<key>teamID</key>
 		<string>123</string>
 		<key>uploadBitcode</key>
-		<false></false>
+		<false/>
 		<key>uploadSymbols</key>
-		<false></false>
+		<false/>
 	</dict>
 </plist>`
 		require.Equal(t, desired, content)
@@ -222,7 +222,7 @@ func TestNonNewAppStoreOptions(t *testing.T) {
 		require.Equal(t, MethodDevelopment, options.Method)
 		require.Equal(t, CompileBitcodeDefault, options.CompileBitcode)
 		require.Equal(t, EmbedOnDemandResourcesAssetPacksInBundleDefault, options.EmbedOnDemandResourcesAssetPacksInBundle)
-		require.Equal(t, ICloudContainerEnvironmentDefault, options.ICloudContainerEnvironment)
+		require.Equal(t, ICloudContainerEnvironment(""), options.ICloudContainerEnvironment)
 		require.Equal(t, ThinningDefault, options.Thinning)
 	}
 }
@@ -376,9 +376,9 @@ func TestNonAppStoreOptionsWriteToFile(t *testing.T) {
 <plist version="1.0">
 	<dict>
 		<key>compileBitcode</key>
-		<false></false>
+		<false/>
 		<key>embedOnDemandResourcesAssetPacksInBundle</key>
-		<false></false>
+		<false/>
 		<key>iCloudContainerEnvironment</key>
 		<string>Production</string>
 		<key>manifest</key>

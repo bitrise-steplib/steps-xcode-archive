@@ -591,10 +591,11 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 			bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
 
+			// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
 			// If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
 			// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
 			var iCloudContainerEnvironment exportoptions.ICloudContainerEnvironment
-			if exportMethod != exportoptions.MethodAppStore {
+			if xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore {
 				for _, entitlements := range bundleIDEntitlementsMap {
 					for key := range entitlements {
 						if key == "com.apple.developer.icloud-container-environment" {
@@ -709,10 +710,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						log.Warnf("Multiple code signing groups found! Using the first code signing group")
 					}
 
-					exportTeamID = codeSignGroup.Certificate.TeamID
-					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
+					exportTeamID = codeSignGroup.Certificate().TeamID
+					exportCodeSignIdentity = codeSignGroup.Certificate().CommonName
 
-					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
+					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap() {
 						exportProfileMapping[bundleID] = profileInfo.Name
 
 						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
@@ -750,6 +751,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 						options.SigningStyle = "manual"
 					}
+				}
+
+				if iCloudContainerEnvironment != "" {
+					options.ICloudContainerEnvironment = iCloudContainerEnvironment
 				}
 
 				exportOpts = options
