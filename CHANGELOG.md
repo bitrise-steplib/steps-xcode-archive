@@ -1,6 +1,12 @@
-## Changelog (Current version: 2.4.8)
+## Changelog (Current version: 2.4.9)
 
 -----------------
+
+### 2.4.9 (2018 Jun 12)
+
+* [cb052ab] prepare for 2.4.9
+* [e24359c] ci workflow updates (#113)
+* [9fe3e17] detect iCloudContainerEnvironment (#112)
 
 ### 2.4.8 (2018 May 08)
 
@@ -386,4 +392,4 @@
 
 -----------------
 
-Updated: 2018 May 08
+Updated: 2018 Jun 12
