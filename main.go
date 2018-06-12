@@ -614,7 +614,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				fmt.Println()
 				log.Printf("Target Bundle ID - Entitlements map")
-				bundleIDs := []string{}
+				var bundleIDs []string
 				for bundleID, entitlements := range bundleIDEntitlementsMap {
 					bundleIDs = append(bundleIDs, bundleID)
 
