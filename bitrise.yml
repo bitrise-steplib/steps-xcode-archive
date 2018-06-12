@@ -23,9 +23,6 @@ workflows:
     - _common
 
   test_xcode_7:
-    steps:
-    # - go-list:
-    # - go-test:
     after_run:
     - test_objc
     - _common
