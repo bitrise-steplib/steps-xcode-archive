@@ -589,18 +589,35 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("export-method specified: %s", configs.ExportMethod)
 			}
 
+			bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
+
+			// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
+			// If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
+			// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
+			var iCloudContainerEnvironment exportoptions.ICloudContainerEnvironment
+			if xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore {
+				for _, entitlements := range bundleIDEntitlementsMap {
+					for key := range entitlements {
+						if key == "com.apple.developer.icloud-container-environment" {
+							if exportMethod == exportoptions.MethodDevelopment {
+								iCloudContainerEnvironment = exportoptions.ICloudContainerEnvironmentDevelopment
+							} else {
+								iCloudContainerEnvironment = exportoptions.ICloudContainerEnvironmentProduction
+							}
+						}
+					}
+				}
+			}
+
 			if xcodeMajorVersion >= 9 {
 				log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
-				bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
-				bundleIDs := []string{}
-				for bundleID := range bundleIDEntitlementsMap {
-					bundleIDs = append(bundleIDs, bundleID)
-				}
-
 				fmt.Println()
 				log.Printf("Target Bundle ID - Entitlements map")
+				var bundleIDs []string
 				for bundleID, entitlements := range bundleIDEntitlementsMap {
+					bundleIDs = append(bundleIDs, bundleID)
+
 					entitlementKeys := []string{}
 					for key := range entitlements {
 						entitlementKeys = append(entitlementKeys, key)
@@ -693,10 +710,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 						log.Warnf("Multiple code signing groups found! Using the first code signing group")
 					}
 
-					exportTeamID = codeSignGroup.Certificate.TeamID
-					exportCodeSignIdentity = codeSignGroup.Certificate.CommonName
+					exportTeamID = codeSignGroup.Certificate().TeamID
+					exportCodeSignIdentity = codeSignGroup.Certificate().CommonName
 
-					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap {
+					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap() {
 						exportProfileMapping[bundleID] = profileInfo.Name
 
 						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
@@ -736,6 +753,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					}
 				}
 
+				if iCloudContainerEnvironment != "" {
+					options.ICloudContainerEnvironment = iCloudContainerEnvironment
+				}
+
 				exportOpts = options
 			} else {
 				options := exportoptions.NewNonAppStoreOptions(exportMethod)
@@ -753,6 +774,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 						options.SigningStyle = "manual"
 					}
+				}
+
+				if iCloudContainerEnvironment != "" {
+					options.ICloudContainerEnvironment = iCloudContainerEnvironment
 				}
 
 				exportOpts = options
