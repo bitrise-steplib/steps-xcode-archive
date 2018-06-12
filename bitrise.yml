@@ -10,6 +10,17 @@ app:
 workflows:
   # ----------------------------------------------------------------
   # --- workflow to Step Test
+  ci:
+    steps:
+    - go-list:
+    - golint:
+    - errcheck:
+    - go-test:
+    after_run:
+    - test_objc
+    - test_xcode_8
+    - test_multi_target
+
   test_objc:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
@@ -22,17 +33,7 @@ workflows:
     after_run:
     - _common
 
-  test_xcode_7:
-    after_run:
-    - test_objc
-    - _common
-
   test_xcode_8:
-    steps:
-    - go-list:
-    - golint:
-    - errcheck:
-    - go-test:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
     - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
@@ -41,12 +42,9 @@ workflows:
     - FORCE_TEAM_ID: 72SA8V3WYL
     - OUTPUT_TOOL: xcpretty
     after_run:
-    - test_objc
     - _common
 
   test_multi_target:
-    before_run:
-    - test_xcode_8
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
     - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
