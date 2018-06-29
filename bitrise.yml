@@ -17,6 +17,7 @@ workflows:
     - errcheck:
     - go-test:
     after_run:
+    - _uninstall_xcpretty
     - test_objc
     - test_xcode_8
     - test_multi_target
@@ -91,7 +92,7 @@ workflows:
     - certificate-and-profile-installer:
     - path::./:
         inputs:
-        - output_tool: xcodebuild
+        - output_tool: $OUTPUT_TOOL
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_team_id: $FORCE_TEAM_ID
         - verbose_log: "yes"
@@ -109,6 +110,16 @@ workflows:
             echo "-> BITRISE_XCARCHIVE_PATH:             $BITRISE_XCARCHIVE_PATH"
             echo "-> BITRISE_IDEDISTRIBUTION_LOGS_PATH:  $BITRISE_IDEDISTRIBUTION_LOGS_PATH"
             echo "-> BITRISE_XCODE_RAW_RESULT_TEXT_PATH: $BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
+
+  _uninstall_xcpretty:
+    steps:
+    - script:
+        title: Uninstall xcpretty
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            echo y | gem uninstall xcpretty
 
   # ----------------------------------------------------------------
   # --- Utility workflows

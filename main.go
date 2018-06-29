@@ -269,10 +269,21 @@ func main() {
 
 	// Detect xcpretty version
 	if configs.OutputTool == "xcpretty" {
-		if !utils.IsXcprettyInstalled() {
-			fail(`xcpretty is not installed
-For xcpretty installation see: 'https://github.com/supermarin/xcpretty',
-or use 'xcodebuild' as 'output_tool'.`)
+		fmt.Println()
+		log.Infof("Checking output tool")
+		installed, err := utils.IsXcprettyInstalled()
+		if err != nil {
+			fail("Failed to check if xcpretty is installed, error: %s", err)
+		}
+
+		if !installed {
+			log.Warnf(`🚨  xcpretty is not installed`)
+
+			fmt.Println()
+			log.Printf("Installing xcpretty")
+			if err := utils.InstallXcpretty(); err != nil {
+				fail("Failed to install xcpretty, error: %s", err)
+			}
 		}
 
 		xcprettyVersion, err := utils.XcprettyVersion()

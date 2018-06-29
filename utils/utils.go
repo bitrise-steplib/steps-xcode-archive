@@ -2,9 +2,12 @@ package utils
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/command/rubycommand"
+	"github.com/bitrise-io/go-utils/log"
 	version "github.com/hashicorp/go-version"
 )
 
@@ -47,14 +50,31 @@ func XcodeBuildVersion() (XcodebuildVersionModel, error) {
 
 // IsToolInstalled ...
 func IsToolInstalled(name string) bool {
-	cmd := command.New("which", name)
-	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	return err == nil && out != ""
+	path, err := exec.LookPath(name)
+	return err == nil && path != ""
 }
 
 // IsXcprettyInstalled ...
-func IsXcprettyInstalled() bool {
-	return IsToolInstalled("xcpretty")
+func IsXcprettyInstalled() (bool, error) {
+	return rubycommand.IsGemInstalled("xcpretty", "")
+}
+
+// InstallXcpretty ...
+func InstallXcpretty() error {
+	cmds, err := rubycommand.GemInstall("xcpretty", "")
+	if err != nil {
+		return fmt.Errorf("Failed to create command model, error: %s", err)
+	}
+
+	for _, cmd := range cmds {
+		log.Donef("$ %s", cmd.PrintableCommandArgs())
+
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Command failed, error: %s", err)
+		}
+	}
+
+	return nil
 }
 
 func parseXcprettyVersionOut(versionOut string) (*version.Version, error) {
