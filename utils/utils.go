@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
@@ -49,14 +48,13 @@ func XcodeBuildVersion() (XcodebuildVersionModel, error) {
 }
 
 // IsToolInstalled ...
-func IsToolInstalled(name string) bool {
-	path, err := exec.LookPath(name)
-	return err == nil && path != ""
+func IsToolInstalled(name, version string) (bool, error) {
+	return rubycommand.IsGemInstalled(name, version)
 }
 
 // IsXcprettyInstalled ...
 func IsXcprettyInstalled() (bool, error) {
-	return rubycommand.IsGemInstalled("xcpretty", "")
+	return IsToolInstalled("xcpretty", "")
 }
 
 // InstallXcpretty ...

@@ -17,7 +17,6 @@ workflows:
     - errcheck:
     - go-test:
     after_run:
-    - _uninstall_xcpretty
     - test_objc
     - test_xcode_8
     - test_multi_target
@@ -110,16 +109,6 @@ workflows:
             echo "-> BITRISE_XCARCHIVE_PATH:             $BITRISE_XCARCHIVE_PATH"
             echo "-> BITRISE_IDEDISTRIBUTION_LOGS_PATH:  $BITRISE_IDEDISTRIBUTION_LOGS_PATH"
             echo "-> BITRISE_XCODE_RAW_RESULT_TEXT_PATH: $BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
-
-  _uninstall_xcpretty:
-    steps:
-    - script:
-        title: Uninstall xcpretty
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            echo y | gem uninstall xcpretty
 
   # ----------------------------------------------------------------
   # --- Utility workflows
