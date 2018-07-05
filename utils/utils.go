@@ -61,14 +61,14 @@ func IsXcprettyInstalled() (bool, error) {
 func InstallXcpretty() error {
 	cmds, err := rubycommand.GemInstall("xcpretty", "")
 	if err != nil {
-		return fmt.Errorf("Failed to create command model, error: %s", err)
+		return fmt.Errorf("failed to create command model, error: %s", err)
 	}
 
 	for _, cmd := range cmds {
 		log.Donef("$ %s", cmd.PrintableCommandArgs())
 
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("Command failed, error: %s", err)
+			return fmt.Errorf("command failed, error: %s", err)
 		}
 	}
 

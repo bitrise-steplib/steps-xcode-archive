@@ -268,29 +268,40 @@ func main() {
 	}
 
 	// Detect xcpretty version
-	if configs.OutputTool == "xcpretty" {
+	outputTool := configs.OutputTool
+	if outputTool == "xcpretty" {
 		fmt.Println()
-		log.Infof("Checking output tool")
+		log.Infof("Checking if output tool (xcpretty) is installed")
+
 		installed, err := utils.IsXcprettyInstalled()
 		if err != nil {
-			fail("Failed to check if xcpretty is installed, error: %s", err)
-		}
+			log.Warnf("Failed to check if xcpretty is installed, error: %s", err)
+			log.Printf("Switching to xcodebuild for output tool")
+			outputTool = "xcodebuild"
+		} else {
+			var err error
+			if !installed {
+				log.Warnf(`xcpretty is not installed`)
+				fmt.Println()
+				log.Printf("Installing xcpretty")
 
-		if !installed {
-			log.Warnf(`🚨  xcpretty is not installed`)
+				if err = utils.InstallXcpretty(); err != nil {
+					log.Warnf("Failed to install xcpretty, error: %s", err)
+					log.Printf("Switching to xcodebuild for output tool")
+					outputTool = "xcodebuild"
+				}
+			}
 
-			fmt.Println()
-			log.Printf("Installing xcpretty")
-			if err := utils.InstallXcpretty(); err != nil {
-				fail("Failed to install xcpretty, error: %s", err)
+			if err == nil {
+				xcprettyVersion, err := utils.XcprettyVersion()
+				if err != nil {
+					log.Warnf("Failed to determin xcpretty version, error: %s", err)
+					log.Printf("Switching to xcodebuild for output tool")
+					outputTool = "xcodebuild"
+				}
+				log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 			}
 		}
-
-		xcprettyVersion, err := utils.XcprettyVersion()
-		if err != nil {
-			fail("Failed to determin xcpretty version, error: %s", err)
-		}
-		log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 	}
 
 	// Validation CustomExportOptionsPlistContent
@@ -443,7 +454,7 @@ func main() {
 		archiveCmd.SetCustomOptions(options)
 	}
 
-	if configs.OutputTool == "xcpretty" {
+	if outputTool == "xcpretty" {
 		xcprettyCmd := xcpretty.New(archiveCmd)
 
 		logWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
@@ -542,7 +553,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		legacyExportCmd.SetExportPath(ipaPath)
 		legacyExportCmd.SetExportProvisioningProfileName(mainApplication.ProvisioningProfile.Name)
 
-		if configs.OutputTool == "xcpretty" {
+		if outputTool == "xcpretty" {
 			xcprettyCmd := xcpretty.New(legacyExportCmd)
 
 			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
@@ -816,7 +827,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		exportCmd.SetExportDir(tmpDir)
 		exportCmd.SetExportOptionsPlist(exportOptionsPath)
 
-		if configs.OutputTool == "xcpretty" {
+		if outputTool == "xcpretty" {
 			xcprettyCmd := xcpretty.New(exportCmd)
 
 			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
