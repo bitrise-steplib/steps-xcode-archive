@@ -238,7 +238,6 @@ inputs:
       - xcpretty
       - xcodebuild
       is_required: true
-      is_expand: true
   - is_export_xcarchive_zip: "no"
     opts:
       category: Debug

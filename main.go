@@ -22,6 +22,7 @@ import (
 	"github.com/bitrise-tools/go-xcode/export"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/profileutil"
+	"github.com/bitrise-tools/go-xcode/utility"
 	"github.com/bitrise-tools/go-xcode/xcarchive"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
@@ -256,15 +257,15 @@ func main() {
 	log.Infof("step determined configs:")
 
 	// Detect Xcode major version
-	xcodebuildVersion, err := utils.XcodeBuildVersion()
+	xcodebuildVersion, err := utility.GetXcodeVersion()
 	if err != nil {
 		fail("Failed to determin xcode version, error: %s", err)
 	}
-	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.XcodeVersion.String(), xcodebuildVersion.BuildVersion)
+	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
-	xcodeMajorVersion := xcodebuildVersion.XcodeVersion.Segments()[0]
+	xcodeMajorVersion := xcodebuildVersion.MajorVersion
 	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-		fail("Invalid xcode major version (%s), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
+		fail("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
 	}
 
 	// Detect xcpretty version
@@ -273,35 +274,32 @@ func main() {
 		fmt.Println()
 		log.Infof("Checking if output tool (xcpretty) is installed")
 
-		installed, err := utils.IsXcprettyInstalled()
+		installed, err := xcpretty.IsInstalled()
 		if err != nil {
 			log.Warnf("Failed to check if xcpretty is installed, error: %s", err)
 			log.Printf("Switching to xcodebuild for output tool")
 			outputTool = "xcodebuild"
-		} else {
-			var err error
-			if !installed {
-				log.Warnf(`xcpretty is not installed`)
-				fmt.Println()
-				log.Printf("Installing xcpretty")
+		} else if !installed {
+			log.Warnf(`xcpretty is not installed`)
+			fmt.Println()
+			log.Printf("Installing xcpretty")
 
-				if err = utils.InstallXcpretty(); err != nil {
-					log.Warnf("Failed to install xcpretty, error: %s", err)
-					log.Printf("Switching to xcodebuild for output tool")
-					outputTool = "xcodebuild"
-				}
-			}
-
-			if err == nil {
-				xcprettyVersion, err := utils.XcprettyVersion()
-				if err != nil {
-					log.Warnf("Failed to determin xcpretty version, error: %s", err)
-					log.Printf("Switching to xcodebuild for output tool")
-					outputTool = "xcodebuild"
-				}
-				log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
+			if err := xcpretty.Install(); err != nil {
+				log.Warnf("Failed to install xcpretty, error: %s", err)
+				log.Printf("Switching to xcodebuild for output tool")
+				outputTool = "xcodebuild"
 			}
 		}
+	}
+
+	if outputTool == "xcpretty" {
+		xcprettyVersion, err := xcpretty.Version()
+		if err != nil {
+			log.Warnf("Failed to determin xcpretty version, error: %s", err)
+			log.Printf("Switching to xcodebuild for output tool")
+			outputTool = "xcodebuild"
+		}
+		log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 	}
 
 	// Validation CustomExportOptionsPlistContent
@@ -419,7 +417,7 @@ func main() {
 		fail("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
-	archiveCmd := xcodebuild.NewArchiveCommand(configs.ProjectPath, isWorkspace)
+	archiveCmd := xcodebuild.NewCommandBuilder(configs.ProjectPath, isWorkspace, xcodebuild.ArchiveAction)
 	archiveCmd.SetScheme(configs.Scheme)
 	archiveCmd.SetConfiguration(configs.Configuration)
 
