@@ -210,24 +210,34 @@ func NewIosArchive(path string) (IosArchive, error) {
 
 	application := IosApplication{}
 	{
-		pattern := filepath.Join(path, "Products/Applications/*.app")
-		pths, err := filepath.Glob(pattern)
-		if err != nil {
-			return IosArchive{}, err
-		}
+		// pattern := filepath.Join(path, "Products/Applications/Library/Frameworks/*.app")
+		patternMain := filepath.Join(path, "Products/Applications/*.app")
+		patternFramework := filepath.Join(path, "Products/Applications/Library/Frameworks/*.app")
+		patterns := []string{patternMain, patternFramework}
+		for _, pattern := range patterns {
+			pths, err := filepath.Glob(pattern)
+			if err != nil {
+				return IosArchive{}, err
+			}
 
-		appPath := ""
-		if len(pths) > 0 {
-			appPath = pths[0]
-		} else {
-			return IosArchive{}, fmt.Errorf("failed to find main app, using pattern: %s", pattern)
-		}
+			appPath := ""
+			if len(pths) > 0 {
+				appPath = pths[0]
+			} else {
+				continue
+				// return IosArchive{}, fmt.Errorf("failed to find main app, using pattern: %s", pattern)
+			}
 
-		app, err := NewIosApplication(appPath)
-		if err != nil {
-			return IosArchive{}, err
+			app, err := NewIosApplication(appPath)
+			if err != nil {
+				return IosArchive{}, err
+			}
+			application = app
+			break
 		}
-		application = app
+		if application.Path == "" {
+			return IosArchive{}, fmt.Errorf("failed to find main app, using pattern: %s or %s", patterns[0], patterns[1])
+		}
 	}
 
 	return IosArchive{
