@@ -212,7 +212,7 @@ func NewIosArchive(path string) (IosArchive, error) {
 	{
 		// pattern := filepath.Join(path, "Products/Applications/Library/Frameworks/*.app")
 		patternMain := filepath.Join(path, "Products/Applications/*.app")
-		patternFramework := filepath.Join(path, "Products/Applications/Library/Frameworks/*.app")
+		patternFramework := filepath.Join(path, "Products/Library/Frameworks/*.app")
 		patterns := []string{patternMain, patternFramework}
 		for _, pattern := range patterns {
 			pths, err := filepath.Glob(pattern)
