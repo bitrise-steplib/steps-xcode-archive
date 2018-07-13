@@ -22,6 +22,7 @@ import (
 	"github.com/bitrise-tools/go-xcode/export"
 	"github.com/bitrise-tools/go-xcode/exportoptions"
 	"github.com/bitrise-tools/go-xcode/profileutil"
+	"github.com/bitrise-tools/go-xcode/utility"
 	"github.com/bitrise-tools/go-xcode/xcarchive"
 	"github.com/bitrise-tools/go-xcode/xcodebuild"
 	"github.com/bitrise-tools/go-xcode/xcpretty"
@@ -256,28 +257,47 @@ func main() {
 	log.Infof("step determined configs:")
 
 	// Detect Xcode major version
-	xcodebuildVersion, err := utils.XcodeBuildVersion()
+	xcodebuildVersion, err := utility.GetXcodeVersion()
 	if err != nil {
 		fail("Failed to determin xcode version, error: %s", err)
 	}
-	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.XcodeVersion.String(), xcodebuildVersion.BuildVersion)
+	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
-	xcodeMajorVersion := xcodebuildVersion.XcodeVersion.Segments()[0]
+	xcodeMajorVersion := xcodebuildVersion.MajorVersion
 	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-		fail("Invalid xcode major version (%s), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
+		fail("Invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
 	}
 
 	// Detect xcpretty version
-	if configs.OutputTool == "xcpretty" {
-		if !utils.IsXcprettyInstalled() {
-			fail(`xcpretty is not installed
-For xcpretty installation see: 'https://github.com/supermarin/xcpretty',
-or use 'xcodebuild' as 'output_tool'.`)
-		}
+	outputTool := configs.OutputTool
+	if outputTool == "xcpretty" {
+		fmt.Println()
+		log.Infof("Checking if output tool (xcpretty) is installed")
 
-		xcprettyVersion, err := utils.XcprettyVersion()
+		installed, err := xcpretty.IsInstalled()
 		if err != nil {
-			fail("Failed to determin xcpretty version, error: %s", err)
+			log.Warnf("Failed to check if xcpretty is installed, error: %s", err)
+			log.Printf("Switching to xcodebuild for output tool")
+			outputTool = "xcodebuild"
+		} else if !installed {
+			log.Warnf(`xcpretty is not installed`)
+			fmt.Println()
+			log.Printf("Installing xcpretty")
+
+			if err := xcpretty.Install(); err != nil {
+				log.Warnf("Failed to install xcpretty, error: %s", err)
+				log.Printf("Switching to xcodebuild for output tool")
+				outputTool = "xcodebuild"
+			}
+		}
+	}
+
+	if outputTool == "xcpretty" {
+		xcprettyVersion, err := xcpretty.Version()
+		if err != nil {
+			log.Warnf("Failed to determin xcpretty version, error: %s", err)
+			log.Printf("Switching to xcodebuild for output tool")
+			outputTool = "xcodebuild"
 		}
 		log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 	}
@@ -397,7 +417,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		fail("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
-	archiveCmd := xcodebuild.NewArchiveCommand(configs.ProjectPath, isWorkspace)
+	archiveCmd := xcodebuild.NewCommandBuilder(configs.ProjectPath, isWorkspace, xcodebuild.ArchiveAction)
 	archiveCmd.SetScheme(configs.Scheme)
 	archiveCmd.SetConfiguration(configs.Configuration)
 
@@ -432,7 +452,7 @@ or use 'xcodebuild' as 'output_tool'.`)
 		archiveCmd.SetCustomOptions(options)
 	}
 
-	if configs.OutputTool == "xcpretty" {
+	if outputTool == "xcpretty" {
 		xcprettyCmd := xcpretty.New(archiveCmd)
 
 		logWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
@@ -531,7 +551,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		legacyExportCmd.SetExportPath(ipaPath)
 		legacyExportCmd.SetExportProvisioningProfileName(mainApplication.ProvisioningProfile.Name)
 
-		if configs.OutputTool == "xcpretty" {
+		if outputTool == "xcpretty" {
 			xcprettyCmd := xcpretty.New(legacyExportCmd)
 
 			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
@@ -805,7 +825,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		exportCmd.SetExportDir(tmpDir)
 		exportCmd.SetExportOptionsPlist(exportOptionsPath)
 
-		if configs.OutputTool == "xcpretty" {
+		if outputTool == "xcpretty" {
 			xcprettyCmd := xcpretty.New(exportCmd)
 
 			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())

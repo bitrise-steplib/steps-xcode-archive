@@ -91,7 +91,7 @@ workflows:
     - certificate-and-profile-installer:
     - path::./:
         inputs:
-        - output_tool: xcodebuild
+        - output_tool: $OUTPUT_TOOL
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_team_id: $FORCE_TEAM_ID
         - verbose_log: "yes"
