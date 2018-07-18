@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.4.9)
+## Changelog (Current version: 2.4.10)
 
 -----------------
+
+### 2.4.10 (2018 Jul 18)
+
+* [326fd2c] Prepare for 2.4.10
+* [af6d9bb] Check output tool and install Xcpretty if it is missing (#115)
 
 ### 2.4.9 (2018 Jun 12)
 
@@ -392,4 +397,4 @@
 
 -----------------
 
-Updated: 2018 Jun 12
+Updated: 2018 Jul 18
