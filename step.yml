@@ -48,13 +48,13 @@ inputs:
       title: "Configuration name"
       summary: ""
       description: |-
-        (optional) The configuration to use. By default your Scheme
+        (optional) The configuration to use. By default, your Scheme
         defines which configuration (Debug, Release, ...) should be used,
         but you can overwrite it with this option.
 
         **Make sure that the Configuration you specify actually exists
-        in your Xcode Project**. If it does not, if you have a typo
-        in the value of this input Xcode will simply use the Configuration
+        in your Xcode Project**. If it does not (for example, if you have a typo
+        in the value of this input), Xcode will simply use the Configuration
         specified by the Scheme and will silently ignore this parameter!
   - export_method: "auto-detect"
     opts:
@@ -65,8 +65,8 @@ inputs:
 
         Describes how Xcode should export the archive.
 
-        If you select `auto-detect` step will figure out proper export method
-        based on provisioning profile embedded into generated xcodearchive.
+        If you select `auto-detect`, the step will figure out proper export method
+        based on the provisioning profile embedded into the generated xcodearchive.
       value_options:
       - "auto-detect"
       - "app-store"
@@ -111,7 +111,7 @@ inputs:
       description: |-
         Used for Xcode version 8 and above.
 
-        Force xcodebuild to use specified Development Team (DEVELOPMENT_TEAM).
+        Force xcodebuild to use the specified Development Team (DEVELOPMENT_TEAM).
 
         Format example:
 
@@ -124,13 +124,13 @@ inputs:
         Force xcodebuild to use specified Code Signing Identity (CODE_SIGN_IDENTITY).
 
         Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
-        or specify code sign group ( `iPhone Developer` or `iPhone Distribution` ).
+        or specify code signing group ( `iPhone Developer` or `iPhone Distribution` ).
 
         You also have to **specify the Identity in the format it's stored in Xcode project settings**,
         and **not how it's presented in the Xcode.app GUI**!
         This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
         `iPhone` (`iPhone Distribution` or `iPhone Development`).
-        **Capitalization also matters**, `iPhone Distribution` works but `iphone distribution` does not!
+        **The input is case sensitive**: `iPhone Distribution` works but `iphone distribution` does not!
   - force_provisioning_profile_specifier:
     opts:
       category: Force Build Settings
@@ -156,7 +156,7 @@ inputs:
       description: |-
         Force xcodebuild to use specified Provisioning Profile (PROVISIONING_PROFILE).
 
-        Use Provisioning Profile's UUID, profile's name is not acceptable by xcodebuild.
+        Use Provisioning Profile's UUID. The profile's name is not accepted by xcodebuild.
 
         How to get your UUID:
 
@@ -175,7 +175,7 @@ inputs:
         Used for Xcode version 7 and above.
 
         Specifies a custom export options plist content that configures archive exporting.
-        If empty, step generates these options based on provisioning profile,
+        If empty, the step generates these options based on provisioning profile,
         with default values.
 
         Auto generated export options available for export methods:
@@ -185,7 +185,7 @@ inputs:
         - enterprise
         - development
 
-        If step doesn't find export method based on provisioning profile, development will be use.
+        If the step doesn't find an export method based on the provisioning profile, the development method will be used.
 
         Call `xcodebuild -help` for available export options.
   - artifact_name: ${scheme}
@@ -210,7 +210,7 @@ inputs:
       summary: ""
       description: |-
         Working directory of the step.
-        You can leave it empty to don't change it.
+        You can leave it empty to leave the working directory unchanged.
   - output_dir: $BITRISE_DEPLOY_DIR
     opts:
       category: Debug
