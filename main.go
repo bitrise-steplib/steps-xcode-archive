@@ -15,6 +15,7 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/steps-xcode-archive/utils"
 	"github.com/bitrise-tools/go-steputils/input"
@@ -47,10 +48,11 @@ const (
 
 // ConfigsModel ...
 type ConfigsModel struct {
-	ExportMethod   string
-	UploadBitcode  string
-	CompileBitcode string
-	TeamID         string
+	ExportMethod               string
+	UploadBitcode              string
+	CompileBitcode             string
+	ICloudContainerEnvironment string
+	TeamID                     string
 
 	UseDeprecatedExport               string
 	ForceTeamID                       string
@@ -76,10 +78,11 @@ type ConfigsModel struct {
 
 func createConfigsModelFromEnvs() ConfigsModel {
 	return ConfigsModel{
-		ExportMethod:   os.Getenv("export_method"),
-		UploadBitcode:  os.Getenv("upload_bitcode"),
-		CompileBitcode: os.Getenv("compile_bitcode"),
-		TeamID:         os.Getenv("team_id"),
+		ExportMethod:               os.Getenv("export_method"),
+		UploadBitcode:              os.Getenv("upload_bitcode"),
+		CompileBitcode:             os.Getenv("compile_bitcode"),
+		ICloudContainerEnvironment: os.Getenv("icloud_container_environment"),
+		TeamID: os.Getenv("team_id"),
 
 		UseDeprecatedExport:               os.Getenv("use_deprecated_export"),
 		ForceTeamID:                       os.Getenv("force_team_id"),
@@ -114,6 +117,7 @@ func (configs ConfigsModel) print() {
 	}
 	log.Printf("- UploadBitcode: %s", configs.UploadBitcode)
 	log.Printf("- CompileBitcode: %s", configs.CompileBitcode)
+	log.Printf("- ICloudContainerEnvironment: %s", configs.ICloudContainerEnvironment)
 	log.Printf("- TeamID: %s", configs.TeamID)
 	log.Printf("- UseDeprecatedExport: %s", configs.UseDeprecatedExport)
 	log.Printf("- CustomExportOptionsPlistContent:")
@@ -609,23 +613,37 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("export-method specified: %s", configs.ExportMethod)
 			}
 
-			bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
+			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(configs.ProjectPath, configs.Scheme, configs.Configuration)
+			if err != nil {
+				fail(err.Error())
+			}
+
+			// iCloudContainerEnvironment: If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
+			// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
+			usesCloudKit := false
+			for _, entitlements := range bundleIDEntitlementsMap {
+				if entitlements == nil {
+					continue
+				}
+
+				services, ok := entitlements.GetStringArray("com.apple.developer.icloud-services")
+				if ok {
+					usesCloudKit = sliceutil.IsStringInSlice("CloudKit", services)
+					if usesCloudKit {
+						break
+					}
+				}
+			}
 
 			// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
-			// If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
-			// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
-			var iCloudContainerEnvironment exportoptions.ICloudContainerEnvironment
-			if xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore {
-				for _, entitlements := range bundleIDEntitlementsMap {
-					for key := range entitlements {
-						if key == "com.apple.developer.icloud-container-environment" {
-							if exportMethod == exportoptions.MethodDevelopment {
-								iCloudContainerEnvironment = exportoptions.ICloudContainerEnvironmentDevelopment
-							} else {
-								iCloudContainerEnvironment = exportoptions.ICloudContainerEnvironmentProduction
-							}
-						}
-					}
+			var iCloudContainerEnvironment string
+			if usesCloudKit && (xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore) {
+				if exportMethod == exportoptions.MethodAppStore {
+					iCloudContainerEnvironment = "Production"
+				} else if configs.ICloudContainerEnvironment == "" {
+					fail("project uses CloudKit, but iCloud container environment input not specified")
+				} else {
+					iCloudContainerEnvironment = configs.ICloudContainerEnvironment
 				}
 			}
 
@@ -774,7 +792,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				if iCloudContainerEnvironment != "" {
-					options.ICloudContainerEnvironment = iCloudContainerEnvironment
+					options.ICloudContainerEnvironment = exportoptions.ICloudContainerEnvironment(iCloudContainerEnvironment)
 				}
 
 				exportOpts = options
@@ -797,7 +815,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				}
 
 				if iCloudContainerEnvironment != "" {
-					options.ICloudContainerEnvironment = iCloudContainerEnvironment
+					options.ICloudContainerEnvironment = exportoptions.ICloudContainerEnvironment(iCloudContainerEnvironment)
 				}
 
 				exportOpts = options
