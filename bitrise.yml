@@ -17,6 +17,7 @@ workflows:
     - errcheck:
     - go-test:
     after_run:
+    - test_cloudkit
     - test_objc
     - test_xcode_8
     - test_multi_target
