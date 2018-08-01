@@ -35,10 +35,12 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 		}
 
 		var ok bool
-		scheme, schemeContainerDir, ok = workspace.Scheme(schemeName)
+		var containerProject string
+		scheme, containerProject, ok = workspace.Scheme(schemeName)
 		if !ok {
 			return nil, fmt.Errorf("no scheme found with name: %s in workspace: %s", schemeName, pth)
 		}
+		schemeContainerDir = filepath.Dir(containerProject)
 	} else {
 		return nil, fmt.Errorf("unknown project extension: %s", filepath.Ext(pth))
 	}
