@@ -104,6 +104,13 @@ inputs:
       value_options:
       - "yes"
       - "no"
+  - icloud_container_environment:
+    opts:
+      title: "iCloud container environment"
+      summary: ""
+      description: |-
+        If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.  
+        Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
   - force_team_id:
     opts:
       category: Force Build Settings
