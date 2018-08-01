@@ -618,28 +618,26 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				fail(err.Error())
 			}
 
-			// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
-			// If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
+			// iCloudContainerEnvironment: If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
 			// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
 			usesCloudKit := false
-			if xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore {
-				for _, entitlements := range bundleIDEntitlementsMap {
-					if entitlements == nil {
-						continue
-					}
+			for _, entitlements := range bundleIDEntitlementsMap {
+				if entitlements == nil {
+					continue
+				}
 
-					services, ok := entitlements.GetStringArray("com.apple.developer.icloud-services")
-					if ok {
-						usesCloudKit = sliceutil.IsStringInSlice("CloudKit", services)
-						if usesCloudKit {
-							break
-						}
+				services, ok := entitlements.GetStringArray("com.apple.developer.icloud-services")
+				if ok {
+					usesCloudKit = sliceutil.IsStringInSlice("CloudKit", services)
+					if usesCloudKit {
+						break
 					}
 				}
 			}
 
+			// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
 			var iCloudContainerEnvironment string
-			if usesCloudKit {
+			if usesCloudKit && (xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore) {
 				if exportMethod == exportoptions.MethodAppStore {
 					iCloudContainerEnvironment = "Production"
 				} else if configs.ICloudContainerEnvironment == "" {
