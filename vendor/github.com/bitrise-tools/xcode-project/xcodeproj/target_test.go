@@ -9,6 +9,32 @@ import (
 	"howett.net/plist"
 )
 
+func TestIsExecutableProduct(t *testing.T) {
+	var raw serialized.Object
+	_, err := plist.Unmarshal([]byte(rawNativeTarget), &raw)
+	require.NoError(t, err)
+
+	{
+		target, err := parseTarget("13E76E0D1F4AC90A0028096E", raw)
+		require.NoError(t, err)
+
+		require.True(t, target.IsAppProduct())
+		require.False(t, target.IsAppExtensionProduct())
+		require.True(t, target.IsExecutableProduct())
+	}
+
+	{
+
+		target, err := parseTarget("13E76E461F4AC94F0028096E", raw)
+		require.NoError(t, err)
+
+		require.False(t, target.IsAppProduct())
+		require.True(t, target.IsAppExtensionProduct())
+		require.True(t, target.IsExecutableProduct())
+	}
+
+}
+
 func TestParseTarget(t *testing.T) {
 	t.Log("PBXNativeTarget")
 	{
@@ -109,7 +135,10 @@ const expectedLegacyTarget = `{
 			}
 		]
 	},
-	"Dependencies": null
+	"Dependencies": null,
+	"ProductReference": {
+		"Path": ""
+	}
 }`
 
 const rawAggregateTarget = `{
@@ -164,7 +193,10 @@ const expectedAggregateTarget = `{
 			}
 		]
 	},
-	"Dependencies": null
+	"Dependencies": null,
+	"ProductReference": {
+		"Path": ""
+	}
 }`
 
 const rawNativeTarget = `{
@@ -258,6 +290,9 @@ const rawNativeTarget = `{
 		productReference = 13E76E471F4AC94F0028096E /* share-extension.appex */;
 		productType = "com.apple.product-type.app-extension";
 	};
+
+	13E76E0E1F4AC90A0028096E /* code-sign-test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "code-sign-test.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+	13E76E471F4AC94F0028096E /* share-extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "share-extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 }`
 
 const expectedNativeTarget = `{
@@ -351,8 +386,14 @@ const expectedNativeTarget = `{
 						}
 					]
 				},
-				"Dependencies": null
+				"Dependencies": null,
+				"ProductReference": {
+					"Path": "share-extension.appex"
+				}
 			}
 		}
-	]
+	],
+	"ProductReference": {
+		"Path": "code-sign-test.app"
+	}
 }`

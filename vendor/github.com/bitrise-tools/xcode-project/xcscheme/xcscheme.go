@@ -18,6 +18,11 @@ type BuildableReference struct {
 	ReferencedContainer string `xml:"ReferencedContainer,attr"`
 }
 
+// IsAppReference ...
+func (r BuildableReference) IsAppReference() bool {
+	return filepath.Ext(r.BuildableName) == ".app"
+}
+
 // ReferencedContainerAbsPath ...
 func (r BuildableReference) ReferencedContainerAbsPath(schemeContainerDir string) (string, error) {
 	s := strings.Split(r.ReferencedContainer, ":")
@@ -72,4 +77,21 @@ func Open(pth string) (Scheme, error) {
 	scheme.Path = pth
 
 	return scheme, nil
+}
+
+// AppBuildActionEntry ...
+func (s Scheme) AppBuildActionEntry() (BuildActionEntry, bool) {
+	var entry BuildActionEntry
+	for _, e := range s.BuildAction.BuildActionEntries {
+		if e.BuildForArchiving != "YES" {
+			continue
+		}
+		if !e.BuildableReference.IsAppReference() {
+			continue
+		}
+		entry = e
+		break
+	}
+
+	return entry, (entry.BuildableReference.BlueprintIdentifier != "")
 }
