@@ -1,6 +1,7 @@
 package xcscheme
 
 import (
+	"encoding/xml"
 	"testing"
 
 	"github.com/bitrise-tools/xcode-project/testhelper"
@@ -35,6 +36,23 @@ func TestOpenScheme(t *testing.T) {
 		require.Equal(t, "YES", entry.BuildForTesting)
 		require.Equal(t, "BA3CBE9019F7A93900CED4D5", entry.BuildableReference.BlueprintIdentifier)
 	}
+}
+
+func TestAppBuildActionEntry(t *testing.T) {
+	var scheme Scheme
+	require.NoError(t, xml.Unmarshal([]byte(schemeContent), &scheme))
+
+	entry, ok := scheme.AppBuildActionEntry()
+	require.True(t, ok)
+
+	require.Equal(t, "YES", entry.BuildForArchiving)
+	require.Equal(t, "YES", entry.BuildForTesting)
+	require.Equal(t, "BA3CBE7419F7A93800CED4D5", entry.BuildableReference.BlueprintIdentifier)
+	require.Equal(t, "ios-simple-objc.app", entry.BuildableReference.BuildableName)
+	require.Equal(t, "ios-simple-objc", entry.BuildableReference.BlueprintName)
+	require.Equal(t, "container:ios-simple-objc.xcodeproj", entry.BuildableReference.ReferencedContainer)
+
+	require.True(t, entry.BuildableReference.IsAppReference())
 }
 
 const schemeContent = `<?xml version="1.0" encoding="UTF-8"?>

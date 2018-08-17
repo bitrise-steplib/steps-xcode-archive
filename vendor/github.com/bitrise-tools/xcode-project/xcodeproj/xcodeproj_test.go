@@ -22,6 +22,11 @@ func TestTargets(t *testing.T) {
 		require.Equal(t, 2, len(dependentTargets))
 		require.Equal(t, "WatchKitApp", dependentTargets[0].Name)
 		require.Equal(t, "WatchKitApp Extension", dependentTargets[1].Name)
+
+		dependentExecutableTarget := target.DependentExecutableProductTargets()
+		require.Equal(t, 2, len(dependentExecutableTarget))
+		require.Equal(t, "WatchKitApp", dependentExecutableTarget[0].Name)
+		require.Equal(t, "WatchKitApp Extension", dependentExecutableTarget[1].Name)
 	}
 
 	{

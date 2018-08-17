@@ -1,4 +1,4 @@
-package xcodeproj
+package xcodebuild
 
 import (
 	"fmt"
@@ -13,7 +13,11 @@ func parseShowBuildSettingsOutput(out string) (serialized.Object, error) {
 
 	lines := strings.Split(out, "\n")
 	for _, line := range lines {
-		if strings.HasPrefix(line, "Build settings for") {
+		if strings.HasPrefix(line, "Build settings") {
+			continue
+		}
+
+		if line == "" {
 			continue
 		}
 
@@ -32,8 +36,26 @@ func parseShowBuildSettingsOutput(out string) (serialized.Object, error) {
 	return settings, nil
 }
 
-func showBuildSettings(project, target, configuration, sdk string) (serialized.Object, error) {
+// ShowProjectBuildSettings ...
+func ShowProjectBuildSettings(project, target, configuration, sdk string) (serialized.Object, error) {
 	args := []string{"-project", project, "-target", target, "-configuration", configuration}
+	if sdk != "" {
+		args = append(args, "-sdk", sdk)
+	}
+	args = append(args, "-showBuildSettings")
+
+	cmd := command.New("xcodebuild", args...)
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
+	}
+
+	return parseShowBuildSettingsOutput(out)
+}
+
+// ShowWorkspaceBuildSettings ...
+func ShowWorkspaceBuildSettings(workspace, scheme, configuration, sdk string) (serialized.Object, error) {
+	args := []string{"-workspace", workspace, "-scheme", scheme, "-configuration", configuration}
 	if sdk != "" {
 		args = append(args, "-sdk", sdk)
 	}

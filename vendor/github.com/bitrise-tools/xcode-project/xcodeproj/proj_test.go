@@ -92,11 +92,26 @@ const rawProj = `
 		);
 		buildRules = (
 		);
-		dependencies = ();
+		dependencies = (
+			E62D1D9F1F22422D009F8898 /* PBXTargetDependency */,
+			E67597E61F138112008C1262 /* PBXTargetDependency */,
+		);
 		name = "code-sign-testUITests";
 		productName = "code-sign-testUITests";
 		productReference = 13E76E311F4AC90A0028096E /* code-sign-testUITests.xctest */;
 		productType = "com.apple.product-type.bundle.ui-testing";
+	};
+
+	FD55DAD914CE0B0000F84D24 /* rpcsvc */ = {
+		isa = PBXAggregateTarget;
+		buildConfigurationList = FD55DADA14CE0B0000F84D24 /* Build configuration list for PBXAggregateTarget "rpcsvc" */;
+		buildPhases = (
+			FD55DADC14CE0B0700F84D24 /* Run Script */,
+		);
+		dependencies = (
+		);
+		name = rpcsvc;
+		productName = rpcsvc;
 	};
 
 	7D5B35F720E28EE80022BAE6 /* Build configuration list for PBXProject "XcodeProj" */ = {
@@ -194,6 +209,22 @@ const rawProj = `
 			TEST_TARGET_NAME = "code-sign-test";
 		};
 		name = Debug;
+	};
+
+	13E76E0E1F4AC90A0028096E /* code-sign-test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "code-sign-test.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+	13E76E471F4AC94F0028096E /* share-extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "share-extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+	13E76E311F4AC90A0028096E /* code-sign-testUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "code-sign-testUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+
+	E62D1D9F1F22422D009F8898 /* PBXTargetDependency */ = {
+		isa = PBXTargetDependency;
+		target = FD55DAD914CE0B0000F84D24;
+		targetProxy = E62D1D9E1F22422D009F8898;
+	};
+
+	E67597E61F138112008C1262 /* PBXTargetDependency */ = {
+		isa = PBXTargetDependency;
+		name = MHIdentityKit;
+		targetProxy = E62D1D9E1F22422D009F8898;
 	};
 }`
 
@@ -293,7 +324,10 @@ const expectedProj = `{
 					}
 				]
 			},
-			"Dependencies": null
+			"Dependencies": null,
+			"ProductReference": {
+				"Path": "code-sign-testUITests.xctest"
+			}
 		}
 	]
 }`
