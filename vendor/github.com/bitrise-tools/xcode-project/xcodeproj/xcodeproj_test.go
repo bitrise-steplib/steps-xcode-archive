@@ -9,6 +9,87 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestResolve(t *testing.T) {
+	t.Log("resolves bundle id in format: prefix.$(ENV_KEY:rfc1034identifier).suffix")
+	{
+		bundleID := `auto_provision.$(PRODUCT_NAME:rfc1034identifier)`
+		buildSettings := serialized.Object{
+			"PRODUCT_NAME": "ios-simple-objc",
+		}
+		resolved, err := resolve(bundleID, buildSettings)
+		require.NoError(t, err)
+		require.Equal(t, "auto_provision.ios-simple-objc", resolved)
+	}
+
+	t.Log("resolves bundle id with cross env reference")
+	{
+		bundleID := `auto_provision.$(BUNDLE_ID:rfc1034identifier)`
+		buildSettings := serialized.Object{
+			"PRODUCT_NAME": "ios-simple-objc",
+			"BUNDLE_ID":    "$(PRODUCT_NAME:rfc1034identifier)",
+		}
+		resolved, err := resolve(bundleID, buildSettings)
+		require.NoError(t, err)
+		require.Equal(t, "auto_provision.ios-simple-objc", resolved)
+	}
+
+	t.Log("detects env refernce cycle")
+	{
+		bundleID := `auto_provision.$(BUNDLE_ID:rfc1034identifier)`
+		buildSettings := serialized.Object{
+			"PRODUCT_NAME": "$(BUNDLE_ID:rfc1034identifier)",
+			"BUNDLE_ID":    "$(PRODUCT_NAME:rfc1034identifier)",
+		}
+		resolved, err := resolve(bundleID, buildSettings)
+		require.EqualError(t, err, "bundle id reference cycle found")
+		require.Equal(t, "", resolved)
+	}
+}
+
+func TestExpand(t *testing.T) {
+	t.Log("resolves bundle id in format: prefix.$(ENV_KEY:rfc1034identifier).suffix")
+	{
+		bundleID := `auto_provision.$(PRODUCT_NAME:rfc1034identifier)`
+		buildSettings := serialized.Object{
+			"PRODUCT_NAME": "ios-simple-objc",
+		}
+		resolved, err := expand(bundleID, buildSettings)
+		require.NoError(t, err)
+		require.Equal(t, "auto_provision.ios-simple-objc", resolved)
+	}
+
+	t.Log("works without env")
+	{
+		bundleID := `auto_provision.ios-simple-objc`
+		buildSettings := serialized.Object{
+			"PRODUCT_NAME": "ios-simple-objc",
+		}
+		resolved, err := expand(bundleID, buildSettings)
+		require.NoError(t, err)
+		require.Equal(t, "auto_provision.ios-simple-objc", resolved)
+	}
+
+	t.Log("fails if bundle id does not conforms to: (.*)\\$\\((.*)\\)(.*)")
+	{
+		bundleID := `auto_provision.$PRODUCT_NAME`
+		buildSettings := serialized.Object{
+			"PRODUCT_NAME": "ios-simple-objc",
+		}
+		resolved, err := expand(bundleID, buildSettings)
+		require.EqualError(t, err, "auto_provision.$PRODUCT_NAME does not match to pattern: (.*)\\$\\((.*)\\)(.*)")
+		require.Equal(t, "", resolved)
+	}
+
+	t.Log("fails if env not found")
+	{
+		bundleID := `auto_provision.$(PRODUCT_NAME:rfc1034identifier)`
+		buildSettings := serialized.Object{}
+		resolved, err := expand(bundleID, buildSettings)
+		require.EqualError(t, err, "PRODUCT_NAME build settings not found")
+		require.Equal(t, "", resolved)
+	}
+}
+
 func TestTargets(t *testing.T) {
 	dir := testhelper.GitCloneIntoTmpDir(t, "https://github.com/bitrise-samples/xcode-project-test.git")
 	project, err := Open(filepath.Join(dir, "Group/SubProject/SubProject.xcodeproj"))
