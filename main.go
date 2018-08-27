@@ -632,6 +632,10 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					if usesCloudKit {
 						break
 					}
+					usesCloudKit = sliceutil.IsStringInSlice("CloudDocuments", services)
+					if usesCloudKit {
+						break
+					}
 				}
 			}
 
