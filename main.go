@@ -628,11 +628,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				services, ok := entitlements.GetStringArray("com.apple.developer.icloud-services")
 				if ok {
-					usesCloudKit = sliceutil.IsStringInSlice("CloudKit", services)
-					if usesCloudKit {
-						break
-					}
-					usesCloudKit = sliceutil.IsStringInSlice("CloudDocuments", services)
+					usesCloudKit = sliceutil.IsStringInSlice("CloudKit", services) || sliceutil.IsStringInSlice("CloudDocuments", services)
 					if usesCloudKit {
 						break
 					}
