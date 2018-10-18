@@ -65,12 +65,16 @@ func (p XcodeProj) TargetInformationPropertyListPath(target, configuration strin
 		return "", err
 	}
 
-	relPth, err := buildSettings.String("INFOPLIST_FILE")
+	pth, err := buildSettings.String("INFOPLIST_FILE")
 	if err != nil {
 		return "", err
 	}
 
-	return filepath.Join(filepath.Dir(p.Path), relPth), nil
+	if pathutil.IsRelativePath(pth) {
+		pth = filepath.Join(filepath.Dir(p.Path), pth)
+	}
+
+	return pth, nil
 }
 
 // TargetInformationPropertyList ...
