@@ -87,6 +87,8 @@ workflows:
     - BRANCH: "master"
     - BITRISE_PROJECT_PATH: NPO Live.xcworkspace
     - BITRISE_SCHEME: "NPO Live"
+    - FORCE_CODE_SIGN_IDENTITY: ""
+    - FORCE_TEAM_ID: ""
     - OUTPUT_TOOL: xcpretty
     after_run:
     - _common
