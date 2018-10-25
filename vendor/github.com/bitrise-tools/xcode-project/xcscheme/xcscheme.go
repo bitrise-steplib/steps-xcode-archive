@@ -47,6 +47,17 @@ type BuildAction struct {
 	BuildActionEntries []BuildActionEntry `xml:"BuildActionEntries>BuildActionEntry"`
 }
 
+// TestableReference ...
+type TestableReference struct {
+	Skipped            string `xml:"skipped,attr"`
+	BuildableReference BuildableReference
+}
+
+// TestAction ...
+type TestAction struct {
+	Testables []TestableReference `xml:"Testables>TestableReference"`
+}
+
 // ArchiveAction ...
 type ArchiveAction struct {
 	BuildConfiguration string `xml:"buildConfiguration,attr"`
@@ -56,6 +67,7 @@ type ArchiveAction struct {
 type Scheme struct {
 	BuildAction   BuildAction
 	ArchiveAction ArchiveAction
+	TestAction    TestAction
 
 	Name string
 	Path string

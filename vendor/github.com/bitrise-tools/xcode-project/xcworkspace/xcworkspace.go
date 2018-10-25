@@ -42,28 +42,17 @@ func (w Workspace) Scheme(name string) (xcscheme.Scheme, string, bool) {
 }
 
 // SchemeBuildSettings ...
-func (w Workspace) SchemeBuildSettings(scheme, configuration, sdk string) (serialized.Object, error) {
-	return xcodebuild.ShowWorkspaceBuildSettings(w.Path, scheme, configuration, sdk)
+func (w Workspace) SchemeBuildSettings(scheme, configuration string, customOptions ...string) (serialized.Object, error) {
+	return xcodebuild.ShowWorkspaceBuildSettings(w.Path, scheme, configuration, customOptions...)
 }
 
 // Schemes ...
 func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
 	schemesByContainer := map[string][]xcscheme.Scheme{}
 
-	pattern := filepath.Join(w.Path, "xcshareddata", "xcschemes", "*.xcscheme")
-	pths, err := filepath.Glob(pattern)
+	workspaceSchemes, err := xcscheme.FindSchemesIn(w.Path)
 	if err != nil {
 		return nil, err
-	}
-
-	// workspace schemes
-	var workspaceSchemes []xcscheme.Scheme
-	for _, pth := range pths {
-		scheme, err := xcscheme.Open(pth)
-		if err != nil {
-			return nil, err
-		}
-		workspaceSchemes = append(workspaceSchemes, scheme)
 	}
 
 	schemesByContainer[w.Path] = workspaceSchemes

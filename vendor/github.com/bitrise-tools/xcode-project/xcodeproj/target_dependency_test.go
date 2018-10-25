@@ -72,6 +72,7 @@ const expectedTargetDependency = `{
 		"Dependencies": null,
 		"ProductReference": {
 			"Path": "share-extension.appex"
-		}
+		},
+		"ProductType": "com.apple.product-type.app-extension"
 	}
 }`
