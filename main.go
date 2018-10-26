@@ -12,6 +12,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -82,7 +83,7 @@ func createConfigsModelFromEnvs() ConfigsModel {
 		UploadBitcode:              os.Getenv("upload_bitcode"),
 		CompileBitcode:             os.Getenv("compile_bitcode"),
 		ICloudContainerEnvironment: os.Getenv("icloud_container_environment"),
-		TeamID: os.Getenv("team_id"),
+		TeamID:                     os.Getenv("team_id"),
 
 		UseDeprecatedExport:               os.Getenv("use_deprecated_export"),
 		ForceTeamID:                       os.Getenv("force_team_id"),
@@ -288,10 +289,22 @@ func main() {
 			fmt.Println()
 			log.Printf("Installing xcpretty")
 
-			if err := xcpretty.Install(); err != nil {
-				log.Warnf("Failed to install xcpretty, error: %s", err)
-				log.Printf("Switching to xcodebuild for output tool")
+			if cmds, err := xcpretty.Install(); err != nil {
+				log.Warnf("Failed to create xcpretty install command: %s", err)
+				log.Warnf("Switching to xcodebuild for output tool")
 				outputTool = "xcodebuild"
+			} else {
+				for _, cmd := range cmds {
+					if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+						if errorutil.IsExitStatusError(err) {
+							log.Warnf("%s failed: %s", out)
+						} else {
+							log.Warnf("%s failed: %s", err)
+						}
+						log.Warnf("Switching to xcodebuild for output tool")
+						outputTool = "xcodebuild"
+					}
+				}
 			}
 		}
 	}
