@@ -98,6 +98,7 @@ const rawLegacyTarget = `{
 		name = build;
 		passBuildSettingsInEnvironment = 1;
 		productName = "Build All";
+		productType = "com.apple.product-type.application";
 	};
 
 	407952610CEA393300E202DC /* Build configuration list for PBXLegacyTarget "build" */ = {
@@ -138,7 +139,8 @@ const expectedLegacyTarget = `{
 	"Dependencies": null,
 	"ProductReference": {
 		"Path": ""
-	}
+	},
+	"ProductType": "com.apple.product-type.application"
 }`
 
 const rawAggregateTarget = `{
@@ -152,6 +154,7 @@ const rawAggregateTarget = `{
 		);
 		name = rpcsvc;
 		productName = rpcsvc;
+		productType = "com.apple.product-type.application";
 	};
 
 	FD55DADA14CE0B0000F84D24 /* Build configuration list for PBXAggregateTarget "rpcsvc" */ = {
@@ -196,7 +199,8 @@ const expectedAggregateTarget = `{
 	"Dependencies": null,
 	"ProductReference": {
 		"Path": ""
-	}
+	},
+	"ProductType": "com.apple.product-type.application"
 }`
 
 const rawNativeTarget = `{
@@ -389,11 +393,13 @@ const expectedNativeTarget = `{
 				"Dependencies": null,
 				"ProductReference": {
 					"Path": "share-extension.appex"
-				}
+				},
+				"ProductType": "com.apple.product-type.app-extension"
 			}
 		}
 	],
 	"ProductReference": {
 		"Path": "code-sign-test.app"
-	}
+	},
+	"ProductType": "com.apple.product-type.application"
 }`

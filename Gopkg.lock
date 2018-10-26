@@ -31,7 +31,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:165bebf2fc00916648e90c424a19105b0d3afc72ead558e7ae7a56edcde7524c"
+  digest = "1:1bf3bf5167d9a8caa0a3e3e5c62cc59e1bff66c446eebc43929d4ee600ac425e"
   name = "github.com/bitrise-tools/go-xcode"
   packages = [
     "certificateutil",
@@ -46,11 +46,11 @@
     "xcpretty",
   ]
   pruneopts = ""
-  revision = "07db8cf760f5213241e12c0595158aedce96669a"
+  revision = "82aa5ad881aad17afd7b73af03dabc4ef89b8a53"
 
 [[projects]]
   branch = "master"
-  digest = "1:10a9db1989fa64be44fde56e6402a3a1ccab0c757594199250b8e63c5b713fe3"
+  digest = "1:1e7de00b8c4f1d50f48d589636b94e01afcbede84f407763d7dde0bdb7984c6e"
   name = "github.com/bitrise-tools/xcode-project"
   packages = [
     "serialized",
@@ -60,7 +60,7 @@
     "xcworkspace",
   ]
   pruneopts = ""
-  revision = "bb22a6e983b24ea830b1a265c8ff70d2a71b6882"
+  revision = "6f0750033d97d0ec766753662d42d40dd6346045"
 
 [[projects]]
   branch = "master"
@@ -71,12 +71,12 @@
   revision = "8306686428a5fe132eac8cb7c4848af725098bd4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:139bdc2c89779b8ff8b1150be28f889b0ed964e6da96f32cbc9035bd4642881c"
+  digest = "1:8c7fb7f81c06add10a17362abc1ae569ff9765a26c061c6b6e67c909f4f414db"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   pruneopts = ""
-  revision = "270f2f71b1ee587f3b609f00f422b76a6b28f348"
+  revision = "b5a281d3160aa11950a6182bd9a9dc2cb1e02d50"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"

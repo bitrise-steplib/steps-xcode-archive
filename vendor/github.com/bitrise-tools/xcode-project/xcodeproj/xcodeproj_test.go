@@ -111,7 +111,7 @@ func TestTargets(t *testing.T) {
 	}
 
 	{
-		settings, err := project.TargetBuildSettings("SubProject", "Debug", "")
+		settings, err := project.TargetBuildSettings("SubProject", "Debug")
 		require.NoError(t, err)
 		require.True(t, len(settings) > 0)
 
