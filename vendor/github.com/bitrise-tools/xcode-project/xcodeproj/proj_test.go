@@ -327,7 +327,8 @@ const expectedProj = `{
 			"Dependencies": null,
 			"ProductReference": {
 				"Path": "code-sign-testUITests.xctest"
-			}
+			},
+			"ProductType": "com.apple.product-type.bundle.ui-testing"
 		}
 	]
 }`

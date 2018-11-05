@@ -55,6 +55,19 @@ func TestAppBuildActionEntry(t *testing.T) {
 	require.True(t, entry.BuildableReference.IsAppReference())
 }
 
+func TestAppTestActionEntry(t *testing.T) {
+	var scheme Scheme
+	require.NoError(t, xml.Unmarshal([]byte(schemeContent), &scheme))
+
+	require.Equal(t, 2, len(scheme.TestAction.Testables))
+	require.Equal(t, "NO", scheme.TestAction.Testables[0].Skipped)
+	require.Equal(t, "YES", scheme.TestAction.Testables[1].Skipped)
+	require.Equal(t, "BA3CBE9019F7A93900CED4D5", scheme.TestAction.Testables[0].BuildableReference.BlueprintIdentifier)
+
+	require.False(t, scheme.TestAction.Testables[0].BuildableReference.IsAppReference())
+	require.False(t, scheme.TestAction.Testables[1].BuildableReference.IsAppReference())
+}
+
 const schemeContent = `<?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "0800"
@@ -106,6 +119,16 @@ const schemeContent = `<?xml version="1.0" encoding="UTF-8"?>
                BlueprintIdentifier = "BA3CBE9019F7A93900CED4D5"
                BuildableName = "ios-simple-objcTests.xctest"
                BlueprintName = "ios-simple-objcTests"
+               ReferencedContainer = "container:ios-simple-objc.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BA4CBE9019F7A93900CED4D5"
+               BuildableName = "ios-simple-objcTests2.xctest"
+               BlueprintName = "ios-simple-objcTests2"
                ReferencedContainer = "container:ios-simple-objc.xcodeproj">
             </BuildableReference>
          </TestableReference>
