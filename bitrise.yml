@@ -89,6 +89,7 @@ workflows:
     - BITRISE_SCHEME: "NPO Live"
     - FORCE_CODE_SIGN_IDENTITY: ""
     - FORCE_TEAM_ID: ""
+    - PROV_PROFILE_SPECIFIER: ""
     - OUTPUT_TOOL: xcpretty
     after_run:
     - _common
