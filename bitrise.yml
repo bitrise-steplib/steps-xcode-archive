@@ -54,6 +54,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
     - FORCE_TEAM_ID: 72SA8V3WYL
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
     - OUTPUT_TOOL: xcpretty
     after_run:
     - _common
