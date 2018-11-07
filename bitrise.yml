@@ -1,4 +1,4 @@
-format_version: "2"
+format_version: 6
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
@@ -22,6 +22,7 @@ workflows:
     - test_xcode_8
     - test_multi_target
     - test_workspace
+    - test_tvos
 
   test_cloudkit:
     envs:
@@ -53,6 +54,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
     - FORCE_TEAM_ID: 72SA8V3WYL
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
     - OUTPUT_TOOL: xcpretty
     after_run:
     - _common
@@ -77,6 +79,19 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
     - PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
     - FORCE_TEAM_ID: 72SA8V3WYL
+    after_run:
+    - _common
+
+  test_tvos:
+    envs:
+    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-tvos-swift.git
+    - BRANCH: "master"
+    - BITRISE_PROJECT_PATH: NPO Live.xcworkspace
+    - BITRISE_SCHEME: "NPO Live"
+    - FORCE_CODE_SIGN_IDENTITY: ""
+    - FORCE_TEAM_ID: ""
+    - PROV_PROFILE_SPECIFIER: ""
+    - OUTPUT_TOOL: xcpretty
     after_run:
     - _common
 
