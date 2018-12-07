@@ -154,7 +154,6 @@ const rawAggregateTarget = `{
 		);
 		name = rpcsvc;
 		productName = rpcsvc;
-		productType = "com.apple.product-type.application";
 	};
 
 	FD55DADA14CE0B0000F84D24 /* Build configuration list for PBXAggregateTarget "rpcsvc" */ = {
@@ -200,7 +199,7 @@ const expectedAggregateTarget = `{
 	"ProductReference": {
 		"Path": ""
 	},
-	"ProductType": "com.apple.product-type.application"
+	"ProductType": ""
 }`
 
 const rawNativeTarget = `{

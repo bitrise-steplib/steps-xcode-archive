@@ -14,15 +14,15 @@ func TestScheme(t *testing.T) {
 	require.NoError(t, err)
 
 	{
-		scheme, container, ok := workspace.Scheme("SubProjectWatchKitApp (Notification) Scheme")
-		require.True(t, ok)
+		scheme, container, err := workspace.Scheme("SubProjectWatchKitApp (Notification) Scheme")
+		require.NoError(t, err)
 		require.Equal(t, filepath.Join(dir, "Group/SubProject/SubProject.xcodeproj"), container)
 		require.Equal(t, "SubProjectWatchKitApp (Notification) Scheme", scheme.Name)
 	}
 
 	{
-		scheme, container, ok := workspace.Scheme("Not Exist Scheme")
-		require.False(t, ok)
+		scheme, container, err := workspace.Scheme("Not Exist Scheme")
+		require.EqualError(t, err, "scheme Not Exist Scheme not found in XcodeProj")
 		require.Equal(t, "", container)
 		require.Equal(t, "", scheme.Name)
 	}

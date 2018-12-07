@@ -2,8 +2,8 @@ package stepconf_test
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"testing"
 
 	"github.com/bitrise-tools/go-steputils/stepconf"
 )
@@ -51,18 +51,18 @@ var envs = map[string]string{
 	"export_method": "dev",
 }
 
-func Example() {
+func TestExample(t *testing.T) {
 	// Set env vars for the example.
 	for env, value := range envs {
 		err := os.Setenv(env, value)
 		if err != nil {
-			log.Fatalf("Couldn't set env vars: %v\n", err)
+			t.Errorf("Couldn't set env vars: %v\n", err)
 		}
 	}
 
 	var cfg config
 	if err := stepconf.Parse(&cfg); err != nil {
-		log.Fatalf("Couldn't create config: %v\n", err)
+		t.Errorf("Couldn't create config: %v\n", err)
 	}
 	fmt.Println(cfg)
 	// Output: {Example 11 true [item1 item2 item3] *****  present /etc/hosts /tmp dev}
