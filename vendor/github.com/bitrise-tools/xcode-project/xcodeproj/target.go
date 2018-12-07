@@ -102,9 +102,9 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 	if err != nil {
 		return Target{}, err
 	}
-	
+
 	productType, err := rawTarget.String("productType")
-	if err != nil {
+	if err != nil && !serialized.IsKeyNotFoundError(err) {
 		return Target{}, err
 	}
 
@@ -153,9 +153,9 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 	}
 
 	return Target{
-		Type: targetType,
-		ID:   id,
-		Name: name,
+		Type:                   targetType,
+		ID:                     id,
+		Name:                   name,
 		BuildConfigurationList: buildConfigurationList,
 		Dependencies:           dependencies,
 		ProductReference:       productReference,

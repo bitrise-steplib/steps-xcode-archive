@@ -14,7 +14,7 @@ import (
 	"github.com/bitrise-tools/xcode-project/xcscheme"
 )
 
-// Workspace ...
+// Workspace represents an Xcode workspace
 type Workspace struct {
 	FileRefs []FileRef `xml:"FileRef"`
 	Groups   []Group   `xml:"Group"`
@@ -23,22 +23,22 @@ type Workspace struct {
 	Path string
 }
 
-// Scheme ...
-func (w Workspace) Scheme(name string) (xcscheme.Scheme, string, bool) {
+// Scheme returns the scheme with the given name and it's container's file path
+func (w Workspace) Scheme(name string) (xcscheme.Scheme, string, error) {
 	schemesByContainer, err := w.Schemes()
 	if err != nil {
-		return xcscheme.Scheme{}, "", false
+		return xcscheme.Scheme{}, "", err
 	}
 
 	for container, schemes := range schemesByContainer {
 		for _, scheme := range schemes {
 			if scheme.Name == name {
-				return scheme, container, true
+				return scheme, container, nil
 			}
 		}
 	}
 
-	return xcscheme.Scheme{}, "", false
+	return xcscheme.Scheme{}, "", SchemeNotFoundError{scheme: name, container: w.Name}
 }
 
 // SchemeBuildSettings ...

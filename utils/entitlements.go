@@ -34,11 +34,13 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 			return nil, err
 		}
 
-		var ok bool
 		var containerProject string
-		scheme, containerProject, ok = workspace.Scheme(schemeName)
-		if !ok {
-			return nil, fmt.Errorf("no scheme found with name: %s in workspace: %s", schemeName, pth)
+		scheme, containerProject, err = workspace.Scheme(schemeName)
+		if err != nil {
+			if xcworkspace.IsSchemeNotFoundError(err) {
+				return nil, err
+			}
+			return nil, fmt.Errorf("failed to find scheme with name: %s in workspace: %s, error: %s", schemeName, pth, err)
 		}
 		schemeContainerDir = filepath.Dir(containerProject)
 	} else {
