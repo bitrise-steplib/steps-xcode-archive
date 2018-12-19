@@ -96,7 +96,7 @@ func (profile PlistData) GetExportMethod() exportoptions.Method {
 				return exportoptions.MethodAppStore
 			}
 			return exportoptions.MethodDevelopment
-		case "ios":
+		case "ios", "tvos":
 			_, ok := data.GetStringArray("ProvisionedDevices")
 			if !ok {
 				if allDevices, ok := data.GetBool("ProvisionsAllDevices"); ok && allDevices {

@@ -82,6 +82,26 @@ func TestPlistData(t *testing.T) {
 	}
 }
 
+func TestTVOSPlistData(t *testing.T) {
+	t.Log("it creates model from tvOS appstore profile content")
+	{
+		profile, err := plistutil.NewPlistDataFromContent(tvOSAppStoreProfileContent)
+		require.NoError(t, err)
+		require.Equal(t, "dec523d5-624b-44bd-8d16-6d1d69c63276", PlistData(profile).GetUUID())
+		require.Equal(t, "Bitrise app-store - (bdh.NPO-Live.bitrise.sample)", PlistData(profile).GetName())
+		require.Equal(t, "72SA8V3WYL.bdh.NPO-Live.bitrise.sample", PlistData(profile).GetApplicationIdentifier())
+		require.Equal(t, "bdh.NPO-Live.bitrise.sample", PlistData(profile).GetBundleIdentifier())
+		require.Equal(t, exportoptions.MethodAppStore, PlistData(profile).GetExportMethod())
+		require.Equal(t, "72SA8V3WYL", PlistData(profile).GetTeamID())
+		require.Equal(t, "Bitrise", PlistData(profile).GetTeamName())
+		require.Equal(t, "2018-10-24T11:22:30Z", PlistData(profile).GetCreationDate().Format("2006-01-02T15:04:05Z"))
+		require.Equal(t, "2019-04-16T08:42:18Z", PlistData(profile).GetExpirationDate().Format("2006-01-02T15:04:05Z"))
+		require.Equal(t, []string(nil), PlistData(profile).GetProvisionedDevices())
+		require.Equal(t, [][]uint8{[]uint8{}}, PlistData(profile).GetDeveloperCertificates())
+		require.Equal(t, false, PlistData(profile).GetProvisionsAllDevices())
+	}
+}
+
 const developmentProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -295,6 +315,61 @@ const enterpriseProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
 	<integer>365</integer>
 	<key>UUID</key>
 	<string>8d6caa15-ac49-48f9-9bd3-ce9244add6a0</string>
+	<key>Version</key>
+	<integer>1</integer>
+</dict>`
+
+const tvOSAppStoreProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppIDName</key>
+	<string>Bitrise  bdh NPOLive bitrise sample be2b4e3cfb0f2a967b404820aa18e09c</string>
+	<key>ApplicationIdentifierPrefix</key>
+	<array>
+	<string>72SA8V3WYL</string>
+	</array>
+	<key>CreationDate</key>
+	<date>2018-10-24T11:22:30Z</date>
+	<key>Platform</key>
+	<array>
+		<string>tvOS</string>
+	</array>
+	<key>DeveloperCertificates</key>
+	<array>
+		<data></data>
+	</array>
+    <key>IsXcodeManaged</key>
+    <false/>
+	<key>Entitlements</key>
+	<dict>
+		<key>keychain-access-groups</key>
+		<array>
+			<string>72SA8V3WYL.*</string>
+		</array>
+		<key>get-task-allow</key>
+		<false/>
+		<key>application-identifier</key>
+		<string>72SA8V3WYL.bdh.NPO-Live.bitrise.sample</string>
+		<key>com.apple.developer.team-identifier</key>
+		<string>72SA8V3WYL</string>
+		<key>beta-reports-active</key>
+		<true/>
+	</dict>
+	<key>ExpirationDate</key>
+	<date>2019-04-16T08:42:18Z</date>
+	<key>Name</key>
+	<string>Bitrise app-store - (bdh.NPO-Live.bitrise.sample)</string>
+	<key>TeamIdentifier</key>
+	<array>
+		<string>72SA8V3WYL</string>
+	</array>
+	<key>TeamName</key>
+	<string>Bitrise</string>
+	<key>TimeToLive</key>
+	<integer>173</integer>
+	<key>UUID</key>
+	<string>dec523d5-624b-44bd-8d16-6d1d69c63276</string>
 	<key>Version</key>
 	<integer>1</integer>
 </dict>`
