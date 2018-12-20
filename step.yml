@@ -15,6 +15,7 @@ host_os_tags:
 project_type_tags:
   - ios
   - react-native
+  - flutter
 type_tags:
   - build
 is_requires_admin_user: false
