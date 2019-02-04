@@ -17,3 +17,7 @@
 [[constraint]]
   name = "github.com/ryanuber/go-glob"
   branch = "master"
+
+[[constraint]]
+  name = "golang.org/x/text"
+  version = "0.3.0"

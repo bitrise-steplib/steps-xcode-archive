@@ -103,6 +103,21 @@
   revision = "256dc444b735e061061cf46c809487313d5b0065"
 
 [[projects]]
+  digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
+  name = "golang.org/x/text"
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm",
+  ]
+  pruneopts = ""
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
+[[projects]]
   branch = "master"
   digest = "1:e43acd1190dde7223727f1f8aeac537156d33bf87776d5637e672e1c6b354be4"
   name = "howett.net/plist"
@@ -138,6 +153,7 @@
     "github.com/bitrise-tools/xcode-project/xcworkspace",
     "github.com/kballard/go-shellquote",
     "github.com/ryanuber/go-glob",
+    "golang.org/x/text/unicode/norm",
     "howett.net/plist",
   ]
   solver-name = "gps-cdcl"
