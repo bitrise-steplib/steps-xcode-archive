@@ -1,27 +1,32 @@
+
 [[constraint]]
+  branch = "master"
   name = "github.com/bitrise-io/go-utils"
-  branch = "master"
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/bitrise-tools/go-steputils"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/bitrise-tools/go-xcode"
-  branch = "master"
 
 [[constraint]]
-  name = "github.com/hashicorp/go-version"
   branch = "master"
+  name = "github.com/bitrise-tools/xcode-project"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/kballard/go-shellquote"
-  branch = "master"
 
 [[constraint]]
   name = "github.com/ryanuber/go-glob"
   branch = "master"
 
 [[constraint]]
-  name = "golang.org/x/text"
   branch = "master"
+  name = "howett.net/plist"
 
-[[constraint]]
-  name = "github.com/bitrise-tools/xcode-project"
-  branch = "master"
+[prune]
+  go-tests = true
+  unused-packages = true
