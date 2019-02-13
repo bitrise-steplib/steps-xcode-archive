@@ -6,6 +6,7 @@ import (
 
 	"github.com/bitrise-tools/xcode-project/testhelper"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/text/unicode/norm"
 )
 
 func TestScheme(t *testing.T) {
@@ -26,6 +27,24 @@ func TestScheme(t *testing.T) {
 		require.Equal(t, "", container)
 		require.Equal(t, "", scheme.Name)
 	}
+
+	{
+		// Gdańsk represented in High Sierra
+		b := []byte{71, 100, 97, 197, 132, 115, 107}
+		scheme, container, err := workspace.Scheme(string(b))
+		require.NoError(t, err)
+		require.Equal(t, filepath.Join(dir, "XcodeProj.xcodeproj"), container)
+		require.Equal(t, norm.NFC.String(string(b)), norm.NFC.String(scheme.Name))
+	}
+
+	{
+		// Gdańsk represented in Mojave
+		b := []byte{71, 100, 97, 110, 204, 129, 115, 107}
+		scheme, container, err := workspace.Scheme(string(b))
+		require.NoError(t, err)
+		require.Equal(t, filepath.Join(dir, "XcodeProj.xcodeproj"), container)
+		require.Equal(t, norm.NFC.String(string(b)), norm.NFC.String(scheme.Name))
+	}
 }
 
 func TestSchemes(t *testing.T) {
@@ -45,9 +64,17 @@ func TestSchemes(t *testing.T) {
 
 	{
 		schemes := schemesByContainer[filepath.Join(dir, "XcodeProj.xcodeproj")]
-		require.Equal(t, 2, len(schemes))
-		require.Equal(t, "ProjectScheme", schemes[0].Name)
-		require.Equal(t, "ProjectTodayExtensionScheme", schemes[1].Name)
+		require.Equal(t, 3, len(schemes))
+
+		// Gdańsk represented in High Sierra
+		b := []byte{71, 100, 97, 197, 132, 115, 107}
+		require.Equal(t, norm.NFC.String(string(b)), norm.NFC.String(schemes[0].Name))
+		require.Equal(t, "ProjectScheme", schemes[1].Name)
+
+		// Gdańsk represented in Mojave
+		b = []byte{71, 100, 97, 110, 204, 129, 115, 107}
+		require.Equal(t, norm.NFC.String(string(b)), norm.NFC.String(schemes[0].Name))
+		require.Equal(t, "ProjectScheme", schemes[1].Name)
 	}
 
 	{

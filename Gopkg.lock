@@ -50,7 +50,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3913b50970ff06df2bf408645fc96f2cd9e46e88029167f941601217bc33e888"
+  digest = "1:ead665b88c905894d3210c1b61cf39fd008af260fd96354288b506535bf8ffdd"
   name = "github.com/bitrise-tools/xcode-project"
   packages = [
     "serialized",
@@ -60,7 +60,7 @@
     "xcworkspace",
   ]
   pruneopts = ""
-  revision = "fa60a59db68493e9e756aa4bbee18966dc1dc9a0"
+  revision = "95047fddda4bb611b8aa3955119497e8b910f164"
 
 [[projects]]
   branch = "master"
@@ -101,6 +101,21 @@
   packages = ["."]
   pruneopts = ""
   revision = "256dc444b735e061061cf46c809487313d5b0065"
+
+[[projects]]
+  digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
+  name = "golang.org/x/text"
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm",
+  ]
+  pruneopts = ""
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
