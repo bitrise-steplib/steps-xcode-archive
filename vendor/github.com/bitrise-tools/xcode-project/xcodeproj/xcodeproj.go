@@ -12,7 +12,6 @@ import (
 	"github.com/bitrise-tools/xcode-project/serialized"
 	"github.com/bitrise-tools/xcode-project/xcodebuild"
 	"github.com/bitrise-tools/xcode-project/xcscheme"
-	"golang.org/x/text/unicode/norm"
 	"howett.net/plist"
 )
 
@@ -190,10 +189,8 @@ func (p XcodeProj) Scheme(name string) (xcscheme.Scheme, bool) {
 		return xcscheme.Scheme{}, false
 	}
 
-	normName := norm.NFC.String(name)
 	for _, scheme := range schemes {
-		normSchemeName := norm.NFC.String(scheme.Name)
-		if normSchemeName == normName {
+		if scheme.Name == name {
 			return scheme, true
 		}
 	}

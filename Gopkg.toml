@@ -20,4 +20,4 @@
 
 [[constraint]]
   name = "golang.org/x/text"
-  version = "0.3.0"
+  branch = "master"
