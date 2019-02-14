@@ -13,22 +13,10 @@ func parseShowBuildSettingsOutput(out string) (serialized.Object, error) {
 
 	lines := strings.Split(out, "\n")
 	for _, line := range lines {
-		if strings.HasPrefix(line, "Build settings") {
-			continue
-		}
-
-		if strings.HasPrefix(line, "User defaults from command line") {
-			continue
-		}
-
-		if line == "" {
-			continue
-		}
-
 		split := strings.Split(line, " = ")
 
 		if len(split) < 2 {
-			return nil, fmt.Errorf("unknown build settings: %s", line)
+			continue
 		}
 
 		key := strings.TrimSpace(split[0])
