@@ -2,20 +2,21 @@ package xcscheme
 
 import (
 	"path/filepath"
+	"regexp"
 )
 
 // FindSchemesIn ...
 func FindSchemesIn(root string) (schemes []Scheme, err error) {
 	//
 	// Add the shared schemes to the list
-	sharedPths, err := pathsByPattern(root, "xcshareddata", "xcschemes", "*.xcscheme")
+	sharedPths, err := pathsByPattern(regexp.QuoteMeta(root), "xcshareddata", "xcschemes", "*.xcscheme")
 	if err != nil {
 		return nil, err
 	}
 
 	//
 	// Add the non-shared user schemes to the list
-	userPths, err := pathsByPattern(root, "xcuserdata", "*.xcuserdatad", "xcschemes", "*.xcscheme")
+	userPths, err := pathsByPattern(regexp.QuoteMeta(root), "xcuserdata", "*.xcuserdatad", "xcschemes", "*.xcscheme")
 	if err != nil {
 		return nil, err
 	}
