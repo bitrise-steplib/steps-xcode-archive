@@ -3,14 +3,10 @@ package xcscheme
 import (
 	"path/filepath"
 	"regexp"
-
-	"github.com/bitrise-io/go-utils/log"
 )
 
 // FindSchemesIn ...
 func FindSchemesIn(root string) (schemes []Scheme, err error) {
-	log.Warnf("root: %s", root)
-	log.Warnf("root escaped: %s", regexp.QuoteMeta(root))
 	//
 	// Add the shared schemes to the list
 	sharedPths, err := pathsByPattern(regexp.QuoteMeta(root), "xcshareddata", "xcschemes", "*.xcscheme")
@@ -24,8 +20,6 @@ func FindSchemesIn(root string) (schemes []Scheme, err error) {
 	if err != nil {
 		return nil, err
 	}
-
-	log.Warnf("shared: %s, user: %s", sharedPths, userPths)
 
 	for _, pth := range append(sharedPths, userPths...) {
 		scheme, err := Open(pth)
