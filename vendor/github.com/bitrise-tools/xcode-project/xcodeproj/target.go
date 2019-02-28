@@ -53,7 +53,7 @@ func (t Target) DependentExecutableProductTargets() []Target {
 
 		targets = append(targets, childTarget)
 
-		childDependentTargets := childTarget.DependentTargets()
+		childDependentTargets := childTarget.DependentExecutableProductTargets()
 		targets = append(targets, childDependentTargets...)
 	}
 
