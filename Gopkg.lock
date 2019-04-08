@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f0ab43a67b4571b5044ca169520e1916a01686711ea3a15269b78c79d7f58f3a"
+  digest = "1:47afa78274e0d120056afb60920f640abfbaa1fb40570c68ab19dae21fea94df"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -12,9 +12,11 @@
     "errorutil",
     "fileutil",
     "log",
+    "parseutil",
     "pathutil",
     "pkcs12",
     "pkcs12/internal/rc2",
+    "pointers",
     "sliceutil",
     "stringutil",
   ]
@@ -23,9 +25,9 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c59720e65fe5642d76a877559d2664d96fa207ae83e80fa3e186f6e0d95b362e"
+  digest = "1:dacd83ec550d6d5c2ac83e57f20d45a25a39d79c73be4451771f92572a1f6344"
   name = "github.com/bitrise-tools/go-steputils"
-  packages = ["input"]
+  packages = ["stepconf"]
   pruneopts = "UT"
   revision = "ec226b2359fcd806be64f0ad2217d8e741a1ff11"
 
@@ -137,7 +139,7 @@
     "github.com/bitrise-io/go-utils/pathutil",
     "github.com/bitrise-io/go-utils/sliceutil",
     "github.com/bitrise-io/go-utils/stringutil",
-    "github.com/bitrise-tools/go-steputils/input",
+    "github.com/bitrise-tools/go-steputils/stepconf",
     "github.com/bitrise-tools/go-xcode/certificateutil",
     "github.com/bitrise-tools/go-xcode/export",
     "github.com/bitrise-tools/go-xcode/exportoptions",

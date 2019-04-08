@@ -105,6 +105,23 @@ inputs:
       value_options:
       - "yes"
       - "no"
+  - index_while_building: "no"
+    opts:
+      title: "Index while building"
+      description: |-
+        Enable indexig during the build.
+
+        Indexing is needed for
+        
+        * Autocomplete
+        * Ability to quickly jump to definition
+        * Get class and method help by alt clicking.
+
+        Which are not needed in CI environment.
+      value_options:
+        - "yes"
+        - "no"
+      is_required: true
   - icloud_container_environment:
     opts:
       title: "iCloud container environment"
