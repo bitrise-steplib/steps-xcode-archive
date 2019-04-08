@@ -50,11 +50,11 @@ workflows:
   test_xcode_8:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
-    - COMMIT: "52ca16a9cead25be8c95c54e7fd53ce8fd945330"
+    - BRANCH: "swift_version"
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
-    - FORCE_TEAM_ID: 72SA8V3WYL
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    - FORCE_CODE_SIGN_IDENTITY: ""
+    - FORCE_TEAM_ID: ""
     - OUTPUT_TOOL: xcpretty
     after_run:
     - _common
