@@ -3,8 +3,8 @@ package export
 import (
 	"sort"
 
-	"github.com/bitrise-tools/go-xcode/certificateutil"
-	"github.com/bitrise-tools/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/certificateutil"
+	"github.com/bitrise-io/go-xcode/profileutil"
 	glob "github.com/ryanuber/go-glob"
 )
 

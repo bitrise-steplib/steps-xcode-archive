@@ -8,10 +8,10 @@ import (
 
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-tools/xcode-project/serialized"
-	"github.com/bitrise-tools/xcode-project/xcodebuild"
-	"github.com/bitrise-tools/xcode-project/xcodeproj"
-	"github.com/bitrise-tools/xcode-project/xcscheme"
+	"github.com/bitrise-io/xcode-project/serialized"
+	"github.com/bitrise-io/xcode-project/xcodebuild"
+	"github.com/bitrise-io/xcode-project/xcodeproj"
+	"github.com/bitrise-io/xcode-project/xcscheme"
 	"golang.org/x/text/unicode/norm"
 )
 

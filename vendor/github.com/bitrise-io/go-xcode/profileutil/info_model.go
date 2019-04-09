@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-tools/go-xcode/certificateutil"
-	"github.com/bitrise-tools/go-xcode/exportoptions"
-	"github.com/bitrise-tools/go-xcode/plistutil"
+	"github.com/bitrise-io/go-xcode/certificateutil"
+	"github.com/bitrise-io/go-xcode/exportoptions"
+	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/fullsailor/pkcs7"
 	"howett.net/plist"
 )

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/bitrise-tools/xcode-project/serialized"
+	"github.com/bitrise-io/xcode-project/serialized"
 )
 
 // TargetType ...

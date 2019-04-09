@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
-	"github.com/bitrise-tools/go-xcode/models"
+	"github.com/bitrise-io/go-xcode/models"
 )
 
 func getXcodeVersionFromXcodebuildOutput(outStr string) (models.XcodebuildVersionModel, error) {

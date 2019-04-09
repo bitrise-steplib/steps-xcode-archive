@@ -1,8 +1,8 @@
 package export
 
 import (
-	"github.com/bitrise-tools/go-xcode/certificateutil"
-	"github.com/bitrise-tools/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/certificateutil"
+	"github.com/bitrise-io/go-xcode/profileutil"
 )
 
 // CodeSignGroup ...

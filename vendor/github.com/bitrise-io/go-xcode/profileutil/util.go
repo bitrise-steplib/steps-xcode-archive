@@ -5,7 +5,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-tools/go-xcode/utility"
+	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/fullsailor/pkcs7"
 )
 
