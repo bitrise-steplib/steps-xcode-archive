@@ -5,15 +5,15 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bitrise-tools/go-steputils"
+  name = "github.com/bitrise-io/go-steputils"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bitrise-tools/go-xcode"
+  name = "github.com/bitrise-io/go-xcode"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bitrise-tools/xcode-project"
+  name = "github.com/bitrise-io/xcode-project"
 
 [[constraint]]
   branch = "master"

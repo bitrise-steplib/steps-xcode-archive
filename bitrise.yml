@@ -179,7 +179,7 @@ workflows:
         - content: |
             #!/bin/bash
             set -ex
-            go get -u github.com/bitrise-tools/releaseman
+            go get -u github.com/bitrise-io/releaseman
             export CI=true
             releaseman create --version $STEP_VERSION
 

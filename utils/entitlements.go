@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/bitrise-tools/go-xcode/plistutil"
-	"github.com/bitrise-tools/xcode-project/serialized"
-	"github.com/bitrise-tools/xcode-project/xcodeproj"
-	"github.com/bitrise-tools/xcode-project/xcscheme"
-	"github.com/bitrise-tools/xcode-project/xcworkspace"
+	"github.com/bitrise-io/go-xcode/plistutil"
+	"github.com/bitrise-io/xcode-project/serialized"
+	"github.com/bitrise-io/xcode-project/xcodeproj"
+	"github.com/bitrise-io/xcode-project/xcscheme"
+	"github.com/bitrise-io/xcode-project/xcworkspace"
 )
 
 // ProjectEntitlementsByBundleID ...
