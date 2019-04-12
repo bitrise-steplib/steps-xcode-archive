@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitrise-io/go-steputils/input"
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/command"
@@ -26,7 +27,7 @@ import (
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-io/steps-xcode-archive/utils"
+	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
 	"howett.net/plist"
 )
@@ -62,7 +63,7 @@ type configs struct {
 	CustomExportOptionsPlistContent   string `env:"custom_export_options_plist_content"`
 
 	OutputTool        string `env:"output_tool,opt[xcpretty,xcodebuild]"`
-	Workdir           string `env:"workdir,dir"`
+	Workdir           string `env:"workdir"`
 	ProjectPath       string `env:"project_path,file"`
 	Scheme            string `env:"scheme,required"`
 	Configuration     string `env:"configuration"`
@@ -120,16 +121,22 @@ func main() {
 		fail("Issue with input: %s", err)
 	}
 
+	stepconf.Print(cfg)
+	fmt.Println()
+	log.SetEnableDebugLog(cfg.VerboseLog)
+
+	if cfg.Workdir != "" {
+		if err := input.ValidateIfDirExists(cfg.Workdir); err != nil {
+			fail("issue with input Workdir: " + err.Error())
+		}
+	}
+
 	if cfg.CustomExportOptionsPlistContent != "" {
 		var options map[string]interface{}
 		if _, err := plist.Unmarshal([]byte(cfg.CustomExportOptionsPlistContent), &options); err != nil {
 			fail("issue with input CustomExportOptionsPlistContent: " + err.Error())
 		}
 	}
-
-	stepconf.Print(cfg)
-	fmt.Println()
-	log.SetEnableDebugLog(cfg.VerboseLog)
 
 	log.Infof("step determined configs:")
 
