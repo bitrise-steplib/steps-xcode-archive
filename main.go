@@ -125,6 +125,12 @@ func main() {
 	fmt.Println()
 	log.SetEnableDebugLog(cfg.VerboseLog)
 
+	if cfg.ExportMethod == "auto-detect" {
+		exportMethods := []exportoptions.Method{exportoptions.MethodAppStore, exportoptions.MethodAdHoc, exportoptions.MethodEnterprise, exportoptions.MethodDevelopment}
+		log.Warnf("Export method: auto-detect is DEPRECATED, use a direct export method %s", exportMethods)
+		fmt.Println()
+	}
+
 	if cfg.Workdir != "" {
 		if err := input.ValidateIfDirExists(cfg.Workdir); err != nil {
 			fail("issue with input Workdir: " + err.Error())
