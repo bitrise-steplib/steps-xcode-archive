@@ -200,7 +200,7 @@ workflows:
       - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
       - STEP_ID_IN_STEPLIB: xcode-archive
       - STEP_GIT_VERION_TAG_TO_SHARE: $STEP_VERSION
-      - STEP_GIT_CLONE_URL: https://github.com/bitrise-io/steps-xcode-archive.git
+      - STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-xcode-archive.git
     description: |-
       If this is the first time you try to share a Step you should
       first call: $ bitrise share
