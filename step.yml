@@ -7,9 +7,9 @@ description: |-
 
   You can share it, upload it, deploy it and catch them
   all! Well, maybe not the last one.
-website: https://github.com/bitrise-io/steps-xcode-archive
-source_code_url: https://github.com/bitrise-io/steps-xcode-archive
-support_url: https://github.com/bitrise-io/steps-xcode-archive/issues
+website: https://github.com/bitrise-steplib/steps-xcode-archive
+source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive
+support_url: https://github.com/bitrise-steplib/steps-xcode-archive/issues
 host_os_tags:
   - "osx-10.10"
 project_type_tags:
@@ -28,7 +28,7 @@ deps:
   - name: go
 toolkit:
   go:
-    package_name: github.com/bitrise-io/steps-xcode-archive
+    package_name: github.com/bitrise-steplib/steps-xcode-archive
 inputs:
   - project_path: $BITRISE_PROJECT_PATH
     opts:

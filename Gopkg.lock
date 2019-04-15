@@ -3,7 +3,18 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f0ab43a67b4571b5044ca169520e1916a01686711ea3a15269b78c79d7f58f3a"
+  digest = "1:01107999c16ba52ba2d9cbc967970256a4738320ceadb68886fc184f93fcfbb7"
+  name = "github.com/bitrise-io/go-steputils"
+  packages = [
+    "input",
+    "stepconf",
+  ]
+  pruneopts = "UT"
+  revision = "ec226b2359fcd806be64f0ad2217d8e741a1ff11"
+
+[[projects]]
+  branch = "master"
+  digest = "1:47afa78274e0d120056afb60920f640abfbaa1fb40570c68ab19dae21fea94df"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -12,9 +23,11 @@
     "errorutil",
     "fileutil",
     "log",
+    "parseutil",
     "pathutil",
     "pkcs12",
     "pkcs12/internal/rc2",
+    "pointers",
     "sliceutil",
     "stringutil",
   ]
@@ -23,16 +36,8 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c59720e65fe5642d76a877559d2664d96fa207ae83e80fa3e186f6e0d95b362e"
-  name = "github.com/bitrise-tools/go-steputils"
-  packages = ["input"]
-  pruneopts = "UT"
-  revision = "ec226b2359fcd806be64f0ad2217d8e741a1ff11"
-
-[[projects]]
-  branch = "master"
-  digest = "1:da06ebec1279993b6c5be12fe1b5e91751559a59bc274ae807779cf80c0a717b"
-  name = "github.com/bitrise-tools/go-xcode"
+  digest = "1:35929bf542321a1d3688c66d0fee331e3762f82c29ff76d0b8cefe78769a31a0"
+  name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
     "export",
@@ -46,12 +51,12 @@
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "b3f7172f910693d60973a07b61db757aca81f778"
+  revision = "14789f961d5a1161e98a6500f0e4c4b4ff6490c6"
 
 [[projects]]
   branch = "master"
-  digest = "1:894c5630e62d037ffcffa0bea305804013950e6f83eef24a7abde02f06be0b77"
-  name = "github.com/bitrise-tools/xcode-project"
+  digest = "1:791ce0f7d09a4c628614a5e3d097589406e8870f03bfa0db199b2d80cd2fb670"
+  name = "github.com/bitrise-io/xcode-project"
   packages = [
     "serialized",
     "xcodebuild",
@@ -60,15 +65,15 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "51bf5b2b7fd5ea39d460178fb217110ccfbb923a"
+  revision = "b724e9a2dda0585b6ceb6dbf9eb84ddbbf135335"
 
 [[projects]]
   branch = "master"
-  digest = "1:095c5b12709e45a61ff2820c2bf81c7de7a030629cb728fc7a2abec35b5cbadb"
+  digest = "1:0bd05495dbd0567480e48eac9e6602d87875a8747b13c3c0fcb7c83c7c921776"
   name = "github.com/fullsailor/pkcs7"
   packages = ["."]
   pruneopts = "UT"
-  revision = "8306686428a5fe132eac8cb7c4848af725098bd4"
+  revision = "d7302db945fa6ea264fb79d8e13e931ea514a602"
 
 [[projects]]
   digest = "1:950caca7dfcf796419232ba996c9c3539d09f26af27ba848c4508e604c13efbb"
@@ -129,6 +134,8 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/bitrise-io/go-steputils/input",
+    "github.com/bitrise-io/go-steputils/stepconf",
     "github.com/bitrise-io/go-utils/colorstring",
     "github.com/bitrise-io/go-utils/command",
     "github.com/bitrise-io/go-utils/errorutil",
@@ -137,20 +144,19 @@
     "github.com/bitrise-io/go-utils/pathutil",
     "github.com/bitrise-io/go-utils/sliceutil",
     "github.com/bitrise-io/go-utils/stringutil",
-    "github.com/bitrise-tools/go-steputils/input",
-    "github.com/bitrise-tools/go-xcode/certificateutil",
-    "github.com/bitrise-tools/go-xcode/export",
-    "github.com/bitrise-tools/go-xcode/exportoptions",
-    "github.com/bitrise-tools/go-xcode/plistutil",
-    "github.com/bitrise-tools/go-xcode/profileutil",
-    "github.com/bitrise-tools/go-xcode/utility",
-    "github.com/bitrise-tools/go-xcode/xcarchive",
-    "github.com/bitrise-tools/go-xcode/xcodebuild",
-    "github.com/bitrise-tools/go-xcode/xcpretty",
-    "github.com/bitrise-tools/xcode-project/serialized",
-    "github.com/bitrise-tools/xcode-project/xcodeproj",
-    "github.com/bitrise-tools/xcode-project/xcscheme",
-    "github.com/bitrise-tools/xcode-project/xcworkspace",
+    "github.com/bitrise-io/go-xcode/certificateutil",
+    "github.com/bitrise-io/go-xcode/export",
+    "github.com/bitrise-io/go-xcode/exportoptions",
+    "github.com/bitrise-io/go-xcode/plistutil",
+    "github.com/bitrise-io/go-xcode/profileutil",
+    "github.com/bitrise-io/go-xcode/utility",
+    "github.com/bitrise-io/go-xcode/xcarchive",
+    "github.com/bitrise-io/go-xcode/xcodebuild",
+    "github.com/bitrise-io/go-xcode/xcpretty",
+    "github.com/bitrise-io/xcode-project/serialized",
+    "github.com/bitrise-io/xcode-project/xcodeproj",
+    "github.com/bitrise-io/xcode-project/xcscheme",
+    "github.com/bitrise-io/xcode-project/xcworkspace",
     "github.com/kballard/go-shellquote",
     "github.com/ryanuber/go-glob",
     "howett.net/plist",

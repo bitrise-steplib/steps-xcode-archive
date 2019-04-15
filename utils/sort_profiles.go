@@ -1,6 +1,6 @@
 package utils
 
-import "github.com/bitrise-tools/go-xcode/profileutil"
+import "github.com/bitrise-io/go-xcode/profileutil"
 
 // ByBundleIDLength ...
 type ByBundleIDLength []profileutil.ProvisioningProfileInfoModel
