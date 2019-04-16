@@ -62,14 +62,15 @@ type configs struct {
 	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
 	CustomExportOptionsPlistContent   string `env:"custom_export_options_plist_content"`
 
-	OutputTool        string `env:"output_tool,opt[xcpretty,xcodebuild]"`
-	Workdir           string `env:"workdir"`
-	ProjectPath       string `env:"project_path,file"`
-	Scheme            string `env:"scheme,required"`
-	Configuration     string `env:"configuration"`
-	OutputDir         string `env:"output_dir,required"`
-	IsCleanBuild      string `env:"is_clean_build,opt[yes,no]"`
-	XcodebuildOptions string `env:"xcodebuild_options"`
+	OutputTool                string `env:"output_tool,opt[xcpretty,xcodebuild]"`
+	Workdir                   string `env:"workdir"`
+	ProjectPath               string `env:"project_path,file"`
+	Scheme                    string `env:"scheme,required"`
+	Configuration             string `env:"configuration"`
+	OutputDir                 string `env:"output_dir,required"`
+	IsCleanBuild              string `env:"is_clean_build,opt[yes,no]"`
+	XcodebuildOptions         string `env:"xcodebuild_options"`
+	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
 
 	IsExportXcarchiveZip string `env:"is_export_xcarchive_zip,opt[yes,no]"`
 	ExportAllDsyms       string `env:"export_all_dsyms,opt[yes,no]"`
@@ -344,6 +345,7 @@ func main() {
 		archiveCmd.SetCustomBuildAction("clean")
 	}
 
+	archiveCmd.SetDisableIndexWhileBuilding(cfg.DisableIndexWhileBuilding)
 	archiveCmd.SetArchivePath(tmpArchivePath)
 
 	if cfg.XcodebuildOptions != "" {
