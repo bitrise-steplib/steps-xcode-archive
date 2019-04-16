@@ -129,6 +129,9 @@ inputs:
 
         **Note:** In Xcode you can turn off the `Index-WhileBuilding` feature  by disabling the `Enable Index-WhileBuilding Functionality` in the `Build Settings`.<br/>
         In CI environment you can disable it by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command.
+      value_options:
+        - "yes"
+        - "no"
   - force_team_id:
     opts:
       category: Force Build Settings
