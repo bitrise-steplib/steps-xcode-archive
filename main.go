@@ -72,9 +72,10 @@ type configs struct {
 	XcodebuildOptions         string `env:"xcodebuild_options"`
 	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
 
-	ExportAllDsyms string `env:"export_all_dsyms,opt[yes,no]"`
-	ArtifactName   string `env:"artifact_name"`
-	VerboseLog     bool   `env:"verbose_log,opt[yes,no]"`
+	IsExportXcarchiveZip string `env:"is_export_xcarchive_zip,opt[yes,no]"`
+	ExportAllDsyms       string `env:"export_all_dsyms,opt[yes,no]"`
+	ArtifactName         string `env:"artifact_name"`
+	VerboseLog           bool   `env:"verbose_log,opt[yes,no]"`
 }
 
 func fail(format string, v ...interface{}) {
@@ -281,8 +282,6 @@ func main() {
 	dsymZipPath := filepath.Join(cfg.OutputDir, cfg.ArtifactName+".dSYM.zip")
 	archiveZipPath := filepath.Join(cfg.OutputDir, cfg.ArtifactName+".xcarchive.zip")
 	ideDistributionLogsZipPath := filepath.Join(cfg.OutputDir, "xcodebuild.xcdistributionlogs.zip")
-
-	shipZipPath := filepath.Join(os.Getenv("BITRISE_DEPLOY_DIR"), cfg.ArtifactName+".xcarchive.zip")
 
 	// cleanup
 	filesToCleanup := []string{
@@ -870,14 +869,12 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 	log.Donef("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, tmpArchivePath)
 
-	if err := utils.ExportOutputDirAsZip(tmpArchivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
-		fail("Failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
-	}
+	if cfg.IsExportXcarchiveZip == "yes" {
+		if err := utils.ExportOutputDirAsZip(tmpArchivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
+			fail("Failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
+		}
 
-	log.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
-
-	if err := command.CopyFile(archiveZipPath, shipZipPath); err != nil {
-		log.Warnf("Failed to copy ship artifacts to the BITRISE_DEPLOY_DIR, error: %s", err)
+		log.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
 	}
 
 	// Export .app
