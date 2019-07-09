@@ -282,8 +282,6 @@ func main() {
 	archiveZipPath := filepath.Join(cfg.OutputDir, cfg.ArtifactName+".xcarchive.zip")
 	ideDistributionLogsZipPath := filepath.Join(cfg.OutputDir, "xcodebuild.xcdistributionlogs.zip")
 
-	xcarchiveZipPath := filepath.Join(os.Getenv("BITRISE_DEPLOY_DIR"), cfg.ArtifactName+".xcarchive.zip")
-
 	// cleanup
 	filesToCleanup := []string{
 		appPath,
@@ -875,10 +873,6 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	}
 
 	log.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
-
-	if err := command.CopyFile(archiveZipPath, xcarchiveZipPath); err != nil {
-		log.Warnf("Failed to copy xcarchive zip to the BITRISE_DEPLOY_DIR, error: %s", err)
-	}
 
 	// Export .app
 	fmt.Println()
