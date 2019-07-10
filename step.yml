@@ -323,8 +323,6 @@ outputs:
       title: The created .xcarchive.zip file's path
       description: |-
          The created .xcarchive.zip file's path.
-
-         This environment will be exported only if, is_export_xcarchive_zip="yes"
   - BITRISE_XCODE_ARCHIVE_RAW_RESULT_TEXT_PATH:
     opts:
       title: The full, raw archive output file path
