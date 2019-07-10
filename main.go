@@ -72,10 +72,9 @@ type configs struct {
 	XcodebuildOptions         string `env:"xcodebuild_options"`
 	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
 
-	IsExportXcarchiveZip string `env:"is_export_xcarchive_zip,opt[yes,no]"`
-	ExportAllDsyms       string `env:"export_all_dsyms,opt[yes,no]"`
-	ArtifactName         string `env:"artifact_name"`
-	VerboseLog           bool   `env:"verbose_log,opt[yes,no]"`
+	ExportAllDsyms string `env:"export_all_dsyms,opt[yes,no]"`
+	ArtifactName   string `env:"artifact_name"`
+	VerboseLog     bool   `env:"verbose_log,opt[yes,no]"`
 }
 
 func fail(format string, v ...interface{}) {
@@ -869,13 +868,11 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 	log.Donef("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, tmpArchivePath)
 
-	if cfg.IsExportXcarchiveZip == "yes" {
-		if err := utils.ExportOutputDirAsZip(tmpArchivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
-			fail("Failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
-		}
-
-		log.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
+	if err := utils.ExportOutputDirAsZip(tmpArchivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
+		fail("Failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
 	}
+
+	log.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
 
 	// Export .app
 	fmt.Println()
