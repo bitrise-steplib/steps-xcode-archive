@@ -3,18 +3,18 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:01107999c16ba52ba2d9cbc967970256a4738320ceadb68886fc184f93fcfbb7"
+  digest = "1:96d5125fd06d92e77d44cce8c8f20970edb4c7f0ce34750b445d38cf777cdf95"
   name = "github.com/bitrise-io/go-steputils"
   packages = [
     "input",
     "stepconf",
   ]
   pruneopts = "UT"
-  revision = "cecc766da84859e37e780d9d1c416f0f3993e6b1"
+  revision = "f540824d77dfd382ce84fd0ee0a9da2fba1cce0a"
 
 [[projects]]
   branch = "master"
-  digest = "1:47afa78274e0d120056afb60920f640abfbaa1fb40570c68ab19dae21fea94df"
+  digest = "1:f089bf03e416ec7bb249ffcb50d81a56711624723ab0b0823f987beebdb39e92"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -30,13 +30,14 @@
     "pointers",
     "sliceutil",
     "stringutil",
+    "ziputil",
   ]
   pruneopts = "UT"
-  revision = "2a09aab8380d7842750328aebd5671bcccea89c8"
+  revision = "ad86bf775472ce1934affb9d3cb7d5ea3dffd16f"
 
 [[projects]]
   branch = "master"
-  digest = "1:67de20afbb201a73a91b7409265ff6a69567cef950cfb4a38833cea6b16a29c8"
+  digest = "1:199797d318b2bb32b9b7e4ddb5f838711ad2b70f211b2705fee7d9859fa2bcb2"
   name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
@@ -51,13 +52,14 @@
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "04a02fcd3c06c698d47ce4e27dbe105d6ea8eadc"
+  revision = "07ccf582b6b1afa2c33e133447a3e22c811ffd90"
 
 [[projects]]
   branch = "master"
-  digest = "1:791ce0f7d09a4c628614a5e3d097589406e8870f03bfa0db199b2d80cd2fb670"
+  digest = "1:f26534862c34969e99e806a6d0c94a842ce3c6ca29a70c78abc393961b4950aa"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
+    "pretty",
     "serialized",
     "xcodebuild",
     "xcodeproj",
@@ -65,7 +67,7 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "b724e9a2dda0585b6ceb6dbf9eb84ddbbf135335"
+  revision = "9f0f87582cb9a31880288c49b720fb19c32bb3a6"
 
 [[projects]]
   branch = "master"
@@ -76,12 +78,12 @@
   revision = "d7302db945fa6ea264fb79d8e13e931ea514a602"
 
 [[projects]]
-  digest = "1:950caca7dfcf796419232ba996c9c3539d09f26af27ba848c4508e604c13efbb"
+  branch = "master"
+  digest = "1:14f3dc47ce9fec6a2696a28cf21ffd5aef579584897acfdeb0190bc8cf7b1132"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   pruneopts = "UT"
-  revision = "d40cf49b3a77bba84a7afdbd7f1dc295d114efb1"
-  version = "v1.1.0"
+  revision = "192140e6f3e645d971b134d4e35b5191adb9dfd3"
 
 [[projects]]
   branch = "master"
@@ -92,12 +94,12 @@
   revision = "95032a82bc518f77982ea72343cc1ade730072f0"
 
 [[projects]]
-  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  branch = "master"
+  digest = "1:deff41c4160cc5b487a1d1a69a58925f2d3ac11befa0692b50e76940594e20f5"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
-  version = "v0.8.1"
+  revision = "27936f6d90f9c8e1145f11ed52ffffbfdb9e0af7"
 
 [[projects]]
   branch = "master"
@@ -108,7 +110,7 @@
   revision = "51a8f68e6c24dc43f1e371749c89a267de4ebc53"
 
 [[projects]]
-  digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
+  digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
   name = "golang.org/x/text"
   packages = [
     "internal/gen",
@@ -119,8 +121,8 @@
     "unicode/norm",
   ]
   pruneopts = "UT"
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
 
 [[projects]]
   branch = "master"
