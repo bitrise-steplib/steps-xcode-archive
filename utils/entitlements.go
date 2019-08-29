@@ -13,7 +13,7 @@ import (
 
 // ProjectEntitlementsByBundleID ...
 func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (map[string]plistutil.PlistData, error) {
-	var scheme xcscheme.Scheme
+	var scheme *xcscheme.Scheme
 	var schemeContainerDir string
 
 	if xcodeproj.IsXcodeProj(pth) {
@@ -22,9 +22,8 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 			return nil, err
 		}
 
-		var ok bool
-		scheme, ok = project.Scheme(schemeName)
-		if !ok {
+		scheme, _, err = project.Scheme(schemeName)
+		if err != nil {
 			return nil, fmt.Errorf("no scheme found with name: %s in project: %s", schemeName, pth)
 		}
 		schemeContainerDir = filepath.Dir(pth)
@@ -37,7 +36,7 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 		var containerProject string
 		scheme, containerProject, err = workspace.Scheme(schemeName)
 		if err != nil {
-			if xcworkspace.IsSchemeNotFoundError(err) {
+			if xcscheme.IsNotFoundError(err) {
 				return nil, err
 			}
 			return nil, fmt.Errorf("failed to find scheme with name: %s in workspace: %s, error: %s", schemeName, pth, err)
@@ -75,7 +74,7 @@ func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (m
 		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}
 
-	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets()...)
+	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets(false)...)
 
 	entitlementsByBundleID := map[string]serialized.Object{}
 
