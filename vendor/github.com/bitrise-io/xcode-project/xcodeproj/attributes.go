@@ -23,7 +23,7 @@ func parseProjectAttributes(rawPBXProj serialized.Object) (ProjectAtributes, err
 	}
 
 	attributes.TargetAttributes, err = parseTargetAttributes(attributesObject)
-	if err != nil {
+	if err != nil && !serialized.IsKeyNotFoundError(err) {
 		return ProjectAtributes{}, err
 	}
 

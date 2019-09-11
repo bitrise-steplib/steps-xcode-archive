@@ -131,7 +131,7 @@ func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) 
 	return Resolve(bundleID, buildSettings)
 }
 
-// Resolve returns the resolved bundleID. We need this, becaue the bundleID is not exposed in the .pbxproj file ( raw ).
+// Resolve returns the resolved bundleID. We need this, because the bundleID is not exposed in the .pbxproj file ( raw ).
 // If the raw BundleID contains an environment variable we have to replace it.
 //
 //**Example:**
@@ -261,6 +261,9 @@ func Open(pth string) (XcodeProj, error) {
 	}
 
 	format, raw, objects, projectID, err := open(pth)
+	if err != nil {
+		return XcodeProj{}, err
+	}
 
 	p, err := parseProj(projectID, objects)
 	if err != nil {
@@ -400,8 +403,8 @@ func foreceCodeSignOnBuildConfiguration(buildConfiguration serialized.Object, ta
 	buildSettings["CODE_SIGN_IDENTITY"] = codesignIdentity
 	buildSettings["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = codesignIdentity
 	buildSettings["PROVISIONING_PROFILE_SPECIFIER"] = ""
-	buildSettings["PROVISIONING_PROFILE"] = "provisioningProfileUUID"
-	buildSettings["PROVISIONING_PROFILE[sdk=iphoneos*]"] = "provisioningProfileUUID"
+	buildSettings["PROVISIONING_PROFILE"] = provisioningProfileUUID
+	buildSettings["PROVISIONING_PROFILE[sdk=iphoneos*]"] = provisioningProfileUUID
 
 	return nil
 }
