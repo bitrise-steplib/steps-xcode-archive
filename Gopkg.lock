@@ -56,9 +56,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c2d90e71eab0b89195680d794dd0aafb8fe10efc56543a70f475e171d0c2e669"
+  digest = "1:084c619330be0c068f917371f5f435e3354efa1fa8d7b4dec710820c8e5c6a24"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
+    ".",
     "pretty",
     "serialized",
     "xcodebuild",
@@ -155,10 +156,9 @@
     "github.com/bitrise-io/go-xcode/xcarchive",
     "github.com/bitrise-io/go-xcode/xcodebuild",
     "github.com/bitrise-io/go-xcode/xcpretty",
+    "github.com/bitrise-io/xcode-project",
     "github.com/bitrise-io/xcode-project/serialized",
     "github.com/bitrise-io/xcode-project/xcodeproj",
-    "github.com/bitrise-io/xcode-project/xcscheme",
-    "github.com/bitrise-io/xcode-project/xcworkspace",
     "github.com/kballard/go-shellquote",
     "github.com/ryanuber/go-glob",
     "howett.net/plist",
