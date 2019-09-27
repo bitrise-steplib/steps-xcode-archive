@@ -174,11 +174,7 @@ func (c *CommandBuilder) cmdSlice() []string {
 	}
 
 	if c.disableCodesign {
-		slice = append(slice, "CODE_SIGN_IDENTITY=")
-		slice = append(slice, "CODE_SIGNING_REQUIRED=NO")
-		slice = append(slice, "PROVISIONING_PROFILE_SPECIFIER=")
-		slice = append(slice, "PROVISIONING_PROFILE=")
-		slice = append(slice, "DEVELOPMENT_TEAM=")
+		slice = append(slice, "CODE_SIGNING_ALLOWED=NO")
 	} else {
 		if c.forceDevelopmentTeam != "" {
 			slice = append(slice, fmt.Sprintf("DEVELOPMENT_TEAM=%s", c.forceDevelopmentTeam))

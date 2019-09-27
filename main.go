@@ -569,7 +569,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				if err != nil {
 					fail("Failed to get installed certificates, error: %s", err)
 				}
-				certs = certificateutil.FilterValidCertificateInfos(certs)
+				certs = certificateutil.FilterValidCertificateInfos(certs).ValidCertificates
 
 				log.Debugf("Installed certificates:")
 				for _, certInfo := range certs {
