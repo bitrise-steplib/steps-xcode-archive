@@ -635,7 +635,17 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					}
 				}
 
-				iosCodeSignGroups := export.CreateIosCodeSignGroups(codeSignGroups)
+				var iosCodeSignGroups []export.IosCodeSignGroup
+
+				for _, selectable := range codeSignGroups {
+					bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
+
+					for bundleID, profiles := range selectable.BundleIDProfilesMap {
+						bundleIDProfileMap[bundleID] = profiles[0]
+					}
+
+					iosCodeSignGroups = append(iosCodeSignGroups, *export.NewIOSGroup(selectable.Certificate, bundleIDProfileMap))
+				}
 
 				if len(iosCodeSignGroups) > 0 {
 					codeSignGroup := export.IosCodeSignGroup{}
@@ -651,7 +661,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					exportCodeSignIdentity = codeSignGroup.Certificate().CommonName
 
 					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap() {
-						exportProfileMapping[bundleID] = profileInfo.UUID
+						exportProfileMapping[bundleID] = profileInfo.Name
 
 						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
 						if isXcodeManaged {
