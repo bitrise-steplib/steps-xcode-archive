@@ -592,36 +592,54 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					log.Errorf("Failed to find code signing groups for specified export method (%s)", exportMethod)
 				}
 
+				log.Debugf("\nGroups:")
 				for _, group := range codeSignGroups {
 					log.Debugf(group.String())
 				}
 
-				filters := []export.SelectableCodeSignGroupFilter{}
-
 				if len(bundleIDEntitlementsMap) > 0 {
 					log.Warnf("Filtering CodeSignInfo groups for target capabilities")
-					filters = append(filters,
-						export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
+
+					codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
+
+					log.Debugf("\nGroups after filtering for target capabilities:")
+					for _, group := range codeSignGroups {
+						log.Debugf(group.String())
+					}
 				}
 
 				log.Warnf("Filtering CodeSignInfo groups for export method")
-				filters = append(filters,
-					export.CreateExportMethodSelectableCodeSignGroupFilter(exportMethod))
+
+				codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateExportMethodSelectableCodeSignGroupFilter(exportMethod))
+
+				log.Debugf("\nGroups after filtering for export method:")
+				for _, group := range codeSignGroups {
+					log.Debugf(group.String())
+				}
 
 				if cfg.TeamID != "" {
 					log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", cfg.TeamID)
-					filters = append(filters,
-						export.CreateTeamSelectableCodeSignGroupFilter(cfg.TeamID))
+
+					codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateTeamSelectableCodeSignGroupFilter(cfg.TeamID))
+
+					log.Debugf("\nGroups after filtering for team ID:")
+					for _, group := range codeSignGroups {
+						log.Debugf(group.String())
+					}
 				}
 
 				if !archiveCodeSignIsXcodeManaged {
 					log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
 						"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
 						"Removing xcode managed CodeSignInfo groups")
-					filters = append(filters, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
-				}
 
-				codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, filters...)
+					codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
+
+					log.Debugf("\nGroups after filtering for NOT Xcode managed profiles:")
+					for _, group := range codeSignGroups {
+						log.Debugf(group.String())
+					}
+				}
 
 				defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
 				if cfg.TeamID == "" && defaultProfileURL != "" {
@@ -631,11 +649,37 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 							export.CreateExcludeProfileNameSelectableCodeSignGroupFilter(defaultProfile.Name))
 						if len(filteredCodeSignGroups) > 0 {
 							codeSignGroups = filteredCodeSignGroups
+
+							log.Debugf("\nGroups after removing default profile:")
+							for _, group := range codeSignGroups {
+								log.Debugf(group.String())
+							}
 						}
 					}
 				}
 
-				iosCodeSignGroups := export.CreateIosCodeSignGroups(codeSignGroups)
+				var iosCodeSignGroups []export.IosCodeSignGroup
+
+				for _, selectable := range codeSignGroups {
+					bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
+					for bundleID, profiles := range selectable.BundleIDProfilesMap {
+						if len(profiles) > 0 {
+							bundleIDProfileMap[bundleID] = profiles[0]
+						} else {
+							log.Warnf("No profile available to sign (%s) target!", bundleID)
+						}
+					}
+
+					iosCodeSignGroups = append(iosCodeSignGroups, *export.NewIOSGroup(selectable.Certificate, bundleIDProfileMap))
+				}
+
+				log.Debugf("\nFiltered groups:")
+				for i, group := range iosCodeSignGroups {
+					log.Debugf("Group #%d:", i)
+					for bundleID, profile := range group.BundleIDProfileMap() {
+						log.Debugf(" - %s: %s (%s)", bundleID, profile.Name, profile.UUID)
+					}
+				}
 
 				if len(iosCodeSignGroups) > 0 {
 					codeSignGroup := export.IosCodeSignGroup{}
