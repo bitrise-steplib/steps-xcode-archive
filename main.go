@@ -658,7 +658,20 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 					}
 				}
 
-				iosCodeSignGroups := export.CreateIosCodeSignGroups(codeSignGroups)
+				var iosCodeSignGroups []export.IosCodeSignGroup
+
+				for _, selectable := range codeSignGroups {
+					bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
+					for bundleID, profiles := range selectable.BundleIDProfilesMap {
+						if len(profiles) > 0 {
+							bundleIDProfileMap[bundleID] = profiles[0]
+						} else {
+							log.Warnf("No profile available to sign (%s) target!", bundleID)
+						}
+					}
+
+					iosCodeSignGroups = append(iosCodeSignGroups, *export.NewIOSGroup(selectable.Certificate, bundleIDProfileMap))
+				}
 
 				log.Debugf("\nFiltered groups:")
 				for i, group := range iosCodeSignGroups {
