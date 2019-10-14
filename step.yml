@@ -286,6 +286,17 @@ inputs:
       value_options:
       - "yes"
       - "no"
+  - cache_level: swift_packages
+    opts:
+      category: Debug
+      title: Enable caching of Swift Package Manager packages
+      description: |-
+        Available options:
+        - `none` : Disable caching
+        - `swift_packages` : Cache Swift PM packages added to the Xcode project
+      value_options:
+      - "none"
+      - "swift_packages"
   - use_deprecated_export: "no"
     opts:
       category: Debug

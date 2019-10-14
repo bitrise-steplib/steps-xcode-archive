@@ -26,6 +26,7 @@ import (
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
+	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
@@ -75,6 +76,8 @@ type configs struct {
 	ExportAllDsyms string `env:"export_all_dsyms,opt[yes,no]"`
 	ArtifactName   string `env:"artifact_name"`
 	VerboseLog     bool   `env:"verbose_log,opt[yes,no]"`
+
+	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
 }
 
 func fail(format string, v ...interface{}) {
@@ -251,6 +254,12 @@ func main() {
 
 	fmt.Println()
 
+	absProjectPath, err := filepath.Abs(cfg.ProjectPath)
+	if err != nil {
+		fail("Failed to get absolute project path, error: %s", err)
+	}
+	cfg.ProjectPath = absProjectPath
+
 	// abs out dir pth
 	absOutputDir, err := pathutil.AbsPath(cfg.OutputDir)
 	if err != nil {
@@ -310,7 +319,7 @@ func main() {
 	fmt.Println()
 
 	isWorkspace := false
-	ext := filepath.Ext(cfg.ProjectPath)
+	ext := filepath.Ext(absProjectPath)
 	if ext == ".xcodeproj" {
 		isWorkspace = false
 	} else if ext == ".xcworkspace" {
@@ -319,7 +328,7 @@ func main() {
 		fail("Project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
-	archiveCmd := xcodebuild.NewCommandBuilder(cfg.ProjectPath, isWorkspace, xcodebuild.ArchiveAction)
+	archiveCmd := xcodebuild.NewCommandBuilder(absProjectPath, isWorkspace, xcodebuild.ArchiveAction)
 	archiveCmd.SetScheme(cfg.Scheme)
 	archiveCmd.SetConfiguration(cfg.Configuration)
 
@@ -355,13 +364,17 @@ func main() {
 		archiveCmd.SetCustomOptions(options)
 	}
 
-	if outputTool == "xcpretty" {
-		xcprettyCmd := xcpretty.New(archiveCmd)
+	var swiftPackagesPath string
+	if xcodeMajorVersion >= 11 {
+		var err error
+		if swiftPackagesPath, err = cache.SwiftPackagesPath(absProjectPath); err != nil {
+			fail("Failed to get Swift Packages path, error: %s", err)
+		}
+	}
 
-		logWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
-		fmt.Println()
-
-		if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
+	rawXcodebuildOut, err := runArchiveCommandWithRetry(archiveCmd, outputTool == "xcpretty", swiftPackagesPath)
+	if err != nil {
+		if outputTool == "xcpretty" {
 			log.Errorf("\nLast lines of the Xcode's build log:")
 			fmt.Println(stringutil.LastNLines(rawXcodebuildOut, 10))
 
@@ -369,23 +382,11 @@ func main() {
 				log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
 			} else {
 				log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
-The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
-(value: %s)`, rawXcodebuildOutputLogPath)
+	The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
+	(value: %s)`, rawXcodebuildOutputLogPath)
 			}
-
-			fail("Archive failed, error: %s", err)
 		}
-	} else {
-		logWithTimestamp(colorstring.Green, "$ %s", archiveCmd.PrintableCmd())
-		fmt.Println()
-
-		archiveRootCmd := archiveCmd.Command()
-		archiveRootCmd.SetStdout(os.Stdout)
-		archiveRootCmd.SetStderr(os.Stderr)
-
-		if err := archiveRootCmd.Run(); err != nil {
-			fail("Archive failed, error: %s", err)
-		}
+		fail("Archive failed, error: %s, err")
 	}
 
 	fmt.Println()
@@ -395,6 +396,13 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		fail("Failed to check if archive exist, error: %s", err)
 	} else if !exist {
 		fail("No archive generated at: %s", tmpArchivePath)
+	}
+
+	// Cache swift PM
+	if xcodeMajorVersion >= 11 && cfg.CacheLevel == "swift_packages" {
+		if err := cache.CollectSwiftPackages(absProjectPath); err != nil {
+			log.Warnf("Failed to mark swift packages for caching, error: %s", err)
+		}
 	}
 
 	if xcodeMajorVersion >= 9 && cfg.UseDeprecatedExport == "yes" {
