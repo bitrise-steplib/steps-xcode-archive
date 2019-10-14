@@ -53,6 +53,28 @@ func (p XcodeProj) TargetCodeSignEntitlementsPath(target, configuration string) 
 	return p.buildSettingsFilePath(target, configuration, "CODE_SIGN_ENTITLEMENTS")
 }
 
+// ForceTargetCodeSignEntitlement updates the project descriptor behind p. It
+// searches for the entitlements file for target and configuration and sets the
+// entitlement key to the value provided.
+// Error is returned:
+// - if there's an error during reading or writing the file
+// - if the file does not exist for the given target and configuration
+func (p XcodeProj) ForceTargetCodeSignEntitlement(target, configuration, entitlement string, value interface{}) error {
+	codeSignEntitlementsPth, err := p.TargetCodeSignEntitlementsPath(target, configuration)
+	if err != nil {
+		return err
+	}
+
+	codeSignEntitlements, format, err := ReadPlistFile(codeSignEntitlementsPth)
+	if err != nil {
+		return err
+	}
+
+	codeSignEntitlements[entitlement] = value
+
+	return WritePlistFile(codeSignEntitlementsPth, codeSignEntitlements, format)
+}
+
 // TargetCodeSignEntitlements ...
 func (p XcodeProj) TargetCodeSignEntitlements(target, configuration string) (serialized.Object, error) {
 	codeSignEntitlementsPth, err := p.TargetCodeSignEntitlementsPath(target, configuration)
@@ -60,13 +82,8 @@ func (p XcodeProj) TargetCodeSignEntitlements(target, configuration string) (ser
 		return nil, err
 	}
 
-	codeSignEntitlementsContent, err := fileutil.ReadBytesFromFile(codeSignEntitlementsPth)
+	codeSignEntitlements, _, err := ReadPlistFile(codeSignEntitlementsPth)
 	if err != nil {
-		return nil, err
-	}
-
-	var codeSignEntitlements serialized.Object
-	if _, err := plist.Unmarshal([]byte(codeSignEntitlementsContent), &codeSignEntitlements); err != nil {
 		return nil, err
 	}
 
@@ -96,6 +113,33 @@ func (p XcodeProj) TargetInformationPropertyList(target, configuration string) (
 	}
 
 	return informationPropertyList, nil
+}
+
+// ForceTargetBundleID updates the projects bundle ID for the specified target
+// and configuration.
+// An error is returned if:
+// - the target or configuration is not found
+// - the given target or configuration is not found
+func (p XcodeProj) ForceTargetBundleID(target, configuration, bundleID string) error {
+	t, targetFound := p.Proj.TargetByName(target)
+	if !targetFound {
+		return fmt.Errorf("could not find target (%s)", target)
+	}
+
+	var configurationFound bool
+	buildConfigurations := t.BuildConfigurationList.BuildConfigurations
+	for _, c := range buildConfigurations {
+		if c.Name == configuration {
+			configurationFound = true
+			c.BuildSettings["PRODUCT_BUNDLE_IDENTIFIER"] = bundleID
+		}
+	}
+
+	if !configurationFound {
+		return fmt.Errorf("could not find configuration (%s) for target (%s)", configuration, target)
+	}
+
+	return p.Save()
 }
 
 // TargetBundleID ...

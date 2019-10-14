@@ -1,11 +1,11 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bitrise-io/go-utils"
+  name = "github.com/bitrise-io/go-steputils"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bitrise-io/go-steputils"
+  name = "github.com/bitrise-io/go-utils"
 
 [[constraint]]
   branch = "master"
@@ -21,7 +21,7 @@
 
 [[constraint]]
   name = "github.com/ryanuber/go-glob"
-  branch = "master"
+  version = "1.0.0"
 
 [[constraint]]
   branch = "master"
