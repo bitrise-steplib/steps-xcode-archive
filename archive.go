@@ -16,14 +16,13 @@ import (
 
 func runArchiveCommandWithRetry(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool, swiftPackagesPath string) (string, error) {
 	output, err := runArchiveCommand(archiveCmd, useXcpretty)
-	if err != nil {
-		if swiftPackagesPath != "" && strings.Contains(output, cache.SwiftPackagesStateInvalid) {
-			log.RWarnf("xcode-archive", "swift-packages-cache-invalid", nil, "swift packages cache is in an invalid state")
-			if err := os.RemoveAll(swiftPackagesPath); err != nil {
-				return output, fmt.Errorf("failed to remove Swift package caches, error: %s", err)
-			}
-			return runArchiveCommand(archiveCmd, useXcpretty)
+	if err != nil && swiftPackagesPath != "" && strings.Contains(output, cache.SwiftPackagesStateInvalid) {
+		log.Warnf("Archive failed, swift packages cache is in an invalid state, error: %s", err)
+		log.RWarnf("xcode-archive", "swift-packages-cache-invalid", nil, "swift packages cache is in an invalid state")
+		if err := os.RemoveAll(swiftPackagesPath); err != nil {
+			return output, fmt.Errorf("failed to remove invalid Swift package caches, error: %s", err)
 		}
+		return runArchiveCommand(archiveCmd, useXcpretty)
 	}
 	return output, err
 }

@@ -386,7 +386,7 @@ func main() {
 	(value: %s)`, rawXcodebuildOutputLogPath)
 			}
 		}
-		fail("Archive failed, error: %s, err")
+		fail("Archive failed, error: %s", err)
 	}
 
 	fmt.Println()
