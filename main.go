@@ -258,7 +258,6 @@ func main() {
 	if err != nil {
 		fail("Failed to get absolute project path, error: %s", err)
 	}
-	cfg.ProjectPath = absProjectPath
 
 	// abs out dir pth
 	absOutputDir, err := pathutil.AbsPath(cfg.OutputDir)
@@ -520,7 +519,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("export-method specified: %s", cfg.ExportMethod)
 			}
 
-			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(cfg.ProjectPath, cfg.Scheme, cfg.Configuration)
+			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(absProjectPath, cfg.Scheme, cfg.Configuration)
 			if err != nil {
 				fail(err.Error())
 			}
