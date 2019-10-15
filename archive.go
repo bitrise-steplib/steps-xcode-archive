@@ -20,8 +20,7 @@ func runArchiveCommandWithRetry(archiveCmd *xcodebuild.CommandBuilder, useXcpret
 		if swiftPackagesPath != "" && strings.Contains(output, cache.SwiftPackagesStateInvalid) {
 			log.RWarnf("xcode-archive", "swift-packages-cache-invalid", nil, "swift packages cache is in an invalid state")
 			if err := os.RemoveAll(swiftPackagesPath); err != nil {
-				log.Errorf("failed to remove Swift package caches, error: %s", err)
-				return output, err
+				return output, fmt.Errorf("failed to remove Swift package caches, error: %s", err)
 			}
 			return runArchiveCommand(archiveCmd, useXcpretty)
 		}
@@ -36,21 +35,16 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool) 
 		logWithTimestamp(colorstring.Green, "$ %s", xcprettyCmd.PrintableCmd())
 		fmt.Println()
 
-		if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-			return rawXcodebuildOut, err
-		}
-	} else {
-		logWithTimestamp(colorstring.Green, "$ %s", archiveCmd.PrintableCmd())
-		fmt.Println()
-
-		archiveRootCmd := archiveCmd.Command()
-		var output bytes.Buffer
-		archiveRootCmd.SetStdout(io.MultiWriter(os.Stdout, &output))
-		archiveRootCmd.SetStderr(io.MultiWriter(os.Stderr, &output))
-
-		if err := archiveRootCmd.Run(); err != nil {
-			return output.String(), err
-		}
+		return xcprettyCmd.Run()
 	}
-	return "", nil
+	// Using xcodebuild
+	logWithTimestamp(colorstring.Green, "$ %s", archiveCmd.PrintableCmd())
+	fmt.Println()
+
+	archiveRootCmd := archiveCmd.Command()
+	var output bytes.Buffer
+	archiveRootCmd.SetStdout(io.MultiWriter(os.Stdout, &output))
+	archiveRootCmd.SetStderr(io.MultiWriter(os.Stderr, &output))
+
+	return output.String(), archiveRootCmd.Run()
 }
