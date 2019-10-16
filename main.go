@@ -51,12 +51,12 @@ const (
 // configs ...
 type configs struct {
 	ExportMethod               string `env:"export_method,opt[auto-detect,app-store,ad-hoc,enterprise,development]"`
-	UploadBitcode              string `env:"upload_bitcode,opt[yes,no]"`
-	CompileBitcode             string `env:"compile_bitcode,opt[yes,no]"`
+	UploadBitcode              bool   `env:"upload_bitcode,opt[yes,no]"`
+	CompileBitcode             bool   `env:"compile_bitcode,opt[yes,no]"`
 	ICloudContainerEnvironment string `env:"icloud_container_environment"`
 	TeamID                     string `env:"team_id"`
 
-	UseDeprecatedExport               string `env:"use_deprecated_export,opt[yes,no]"`
+	UseDeprecatedExport               bool   `env:"use_deprecated_export,opt[yes,no]"`
 	ForceTeamID                       string `env:"force_team_id"`
 	ForceProvisioningProfileSpecifier string `env:"force_provisioning_profile_specifier"`
 	ForceProvisioningProfile          string `env:"force_provisioning_profile"`
@@ -69,11 +69,11 @@ type configs struct {
 	Scheme                    string `env:"scheme,required"`
 	Configuration             string `env:"configuration"`
 	OutputDir                 string `env:"output_dir,required"`
-	IsCleanBuild              string `env:"is_clean_build,opt[yes,no]"`
+	IsCleanBuild              bool   `env:"is_clean_build,opt[yes,no]"`
 	XcodebuildOptions         string `env:"xcodebuild_options"`
 	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
 
-	ExportAllDsyms string `env:"export_all_dsyms,opt[yes,no]"`
+	ExportAllDsyms bool   `env:"export_all_dsyms,opt[yes,no]"`
 	ArtifactName   string `env:"artifact_name"`
 	VerboseLog     bool   `env:"verbose_log,opt[yes,no]"`
 
@@ -348,7 +348,7 @@ func main() {
 		archiveCmd.SetForceCodeSignIdentity(cfg.ForceCodeSignIdentity)
 	}
 
-	if cfg.IsCleanBuild == "yes" {
+	if cfg.IsCleanBuild {
 		archiveCmd.SetCustomBuildAction("clean")
 	}
 
@@ -404,7 +404,7 @@ func main() {
 		}
 	}
 
-	if xcodeMajorVersion >= 9 && cfg.UseDeprecatedExport == "yes" {
+	if xcodeMajorVersion >= 9 && cfg.UseDeprecatedExport {
 		fail("Legacy export method (using '-exportFormat ipa' flag) is not supported from Xcode version 9")
 	}
 
@@ -446,7 +446,7 @@ func main() {
 	log.Infof("Exporting ipa from the archive...")
 	fmt.Println()
 
-	if xcodeMajorVersion <= 6 || cfg.UseDeprecatedExport == "yes" {
+	if xcodeMajorVersion <= 6 || cfg.UseDeprecatedExport {
 		log.Printf("Using legacy export")
 		/*
 			Get the name of the profile which was used for creating the archive
@@ -725,7 +725,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			var exportOpts exportoptions.ExportOptions
 			if exportMethod == exportoptions.MethodAppStore {
 				options := exportoptions.NewAppStoreOptions()
-				options.UploadBitcode = (cfg.UploadBitcode == "yes")
+				options.UploadBitcode = cfg.UploadBitcode
 
 				if xcodeMajorVersion >= 9 {
 					options.BundleIDProvisioningProfileMapping = exportProfileMapping
@@ -748,7 +748,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				exportOpts = options
 			} else {
 				options := exportoptions.NewNonAppStoreOptions(exportMethod)
-				options.CompileBitcode = (cfg.CompileBitcode == "yes")
+				options.CompileBitcode = cfg.CompileBitcode
 
 				if xcodeMajorVersion >= 9 {
 					options.BundleIDProvisioningProfileMapping = exportProfileMapping
@@ -966,7 +966,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			fail("Failed to copy (%s) -> (%s), error: %s", appDSYM, dsymDir, err)
 		}
 
-		if cfg.ExportAllDsyms == "yes" {
+		if cfg.ExportAllDsyms {
 			for _, dsym := range frameworkDSYMs {
 				if err := command.CopyDir(dsym, dsymDir, false); err != nil {
 					fail("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
