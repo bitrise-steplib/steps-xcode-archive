@@ -10,8 +10,6 @@ description: |-
 website: https://github.com/bitrise-steplib/steps-xcode-archive
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive
 support_url: https://github.com/bitrise-steplib/steps-xcode-archive/issues
-host_os_tags:
-  - "osx-10.10"
 project_type_tags:
   - ios
   - react-native
@@ -24,8 +22,6 @@ is_skippable: false
 deps:
   check_only:
   - name: xcode
-  brew:
-  - name: go
 toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-xcode-archive
@@ -74,6 +70,7 @@ inputs:
       - "ad-hoc"
       - "enterprise"
       - "development"
+      is_required: true
   - team_id:
     opts:
       title: "The Developer Portal team to use for this export"
@@ -96,6 +93,7 @@ inputs:
       value_options:
       - "yes"
       - "no"
+      is_required: true
   - upload_bitcode: "yes"
     opts:
       title: "Include bitcode"
@@ -105,6 +103,7 @@ inputs:
       value_options:
       - "yes"
       - "no"
+      is_required: true
   - icloud_container_environment:
     opts:
       title: "iCloud container environment"
@@ -132,6 +131,18 @@ inputs:
       value_options:
       - "yes"
       - "no"
+      is_required: true
+  - cache_level: swift_packages
+    opts:
+      title: Enable caching of Swift Package Manager packages
+      description: |-
+        Available options:
+        - `none` : Disable caching
+        - `swift_packages` : Cache Swift PM packages added to the Xcode project
+      value_options:
+      - "none"
+      - "swift_packages"
+      is_required: true
   - force_team_id:
     opts:
       category: Force Build Settings
@@ -282,10 +293,10 @@ inputs:
       category: Debug
       title: "Enable verbose logging?"
       description: Enable verbose logging?
-      is_required: true
       value_options:
       - "yes"
       - "no"
+      is_required: true
   - use_deprecated_export: "no"
     opts:
       category: Debug
