@@ -21,6 +21,7 @@ workflows:
     - test_multi_target
     - test_workspace
     - test_tvos
+    - test_no_app_dsym
 
   test_cloudkit:
     envs:
@@ -30,6 +31,18 @@ workflows:
     - BITRISE_SCHEME: code-sign-test-Prod
     - OUTPUT_TOOL: xcodebuild
     - ICLOUD_CONTAINER_ENVIRONMENT: Production
+    after_run:
+    - _common
+
+  test_no_app_dsym:
+    envs:
+    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - BRANCH: with-pods
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
+    - BITRISE_SCHEME: ios-simple-objc
+    - OUTPUT_TOOL: xcodebuild
+    # - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    # - FORCE_TEAM_ID: 72SA8V3WYL
     after_run:
     - _common
 
@@ -149,6 +162,24 @@ workflows:
             echo "-> BITRISE_XCARCHIVE_PATH:             $BITRISE_XCARCHIVE_PATH"
             echo "-> BITRISE_IDEDISTRIBUTION_LOGS_PATH:  $BITRISE_IDEDISTRIBUTION_LOGS_PATH"
             echo "-> BITRISE_XCODE_RAW_RESULT_TEXT_PATH: $BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
+    - script:
+        title: Validate exported artifacts
+        is_always_run: true
+        inputs:
+        - content: |-            
+            #!/usr/bin/env bash
+
+            cd $BITRISE_DSYM_DIR_PATH
+
+            if [ $(ls *.dSYM | wc -l) -eq 0 ]; then
+                echo "error, there are no files in the exported dSYM path!"
+                exit 1
+            fi
+
+            if [ $(ls | wc -l) -gt $(ls *.dSYM | wc -l) ]; then
+                echo "error, there are non-dSYM files in the exported dSYM path!"
+                exit 1
+            fi
 
   # ----------------------------------------------------------------
   # --- Utility workflows
