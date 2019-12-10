@@ -29,7 +29,7 @@ func NewNonAppStoreOptions(method Method) NonAppStoreOptionsModel {
 		Method:                                   method,
 		CompileBitcode:                           CompileBitcodeDefault,
 		EmbedOnDemandResourcesAssetPacksInBundle: EmbedOnDemandResourcesAssetPacksInBundleDefault,
-		Thinning: ThinningDefault,
+		Thinning:                                 ThinningDefault,
 	}
 }
 
