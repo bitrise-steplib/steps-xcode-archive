@@ -343,9 +343,6 @@ func (archive IosArchive) FindDSYMs() (string, []string, error) {
 			frameworkDSYMs = append(frameworkDSYMs, dsym)
 		}
 	}
-	if appDSYM == "" && len(frameworkDSYMs) == 0 {
-		return "", []string{}, fmt.Errorf("no dsym found")
-	}
 
 	return appDSYM, frameworkDSYMs, nil
 }

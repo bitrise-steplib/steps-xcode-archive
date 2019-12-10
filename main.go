@@ -950,20 +950,21 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 	appDSYM, frameworkDSYMs, err := archive.FindDSYMs()
 	if err != nil {
-		if err.Error() == "no dsym found" {
-			log.Warnf("no app nor framework dsyms found")
-		} else {
-			fail("Failed to export dsyms, error: %s", err)
-		}
+		fail("Failed to export dsyms, error: %s", err)
 	}
+
 	if err == nil {
 		dsymDir, err := pathutil.NormalizedOSTempDirPath("__dsyms__")
 		if err != nil {
 			fail("Failed to create tmp dir, error: %s", err)
 		}
 
-		if err := command.CopyDir(appDSYM, dsymDir, false); err != nil {
-			fail("Failed to copy (%s) -> (%s), error: %s", appDSYM, dsymDir, err)
+		if appDSYM != "" {
+			if err := command.CopyDir(appDSYM, dsymDir, false); err != nil {
+				fail("Failed to copy (%s) -> (%s), error: %s", appDSYM, dsymDir, err)
+			}
+		} else {
+			log.Warnf("no app dsyms found")
 		}
 
 		if cfg.ExportAllDsyms {
