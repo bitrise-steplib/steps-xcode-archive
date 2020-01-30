@@ -1,12 +1,45 @@
 title: Xcode Archive & Export for iOS
-summary: |-
-  Run Xcode Archive command and then Export an IPA from the archive.
+summary: Run the Xcode archive command and then export an .ipa from the archive.
 description: |-
-  Run Xcode Archive command and then Export an IPA from the archive
-  for iOS, tvOS or watchOS.
 
-  You can share it, upload it, deploy it and catch them
-  all! Well, maybe not the last one.
+   The Step archives your Xcode project by running the `xcodebuild archive` command and then exports the archive into an .ipa file with the `xcodebuild -exportArchive` command. This .ipa file can be shared, installed on test devices, or uploaded to the App Store Connect.
+
+   ### Configuring the Step
+
+   Before you can use the Step, you need code signing files. Certificates must be uploaded to Bitrise while provisioning profiles should be either uploaded or, if using the iOS Auto Provisioning Step, downloaded from the Apple Developer Portal or generated automatically.
+
+   To configure the Step:
+
+   1. Make sure the **Project (or Workspace) path** input points to the correct location.
+
+      By default, you do not have to change this.
+   1. Set the correct value to the **Select method for export** input. If you use the **iOS Auto Provision** Step, the value of this input should be the same as the **Distribution type** input of that Step.
+   1. Make sure the target scheme is a valid, existing Xcode scheme.
+   1. Optionally, you can define a configuration type to be used (such as Debug or Release) in the **Configuration name** input.
+
+      By default, the selected Xcode scheme determines which configuration will be used. This option overwrites the configuration set in the scheme.
+   1. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **he Developer Portal team to use for this export** input.
+
+   ### Troubleshooting
+
+   If the Step fails, check your code signing files first. Make sure they are the right type for your export method. For example, an `app-store` export method requires an App Store type provisioning profile and a Distribution certificate.
+
+   Check **Debug** for additional options to run the Step. The **Additional options for xcodebuild call** input allows you add any flags that the `xcodebuild` command supports.  
+
+   Make sure the **Scheme name** and **Configuration name** inputs contain values that actually exist in your Xcode project.
+
+   ### Useful links
+
+   - https://devcenter.bitrise.io/code-signing/ios-code-signing/create-signed-ipa-for-xcode/
+   - https://devcenter.bitrise.io/code-signing/ios-code-signing/resigning-an-ipa/
+   - https://devcenter.bitrise.io/deploy/ios-deploy/ios-deploy-index/
+
+   ### Related Steps
+
+   - [Certificate and profile installer](https://www.bitrise.io/integrations/steps/certificate-and-profile-installer)
+   - [iOS Auto Provision](https://www.bitrise.io/integrations/steps/ios-auto-provision)
+   - [Deploy to iTunesConnect](https://www.bitrise.io/integrations/steps/deploy-to-itunesconnect-deliver)
+
 website: https://github.com/bitrise-steplib/steps-xcode-archive
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive
 support_url: https://github.com/bitrise-steplib/steps-xcode-archive/issues
