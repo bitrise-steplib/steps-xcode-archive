@@ -548,7 +548,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				if exportMethod == exportoptions.MethodAppStore {
 					iCloudContainerEnvironment = "Production"
 				} else if cfg.ICloudContainerEnvironment == "" {
-					fail("Your project uses CloudKit and \"iCloud container environment\" input not specified.\n"+
+					fail("Your project uses CloudKit but \"iCloud container environment\" input not specified.\n"+
 						"Export method is: %s (For app-store export method Production container environment is implied.)", exportMethod)
 				} else {
 					iCloudContainerEnvironment = cfg.ICloudContainerEnvironment
