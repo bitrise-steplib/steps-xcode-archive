@@ -41,7 +41,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
     - OUTPUT_TOOL: xcodebuild
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     after_run:
     - _common
@@ -53,7 +53,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - OUTPUT_TOOL: xcodebuild
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     after_run:
     - _common
@@ -76,7 +76,7 @@ workflows:
     - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     after_run:
     - _common
@@ -87,7 +87,7 @@ workflows:
     - COMMIT: "1360413258cc7f6a8676c17f060ff39899fc28b1"
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Bitrise Bot"
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
     - FORCE_TEAM_ID: 72SA8V3WYL
     after_run:
