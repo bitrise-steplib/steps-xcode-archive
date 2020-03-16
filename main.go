@@ -227,6 +227,7 @@ func main() {
 			log.Printf("- UploadBitcode: %s", cfg.UploadBitcode)
 			log.Printf("- CompileBitcode: %s", cfg.CompileBitcode)
 			log.Printf("- TeamID: %s", cfg.TeamID)
+			log.Printf("- ICloudContainerEnvironment: %s", cfg.ICloudContainerEnvironment)
 			fmt.Println()
 		}
 	}
@@ -547,7 +548,8 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				if exportMethod == exportoptions.MethodAppStore {
 					iCloudContainerEnvironment = "Production"
 				} else if cfg.ICloudContainerEnvironment == "" {
-					fail("project uses CloudKit, but iCloud container environment input not specified")
+					fail("Your project uses CloudKit but \"iCloud container environment\" input not specified.\n"+
+						"Export method is: %s (For app-store export method Production container environment is implied.)", exportMethod)
 				} else {
 					iCloudContainerEnvironment = cfg.ICloudContainerEnvironment
 				}
