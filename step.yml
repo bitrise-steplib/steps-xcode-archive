@@ -233,7 +233,7 @@ inputs:
       title: "Generated Artifact Name"
       description: |-
         This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
-  - xcodebuild_options: "-destination "generic/platform=iOS""
+  - xcodebuild_options: -destination "generic/platform=iOS"
     opts:
       category: Debug
       title: Additional options for xcodebuild call
