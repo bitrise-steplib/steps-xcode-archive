@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6f477fce413466517cc7a5f24f99a2331891bcb8776a40467b4671ef7b58d65d"
+  digest = "1:658999c9830d703331d10ce1a58046730c4b0374f3af6b987ab29cb891cfd593"
   name = "github.com/bitrise-io/go-steputils"
   packages = [
     "cache",
@@ -12,11 +12,11 @@
     "tools",
   ]
   pruneopts = "UT"
-  revision = "f540824d77dfd382ce84fd0ee0a9da2fba1cce0a"
+  revision = "94490ca44ddb645764676a94988f6fc7e3187383"
 
 [[projects]]
   branch = "master"
-  digest = "1:f089bf03e416ec7bb249ffcb50d81a56711624723ab0b0823f987beebdb39e92"
+  digest = "1:6ffd2d8b048c56ba0143ac1b0b290d4b239ae59819146105baf07128253d87f2"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -35,7 +35,7 @@
     "ziputil",
   ]
   pruneopts = "UT"
-  revision = "ad86bf775472ce1934affb9d3cb7d5ea3dffd16f"
+  revision = "e212188d99b41373b4ff8b69e7b1f677bc427bde"
 
 [[projects]]
   branch = "master"
@@ -59,7 +59,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:96dce0e947311f3985d20c3f368e71a4d281c916d3e3b85566f867f4a22980a3"
+  digest = "1:85c502298a8078ffdfee516cfb59bb5272c3adca032d1d26001da41042275851"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
     ".",
@@ -71,7 +71,15 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "a4e01d69cacc7dd9acbe8fb987dba69c9ce01b1c"
+  revision = "389cf29e41c71dc02c83959c6fac72e8d476766a"
+
+[[projects]]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  pruneopts = "UT"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   branch = "master"
@@ -106,12 +114,31 @@
   version = "v0.8.1"
 
 [[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "UT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:6baa565fe16f8657cf93469b2b8a6c61a277827734400d27e44d589547297279"
   name = "github.com/ryanuber/go-glob"
   packages = ["."]
   pruneopts = "UT"
   revision = "51a8f68e6c24dc43f1e371749c89a267de4ebc53"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:49b1087f45b1e49687da2f8eb49d9e07919d4bad3813344251c722141dcb31d6"
+  name = "github.com/stretchr/testify"
+  packages = [
+    "assert",
+    "require",
+  ]
+  pruneopts = "UT"
+  revision = "3ebf1ddaeb260c4b1ae502a01c7844fa8c1fa0e9"
+  version = "v1.5.1"
 
 [[projects]]
   digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
@@ -129,12 +156,20 @@
   version = "v0.3.2"
 
 [[projects]]
+  digest = "1:55b110c99c5fdc4f14930747326acce56b52cfce60b24b1c03ef686ac0e46bb1"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "53403b58ad1b561927d19068c655246f2db79d48"
+  version = "v2.2.8"
+
+[[projects]]
   branch = "master"
-  digest = "1:c10265d5a71326618d37e97169eddb3582f78e8ac7dcf87403b4cf619efd519a"
+  digest = "1:bc88f8258129a6b4eaf52d8095b3f0bcf68e065aca273aaf6ee7d3c7e464c510"
   name = "howett.net/plist"
   packages = ["."]
   pruneopts = "UT"
-  revision = "591f970eefbbeb04d7b37f334a0c4c3256e32876"
+  revision = "77e249a2e2ba6362794925035a31bea61b902a1e"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -163,8 +198,10 @@
     "github.com/bitrise-io/xcode-project",
     "github.com/bitrise-io/xcode-project/serialized",
     "github.com/bitrise-io/xcode-project/xcodeproj",
+    "github.com/bitrise-io/xcode-project/xcscheme",
     "github.com/kballard/go-shellquote",
     "github.com/ryanuber/go-glob",
+    "github.com/stretchr/testify/require",
     "howett.net/plist",
   ]
   solver-name = "gps-cdcl"

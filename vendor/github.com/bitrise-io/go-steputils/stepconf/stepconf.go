@@ -56,7 +56,19 @@ func (s Secret) String() string {
 // Print the name of the struct with Title case in blue color with followed by a newline,
 // then print all fields formatted as '- field name: field value` separated by newline.
 func Print(config interface{}) {
-	fmt.Printf(toString(config))
+	fmt.Print(toString(config))
+}
+
+func valueString(v reflect.Value) string {
+	if v.Kind() != reflect.Ptr {
+		return fmt.Sprintf("%v", v.Interface())
+	}
+
+	if !v.IsNil() {
+		return fmt.Sprintf("%v", v.Elem().Interface())
+	}
+
+	return ""
 }
 
 // returns the name of the struct with Title case in blue color followed by a newline,
@@ -75,7 +87,7 @@ func toString(config interface{}) string {
 
 	str := fmt.Sprintf(colorstring.Bluef("%s:\n", strings.Title(t.Name())))
 	for i := 0; i < t.NumField(); i++ {
-		str += fmt.Sprintf("- %s: %v\n", t.Field(i).Name, v.Field(i).Interface())
+		str += fmt.Sprintf("- %s: %s\n", t.Field(i).Name, valueString(v.Field(i)))
 	}
 
 	return str
@@ -135,6 +147,14 @@ func setField(field reflect.Value, value, constraint string) error {
 
 	if value == "" {
 		return nil
+	}
+
+	if field.Kind() == reflect.Ptr {
+		// If field is a pointer type, then set its value to be a pointer to a new zero value, matching field underlying type.
+		var dePtrdType = field.Type().Elem()     // get the type field can point to
+		var newPtrType = reflect.New(dePtrdType) // create new ptr address for type with non-nil zero value
+		field.Set(newPtrType)                    // assign value to pointer
+		field = field.Elem()
 	}
 
 	switch field.Kind() {
