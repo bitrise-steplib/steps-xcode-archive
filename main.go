@@ -314,6 +314,18 @@ func main() {
 	}
 
 	//
+	// Open Xcode project
+	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(absProjectPath, cfg.Scheme, cfg.Configuration)
+	if err != nil {
+		fail("Failed to open project: %s: %s", absProjectPath, err)
+	}
+
+	platform, err := utils.ProjectPlatform(xcodeProj, configuration)
+	if err != nil {
+		fail("Failed to read project platform: %s: %s", absProjectPath, err)
+	}
+
+	//
 	// Create the Archive with Xcode Command Line tools
 	log.Infof("Create the Archive ...")
 	fmt.Println()
@@ -356,13 +368,21 @@ func main() {
 	archiveCmd.SetDisableIndexWhileBuilding(cfg.DisableIndexWhileBuilding)
 	archiveCmd.SetArchivePath(tmpArchivePath)
 
+	destination := "generic/platform=" + string(platform)
+	options := []string{"-destination", destination}
 	if cfg.XcodebuildOptions != "" {
-		options, err := shellquote.Split(cfg.XcodebuildOptions)
+		userOptions, err := shellquote.Split(cfg.XcodebuildOptions)
 		if err != nil {
 			fail("Failed to shell split XcodebuildOptions (%s), error: %s", cfg.XcodebuildOptions)
 		}
-		archiveCmd.SetCustomOptions(options)
+
+		if sliceutil.IsStringInSlice("-destination", userOptions) {
+			options = userOptions
+		} else {
+			options = append(options, userOptions...)
+		}
 	}
+	archiveCmd.SetCustomOptions(options)
 
 	var swiftPackagesPath string
 	if xcodeMajorVersion >= 11 {
@@ -520,7 +540,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				log.Printf("export-method specified: %s", cfg.ExportMethod)
 			}
 
-			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(absProjectPath, cfg.Scheme, cfg.Configuration)
+			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(xcodeProj, scheme, configuration)
 			if err != nil {
 				fail(err.Error())
 			}
