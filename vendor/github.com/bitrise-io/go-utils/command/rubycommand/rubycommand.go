@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/pathutil"
 )
 
 const (
@@ -46,7 +47,8 @@ func cmdExist(slice ...string) bool {
 	return (cmd.Run() == nil)
 }
 
-func installType() InstallType {
+// RubyInstallType returns which version manager was used for the ruby install
+func RubyInstallType() InstallType {
 	whichRuby, err := command.New("which", "ruby").RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return Unkown
@@ -103,7 +105,7 @@ func sudoNeeded(installType InstallType, slice ...string) bool {
 
 // NewWithParams ...
 func NewWithParams(params ...string) (*command.Model, error) {
-	rubyInstallType := installType()
+	rubyInstallType := RubyInstallType()
 	if rubyInstallType == Unkown {
 		return nil, errors.New("unknown ruby installation type")
 	}
@@ -137,7 +139,7 @@ func GemUpdate(gem string) ([]*command.Model, error) {
 
 	cmds = append(cmds, cmd)
 
-	rubyInstallType := installType()
+	rubyInstallType := RubyInstallType()
 	if rubyInstallType == RbenvRuby {
 		cmd, err := New("rbenv", "rehash")
 		if err != nil {
@@ -166,7 +168,7 @@ func GemInstall(gem, version string) ([]*command.Model, error) {
 
 	cmds = append(cmds, cmd)
 
-	rubyInstallType := installType()
+	rubyInstallType := RubyInstallType()
 	if rubyInstallType == RbenvRuby {
 		cmd, err := New("rbenv", "rehash")
 		if err != nil {
@@ -208,8 +210,61 @@ func IsGemInstalled(gem, version string) (bool, error) {
 
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("%s: error: %s", out, err)
 	}
 
 	return findGemInList(out, gem, version)
+}
+
+func isSpecifiedRbenvRubyInstalled(message string) (bool, string, error) {
+	//
+	// Not installed
+	reg, err := regexp.Compile("rbenv: version \x60.*' is not installed") // \x60 == ` (The go linter suggested to use the hex code instead)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to parse regex ( %s ) on the error message, error: %s", "rbenv: version \x60.*' is not installed", err) // \x60 == ` (The go linter suggested to use the hex code instead)
+	}
+
+	var version string
+	if reg.MatchString(message) {
+		message := reg.FindString(message)
+		version = strings.Split(strings.Split(message, "`")[1], "'")[0]
+		return false, version, nil
+	}
+
+	//
+	// Installed
+	reg, err = regexp.Compile(".* \\(set by")
+	if err != nil {
+		return false, "", fmt.Errorf("failed to parse regex ( %s ) on the error message, error: %s", ".* \\(set by", err)
+	}
+
+	if reg.MatchString(message) {
+		s := reg.FindString(message)
+		version = strings.Split(s, " (set by")[0]
+		return true, version, nil
+	}
+	return false, version, nil
+}
+
+// IsSpecifiedRbenvRubyInstalled checks if the selected ruby version is installed via rbenv.
+// Ruby version is set by
+// 1. The RBENV_VERSION environment variable
+// 2. The first .ruby-version file found by searching the directory of the script you are executing and each of its
+// parent directories until reaching the root of your filesystem.
+// 3.The first .ruby-version file found by searching the current working directory and each of its parent directories
+// until reaching the root of your filesystem.
+// 4. The global ~/.rbenv/version file. You can modify this file using the rbenv global command.
+// src: https://github.com/rbenv/rbenv#choosing-the-ruby-version
+func IsSpecifiedRbenvRubyInstalled(workdir string) (bool, string, error) {
+	absWorkdir, err := pathutil.AbsPath(workdir)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to get absolute path for ( %s ), error: %s", workdir, err)
+	}
+
+	cmd := command.New("rbenv", "version").SetDir(absWorkdir)
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		return false, "", fmt.Errorf("failed to check installed ruby version, %s error: %s", out, err)
+	}
+	return isSpecifiedRbenvRubyInstalled(out)
 }

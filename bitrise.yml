@@ -15,6 +15,7 @@ workflows:
     - errcheck:
     - go-test:
     after_run:
+    - test_catalyst
     - test_cloudkit
     - test_objc
     - test_xcode_8
@@ -22,6 +23,16 @@ workflows:
     - test_workspace
     - test_tvos
     - test_no_app_dsym
+
+  test_catalyst:
+    envs:
+    - SAMPLE_APP_URL: https://github.com/bitrise-io/CatalystSample.git
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
+    - BITRISE_SCHEME: Catalyst Sample
+    - OUTPUT_TOOL: xcodebuild
+    after_run:
+    - _common
 
   test_cloudkit:
     envs:

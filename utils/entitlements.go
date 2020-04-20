@@ -2,41 +2,19 @@ package utils
 
 import (
 	"fmt"
-	"path/filepath"
+
+	"github.com/bitrise-io/xcode-project/xcscheme"
 
 	"github.com/bitrise-io/go-xcode/plistutil"
-	"github.com/bitrise-io/xcode-project"
 	"github.com/bitrise-io/xcode-project/serialized"
 	"github.com/bitrise-io/xcode-project/xcodeproj"
 )
 
 // ProjectEntitlementsByBundleID ...
-func ProjectEntitlementsByBundleID(pth, schemeName, configurationName string) (map[string]plistutil.PlistData, error) {
-	scheme, schemeContainerDir, err := project.Scheme(pth, schemeName)
-	if err != nil {
-		return nil, fmt.Errorf("could not get scheme with name %s from path %s", schemeName, pth)
-	}
-	if configurationName == "" {
-		configurationName = scheme.ArchiveAction.BuildConfiguration
-	}
-
-	if configurationName == "" {
-		return nil, fmt.Errorf("no configuration provided nor default defined for the scheme's (%s) archive action", schemeName)
-	}
-
+func ProjectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (map[string]plistutil.PlistData, error) {
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
-		return nil, fmt.Errorf("archivable entry not found")
-	}
-
-	projectPth, err := archiveEntry.BuildableReference.ReferencedContainerAbsPath(filepath.Dir(schemeContainerDir))
-	if err != nil {
-		return nil, err
-	}
-
-	xcodeProj, err := xcodeproj.Open(projectPth)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
 	}
 
 	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
