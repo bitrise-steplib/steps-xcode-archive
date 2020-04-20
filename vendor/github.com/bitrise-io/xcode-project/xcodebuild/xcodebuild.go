@@ -8,7 +8,7 @@ import (
 	"github.com/bitrise-io/xcode-project/serialized"
 )
 
-func parseShowBuildSettingsOutput(out string) (serialized.Object, error) {
+func parseShowBuildSettingsOutput(out string) serialized.Object {
 	settings := serialized.Object{}
 
 	lines := strings.Split(out, "\n")
@@ -20,12 +20,16 @@ func parseShowBuildSettingsOutput(out string) (serialized.Object, error) {
 		}
 
 		key := strings.TrimSpace(split[0])
+		if key == "" {
+			continue
+		}
+
 		value := strings.TrimSpace(strings.Join(split[1:], " = "))
 
 		settings[key] = value
 	}
 
-	return settings, nil
+	return settings
 }
 
 // ShowProjectBuildSettings ...
@@ -40,7 +44,7 @@ func ShowProjectBuildSettings(project, target, configuration string, customOptio
 		return nil, fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
 	}
 
-	return parseShowBuildSettingsOutput(out)
+	return parseShowBuildSettingsOutput(out), nil
 }
 
 // ShowWorkspaceBuildSettings ...
@@ -55,5 +59,5 @@ func ShowWorkspaceBuildSettings(workspace, scheme, configuration string, customO
 		return nil, fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
 	}
 
-	return parseShowBuildSettingsOutput(out)
+	return parseShowBuildSettingsOutput(out), nil
 }
