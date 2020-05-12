@@ -177,9 +177,7 @@ func Test_getPlatform(t *testing.T) {
 				t.Errorf("getPlatform() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("getPlatform() = %v, want %v", got, tt.want)
-			}
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
