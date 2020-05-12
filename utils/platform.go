@@ -63,7 +63,7 @@ type XcodeBuild struct {
 
 // TargetBuildSettings ...
 func (x XcodeBuild) TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error) {
-	return xcodeProj.TargetBuildSettings(target, configuration)
+	return xcodeProj.TargetBuildSettings(target, configuration, customOptions...)
 }
 
 // BuildableTargetPlatform ...
