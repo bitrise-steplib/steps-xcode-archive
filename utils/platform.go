@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	project "github.com/bitrise-io/xcode-project"
 	"github.com/bitrise-io/xcode-project/serialized"
@@ -51,34 +52,85 @@ func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodepro
 	return &xcodeProj, scheme, configurationName, nil
 }
 
-// ProjectPlatform ...
-func ProjectPlatform(xcodeProj *xcodeproj.XcodeProj, configurationName string) (Platform, error) {
-	var projectConfig *xcodeproj.BuildConfiguration
-	for _, config := range xcodeProj.Proj.BuildConfigurationList.BuildConfigurations {
-		if config.Name == configurationName {
-			projectConfig = &config
-		}
-	}
-	if projectConfig == nil {
-		return "", fmt.Errorf("%s project configuration not found", configurationName)
+// TargetBuildSettingsProvider ...
+type TargetBuildSettingsProvider interface {
+	TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error)
+}
+
+// XcodeBuild ...
+type XcodeBuild struct {
+}
+
+// TargetBuildSettings ...
+func (x XcodeBuild) TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error) {
+	return xcodeProj.TargetBuildSettings(target, configuration)
+}
+
+// BuildableTargetPlatform ...
+func BuildableTargetPlatform(
+	xcodeProj *xcodeproj.XcodeProj,
+	scheme *xcscheme.Scheme,
+	configurationName string,
+	provider TargetBuildSettingsProvider,
+) (Platform, error) {
+	archiveEntry, ok := scheme.AppBuildActionEntry()
+	if !ok {
+		return "", fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
 	}
 
-	return getPlatform(projectConfig.BuildSettings)
+	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
+	if !ok {
+		return "", fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
+	}
+
+	settings, err := provider.TargetBuildSettings(xcodeProj, mainTarget.Name, configurationName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get target (%s) build settings: %s", mainTarget.Name, err)
+	}
+
+	return getPlatform(settings)
 }
 
 func getPlatform(buildSettings serialized.Object) (Platform, error) {
+	/*
+		Xcode help:
+		Base SDK (SDKROOT)
+		The name or path of the base SDK being used during the build.
+		The product will be built against the headers and libraries located inside the indicated SDK.
+		This path will be prepended to all search paths, and will be passed through the environment to the compiler and linker.
+		Additional SDKs can be specified in the Additional SDKs (ADDITIONAL_SDKS) setting.
+
+		Examples:
+		- /Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk
+		- /Applications/Xcode.app/Contents/Developer/Platforms/AppleTVSimulator.platform/Developer/SDKs/AppleTVSimulator13.4.sdk
+		- /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.4.sdk
+		- /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk
+		- /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk
+		- /Applications/Xcode.app/Contents/Developer/Platforms/WatchOS.platform/Developer/SDKs/WatchOS.sdk
+		- /Applications/Xcode.app/Contents/Developer/Platforms/WatchSimulator.platform/Developer/SDKs/WatchSimulator.sdk
+		- iphoneos
+		- macosx
+		- appletvos
+		- watchos
+	*/
 	sdk, err := buildSettings.String("SDKROOT")
 	if err != nil {
 		return "", fmt.Errorf("failed to get SDKROOT: %s", err)
 	}
-	switch sdk {
-	case "iphoneos":
+
+	sdk = strings.ToLower(sdk)
+	if filepath.Ext(sdk) == ".sdk" {
+		sdk = filepath.Base(sdk)
+	}
+
+	switch {
+	case strings.HasPrefix(sdk, "iphoneos"):
 		return iOS, nil
-	case "macosx":
+	case strings.HasPrefix(sdk, "macosx"):
 		return osX, nil
-	case "appletvos":
+	case strings.HasPrefix(sdk, "appletvos"):
 		return tvOS, nil
-	case "watchos":
+	case strings.HasPrefix(sdk, "watchos"):
 		return watchOS, nil
 	default:
 		return "", fmt.Errorf("unkown SDKROOT: %s", sdk)
