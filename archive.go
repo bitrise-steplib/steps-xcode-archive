@@ -3,12 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/progress"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
@@ -42,8 +43,13 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool) 
 
 	archiveRootCmd := archiveCmd.Command()
 	var output bytes.Buffer
-	archiveRootCmd.SetStdout(io.MultiWriter(os.Stdout, &output))
-	archiveRootCmd.SetStderr(io.MultiWriter(os.Stderr, &output))
+	archiveRootCmd.SetStdout(&output)
+	archiveRootCmd.SetStderr(&output)
 
-	return output.String(), archiveRootCmd.Run()
+	var err error
+	progress.SimpleProgress(".", time.Minute, func() {
+		err = archiveRootCmd.Run()
+	})
+
+	return output.String(), err
 }
