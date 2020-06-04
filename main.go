@@ -393,19 +393,24 @@ func main() {
 	}
 
 	rawXcodebuildOut, err := runArchiveCommandWithRetry(archiveCmd, outputTool == "xcpretty", swiftPackagesPath)
-	if err != nil {
-		if outputTool == "xcpretty" {
-			log.Errorf("\nLast lines of the Xcode's build log:")
-			fmt.Println(stringutil.LastNLines(rawXcodebuildOut, 10))
-
-			if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-				log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
-			} else {
-				log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
-	The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
-	(value: %s)`, rawXcodebuildOutputLogPath)
-			}
+	if err != nil || outputTool == "xcodebuild" {
+		const lastLinesMsg = "\nLast lines of the Xcode's build log:"
+		if err != nil {
+			log.Infof(colorstring.Red(lastLinesMsg))
+		} else {
+			log.Infof(lastLinesMsg)
 		}
+		fmt.Println(stringutil.LastNLines(rawXcodebuildOut, 20))
+
+		if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+			log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+		} else {
+			log.Infof(colorstring.Magenta(fmt.Sprintf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
+The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
+(value: %s)`, rawXcodebuildOutputLogPath)))
+		}
+	}
+	if err != nil {
 		fail("Archive failed, error: %s", err)
 	}
 

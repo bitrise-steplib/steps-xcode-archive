@@ -304,8 +304,11 @@ inputs:
       category: Debug
       title: Output tool
       description: |-
-        If output_tool is set to xcpretty, the xcodebuild output will be prettified by xcpretty.
-        If output_tool is set to xcodebuild, the raw xcodebuild output will be printed.
+        If set to `xcpretty`, the xcodebuild output will be prettified by xcpretty.
+
+
+        If set to `xcodebuild`, only the last 20 lines of raw xcodebuild output will be visible in the build log.
+        The build log will always be added as an artifact.
       value_options:
       - xcpretty
       - xcodebuild

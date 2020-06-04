@@ -16,7 +16,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6ffd2d8b048c56ba0143ac1b0b290d4b239ae59819146105baf07128253d87f2"
+  digest = "1:27c73971f611e8eacb0e5fe47e5e5e960854d5d1a5d59ef3e545863f687c0f47"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -30,6 +30,7 @@
     "pkcs12",
     "pkcs12/internal/rc2",
     "pointers",
+    "progress",
     "sliceutil",
     "stringutil",
     "ziputil",
@@ -59,7 +60,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7c299cfe072b741633f2060afde696ef8b8fd60162ba936f504bb84f4d9afa9d"
+  digest = "1:4312b505eec5790a5c16ea6f8ee5cea6408e4c455353835f2d9b9be47a56ef0f"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
     ".",
@@ -71,7 +72,7 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "b119beb9d08e7fa5442e545c0b0dbe141b5f0d97"
+  revision = "09e5737e052d9d01cb927e53e18c378868377414"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -138,7 +139,7 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:3a437a60a940e6d8193c3ce847ed98aa7f156ca5aa80e7a283bb9b3ca160c7ce"
+  digest = "1:a4125390d140316670512f5450509e62d0271bc57a8326bb2bdeea3956f716e6"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
@@ -146,8 +147,28 @@
     "require",
   ]
   pruneopts = "UT"
-  revision = "3ebf1ddaeb260c4b1ae502a01c7844fa8c1fa0e9"
-  version = "v1.5.1"
+  revision = "004e3cb72213e5e727e4e08f668ee6c8f27e5d32"
+  version = "v1.6.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c381e2867d447cca3e74dbfb0c8ed371a4583c694b35838c5c642a2b79480fc6"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  pruneopts = "UT"
+  revision = "279210d13fedf5be6d476bad5df6a015042bb905"
+
+[[projects]]
+  branch = "master"
+  digest = "1:30986a354a6c49a3706fa3483998a10328724f105b32b2911ac3554fc649579b"
+  name = "golang.org/x/sys"
+  packages = [
+    "internal/unsafeheader",
+    "unix",
+    "windows",
+  ]
+  pruneopts = "UT"
+  revision = "6fdc65e7d9800cc59998e8ac0d9406a20ff5f399"
 
 [[projects]]
   digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
@@ -165,12 +186,12 @@
   version = "v0.3.2"
 
 [[projects]]
-  digest = "1:55b110c99c5fdc4f14930747326acce56b52cfce60b24b1c03ef686ac0e46bb1"
-  name = "gopkg.in/yaml.v2"
+  branch = "v3"
+  digest = "1:41e9a1e2c35c57c85aae6e955209cf52d611d2f4fb88889e1d056f19be1ad000"
+  name = "gopkg.in/yaml.v3"
   packages = ["."]
   pruneopts = "UT"
-  revision = "53403b58ad1b561927d19068c655246f2db79d48"
-  version = "v2.2.8"
+  revision = "e3079894b1e86c57cd48ff0d67dfd45de276d131"
 
 [[projects]]
   branch = "master"
@@ -192,6 +213,7 @@
     "github.com/bitrise-io/go-utils/fileutil",
     "github.com/bitrise-io/go-utils/log",
     "github.com/bitrise-io/go-utils/pathutil",
+    "github.com/bitrise-io/go-utils/progress",
     "github.com/bitrise-io/go-utils/sliceutil",
     "github.com/bitrise-io/go-utils/stringutil",
     "github.com/bitrise-io/go-xcode/certificateutil",
