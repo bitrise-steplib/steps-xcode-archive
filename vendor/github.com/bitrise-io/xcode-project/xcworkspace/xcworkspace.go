@@ -89,7 +89,11 @@ func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
 		schemesByContainer[project.Path] = projectSchemes
 	}
 
-	return schemesByContainer, nil
+	if len(schemesByContainer) > 0 {
+		return schemesByContainer, nil
+	}
+
+	return nil, fmt.Errorf("no schemes found in: %s", w.Path)
 }
 
 // FileLocations ...
