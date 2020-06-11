@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/fileutil"
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/xcode-project/serialized"
 	"github.com/bitrise-io/xcode-project/xcodebuild"
@@ -75,12 +76,14 @@ func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
 
 		project, err := xcodeproj.Open(projectLocation)
 		if err != nil {
-			return nil, err
+			log.Debugf("failed to open project: %s, error: %s", projectLocation, err)
+			continue
 		}
 
 		projectSchemes, err := project.Schemes()
 		if err != nil {
-			return nil, err
+			log.Debugf("failed to get schemes: %s, error: %s", projectLocation, err)
+			continue
 		}
 
 		schemesByContainer[project.Path] = projectSchemes
