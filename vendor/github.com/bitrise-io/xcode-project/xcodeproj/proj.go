@@ -66,14 +66,13 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 }
 
 func hasTargetNode(id string, objects serialized.Object) (bool, error) {
-	switch _, err := objects.Object(id); {
-	case err == nil:
-		return true, nil
-	case serialized.IsKeyNotFoundError(err):
-		return false, nil
-	default:
+	if _, err := objects.Object(id); err != nil {
+		if serialized.IsKeyNotFoundError(err) {
+			return false, nil
+		}
 		return false, err
 	}
+	return true, nil
 }
 
 // Target ...
