@@ -56,11 +56,11 @@
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "95bf1e5fb205f81972e2450d227fa80748a5b322"
+  revision = "44336c3652b214617ec3f4f8cc82054edf76cbb9"
 
 [[projects]]
   branch = "master"
-  digest = "1:4312b505eec5790a5c16ea6f8ee5cea6408e4c455353835f2d9b9be47a56ef0f"
+  digest = "1:3adda00db757d98850ac0e8c42296c0222b08987db42b8cc5c87830978611359"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
     ".",
@@ -72,7 +72,7 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "09e5737e052d9d01cb927e53e18c378868377414"
+  revision = "2536cd39f5c957502230f81c70688338fc56e627"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -139,7 +139,7 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:a4125390d140316670512f5450509e62d0271bc57a8326bb2bdeea3956f716e6"
+  digest = "1:fc44ab3ee6f79e2b4c67ea294f500aa151f7b882a706eb7f3e881aba1de3a729"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
@@ -147,8 +147,8 @@
     "require",
   ]
   pruneopts = "UT"
-  revision = "004e3cb72213e5e727e4e08f668ee6c8f27e5d32"
-  version = "v1.6.0"
+  revision = "f654a9112bbeac49ca2cd45bfbe11533c4666cf8"
+  version = "v1.6.1"
 
 [[projects]]
   branch = "master"
@@ -156,11 +156,11 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "279210d13fedf5be6d476bad5df6a015042bb905"
+  revision = "70a84ac30bf957c7df57edd1935d2081871515e1"
 
 [[projects]]
   branch = "master"
-  digest = "1:30986a354a6c49a3706fa3483998a10328724f105b32b2911ac3554fc649579b"
+  digest = "1:4d150491235d37b4d56ef26d2e1387a872cc837445eb2cc4735e3e9786c5eb06"
   name = "golang.org/x/sys"
   packages = [
     "internal/unsafeheader",
@@ -168,7 +168,7 @@
     "windows",
   ]
   pruneopts = "UT"
-  revision = "6fdc65e7d9800cc59998e8ac0d9406a20ff5f399"
+  revision = "226ff32320da7b90d0b5bc2365f4e359c466fb78"
 
 [[projects]]
   digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
@@ -187,11 +187,11 @@
 
 [[projects]]
   branch = "v3"
-  digest = "1:41e9a1e2c35c57c85aae6e955209cf52d611d2f4fb88889e1d056f19be1ad000"
+  digest = "1:8639671727a344ac01338e004e63774356483aba4a7ad2881f5a8f0ff4affe29"
   name = "gopkg.in/yaml.v3"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e3079894b1e86c57cd48ff0d67dfd45de276d131"
+  revision = "a5ece683394c3b88d90572e44d36c93aea492c2c"
 
 [[projects]]
   branch = "master"
