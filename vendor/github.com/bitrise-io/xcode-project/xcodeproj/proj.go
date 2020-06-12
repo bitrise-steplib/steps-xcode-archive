@@ -40,6 +40,16 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 
 	var targets []Target
 	for i := range rawTargets {
+		// rawTargets can contain more target IDs than the project configuration has
+		hasTargetNode, err := hasTargetNode(rawTargets[i], objects)
+		if err != nil {
+			return Proj{}, err
+		}
+
+		if !hasTargetNode {
+			continue
+		}
+
 		target, err := parseTarget(rawTargets[i], objects)
 		if err != nil {
 			return Proj{}, err
@@ -53,6 +63,16 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 		Targets:                targets,
 		Attributes:             projectAttributes,
 	}, nil
+}
+
+func hasTargetNode(id string, objects serialized.Object) (bool, error) {
+	if _, err := objects.Object(id); err != nil {
+		if serialized.IsKeyNotFoundError(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // Target ...
