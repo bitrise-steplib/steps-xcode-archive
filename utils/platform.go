@@ -25,7 +25,7 @@ const (
 func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodeproj.XcodeProj, *xcscheme.Scheme, string, error) {
 	scheme, schemeContainerDir, err := project.Scheme(pth, schemeName)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("could not get scheme with name %s from path %s", schemeName, pth)
+		return nil, nil, "", fmt.Errorf("could not get scheme (%s) from path (%s): %s", schemeName, pth, err)
 	}
 	if configurationName == "" {
 		configurationName = scheme.ArchiveAction.BuildConfiguration
