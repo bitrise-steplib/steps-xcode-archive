@@ -29,8 +29,6 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-io/xcode-project/xcodeproj"
-	"github.com/bitrise-io/xcode-project/xcscheme"
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
 	"howett.net/plist"
@@ -143,10 +141,12 @@ func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData)
 		}
 
 		services, ok := entitlements.GetStringArray("com.apple.developer.icloud-services")
-		if ok {
-			if sliceutil.IsStringInSlice("CloudKit", services) || sliceutil.IsStringInSlice("CloudDocuments", services) {
-				return true
-			}
+		if !ok {
+			continue
+		}
+
+		if sliceutil.IsStringInSlice("CloudKit", services) || sliceutil.IsStringInSlice("CloudDocuments", services) {
+			return true
 		}
 	}
 	return false
@@ -197,7 +197,7 @@ func generateBaseExportOptions(exportMethod exportoptions.Method, cfgUploadBitco
 	return nonAppStoreOptions
 }
 
-func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistData, exportMethod exportoptions.Method, cfgTeamID string, archiveCodeSignIsXcodeManaged bool) (*export.IosCodeSignGroup, error) {
+func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistData, exportMethod exportoptions.Method, teamID string, xcodeManaged bool) (*export.IosCodeSignGroup, error) {
 	log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
 	fmt.Println()
@@ -269,10 +269,10 @@ func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistDa
 		log.Debugf(group.String())
 	}
 
-	if cfgTeamID != "" {
-		log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", cfgTeamID)
+	if teamID != "" {
+		log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", teamID)
 
-		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateTeamSelectableCodeSignGroupFilter(cfgTeamID))
+		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateTeamSelectableCodeSignGroupFilter(teamID))
 
 		log.Debugf("\nGroups after filtering for team ID:")
 		for _, group := range codeSignGroups {
@@ -280,7 +280,7 @@ func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistDa
 		}
 	}
 
-	if !archiveCodeSignIsXcodeManaged {
+	if !xcodeManaged {
 		log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
 			"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
 			"Removing xcode managed CodeSignInfo groups")
@@ -294,7 +294,7 @@ func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistDa
 	}
 
 	defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
-	if cfgTeamID == "" && defaultProfileURL != "" {
+	if teamID == "" && defaultProfileURL != "" {
 		if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil {
 			log.Debugf("\ndefault profile: %v\n", defaultProfile)
 			filteredCodeSignGroups := export.FilterSelectableCodeSignGroups(codeSignGroups,
@@ -345,11 +345,15 @@ func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistDa
 	return &iosCodeSignGroups[0], nil
 }
 
-func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, exportProfileMapping map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
+func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
 	switch exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
-		options := exportOpts.(exportoptions.AppStoreOptionsModel)
-		options.BundleIDProvisioningProfileMapping = exportProfileMapping
+		options, ok := exportOpts.(exportoptions.AppStoreOptionsModel)
+		if !ok {
+			// will be ok because of the type switch
+		}
+
+		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
 		options.SigningCertificate = codesignIdentity
 		options.TeamID = teamID
 
@@ -361,8 +365,12 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 			options.SigningStyle = "manual"
 		}
 	case exportoptions.NonAppStoreOptionsModel:
-		options := exportOpts.(exportoptions.NonAppStoreOptionsModel)
-		options.BundleIDProvisioningProfileMapping = exportProfileMapping
+		options, ok := exportOpts.(exportoptions.NonAppStoreOptionsModel)
+		if !ok {
+			// will be ok because of the type switch
+		}
+
+		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
 		options.SigningCertificate = codesignIdentity
 		options.TeamID = teamID
 
@@ -377,27 +385,14 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 	return exportOpts
 }
 
-func generateExportOptions(cfgExportMethod string, cfgICloudContainerEnvironment string, cfgTeamID string, cfgUploadBitcode bool, cfgCompileBitcode bool,
-	archiveExportMethod exportoptions.Method, mainApplicationProfileName string, archiveCodeSignIsXcodeManaged bool,
-	xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string,
-	xcodeMajorVersion int64,
-	exportOptionsPath string) error {
-	exportMethod, err := determineExportMethod(cfgExportMethod, archiveExportMethod)
+func generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
+	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64, exportOptionsPath string) error {
+	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, bundleIDEntitlementsMap, exportMethod, xcodeMajorVersion)
 	if err != nil {
 		return err
 	}
 
-	bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(xcodeProj, scheme, configuration)
-	if err != nil {
-		return err
-	}
-
-	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(cfgICloudContainerEnvironment, bundleIDEntitlementsMap, exportMethod, xcodeMajorVersion)
-	if err != nil {
-		return err
-	}
-
-	exportOpts := generateBaseExportOptions(exportMethod, cfgUploadBitcode, cfgCompileBitcode, iCloudContainerEnvironment)
+	exportOpts := generateBaseExportOptions(exportMethod, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
 
 	if xcodeMajorVersion < 9 {
 		fmt.Println()
@@ -411,7 +406,7 @@ func generateExportOptions(cfgExportMethod string, cfgICloudContainerEnvironment
 		return nil
 	}
 
-	codeSignGroup, err := determineCodesignGroup(bundleIDEntitlementsMap, exportMethod, cfgTeamID, archiveCodeSignIsXcodeManaged)
+	codeSignGroup, err := determineCodesignGroup(bundleIDEntitlementsMap, exportMethod, teamID, xcodeManaged)
 	if err != nil {
 		return err
 	}
@@ -435,7 +430,7 @@ func generateExportOptions(cfgExportMethod string, cfgICloudContainerEnvironment
 		}
 	}
 
-	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, archiveCodeSignIsXcodeManaged)
+	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
 
 	fmt.Println()
 	log.Printf("generated export options content:")
@@ -855,9 +850,18 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		} else {
 			log.Printf("No custom export options content provided, generating export options...")
 
-			if err := generateExportOptions(cfg.ExportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID, cfg.UploadBitcode, cfg.CompileBitcode,
-				archiveExportMethod, mainApplication.ProvisioningProfile.Name, archiveCodeSignIsXcodeManaged,
-				xcodeProj, scheme, configuration,
+			exportMethod, err := determineExportMethod(cfg.ExportMethod, archiveExportMethod)
+			if err != nil {
+				fail(err.Error())
+			}
+
+			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(xcodeProj, scheme, configuration)
+			if err != nil {
+				fail(err.Error())
+			}
+
+			if err := generateExportOptions(exportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID, cfg.UploadBitcode, cfg.CompileBitcode, archiveCodeSignIsXcodeManaged,
+				bundleIDEntitlementsMap,
 				xcodeMajorVersion,
 				exportOptionsPath); err != nil {
 				fail(err.Error())
