@@ -28,6 +28,8 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
+	"github.com/bitrise-io/xcode-project/xcodeproj"
+	"github.com/bitrise-io/xcode-project/xcscheme"
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
 	"howett.net/plist"
@@ -116,6 +118,296 @@ func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}
 	message := fmt.Sprintf(format, v...)
 	messageWithTimeStamp := fmt.Sprintf("[%s] %s", currentTimestamp(), coloringFunc(message))
 	fmt.Println(messageWithTimeStamp)
+}
+
+func generateExportOptions(cfgExportMethod string, cfgICloudContainerEnvironment string, cfgTeamID string, cfgUploadBitcode bool, cfgCompileBitcode bool,
+	archiveExportMethod exportoptions.Method, mainApplicationProfileName string, archiveCodeSignIsXcodeManaged bool,
+	xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string,
+	xcodeMajorVersion int64,
+	exportOptionsPath string) error {
+	var exportMethod exportoptions.Method
+	exportTeamID := ""
+	exportCodeSignIdentity := ""
+	exportCodeSignStyle := ""
+	exportProfileMapping := map[string]string{}
+
+	if cfgExportMethod == "auto-detect" {
+		log.Printf("auto-detect export method specified")
+		exportMethod = archiveExportMethod
+
+		log.Printf("using the archive profile's (%s) export method: %s", mainApplicationProfileName, exportMethod)
+	} else {
+		parsedMethod, err := exportoptions.ParseMethod(cfgExportMethod)
+		if err != nil {
+			return fmt.Errorf("Failed to parse export options, error: %s", err)
+		}
+		exportMethod = parsedMethod
+		log.Printf("export-method specified: %s", cfgExportMethod)
+	}
+
+	bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(xcodeProj, scheme, configuration)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	// iCloudContainerEnvironment: If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
+	// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
+	usesCloudKit := false
+	for _, entitlements := range bundleIDEntitlementsMap {
+		if entitlements == nil {
+			continue
+		}
+
+		services, ok := entitlements.GetStringArray("com.apple.developer.icloud-services")
+		if ok {
+			usesCloudKit = sliceutil.IsStringInSlice("CloudKit", services) || sliceutil.IsStringInSlice("CloudDocuments", services)
+			if usesCloudKit {
+				break
+			}
+		}
+	}
+
+	// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
+	var iCloudContainerEnvironment string
+	if usesCloudKit && (xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore) {
+		if exportMethod == exportoptions.MethodAppStore {
+			iCloudContainerEnvironment = "Production"
+		} else if cfgICloudContainerEnvironment == "" {
+			return fmt.Errorf("Your project uses CloudKit but \"iCloud container environment\" input not specified.\n"+
+				"Export method is: %s (For app-store export method Production container environment is implied.)", exportMethod)
+		} else {
+			iCloudContainerEnvironment = cfgICloudContainerEnvironment
+		}
+	}
+
+	if xcodeMajorVersion >= 9 {
+		log.Printf("xcode major version > 9, generating provisioningProfiles node")
+
+		fmt.Println()
+		log.Printf("Target Bundle ID - Entitlements map")
+		var bundleIDs []string
+		for bundleID, entitlements := range bundleIDEntitlementsMap {
+			bundleIDs = append(bundleIDs, bundleID)
+
+			entitlementKeys := []string{}
+			for key := range entitlements {
+				entitlementKeys = append(entitlementKeys, key)
+			}
+			log.Printf("%s: %s", bundleID, entitlementKeys)
+		}
+
+		fmt.Println()
+		log.Printf("Resolving CodeSignGroups...")
+
+		certs, err := certificateutil.InstalledCodesigningCertificateInfos()
+		if err != nil {
+			return fmt.Errorf("Failed to get installed certificates, error: %s", err)
+		}
+		certInfo := certificateutil.FilterValidCertificateInfos(certs)
+		certs = append(certInfo.ValidCertificates, certInfo.DuplicatedCertificates...)
+
+		log.Debugf("Installed certificates:")
+		for _, certInfo := range certs {
+			log.Debugf(certInfo.String())
+		}
+
+		profs, err := profileutil.InstalledProvisioningProfileInfos(profileutil.ProfileTypeIos)
+		if err != nil {
+			return fmt.Errorf("Failed to get installed provisioning profiles, error: %s", err)
+		}
+
+		log.Debugf("Installed profiles:")
+		for _, profileInfo := range profs {
+			log.Debugf(profileInfo.String(certs...))
+		}
+
+		log.Printf("Resolving CodeSignGroups...")
+		codeSignGroups := export.CreateSelectableCodeSignGroups(certs, profs, bundleIDs)
+		if len(codeSignGroups) == 0 {
+			log.Errorf("Failed to find code signing groups for specified export method (%s)", exportMethod)
+		}
+
+		log.Debugf("\nGroups:")
+		for _, group := range codeSignGroups {
+			log.Debugf(group.String())
+		}
+
+		if len(bundleIDEntitlementsMap) > 0 {
+			log.Warnf("Filtering CodeSignInfo groups for target capabilities")
+
+			codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
+
+			log.Debugf("\nGroups after filtering for target capabilities:")
+			for _, group := range codeSignGroups {
+				log.Debugf(group.String())
+			}
+		}
+
+		log.Warnf("Filtering CodeSignInfo groups for export method")
+
+		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateExportMethodSelectableCodeSignGroupFilter(exportMethod))
+
+		log.Debugf("\nGroups after filtering for export method:")
+		for _, group := range codeSignGroups {
+			log.Debugf(group.String())
+		}
+
+		if cfgTeamID != "" {
+			log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", cfgTeamID)
+
+			codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateTeamSelectableCodeSignGroupFilter(cfgTeamID))
+
+			log.Debugf("\nGroups after filtering for team ID:")
+			for _, group := range codeSignGroups {
+				log.Debugf(group.String())
+			}
+		}
+
+		if !archiveCodeSignIsXcodeManaged {
+			log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
+				"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
+				"Removing xcode managed CodeSignInfo groups")
+
+			codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
+
+			log.Debugf("\nGroups after filtering for NOT Xcode managed profiles:")
+			for _, group := range codeSignGroups {
+				log.Debugf(group.String())
+			}
+		}
+
+		defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
+		if cfgTeamID == "" && defaultProfileURL != "" {
+			if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil {
+				log.Debugf("\ndefault profile: %v\n", defaultProfile)
+				filteredCodeSignGroups := export.FilterSelectableCodeSignGroups(codeSignGroups,
+					export.CreateExcludeProfileNameSelectableCodeSignGroupFilter(defaultProfile.Name))
+				if len(filteredCodeSignGroups) > 0 {
+					codeSignGroups = filteredCodeSignGroups
+
+					log.Debugf("\nGroups after removing default profile:")
+					for _, group := range codeSignGroups {
+						log.Debugf(group.String())
+					}
+				}
+			}
+		}
+
+		var iosCodeSignGroups []export.IosCodeSignGroup
+
+		for _, selectable := range codeSignGroups {
+			bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
+			for bundleID, profiles := range selectable.BundleIDProfilesMap {
+				if len(profiles) > 0 {
+					bundleIDProfileMap[bundleID] = profiles[0]
+				} else {
+					log.Warnf("No profile available to sign (%s) target!", bundleID)
+				}
+			}
+
+			iosCodeSignGroups = append(iosCodeSignGroups, *export.NewIOSGroup(selectable.Certificate, bundleIDProfileMap))
+		}
+
+		log.Debugf("\nFiltered groups:")
+		for i, group := range iosCodeSignGroups {
+			log.Debugf("Group #%d:", i)
+			for bundleID, profile := range group.BundleIDProfileMap() {
+				log.Debugf(" - %s: %s (%s)", bundleID, profile.Name, profile.UUID)
+			}
+		}
+
+		if len(iosCodeSignGroups) > 0 {
+			codeSignGroup := export.IosCodeSignGroup{}
+
+			if len(iosCodeSignGroups) >= 1 {
+				codeSignGroup = iosCodeSignGroups[0]
+			}
+			if len(iosCodeSignGroups) > 1 {
+				log.Warnf("Multiple code signing groups found! Using the first code signing group")
+			}
+
+			exportTeamID = codeSignGroup.Certificate().TeamID
+			exportCodeSignIdentity = codeSignGroup.Certificate().CommonName
+
+			for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap() {
+				exportProfileMapping[bundleID] = profileInfo.Name
+
+				isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
+				if isXcodeManaged {
+					if exportCodeSignStyle != "" && exportCodeSignStyle != "automatic" {
+						log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
+					}
+					exportCodeSignStyle = "automatic"
+				} else {
+					if exportCodeSignStyle != "" && exportCodeSignStyle != "manual" {
+						log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
+					}
+					exportCodeSignStyle = "manual"
+				}
+			}
+		} else {
+			log.Errorf("Failed to find Codesign Groups")
+		}
+	}
+
+	var exportOpts exportoptions.ExportOptions
+	if exportMethod == exportoptions.MethodAppStore {
+		options := exportoptions.NewAppStoreOptions()
+		options.UploadBitcode = cfgUploadBitcode
+
+		if xcodeMajorVersion >= 9 {
+			options.BundleIDProvisioningProfileMapping = exportProfileMapping
+			options.SigningCertificate = exportCodeSignIdentity
+			options.TeamID = exportTeamID
+
+			if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
+				log.Warnf("App was signed with xcode managed profile when archiving,")
+				log.Warnf("ipa export uses manual code signing.")
+				log.Warnf(`Setting "signingStyle" to "manual"`)
+
+				options.SigningStyle = "manual"
+			}
+		}
+
+		if iCloudContainerEnvironment != "" {
+			options.ICloudContainerEnvironment = exportoptions.ICloudContainerEnvironment(iCloudContainerEnvironment)
+		}
+
+		exportOpts = options
+	} else {
+		options := exportoptions.NewNonAppStoreOptions(exportMethod)
+		options.CompileBitcode = cfgCompileBitcode
+
+		if xcodeMajorVersion >= 9 {
+			options.BundleIDProvisioningProfileMapping = exportProfileMapping
+			options.SigningCertificate = exportCodeSignIdentity
+			options.TeamID = exportTeamID
+
+			if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
+				log.Warnf("App was signed with xcode managed profile when archiving,")
+				log.Warnf("ipa export uses manual code signing.")
+				log.Warnf(`Setting "signingStyle" to "manual"`)
+
+				options.SigningStyle = "manual"
+			}
+		}
+
+		if iCloudContainerEnvironment != "" {
+			options.ICloudContainerEnvironment = exportoptions.ICloudContainerEnvironment(iCloudContainerEnvironment)
+		}
+
+		exportOpts = options
+	}
+
+	fmt.Println()
+	log.Printf("generated export options content:")
+	fmt.Println()
+	fmt.Println(exportOpts.String())
+
+	if err = exportOpts.WriteToFile(exportOptionsPath); err != nil {
+		return fmt.Errorf("Failed to write export options to file, error: %s", err)
+	}
+	return nil
 }
 
 func main() {
@@ -525,287 +817,12 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 		} else {
 			log.Printf("No custom export options content provided, generating export options...")
 
-			var exportMethod exportoptions.Method
-			exportTeamID := ""
-			exportCodeSignIdentity := ""
-			exportCodeSignStyle := ""
-			exportProfileMapping := map[string]string{}
-
-			if cfg.ExportMethod == "auto-detect" {
-				log.Printf("auto-detect export method specified")
-				exportMethod = archiveExportMethod
-
-				log.Printf("using the archive profile's (%s) export method: %s", mainApplication.ProvisioningProfile.Name, exportMethod)
-			} else {
-				parsedMethod, err := exportoptions.ParseMethod(cfg.ExportMethod)
-				if err != nil {
-					fail("Failed to parse export options, error: %s", err)
-				}
-				exportMethod = parsedMethod
-				log.Printf("export-method specified: %s", cfg.ExportMethod)
-			}
-
-			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(xcodeProj, scheme, configuration)
-			if err != nil {
+			if err := generateExportOptions(cfg.ExportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID, cfg.UploadBitcode, cfg.CompileBitcode,
+				archiveExportMethod, mainApplication.ProvisioningProfile.Name, archiveCodeSignIsXcodeManaged,
+				xcodeProj, scheme, configuration,
+				xcodeMajorVersion,
+				exportOptionsPath); err != nil {
 				fail(err.Error())
-			}
-
-			// iCloudContainerEnvironment: If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
-			// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
-			usesCloudKit := false
-			for _, entitlements := range bundleIDEntitlementsMap {
-				if entitlements == nil {
-					continue
-				}
-
-				services, ok := entitlements.GetStringArray("com.apple.developer.icloud-services")
-				if ok {
-					usesCloudKit = sliceutil.IsStringInSlice("CloudKit", services) || sliceutil.IsStringInSlice("CloudDocuments", services)
-					if usesCloudKit {
-						break
-					}
-				}
-			}
-
-			// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
-			var iCloudContainerEnvironment string
-			if usesCloudKit && (xcodeMajorVersion >= 9 || exportMethod != exportoptions.MethodAppStore) {
-				if exportMethod == exportoptions.MethodAppStore {
-					iCloudContainerEnvironment = "Production"
-				} else if cfg.ICloudContainerEnvironment == "" {
-					fail("Your project uses CloudKit but \"iCloud container environment\" input not specified.\n"+
-						"Export method is: %s (For app-store export method Production container environment is implied.)", exportMethod)
-				} else {
-					iCloudContainerEnvironment = cfg.ICloudContainerEnvironment
-				}
-			}
-
-			if xcodeMajorVersion >= 9 {
-				log.Printf("xcode major version > 9, generating provisioningProfiles node")
-
-				fmt.Println()
-				log.Printf("Target Bundle ID - Entitlements map")
-				var bundleIDs []string
-				for bundleID, entitlements := range bundleIDEntitlementsMap {
-					bundleIDs = append(bundleIDs, bundleID)
-
-					entitlementKeys := []string{}
-					for key := range entitlements {
-						entitlementKeys = append(entitlementKeys, key)
-					}
-					log.Printf("%s: %s", bundleID, entitlementKeys)
-				}
-
-				fmt.Println()
-				log.Printf("Resolving CodeSignGroups...")
-
-				certs, err := certificateutil.InstalledCodesigningCertificateInfos()
-				if err != nil {
-					fail("Failed to get installed certificates, error: %s", err)
-				}
-				certInfo := certificateutil.FilterValidCertificateInfos(certs)
-				certs = append(certInfo.ValidCertificates, certInfo.DuplicatedCertificates...)
-
-				log.Debugf("Installed certificates:")
-				for _, certInfo := range certs {
-					log.Debugf(certInfo.String())
-				}
-
-				profs, err := profileutil.InstalledProvisioningProfileInfos(profileutil.ProfileTypeIos)
-				if err != nil {
-					fail("Failed to get installed provisioning profiles, error: %s", err)
-				}
-
-				log.Debugf("Installed profiles:")
-				for _, profileInfo := range profs {
-					log.Debugf(profileInfo.String(certs...))
-				}
-
-				log.Printf("Resolving CodeSignGroups...")
-				codeSignGroups := export.CreateSelectableCodeSignGroups(certs, profs, bundleIDs)
-				if len(codeSignGroups) == 0 {
-					log.Errorf("Failed to find code signing groups for specified export method (%s)", exportMethod)
-				}
-
-				log.Debugf("\nGroups:")
-				for _, group := range codeSignGroups {
-					log.Debugf(group.String())
-				}
-
-				if len(bundleIDEntitlementsMap) > 0 {
-					log.Warnf("Filtering CodeSignInfo groups for target capabilities")
-
-					codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
-
-					log.Debugf("\nGroups after filtering for target capabilities:")
-					for _, group := range codeSignGroups {
-						log.Debugf(group.String())
-					}
-				}
-
-				log.Warnf("Filtering CodeSignInfo groups for export method")
-
-				codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateExportMethodSelectableCodeSignGroupFilter(exportMethod))
-
-				log.Debugf("\nGroups after filtering for export method:")
-				for _, group := range codeSignGroups {
-					log.Debugf(group.String())
-				}
-
-				if cfg.TeamID != "" {
-					log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", cfg.TeamID)
-
-					codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateTeamSelectableCodeSignGroupFilter(cfg.TeamID))
-
-					log.Debugf("\nGroups after filtering for team ID:")
-					for _, group := range codeSignGroups {
-						log.Debugf(group.String())
-					}
-				}
-
-				if !archiveCodeSignIsXcodeManaged {
-					log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
-						"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
-						"Removing xcode managed CodeSignInfo groups")
-
-					codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
-
-					log.Debugf("\nGroups after filtering for NOT Xcode managed profiles:")
-					for _, group := range codeSignGroups {
-						log.Debugf(group.String())
-					}
-				}
-
-				defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
-				if cfg.TeamID == "" && defaultProfileURL != "" {
-					if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil {
-						log.Debugf("\ndefault profile: %v\n", defaultProfile)
-						filteredCodeSignGroups := export.FilterSelectableCodeSignGroups(codeSignGroups,
-							export.CreateExcludeProfileNameSelectableCodeSignGroupFilter(defaultProfile.Name))
-						if len(filteredCodeSignGroups) > 0 {
-							codeSignGroups = filteredCodeSignGroups
-
-							log.Debugf("\nGroups after removing default profile:")
-							for _, group := range codeSignGroups {
-								log.Debugf(group.String())
-							}
-						}
-					}
-				}
-
-				var iosCodeSignGroups []export.IosCodeSignGroup
-
-				for _, selectable := range codeSignGroups {
-					bundleIDProfileMap := map[string]profileutil.ProvisioningProfileInfoModel{}
-					for bundleID, profiles := range selectable.BundleIDProfilesMap {
-						if len(profiles) > 0 {
-							bundleIDProfileMap[bundleID] = profiles[0]
-						} else {
-							log.Warnf("No profile available to sign (%s) target!", bundleID)
-						}
-					}
-
-					iosCodeSignGroups = append(iosCodeSignGroups, *export.NewIOSGroup(selectable.Certificate, bundleIDProfileMap))
-				}
-
-				log.Debugf("\nFiltered groups:")
-				for i, group := range iosCodeSignGroups {
-					log.Debugf("Group #%d:", i)
-					for bundleID, profile := range group.BundleIDProfileMap() {
-						log.Debugf(" - %s: %s (%s)", bundleID, profile.Name, profile.UUID)
-					}
-				}
-
-				if len(iosCodeSignGroups) > 0 {
-					codeSignGroup := export.IosCodeSignGroup{}
-
-					if len(iosCodeSignGroups) >= 1 {
-						codeSignGroup = iosCodeSignGroups[0]
-					}
-					if len(iosCodeSignGroups) > 1 {
-						log.Warnf("Multiple code signing groups found! Using the first code signing group")
-					}
-
-					exportTeamID = codeSignGroup.Certificate().TeamID
-					exportCodeSignIdentity = codeSignGroup.Certificate().CommonName
-
-					for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap() {
-						exportProfileMapping[bundleID] = profileInfo.Name
-
-						isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
-						if isXcodeManaged {
-							if exportCodeSignStyle != "" && exportCodeSignStyle != "automatic" {
-								log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
-							}
-							exportCodeSignStyle = "automatic"
-						} else {
-							if exportCodeSignStyle != "" && exportCodeSignStyle != "manual" {
-								log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
-							}
-							exportCodeSignStyle = "manual"
-						}
-					}
-				} else {
-					log.Errorf("Failed to find Codesign Groups")
-				}
-			}
-
-			var exportOpts exportoptions.ExportOptions
-			if exportMethod == exportoptions.MethodAppStore {
-				options := exportoptions.NewAppStoreOptions()
-				options.UploadBitcode = cfg.UploadBitcode
-
-				if xcodeMajorVersion >= 9 {
-					options.BundleIDProvisioningProfileMapping = exportProfileMapping
-					options.SigningCertificate = exportCodeSignIdentity
-					options.TeamID = exportTeamID
-
-					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
-						log.Warnf("App was signed with xcode managed profile when archiving,")
-						log.Warnf("ipa export uses manual code signing.")
-						log.Warnf(`Setting "signingStyle" to "manual"`)
-
-						options.SigningStyle = "manual"
-					}
-				}
-
-				if iCloudContainerEnvironment != "" {
-					options.ICloudContainerEnvironment = exportoptions.ICloudContainerEnvironment(iCloudContainerEnvironment)
-				}
-
-				exportOpts = options
-			} else {
-				options := exportoptions.NewNonAppStoreOptions(exportMethod)
-				options.CompileBitcode = cfg.CompileBitcode
-
-				if xcodeMajorVersion >= 9 {
-					options.BundleIDProvisioningProfileMapping = exportProfileMapping
-					options.SigningCertificate = exportCodeSignIdentity
-					options.TeamID = exportTeamID
-
-					if archiveCodeSignIsXcodeManaged && exportCodeSignStyle == "manual" {
-						log.Warnf("App was signed with xcode managed profile when archiving,")
-						log.Warnf("ipa export uses manual code signing.")
-						log.Warnf(`Setting "signingStyle" to "manual"`)
-
-						options.SigningStyle = "manual"
-					}
-				}
-
-				if iCloudContainerEnvironment != "" {
-					options.ICloudContainerEnvironment = exportoptions.ICloudContainerEnvironment(iCloudContainerEnvironment)
-				}
-
-				exportOpts = options
-			}
-
-			fmt.Println()
-			log.Printf("generated export options content:")
-			fmt.Println()
-			fmt.Println(exportOpts.String())
-
-			if err = exportOpts.WriteToFile(exportOptionsPath); err != nil {
-				fail("Failed to write export options to file, error: %s", err)
 			}
 		}
 
