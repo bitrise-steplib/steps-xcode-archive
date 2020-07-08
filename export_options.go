@@ -244,6 +244,7 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 
 			options.SigningStyle = "manual"
 		}
+		return options
 	case exportoptions.NonAppStoreOptionsModel:
 		options, ok := exportOpts.(exportoptions.NonAppStoreOptionsModel)
 		if !ok {
@@ -261,8 +262,9 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 
 			options.SigningStyle = "manual"
 		}
+		return options
 	}
-	return exportOpts
+	return nil
 }
 
 func generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
