@@ -543,13 +543,19 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 				fail(err.Error())
 			}
 
-			bundleIDEntitlementsMap, err := utils.ProjectEntitlementsByBundleID(xcodeProj, scheme, configuration)
+			generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration)
+			exportOptions, err := generator.GenerateExportOptions(exportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID,
+				cfg.UploadBitcode, cfg.CompileBitcode, archiveCodeSignIsXcodeManaged, xcodeMajorVersion)
 			if err != nil {
 				fail(err.Error())
 			}
 
-			if err := generateExportOptions(exportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID, cfg.UploadBitcode, cfg.CompileBitcode,
-				archiveCodeSignIsXcodeManaged, bundleIDEntitlementsMap, xcodeMajorVersion, exportOptionsPath); err != nil {
+			fmt.Println()
+			log.Printf("generated export options content:")
+			fmt.Println()
+			fmt.Println(exportOptions.String())
+
+			if err := exportOptions.WriteToFile(exportOptionsPath); err != nil {
 				fail(err.Error())
 			}
 		}

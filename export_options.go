@@ -11,8 +11,79 @@ import (
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/xcode-project/serialized"
+	"github.com/bitrise-io/xcode-project/xcodeproj"
+	"github.com/bitrise-io/xcode-project/xcscheme"
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 )
+
+// ExportOptionsGenerator ...
+type ExportOptionsGenerator struct {
+	xcodeProj     *xcodeproj.XcodeProj
+	scheme        *xcscheme.Scheme
+	configuration string
+}
+
+// NewExportOptionsGenerator ...
+func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string) ExportOptionsGenerator {
+	return ExportOptionsGenerator{
+		xcodeProj:     xcodeProj,
+		scheme:        scheme,
+		configuration: configuration,
+	}
+}
+
+// GenerateExportOptions ...
+func (g ExportOptionsGenerator) GenerateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
+	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
+	bundleIDEntitlementsMap, err := projectEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration)
+	if err != nil {
+		fail(err.Error())
+	}
+
+	return generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
+		xcodeManaged, bundleIDEntitlementsMap, xcodeMajorVersion)
+}
+
+func projectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (map[string]plistutil.PlistData, error) {
+	archiveEntry, ok := scheme.AppBuildActionEntry()
+	if !ok {
+		return nil, fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
+	}
+
+	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
+	if !ok {
+		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
+	}
+
+	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets(false)...)
+
+	entitlementsByBundleID := map[string]serialized.Object{}
+
+	for _, target := range targets {
+		bundleID, err := xcodeProj.TargetBundleID(target.Name, configurationName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
+		}
+
+		entitlements, err := xcodeProj.TargetCodeSignEntitlements(target.Name, configurationName)
+		if err != nil && !serialized.IsKeyNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
+		}
+
+		entitlementsByBundleID[bundleID] = entitlements
+	}
+
+	return toMapStringPlistData(entitlementsByBundleID), nil
+}
+
+func toMapStringPlistData(object map[string]serialized.Object) map[string]plistutil.PlistData {
+	converted := map[string]plistutil.PlistData{}
+	for key, value := range object {
+		converted[key] = plistutil.PlistData(value)
+	}
+	return converted
+}
 
 func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData) bool {
 	for _, entitlements := range bundleIDEntitlementsMap {
@@ -268,29 +339,21 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 }
 
 func generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
-	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64, exportOptionsPath string) error {
+	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
 	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, bundleIDEntitlementsMap, exportMethod, xcodeMajorVersion)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	exportOpts := generateBaseExportOptions(exportMethod, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
 
 	if xcodeMajorVersion < 9 {
-		fmt.Println()
-		log.Printf("generated export options content:")
-		fmt.Println()
-		fmt.Println(exportOpts.String())
-
-		if err = exportOpts.WriteToFile(exportOptionsPath); err != nil {
-			return fmt.Errorf("Failed to write export options to file, error: %s", err)
-		}
-		return nil
+		return exportOpts, nil
 	}
 
 	codeSignGroup, err := determineCodesignGroup(bundleIDEntitlementsMap, exportMethod, teamID, xcodeManaged)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	exportCodeSignStyle := ""
@@ -313,14 +376,5 @@ func generateExportOptions(exportMethod exportoptions.Method, containerEnvironme
 	}
 
 	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
-
-	fmt.Println()
-	log.Printf("generated export options content:")
-	fmt.Println()
-	fmt.Println(exportOpts.String())
-
-	if err = exportOpts.WriteToFile(exportOptionsPath); err != nil {
-		return fmt.Errorf("Failed to write export options to file, error: %s", err)
-	}
-	return nil
+	return exportOpts, nil
 }
