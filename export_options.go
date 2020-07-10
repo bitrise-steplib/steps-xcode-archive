@@ -17,35 +17,66 @@ import (
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 )
 
-// ExportOptionsGenerator ...
+// ExportOptionsGenerator generates an exportOptions.plist file from Xcode version 7 to Xcode version 11.
 type ExportOptionsGenerator struct {
 	xcodeProj     *xcodeproj.XcodeProj
 	scheme        *xcscheme.Scheme
 	configuration string
+
+	certificateProvider CodesignIdentityProvider
+	profileProvider     ProvisioningProfileProvider
+	targetInfoProvider  TargetInfoProvider
 }
 
-// NewExportOptionsGenerator ...
+// NewExportOptionsGenerator constructs a new ExportOptionsGenerator.
 func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string) ExportOptionsGenerator {
-	return ExportOptionsGenerator{
+	g := ExportOptionsGenerator{
 		xcodeProj:     xcodeProj,
 		scheme:        scheme,
 		configuration: configuration,
 	}
+	g.certificateProvider = LocalCodesignIdentityProvider{}
+	g.profileProvider = LocalProvisioningProfileProvider{}
+	g.targetInfoProvider = XcodebuildTargetInfoProvider{}
+	return g
 }
 
-// GenerateExportOptions ...
+// GenerateExportOptions generates an exportOptions.plist file.
 func (g ExportOptionsGenerator) GenerateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
-	bundleIDEntitlementsMap, err := projectEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration)
+	bundleIDEntitlementsMap, err := g.projectEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration)
 	if err != nil {
 		fail(err.Error())
 	}
 
-	return generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
+	return g.generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
 		xcodeManaged, bundleIDEntitlementsMap, xcodeMajorVersion)
 }
 
-func projectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (map[string]plistutil.PlistData, error) {
+// TargetInfoProvider can determine a target's bundle id and codesign entitlements.
+type TargetInfoProvider interface {
+	TargetBundleID(target, configuration string) (string, error)
+	TargetCodeSignEntitlements(target, configuration string) (serialized.Object, error)
+}
+
+// XcodebuildTargetInfoProvider implements TargetInfoProvider.
+type XcodebuildTargetInfoProvider struct {
+	xcodeProj *xcodeproj.XcodeProj
+}
+
+// TargetBundleID ...
+func (b XcodebuildTargetInfoProvider) TargetBundleID(target, configuration string) (string, error) {
+	return b.xcodeProj.TargetBundleID(target, configuration)
+}
+
+// TargetCodeSignEntitlements ...
+func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configuration string) (serialized.Object, error) {
+	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
+}
+
+// projectEntitlementsByBundleID finds the project's main application target, pointed by the provided scheme and configuration,
+// collects it's dependent executable targets and maps each target's entitlements to the target's bundle ID.
+func (g ExportOptionsGenerator) projectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (map[string]plistutil.PlistData, error) {
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
 		return nil, fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
@@ -61,12 +92,12 @@ func projectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcsch
 	entitlementsByBundleID := map[string]serialized.Object{}
 
 	for _, target := range targets {
-		bundleID, err := xcodeProj.TargetBundleID(target.Name, configurationName)
+		bundleID, err := g.targetInfoProvider.TargetBundleID(target.Name, configurationName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
 		}
 
-		entitlements, err := xcodeProj.TargetCodeSignEntitlements(target.Name, configurationName)
+		entitlements, err := g.targetInfoProvider.TargetCodeSignEntitlements(target.Name, configurationName)
 		if err != nil && !serialized.IsKeyNotFoundError(err) {
 			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
 		}
@@ -77,6 +108,7 @@ func projectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcsch
 	return toMapStringPlistData(entitlementsByBundleID), nil
 }
 
+// toMapStringPlistData converts object's values to plistutil.PlistData.
 func toMapStringPlistData(object map[string]serialized.Object) map[string]plistutil.PlistData {
 	converted := map[string]plistutil.PlistData{}
 	for key, value := range object {
@@ -85,6 +117,7 @@ func toMapStringPlistData(object map[string]serialized.Object) map[string]plistu
 	return converted
 }
 
+// projectUsesCloudKit determines whether the project uses any CloudKit capability or not.
 func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData) bool {
 	for _, entitlements := range bundleIDEntitlementsMap {
 		if entitlements == nil {
@@ -103,6 +136,7 @@ func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData)
 	return false
 }
 
+// determineIcloudContainerEnvironment calculates the value of iCloudContainerEnvironment.
 func determineIcloudContainerEnvironment(desiredIcloudContainerEnvironment string, bundleIDEntitlementsMap map[string]plistutil.PlistData, exportMethod exportoptions.Method, xcodeMajorVersion int64) (string, error) {
 	// iCloudContainerEnvironment: If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
 	// Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
@@ -128,6 +162,7 @@ func determineIcloudContainerEnvironment(desiredIcloudContainerEnvironment strin
 	return desiredIcloudContainerEnvironment, nil
 }
 
+// generateBaseExportOptions creates a default exportOptions introudced in Xcode 7.
 func generateBaseExportOptions(exportMethod exportoptions.Method, cfgUploadBitcode, cfgCompileBitcode bool, iCloudContainerEnvironment string) exportoptions.ExportOptions {
 	if exportMethod == exportoptions.MethodAppStore {
 		appStoreOptions := exportoptions.NewAppStoreOptions()
@@ -148,7 +183,40 @@ func generateBaseExportOptions(exportMethod exportoptions.Method, cfgUploadBitco
 	return nonAppStoreOptions
 }
 
-func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistData, exportMethod exportoptions.Method, teamID string, xcodeManaged bool) (*export.IosCodeSignGroup, error) {
+// CodesignIdentityProvider can list certificate infos.
+type CodesignIdentityProvider interface {
+	ListCodesignIdentities() ([]certificateutil.CertificateInfoModel, error)
+}
+
+// LocalCodesignIdentityProvider ...
+type LocalCodesignIdentityProvider struct{}
+
+// ListCodesignIdentities ...
+func (p LocalCodesignIdentityProvider) ListCodesignIdentities() ([]certificateutil.CertificateInfoModel, error) {
+	certs, err := certificateutil.InstalledCodesigningCertificateInfos()
+	if err != nil {
+		return nil, err
+	}
+	certInfo := certificateutil.FilterValidCertificateInfos(certs)
+	return append(certInfo.ValidCertificates, certInfo.DuplicatedCertificates...), nil
+}
+
+// ProvisioningProfileProvider can list profile infos.
+type ProvisioningProfileProvider interface {
+	ListProvisioningProfiles() ([]profileutil.ProvisioningProfileInfoModel, error)
+}
+
+// LocalProvisioningProfileProvider ...
+type LocalProvisioningProfileProvider struct{}
+
+// ListProvisioningProfiles ...
+func (p LocalProvisioningProfileProvider) ListProvisioningProfiles() ([]profileutil.ProvisioningProfileInfoModel, error) {
+	return profileutil.InstalledProvisioningProfileInfos(profileutil.ProfileTypeIos)
+}
+
+// determineCodesignGroup finds the best codesign group (certificate + profiles)
+// based on the installed Provisioning Profiles and Codesign Certificates.
+func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistData, exportMethod exportoptions.Method, teamID string, xcodeManaged bool) (*export.IosCodeSignGroup, error) {
 	log.Printf("xcode major version > 9, generating provisioningProfiles node")
 
 	fmt.Println()
@@ -167,19 +235,17 @@ func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistDa
 	fmt.Println()
 	log.Printf("Resolving CodeSignGroups...")
 
-	certs, err := certificateutil.InstalledCodesigningCertificateInfos()
+	certs, err := g.certificateProvider.ListCodesignIdentities()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get installed certificates, error: %s", err)
 	}
-	certInfo := certificateutil.FilterValidCertificateInfos(certs)
-	certs = append(certInfo.ValidCertificates, certInfo.DuplicatedCertificates...)
 
 	log.Debugf("Installed certificates:")
 	for _, certInfo := range certs {
 		log.Debugf(certInfo.String())
 	}
 
-	profs, err := profileutil.InstalledProvisioningProfileInfos(profileutil.ProfileTypeIos)
+	profs, err := g.profileProvider.ListProvisioningProfiles()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get installed provisioning profiles, error: %s", err)
 	}
@@ -296,6 +362,7 @@ func determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistDa
 	return &iosCodeSignGroups[0], nil
 }
 
+// addXcode9Properties adds new exportOption properties introduced in Xcode 9.
 func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
 	switch exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
@@ -338,7 +405,8 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 	return nil
 }
 
-func generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
+// generateExportOptions generates an exportOptions based on the provided conditions.
+func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
 	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, bundleIDEntitlementsMap, exportMethod, xcodeMajorVersion)
 	if err != nil {
@@ -351,9 +419,12 @@ func generateExportOptions(exportMethod exportoptions.Method, containerEnvironme
 		return exportOpts, nil
 	}
 
-	codeSignGroup, err := determineCodesignGroup(bundleIDEntitlementsMap, exportMethod, teamID, xcodeManaged)
+	codeSignGroup, err := g.determineCodesignGroup(bundleIDEntitlementsMap, exportMethod, teamID, xcodeManaged)
 	if err != nil {
 		return nil, err
+	}
+	if codeSignGroup == nil {
+		return exportOpts, nil
 	}
 
 	exportCodeSignStyle := ""
