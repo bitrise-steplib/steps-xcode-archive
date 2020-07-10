@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/bitrise-io/go-xcode/certificateutil"
@@ -47,7 +48,13 @@ func TestExportOptionsGenerator_GenerateExportOptions(t *testing.T) {
 	xcodeProj := &xcodeproj.XcodeProj{
 		Proj: xcodeproj.Proj{
 			Targets: []xcodeproj.Target{
-				{ID: "target_id"},
+				{
+					ID: "application_id",
+					Dependencies: []xcodeproj.TargetDependency{
+						{ID: "app_clip_id"},
+					},
+				},
+				{ID: "app_clip_id"},
 			},
 		},
 	}
@@ -58,7 +65,7 @@ func TestExportOptionsGenerator_GenerateExportOptions(t *testing.T) {
 					BuildForArchiving: "YES",
 					BuildableReference: xcscheme.BuildableReference{
 						BuildableName:       "sample.app",
-						BlueprintIdentifier: "target_id",
+						BlueprintIdentifier: "application_id",
 					},
 				},
 			},
@@ -97,6 +104,8 @@ func TestExportOptionsGenerator_GenerateExportOptions(t *testing.T) {
 
 	s, err := opts.String()
 	require.NoError(t, err)
+
+	fmt.Println(s)
 
 	expected := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
