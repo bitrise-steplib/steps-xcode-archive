@@ -37,7 +37,7 @@ func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.
 	}
 	g.certificateProvider = LocalCodesignIdentityProvider{}
 	g.profileProvider = LocalProvisioningProfileProvider{}
-	g.targetInfoProvider = XcodebuildTargetInfoProvider{}
+	g.targetInfoProvider = XcodebuildTargetInfoProvider{xcodeProj: xcodeProj}
 	return g
 }
 
