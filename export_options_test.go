@@ -32,12 +32,10 @@ type MockTargetInfoProvider struct {
 	codesignEntitlements serialized.Object
 }
 
-// TargetBundleID ...
 func (b MockTargetInfoProvider) TargetBundleID(target, configuration string) (string, error) {
 	return b.bundleID, nil
 }
 
-// TargetCodeSignEntitlements ...
 func (b MockTargetInfoProvider) TargetCodeSignEntitlements(target, configuration string) (serialized.Object, error) {
 	return b.codesignEntitlements, nil
 }
