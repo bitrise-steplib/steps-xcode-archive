@@ -17,6 +17,8 @@ import (
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 )
 
+const appClipProductType = "com.apple.product-type.application.on-demand-install-capable"
+
 // ExportOptionsGenerator generates an exportOptions.plist file from Xcode version 7 to Xcode version 11.
 type ExportOptionsGenerator struct {
 	xcodeProj     *xcodeproj.XcodeProj
@@ -41,12 +43,24 @@ func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.
 	return g
 }
 
-// GenerateExportOptions generates an exportOptions.plist file.
-func (g ExportOptionsGenerator) GenerateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
+// GenerateApplicationExportOptions generates exportOptions for an application export.
+func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
-	bundleIDEntitlementsMap, err := g.projectEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration)
+	bundleIDEntitlementsMap, err := g.productEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration, false)
 	if err != nil {
-		fail(err.Error())
+		return nil, err
+	}
+
+	return g.generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
+		xcodeManaged, bundleIDEntitlementsMap, xcodeMajorVersion)
+}
+
+// GenerateAppClipExportOptions generates exportOptions for an app clip export.
+func (g ExportOptionsGenerator) GenerateAppClipExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
+	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
+	bundleIDEntitlementsMap, err := g.productEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration, true)
+	if err != nil {
+		return nil, err
 	}
 
 	return g.generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
@@ -74,12 +88,12 @@ func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configu
 	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
 }
 
-// projectEntitlementsByBundleID finds the project's main application target, pointed by the provided scheme and configuration,
+// productEntitlementsByBundleID finds the project's main application target, pointed by the provided scheme and configuration,
 // collects it's dependent executable targets and maps each target's entitlements to the target's bundle ID.
-func (g ExportOptionsGenerator) projectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (map[string]plistutil.PlistData, error) {
+func (g ExportOptionsGenerator) productEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string, appClip bool) (map[string]plistutil.PlistData, error) {
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
-		return nil, fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
+		return nil, fmt.Errorf("archivable entry not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
 	}
 
 	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
@@ -87,10 +101,42 @@ func (g ExportOptionsGenerator) projectEntitlementsByBundleID(xcodeProj *xcodepr
 		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}
 
-	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets(false)...)
+	if appClip {
+		// In case of app clip export, change ha main target to the app clip target.
+		var appClipTarget *xcodeproj.Target
+
+		targets := mainTarget.DependentExecutableProductTargets(false)
+		for _, target := range targets {
+			if target.ProductType == appClipProductType {
+				appClipTarget = &target
+				break
+			}
+		}
+
+		if appClipTarget == nil {
+			return nil, fmt.Errorf("app clip target not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
+		}
+
+		mainTarget = *appClipTarget
+	}
+
+	var dependentTargets []xcodeproj.Target // mainTarget.DependentExecutableProductTargets(false)
+	if appClip {
+		dependentTargets = mainTarget.DependentExecutableProductTargets(false)
+	} else {
+		// in case main application export, remove app clip target
+		for _, target := range mainTarget.DependentExecutableProductTargets(false) {
+			if target.ProductType == appClipProductType {
+				continue
+			}
+
+			dependentTargets = append(dependentTargets, target)
+		}
+	}
+
+	targets := append([]xcodeproj.Target{mainTarget}, dependentTargets...)
 
 	entitlementsByBundleID := map[string]serialized.Object{}
-
 	for _, target := range targets {
 		bundleID, err := g.targetInfoProvider.TargetBundleID(target.Name, configurationName)
 		if err != nil {

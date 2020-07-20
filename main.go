@@ -544,7 +544,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 			}
 
 			generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration)
-			exportOptions, err := generator.GenerateExportOptions(exportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID,
+			exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID,
 				cfg.UploadBitcode, cfg.CompileBitcode, archiveCodeSignIsXcodeManaged, xcodeMajorVersion)
 			if err != nil {
 				fail(err.Error())

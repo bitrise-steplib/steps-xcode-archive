@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExportOptionsGenerator_GenerateExportOptions(t *testing.T) {
+func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
 	log.SetEnableDebugLog(true)
 
 	// Arrange
@@ -59,7 +59,7 @@ func TestExportOptionsGenerator_GenerateExportOptions(t *testing.T) {
 	}
 
 	// Act
-	opts, err := g.GenerateExportOptions(exportMethod, "Production", teamID, true, true, false, 11)
+	opts, err := g.GenerateApplicationExportOptions(exportMethod, "Production", teamID, true, true, false, 11)
 
 	// Assert
 	require.NoError(t, err)
@@ -125,6 +125,7 @@ func givenAppClipTarget() xcodeproj.Target {
 		ID:               "app_clip_id",
 		Name:             "App Clip",
 		ProductReference: xcodeproj.ProductReference{Path: "Fruta iOS Clip.app"},
+		ProductType:      appClipProductType,
 	}
 }
 
