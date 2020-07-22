@@ -474,9 +474,7 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		}
 	}
 
-	if xcodeMajorVersion >= 9 {
-		exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
-	}
+	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
 
 	if xcodeMajorVersion >= 12 {
 		exportOpts = addXcode12Properties(exportOpts, distributionBundleIdentifier)
