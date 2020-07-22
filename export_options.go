@@ -51,7 +51,7 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod ex
 		return nil, err
 	}
 
-	dependentTargets := dependentExecutableTargetsOf(*mainTarget)
+	dependentTargets := dependentApplicationBundleTargetsOf(*mainTarget)
 
 	targets := append([]xcodeproj.Target{*mainTarget}, dependentTargets...)
 
@@ -114,7 +114,7 @@ func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcschem
 	return &mainTarget, nil
 }
 
-func dependentExecutableTargetsOf(applicationtarget xcodeproj.Target) (dependentTargets []xcodeproj.Target) {
+func dependentApplicationBundleTargetsOf(applicationtarget xcodeproj.Target) (dependentTargets []xcodeproj.Target) {
 	for _, target := range applicationtarget.DependentExecutableProductTargets(false) {
 		if target.ProductType == appClipProductType {
 			continue
