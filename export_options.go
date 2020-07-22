@@ -17,6 +17,8 @@ import (
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 )
 
+const appClipProductType = "com.apple.product-type.application.on-demand-install-capable"
+
 // ExportOptionsGenerator generates an exportOptions.plist file from Xcode version 7 to Xcode version 11.
 type ExportOptionsGenerator struct {
 	xcodeProj     *xcodeproj.XcodeProj
@@ -41,16 +43,40 @@ func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.
 	return g
 }
 
-// GenerateExportOptions generates an exportOptions.plist file.
-func (g ExportOptionsGenerator) GenerateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
+// GenerateApplicationExportOptions generates exportOptions for an application export.
+func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
-	bundleIDEntitlementsMap, err := g.projectEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration)
+	mainTarget, err := archivableApplicationTarget(g.xcodeProj, g.scheme, g.configuration)
 	if err != nil {
-		fail(err.Error())
+		return nil, err
+	}
+
+	dependentTargets := dependentApplicationBundleTargetsOf(*mainTarget)
+
+	targets := append([]xcodeproj.Target{*mainTarget}, dependentTargets...)
+
+	var mainTargetBundleID string
+	entitlementsByBundleID := map[string]plistutil.PlistData{}
+	for i, target := range targets {
+		bundleID, err := g.targetInfoProvider.TargetBundleID(target.Name, g.configuration)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
+		}
+
+		entitlements, err := g.targetInfoProvider.TargetCodeSignEntitlements(target.Name, g.configuration)
+		if err != nil && !serialized.IsKeyNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
+		}
+
+		entitlementsByBundleID[bundleID] = plistutil.PlistData(entitlements)
+
+		if i == 0 {
+			mainTargetBundleID = bundleID
+		}
 	}
 
 	return g.generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
-		xcodeManaged, bundleIDEntitlementsMap, xcodeMajorVersion)
+		xcodeManaged, entitlementsByBundleID, xcodeMajorVersion, mainTargetBundleID)
 }
 
 // TargetInfoProvider can determine a target's bundle id and codesign entitlements.
@@ -74,12 +100,10 @@ func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configu
 	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
 }
 
-// projectEntitlementsByBundleID finds the project's main application target, pointed by the provided scheme and configuration,
-// collects it's dependent executable targets and maps each target's entitlements to the target's bundle ID.
-func (g ExportOptionsGenerator) projectEntitlementsByBundleID(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (map[string]plistutil.PlistData, error) {
+func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (*xcodeproj.Target, error) {
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
-		return nil, fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
+		return nil, fmt.Errorf("archivable entry not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
 	}
 
 	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
@@ -87,34 +111,18 @@ func (g ExportOptionsGenerator) projectEntitlementsByBundleID(xcodeProj *xcodepr
 		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}
 
-	targets := append([]xcodeproj.Target{mainTarget}, mainTarget.DependentExecutableProductTargets(false)...)
-
-	entitlementsByBundleID := map[string]serialized.Object{}
-
-	for _, target := range targets {
-		bundleID, err := g.targetInfoProvider.TargetBundleID(target.Name, configurationName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
-		}
-
-		entitlements, err := g.targetInfoProvider.TargetCodeSignEntitlements(target.Name, configurationName)
-		if err != nil && !serialized.IsKeyNotFoundError(err) {
-			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
-		}
-
-		entitlementsByBundleID[bundleID] = entitlements
-	}
-
-	return toMapStringPlistData(entitlementsByBundleID), nil
+	return &mainTarget, nil
 }
 
-// toMapStringPlistData converts object's values to plistutil.PlistData.
-func toMapStringPlistData(object map[string]serialized.Object) map[string]plistutil.PlistData {
-	converted := map[string]plistutil.PlistData{}
-	for key, value := range object {
-		converted[key] = plistutil.PlistData(value)
+func dependentApplicationBundleTargetsOf(applicationtarget xcodeproj.Target) (dependentTargets []xcodeproj.Target) {
+	for _, target := range applicationtarget.DependentExecutableProductTargets(false) {
+		if target.ProductType == appClipProductType {
+			continue
+		}
+
+		dependentTargets = append(dependentTargets, target)
 	}
-	return converted
+	return
 }
 
 // projectUsesCloudKit determines whether the project uses any CloudKit capability or not.
@@ -405,9 +413,29 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 	return nil
 }
 
+func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBundleIdentifier string) exportoptions.ExportOptions {
+	switch exportOpts.(type) {
+	case exportoptions.AppStoreOptionsModel:
+		options, ok := exportOpts.(exportoptions.AppStoreOptionsModel)
+		if !ok {
+			// will be ok because of the type switch
+		}
+		options.DistributionBundleIdentifier = distributionBundleIdentifier
+		return options
+	case exportoptions.NonAppStoreOptionsModel:
+		options, ok := exportOpts.(exportoptions.NonAppStoreOptionsModel)
+		if !ok {
+			// will be ok because of the type switch
+		}
+		options.DistributionBundleIdentifier = distributionBundleIdentifier
+		return options
+	}
+	return nil
+}
+
 // generateExportOptions generates an exportOptions based on the provided conditions.
 func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
-	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
+	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64, distributionBundleIdentifier string) (exportoptions.ExportOptions, error) {
 	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, bundleIDEntitlementsMap, exportMethod, xcodeMajorVersion)
 	if err != nil {
 		return nil, err
@@ -447,5 +475,10 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 	}
 
 	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
+
+	if xcodeMajorVersion >= 12 {
+		exportOpts = addXcode12Properties(exportOpts, distributionBundleIdentifier)
+	}
+
 	return exportOpts, nil
 }
