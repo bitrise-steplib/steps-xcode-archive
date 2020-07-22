@@ -24,6 +24,16 @@ workflows:
     - test_tvos
     - test_no_app_dsym
 
+  test_app_clip:
+    envs:
+    - SAMPLE_APP_URL: https://github.com/bitrise-io/Fruta
+    - BRANCH: master
+    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
+    - BITRISE_SCHEME: Fruta iOS
+    - OUTPUT_TOOL: xcodebuild
+    after_run:
+    - _common
+
   test_catalyst:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/CatalystSample.git
