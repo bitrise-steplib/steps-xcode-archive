@@ -46,25 +46,37 @@ func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.
 // GenerateApplicationExportOptions generates exportOptions for an application export.
 func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
-	bundleIDEntitlementsMap, err := g.productEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration, false)
+	mainTarget, err := archivableApplicationTarget(g.xcodeProj, g.scheme, g.configuration)
 	if err != nil {
 		return nil, err
 	}
 
-	return g.generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
-		xcodeManaged, bundleIDEntitlementsMap, xcodeMajorVersion)
-}
+	dependentTargets := dependentExecutableTargetsOf(*mainTarget)
 
-// GenerateAppClipExportOptions generates exportOptions for an app clip export.
-func (g ExportOptionsGenerator) GenerateAppClipExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
-	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
-	bundleIDEntitlementsMap, err := g.productEntitlementsByBundleID(g.xcodeProj, g.scheme, g.configuration, true)
-	if err != nil {
-		return nil, err
+	targets := append([]xcodeproj.Target{*mainTarget}, dependentTargets...)
+
+	var mainTargetBundleID string
+	entitlementsByBundleID := map[string]plistutil.PlistData{}
+	for i, target := range targets {
+		bundleID, err := g.targetInfoProvider.TargetBundleID(target.Name, g.configuration)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
+		}
+
+		entitlements, err := g.targetInfoProvider.TargetCodeSignEntitlements(target.Name, g.configuration)
+		if err != nil && !serialized.IsKeyNotFoundError(err) {
+			return nil, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
+		}
+
+		entitlementsByBundleID[bundleID] = plistutil.PlistData(entitlements)
+
+		if i == 0 {
+			mainTargetBundleID = bundleID
+		}
 	}
 
 	return g.generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
-		xcodeManaged, bundleIDEntitlementsMap, xcodeMajorVersion)
+		xcodeManaged, entitlementsByBundleID, xcodeMajorVersion, mainTargetBundleID)
 }
 
 // TargetInfoProvider can determine a target's bundle id and codesign entitlements.
@@ -86,6 +98,31 @@ func (b XcodebuildTargetInfoProvider) TargetBundleID(target, configuration strin
 // TargetCodeSignEntitlements ...
 func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configuration string) (serialized.Object, error) {
 	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
+}
+
+func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (*xcodeproj.Target, error) {
+	archiveEntry, ok := scheme.AppBuildActionEntry()
+	if !ok {
+		return nil, fmt.Errorf("archivable entry not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
+	}
+
+	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
+	if !ok {
+		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
+	}
+
+	return &mainTarget, nil
+}
+
+func dependentExecutableTargetsOf(applicationtarget xcodeproj.Target) (dependentTargets []xcodeproj.Target) {
+	for _, target := range applicationtarget.DependentExecutableProductTargets(false) {
+		if target.ProductType == appClipProductType {
+			continue
+		}
+
+		dependentTargets = append(dependentTargets, target)
+	}
+	return
 }
 
 // productEntitlementsByBundleID finds the project's main application target, pointed by the provided scheme and configuration,
@@ -451,9 +488,29 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 	return nil
 }
 
+func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBundleIdentifier string) exportoptions.ExportOptions {
+	switch exportOpts.(type) {
+	case exportoptions.AppStoreOptionsModel:
+		options, ok := exportOpts.(exportoptions.AppStoreOptionsModel)
+		if !ok {
+			// will be ok because of the type switch
+		}
+		options.DistributionBundleIdentifier = distributionBundleIdentifier
+		return options
+	case exportoptions.NonAppStoreOptionsModel:
+		options, ok := exportOpts.(exportoptions.NonAppStoreOptionsModel)
+		if !ok {
+			// will be ok because of the type switch
+		}
+		options.DistributionBundleIdentifier = distributionBundleIdentifier
+		return options
+	}
+	return nil
+}
+
 // generateExportOptions generates an exportOptions based on the provided conditions.
 func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
-	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
+	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64, distributionBundleIdentifier string) (exportoptions.ExportOptions, error) {
 	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, bundleIDEntitlementsMap, exportMethod, xcodeMajorVersion)
 	if err != nil {
 		return nil, err
@@ -492,6 +549,13 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		}
 	}
 
-	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
+	if xcodeMajorVersion >= 9 {
+		exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
+	}
+
+	if xcodeMajorVersion >= 12 {
+		exportOpts = addXcode12Properties(exportOpts, distributionBundleIdentifier)
+	}
+
 	return exportOpts, nil
 }
