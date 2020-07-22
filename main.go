@@ -343,7 +343,7 @@ func main() {
 		fail("Failed to read main application target: %s", absProjectPath, err)
 	}
 	if mainTarget.ProductType == appClipProductType {
-		log.Errorf("Selected scheme: '%s' targets and App Clip target (%s),", cfg.Scheme, mainTarget.Name)
+		log.Errorf("Selected scheme: '%s' targets an App Clip target (%s),", cfg.Scheme, mainTarget.Name)
 		log.Errorf("'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.")
 		log.Errorf("Please select a scheme targeting an Application target to archive and export the main Application")
 		log.Errorf("and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.")
