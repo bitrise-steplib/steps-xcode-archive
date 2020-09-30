@@ -383,13 +383,8 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 
 // addXcode9Properties adds new exportOption properties introduced in Xcode 9.
 func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
-	switch exportOpts.(type) {
+	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
-		options, ok := exportOpts.(exportoptions.AppStoreOptionsModel)
-		if !ok {
-			// will be ok because of the type switch
-		}
-
 		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
 		options.SigningCertificate = codesignIdentity
 		options.TeamID = teamID
@@ -403,11 +398,6 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 		}
 		return options
 	case exportoptions.NonAppStoreOptionsModel:
-		options, ok := exportOpts.(exportoptions.NonAppStoreOptionsModel)
-		if !ok {
-			// will be ok because of the type switch
-		}
-
 		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
 		options.SigningCertificate = codesignIdentity
 		options.TeamID = teamID
@@ -425,16 +415,12 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 }
 
 func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBundleIdentifier string) exportoptions.ExportOptions {
-	switch exportOpts.(type) {
+	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		// Export option plist with App store export method (Xcode 12.0.1) do not contain distribution bundle identifier.
 		// Propably due to App store IPAs containing App Clips also, which are executable targets with a seperate bundle ID.
 		return exportOpts
 	case exportoptions.NonAppStoreOptionsModel:
-		options, ok := exportOpts.(exportoptions.NonAppStoreOptionsModel)
-		if !ok {
-			// will be ok because of the type switch
-		}
 		options.DistributionBundleIdentifier = distributionBundleIdentifier
 		return options
 	}
