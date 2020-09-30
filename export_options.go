@@ -116,7 +116,18 @@ func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcschem
 
 func dependentApplicationBundleTargetsOf(exportMethod exportoptions.Method, applicationtarget xcodeproj.Target) (dependentTargets []xcodeproj.Target) {
 	for _, target := range applicationtarget.DependentExecutableProductTargets(false) {
-		if exportMethod != exportoptions.MethodAppStore && target.ProductType == appClipProductType {
+		// App store exports contain App Clip too. App Clip provisioning profile has to be included in export options:
+		// ..
+		// <key>provisioningProfiles</key>
+		// <dict>
+		// 	<key>io.bundle.id</key>
+		// 	<string>Development Application Profile</string>
+		// 	<key>io.bundle.id.AppClipID</key>
+		// 	<string>Development App Clip Profile</string>
+		// </dict>
+		// ..,
+		if exportMethod != exportoptions.MethodAppStore &&
+			target.ProductType == appClipProductType {
 			continue
 		}
 
@@ -416,12 +427,9 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBundleIdentifier string) exportoptions.ExportOptions {
 	switch exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
-		options, ok := exportOpts.(exportoptions.AppStoreOptionsModel)
-		if !ok {
-			// will be ok because of the type switch
-		}
-		options.DistributionBundleIdentifier = distributionBundleIdentifier
-		return options
+		// Export option plist with App store export method (Xcode 12.0.1) do not contain distribution bundle identifier.
+		// Propably due to App store IPAs containing App Clips also, which are executable targets with a seperate bundle ID.
+		return exportOpts
 	case exportoptions.NonAppStoreOptionsModel:
 		options, ok := exportOpts.(exportoptions.NonAppStoreOptionsModel)
 		if !ok {

@@ -69,8 +69,6 @@ func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
-		<key>distributionBundleIdentifier</key>
-		<string>io.bundle.id</string>
 		<key>iCloudContainerEnvironment</key>
 		<string>Production</string>
 		<key>method</key>

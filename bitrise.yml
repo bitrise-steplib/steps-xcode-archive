@@ -27,7 +27,7 @@ workflows:
   test_app_clip:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/Fruta
-    - BRANCH: master
+    - BRANCH: xcode-12-gm
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
     - OUTPUT_TOOL: xcodebuild
