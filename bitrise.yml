@@ -27,9 +27,10 @@ workflows:
   test_app_clip:
     envs:
     - SAMPLE_APP_URL: https://github.com/bitrise-io/Fruta
-    - BRANCH: master
+    - BRANCH: xcode-12-gm
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
+    - EXPORT_METHOD: development
     - OUTPUT_TOOL: xcodebuild
     after_run:
     - _common
@@ -41,6 +42,7 @@ workflows:
     - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
     - BITRISE_SCHEME: Catalyst Sample
     - OUTPUT_TOOL: xcodebuild
+    - EXPORT_METHOD: development
     - TEAM_ID: 72SA8V3WYL
     after_run:
     - _common
@@ -51,6 +53,7 @@ workflows:
     - BRANCH: cloudkit
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
+    - EXPORT_METHOD: development
     - OUTPUT_TOOL: xcodebuild
     - ICLOUD_CONTAINER_ENVIRONMENT: Production
     after_run:
@@ -62,6 +65,7 @@ workflows:
     - BRANCH: with-pods
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
+    - EXPORT_METHOD: development
     - OUTPUT_TOOL: xcodebuild
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
@@ -74,6 +78,7 @@ workflows:
     - COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
+    - EXPORT_METHOD: development
     - OUTPUT_TOOL: xcodebuild
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
@@ -86,6 +91,7 @@ workflows:
     - BRANCH: "swift_version"
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
+    - EXPORT_METHOD: development
     - FORCE_CODE_SIGN_IDENTITY: ""
     - TEAM_ID: ""
     - OUTPUT_TOOL: xcpretty
@@ -98,6 +104,7 @@ workflows:
     - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
+    - EXPORT_METHOD: development
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     after_run:
@@ -109,6 +116,7 @@ workflows:
     - COMMIT: "1360413258cc7f6a8676c17f060ff39899fc28b1"
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - EXPORT_METHOD: development
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
     - TEAM_ID: 72SA8V3WYL
@@ -121,6 +129,7 @@ workflows:
     - BRANCH: "master"
     - BITRISE_PROJECT_PATH: NPO Live.xcworkspace
     - BITRISE_SCHEME: "NPO Live"
+    - EXPORT_METHOD: development
     - FORCE_CODE_SIGN_IDENTITY: ""
     - TEAM_ID: ""
     - PROV_PROFILE_SPECIFIER: ""
@@ -164,6 +173,7 @@ workflows:
     - certificate-and-profile-installer:
     - path::./:
         inputs:
+        - export_method: $EXPORT_METHOD
         - output_tool: $OUTPUT_TOOL
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_team_id: $TEAM_ID
