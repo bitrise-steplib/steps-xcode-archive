@@ -12,11 +12,11 @@
     "tools",
   ]
   pruneopts = "UT"
-  revision = "94490ca44ddb645764676a94988f6fc7e3187383"
+  revision = "6d5afa53c7b85b6135e382105116d245b5997ace"
 
 [[projects]]
   branch = "master"
-  digest = "1:27c73971f611e8eacb0e5fe47e5e5e960854d5d1a5d59ef3e545863f687c0f47"
+  digest = "1:14f601286cc1c002c5ef05d907028dac84c03bf6e27ab1b2e1cd04447f3d9e0f"
   name = "github.com/bitrise-io/go-utils"
   packages = [
     "colorstring",
@@ -36,11 +36,11 @@
     "ziputil",
   ]
   pruneopts = "UT"
-  revision = "e212188d99b41373b4ff8b69e7b1f677bc427bde"
+  revision = "0c47c16813a4209321c9d0dba2e75867d6901ff2"
 
 [[projects]]
   branch = "master"
-  digest = "1:db82e4cf7f804b4dda2eee06f14aa47dd625e5b9a74e94a1e9c544daa10a99f1"
+  digest = "1:a5d3aadd67808340637bb4faef9a5771a55d4dab4ea7d61866afe482d7ccf24d"
   name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
@@ -56,11 +56,11 @@
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "44336c3652b214617ec3f4f8cc82054edf76cbb9"
+  revision = "4f50762fd715b79a51183e49878be04d1413f798"
 
 [[projects]]
   branch = "master"
-  digest = "1:3adda00db757d98850ac0e8c42296c0222b08987db42b8cc5c87830978611359"
+  digest = "1:5a0a434e00ef880e792870fdff66cc1125472494b7d6e14666738125c339a043"
   name = "github.com/bitrise-io/xcode-project"
   packages = [
     ".",
@@ -72,7 +72,7 @@
     "xcworkspace",
   ]
   pruneopts = "UT"
-  revision = "2536cd39f5c957502230f81c70688338fc56e627"
+  revision = "9481b30b489b9eaf073c818fcf4817b5b3224285"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -91,12 +91,12 @@
   revision = "d7302db945fa6ea264fb79d8e13e931ea514a602"
 
 [[projects]]
-  digest = "1:88e0b0baeb9072f0a4afbcf12dda615fc8be001d1802357538591155998da21b"
+  digest = "1:95732e0c27df672b3fdf5cdd8edd18cba5fc07263ef7cd25eaaad4afc4730313"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ac23dc3fea5d1a983c43f6a0f6e2c13f0195d8bd"
-  version = "v1.2.0"
+  revision = "59da58cfd357de719a4d16dac30481391a56c002"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
@@ -131,12 +131,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:23472f69a3ee7225de2f104aa48c6456959d1c155e45035c9845806d83109190"
+  digest = "1:86ff4af7b6bb3d27c2e89b5ef8c139678acff1cad74a3c5235fc5af6b94fcc9e"
   name = "github.com/stretchr/objx"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ea4fe68685ee0d3cee7032121851b57e7494e8ea"
-  version = "v0.2.0"
+  revision = "35313a95ee26395aa17d366c71a2ccf788fa69b6"
+  version = "v0.3.0"
 
 [[projects]]
   digest = "1:fc44ab3ee6f79e2b4c67ea294f500aa151f7b882a706eb7f3e881aba1de3a729"
@@ -156,11 +156,11 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "70a84ac30bf957c7df57edd1935d2081871515e1"
+  revision = "afb6bcd081ae5258e9449bf8b9af19593c9b261f"
 
 [[projects]]
   branch = "master"
-  digest = "1:4d150491235d37b4d56ef26d2e1387a872cc837445eb2cc4735e3e9786c5eb06"
+  digest = "1:b9f3094de95870233ff87c09a12dbfa9750503d6dc8ac39cd75d3092c1d0c57f"
   name = "golang.org/x/sys"
   packages = [
     "internal/unsafeheader",
@@ -168,10 +168,10 @@
     "windows",
   ]
   pruneopts = "UT"
-  revision = "226ff32320da7b90d0b5bc2365f4e359c466fb78"
+  revision = "fdedc70b468f679c263a3ccaefc1faeed3239939"
 
 [[projects]]
-  digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
+  digest = "1:a2c690dfee42801a26a0e88f69206feca8a3c2437fd476d84767468d7d7708e9"
   name = "golang.org/x/text"
   packages = [
     "internal/gen",
@@ -182,16 +182,16 @@
     "unicode/norm",
   ]
   pruneopts = "UT"
-  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
-  version = "v0.3.2"
+  revision = "23ae387dee1f90d29a23c0e87ee0b46038fbed0e"
+  version = "v0.3.3"
 
 [[projects]]
   branch = "v3"
-  digest = "1:8639671727a344ac01338e004e63774356483aba4a7ad2881f5a8f0ff4affe29"
+  digest = "1:229cb0f6192914f518cc1241ede6d6f1f458b31debfa18bf3a5c9e4f7b01e24b"
   name = "gopkg.in/yaml.v3"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a5ece683394c3b88d90572e44d36c93aea492c2c"
+  revision = "eeeca48fe7764f320e4870d231902bf9c1be2c08"
 
 [[projects]]
   branch = "master"

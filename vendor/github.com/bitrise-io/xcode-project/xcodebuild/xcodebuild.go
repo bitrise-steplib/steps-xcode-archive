@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/xcode-project/serialized"
 )
 
@@ -39,9 +40,14 @@ func ShowProjectBuildSettings(project, target, configuration string, customOptio
 	args = append(args, customOptions...)
 
 	cmd := command.New("xcodebuild", args...)
+
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
+		if errorutil.IsExitStatusError(err) {
+			return nil, fmt.Errorf("%s command failed: output: %s", cmd.PrintableCommandArgs(), out)
+		}
+
+		return nil, fmt.Errorf("failed to run command %s: %s", cmd.PrintableCommandArgs(), err)
 	}
 
 	return parseShowBuildSettingsOutput(out), nil
@@ -54,9 +60,14 @@ func ShowWorkspaceBuildSettings(workspace, scheme, configuration string, customO
 	args = append(args, customOptions...)
 
 	cmd := command.New("xcodebuild", args...)
+
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
+		if errorutil.IsExitStatusError(err) {
+			return nil, fmt.Errorf("%s command failed: output: %s", cmd.PrintableCommandArgs(), out)
+		}
+
+		return nil, fmt.Errorf("failed to run command %s: %s", cmd.PrintableCommandArgs(), err)
 	}
 
 	return parseShowBuildSettingsOutput(out), nil
