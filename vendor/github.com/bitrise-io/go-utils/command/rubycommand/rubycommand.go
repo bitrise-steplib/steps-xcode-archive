@@ -152,21 +152,26 @@ func GemUpdate(gem string) ([]*command.Model, error) {
 	return cmds, nil
 }
 
-// GemInstall ...
-func GemInstall(gem, version string) ([]*command.Model, error) {
-	cmds := []*command.Model{}
-
+func gemInstallCommand(gem, version string, enablePrerelease bool) []string {
 	slice := []string{"gem", "install", gem, "--no-document"}
+	if enablePrerelease {
+		slice = append(slice, "--prerelease")
+	}
 	if version != "" {
 		slice = append(slice, "-v", version)
 	}
 
-	cmd, err := NewFromSlice(slice)
+	return slice
+}
+
+// GemInstall ...
+func GemInstall(gem, version string, enablePrerelease bool) ([]*command.Model, error) {
+	cmd, err := NewFromSlice(gemInstallCommand(gem, version, enablePrerelease))
 	if err != nil {
 		return []*command.Model{}, err
 	}
 
-	cmds = append(cmds, cmd)
+	cmds := []*command.Model{cmd}
 
 	rubyInstallType := RubyInstallType()
 	if rubyInstallType == RbenvRuby {

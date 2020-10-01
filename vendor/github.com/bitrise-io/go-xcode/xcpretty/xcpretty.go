@@ -113,7 +113,7 @@ func IsInstalled() (bool, error) {
 
 // Install ...
 func Install() ([]*command.Model, error) {
-	cmds, err := rubycommand.GemInstall("xcpretty", "")
+	cmds, err := rubycommand.GemInstall("xcpretty", "", false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create command model, error: %s", err)
 	}
