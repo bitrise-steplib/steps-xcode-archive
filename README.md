@@ -1,7 +1,7 @@
 # Run Xcode Archive step
 
 Run Xcode Archive and export an iOS IPA.
-
+  
 ## How to use this Step
 
 Can be run directly with the [bitrise CLI](https://github.com/bitrise-io/bitrise),
