@@ -1,6 +1,6 @@
 # Run Xcode Archive step
 
-Run Xcode Archive and export an iOS IPA.
+Run Xcode Archive and export an iOS IPA.  
 
 ## How to use this Step
 
