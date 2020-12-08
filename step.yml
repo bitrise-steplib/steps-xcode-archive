@@ -333,16 +333,6 @@ inputs:
       - "yes"
       - "no"
       is_required: true
-  - use_deprecated_export: "no"
-    opts:
-      category: Debug
-      title: Use deprecated ipa export method?
-      description: |-
-        If this input is set to `yes`, step will use deprecated ipa export method.
-      value_options:
-      - "yes"
-      - "no"
-      is_required: true
 outputs:
   - BITRISE_IPA_PATH:
     opts:

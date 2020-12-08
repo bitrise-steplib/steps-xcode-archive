@@ -54,7 +54,6 @@ type configs struct {
 	ICloudContainerEnvironment string `env:"icloud_container_environment"`
 	TeamID                     string `env:"team_id"`
 
-	UseDeprecatedExport               bool   `env:"use_deprecated_export,opt[yes,no]"`
 	ForceTeamID                       string `env:"force_team_id"`
 	ForceProvisioningProfileSpecifier string `env:"force_provisioning_profile_specifier"`
 	ForceProvisioningProfile          string `env:"force_provisioning_profile"`
@@ -455,10 +454,6 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		}
 	}
 
-	if xcodeMajorVersion >= 9 && cfg.UseDeprecatedExport {
-		fail("Legacy export method (using '-exportFormat ipa' flag) is not supported from Xcode version 9")
-	}
-
 	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
 	for _, key := range envsToUnset {
 		if err := os.Unsetenv(key); err != nil {
@@ -497,200 +492,158 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 	log.Infof("Exporting ipa from the archive...")
 	fmt.Println()
 
-	if xcodeMajorVersion <= 6 || cfg.UseDeprecatedExport {
-		log.Printf("Using legacy export")
-		/*
-			Get the name of the profile which was used for creating the archive
-			--> Search for embedded.mobileprovision in the xcarchive.
-			It should contain a .app folder in the xcarchive folder
-			under the Products/Applications folder
-		*/
+	log.Printf("Exporting ipa with ExportOptions.plist")
 
-		legacyExportCmd := xcodebuild.NewLegacyExportCommand()
-		legacyExportCmd.SetExportFormat("ipa")
-		legacyExportCmd.SetArchivePath(tmpArchivePath)
-		legacyExportCmd.SetExportPath(ipaPath)
-		legacyExportCmd.SetExportProvisioningProfileName(mainApplication.ProvisioningProfile.Name)
+	if customExportOptionsPlistContent != "" {
+		log.Printf("Custom export options content provided, using it:")
+		fmt.Println(customExportOptionsPlistContent)
 
-		if outputTool == "xcpretty" {
-			xcprettyCmd := xcpretty.New(legacyExportCmd)
-
-			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
-			fmt.Println()
-
-			if rawXcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-				if err := utils.ExportOutputFileContent(rawXcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
-				} else {
-					log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
-The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
-is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
-				}
-
-				fail("Export failed, error: %s", err)
-			}
-		} else {
-			logWithTimestamp(colorstring.Green, legacyExportCmd.PrintableCmd())
-			fmt.Println()
-
-			if err := legacyExportCmd.Run(); err != nil {
-				fail("Export failed, error: %s", err)
-			}
+		if err := fileutil.WriteStringToFile(exportOptionsPath, customExportOptionsPlistContent); err != nil {
+			fail("Failed to write export options to file, error: %s", err)
 		}
 	} else {
-		log.Printf("Exporting ipa with ExportOptions.plist")
+		log.Printf("No custom export options content provided, generating export options...")
 
-		if customExportOptionsPlistContent != "" {
-			log.Printf("Custom export options content provided, using it:")
-			fmt.Println(customExportOptionsPlistContent)
+		exportMethod, err := determineExportMethod(cfg.ExportMethod, archiveExportMethod)
+		if err != nil {
+			fail(err.Error())
+		}
 
-			if err := fileutil.WriteStringToFile(exportOptionsPath, customExportOptionsPlistContent); err != nil {
-				fail("Failed to write export options to file, error: %s", err)
-			}
-		} else {
-			log.Printf("No custom export options content provided, generating export options...")
-
-			exportMethod, err := determineExportMethod(cfg.ExportMethod, archiveExportMethod)
-			if err != nil {
-				fail(err.Error())
-			}
-
-			generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration)
-			exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID,
-				cfg.UploadBitcode, cfg.CompileBitcode, archiveCodeSignIsXcodeManaged, xcodeMajorVersion)
-			if err != nil {
-				fail(err.Error())
-			}
-
-			fmt.Println()
-			log.Printf("generated export options content:")
-			fmt.Println()
-			fmt.Println(exportOptions.String())
-
-			if err := exportOptions.WriteToFile(exportOptionsPath); err != nil {
-				fail(err.Error())
-			}
+		generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration)
+		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, cfg.ICloudContainerEnvironment, cfg.TeamID,
+			cfg.UploadBitcode, cfg.CompileBitcode, archiveCodeSignIsXcodeManaged, xcodeMajorVersion)
+		if err != nil {
+			fail(err.Error())
 		}
 
 		fmt.Println()
+		log.Printf("generated export options content:")
+		fmt.Println()
+		fmt.Println(exportOptions.String())
 
-		tmpDir, err := pathutil.NormalizedOSTempDirPath("__export__")
-		if err != nil {
-			fail("Failed to create tmp dir, error: %s", err)
+		if err := exportOptions.WriteToFile(exportOptionsPath); err != nil {
+			fail(err.Error())
 		}
+	}
 
-		exportCmd := xcodebuild.NewExportCommand()
-		exportCmd.SetArchivePath(tmpArchivePath)
-		exportCmd.SetExportDir(tmpDir)
-		exportCmd.SetExportOptionsPlist(exportOptionsPath)
+	fmt.Println()
 
-		if outputTool == "xcpretty" {
-			xcprettyCmd := xcpretty.New(exportCmd)
+	tmpDir, err := pathutil.NormalizedOSTempDirPath("__export__")
+	if err != nil {
+		fail("Failed to create tmp dir, error: %s", err)
+	}
 
-			logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
-			fmt.Println()
+	exportCmd := xcodebuild.NewExportCommand()
+	exportCmd.SetArchivePath(tmpArchivePath)
+	exportCmd.SetExportDir(tmpDir)
+	exportCmd.SetExportOptionsPlist(exportOptionsPath)
 
-			if xcodebuildOut, err := xcprettyCmd.Run(); err != nil {
-				// xcodebuild raw output
-				if err := utils.ExportOutputFileContent(xcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-					log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
-				} else {
-					log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+	if outputTool == "xcpretty" {
+		xcprettyCmd := xcpretty.New(exportCmd)
+
+		logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
+		fmt.Println()
+
+		if xcodebuildOut, err := xcprettyCmd.Run(); err != nil {
+			// xcodebuild raw output
+			if err := utils.ExportOutputFileContent(xcodebuildOut, rawXcodebuildOutputLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
+				log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+			} else {
+				log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
+			}
+
+			// xcdistributionlogs
+			if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
+				log.Warnf("Failed to find xcdistributionlogs, error: %s", err)
+			} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
+				log.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
+			} else {
+				criticalDistLogFilePth := filepath.Join(logsDirPth, "IDEDistribution.critical.log")
+				log.Warnf("IDEDistribution.critical.log:")
+				if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+					log.Printf(criticalDistLog)
 				}
 
-				// xcdistributionlogs
-				if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
-					log.Warnf("Failed to find xcdistributionlogs, error: %s", err)
-				} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
-					log.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
-				} else {
-					criticalDistLogFilePth := filepath.Join(logsDirPth, "IDEDistribution.critical.log")
-					log.Warnf("IDEDistribution.critical.log:")
-					if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
-						log.Printf(criticalDistLog)
-					}
-
-					log.Warnf(`Also please check the xcdistributionlogs
+				log.Warnf(`Also please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
+			}
+
+			fail("Export failed, error: %s", err)
+		}
+	} else {
+		logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
+		fmt.Println()
+
+		if xcodebuildOut, err := exportCmd.RunAndReturnOutput(); err != nil {
+			// xcdistributionlogs
+			if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
+				log.Warnf("Failed to find xcdistributionlogs, error: %s", err)
+			} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
+				log.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
+			} else {
+				criticalDistLogFilePth := filepath.Join(logsDirPth, "IDEDistribution.critical.log")
+				log.Warnf("IDEDistribution.critical.log:")
+				if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+					log.Printf(criticalDistLog)
 				}
 
-				fail("Export failed, error: %s", err)
-			}
-		} else {
-			logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
-			fmt.Println()
-
-			if xcodebuildOut, err := exportCmd.RunAndReturnOutput(); err != nil {
-				// xcdistributionlogs
-				if logsDirPth, err := findIDEDistrubutionLogsPath(xcodebuildOut); err != nil {
-					log.Warnf("Failed to find xcdistributionlogs, error: %s", err)
-				} else if err := utils.ExportOutputDirAsZip(logsDirPth, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
-					log.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
-				} else {
-					criticalDistLogFilePth := filepath.Join(logsDirPth, "IDEDistribution.critical.log")
-					log.Warnf("IDEDistribution.critical.log:")
-					if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
-						log.Printf(criticalDistLog)
-					}
-
-					log.Warnf(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
+				log.Warnf(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
+			}
+
+			fail("Export failed, error: %s", err)
+		}
+	}
+
+	// Search for ipa
+	fileList := []string{}
+	ipaFiles := []string{}
+	if walkErr := filepath.Walk(tmpDir, func(pth string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		fileList = append(fileList, pth)
+
+		if filepath.Ext(pth) == ".ipa" {
+			ipaFiles = append(ipaFiles, pth)
+		}
+
+		return nil
+	}); walkErr != nil {
+		fail("Failed to search for .ipa file, error: %s", err)
+	}
+
+	if len(ipaFiles) == 0 {
+		log.Errorf("No .ipa file found at export dir: %s", tmpDir)
+		log.Printf("File list in the export dir:")
+		for _, pth := range fileList {
+			log.Printf("- %s", pth)
+		}
+		fail("")
+	} else {
+		if err := command.CopyFile(ipaFiles[0], ipaPath); err != nil {
+			fail("Failed to copy (%s) -> (%s), error: %s", ipaFiles[0], ipaPath, err)
+		}
+
+		if len(ipaFiles) > 1 {
+			log.Warnf("More than 1 .ipa file found, exporting first one: %s", ipaFiles[0])
+			log.Warnf("Moving every ipa to the BITRISE_DEPLOY_DIR")
+
+			for i, pth := range ipaFiles {
+				if i == 0 {
+					continue
 				}
 
-				fail("Export failed, error: %s", err)
-			}
-		}
+				base := filepath.Base(pth)
+				deployPth := filepath.Join(cfg.OutputDir, base)
 
-		// Search for ipa
-		fileList := []string{}
-		ipaFiles := []string{}
-		if walkErr := filepath.Walk(tmpDir, func(pth string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			fileList = append(fileList, pth)
-
-			if filepath.Ext(pth) == ".ipa" {
-				ipaFiles = append(ipaFiles, pth)
-			}
-
-			return nil
-		}); walkErr != nil {
-			fail("Failed to search for .ipa file, error: %s", err)
-		}
-
-		if len(ipaFiles) == 0 {
-			log.Errorf("No .ipa file found at export dir: %s", tmpDir)
-			log.Printf("File list in the export dir:")
-			for _, pth := range fileList {
-				log.Printf("- %s", pth)
-			}
-			fail("")
-		} else {
-			if err := command.CopyFile(ipaFiles[0], ipaPath); err != nil {
-				fail("Failed to copy (%s) -> (%s), error: %s", ipaFiles[0], ipaPath, err)
-			}
-
-			if len(ipaFiles) > 1 {
-				log.Warnf("More than 1 .ipa file found, exporting first one: %s", ipaFiles[0])
-				log.Warnf("Moving every ipa to the BITRISE_DEPLOY_DIR")
-
-				for i, pth := range ipaFiles {
-					if i == 0 {
-						continue
-					}
-
-					base := filepath.Base(pth)
-					deployPth := filepath.Join(cfg.OutputDir, base)
-
-					if err := command.CopyFile(pth, deployPth); err != nil {
-						fail("Failed to copy (%s) -> (%s), error: %s", pth, ipaPath, err)
-					}
+				if err := command.CopyFile(pth, deployPth); err != nil {
+					fail("Failed to copy (%s) -> (%s), error: %s", pth, ipaPath, err)
 				}
 			}
 		}
