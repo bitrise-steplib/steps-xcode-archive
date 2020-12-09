@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	minSupportedXcodeMajorVersion = 6
+	minSupportedXcodeMajorVersion = 9
 )
 
 const (
