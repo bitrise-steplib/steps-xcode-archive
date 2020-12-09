@@ -304,58 +304,49 @@ func Open(pth string) (XcodeProj, error) {
 		return XcodeProj{}, err
 	}
 
-	format, raw, objects, projectID, err := open(pth)
-	if err != nil {
-		return XcodeProj{}, err
-	}
-
-	p, err := parseProj(projectID, objects)
-	if err != nil {
-		return XcodeProj{}, err
-	}
-
-	return XcodeProj{
-		Proj:    p,
-		RawProj: raw,
-		Format:  format,
-		Path:    absPth,
-		Name:    strings.TrimSuffix(filepath.Base(absPth), filepath.Ext(absPth)),
-	}, nil
-}
-
-// open parse the provided .pbxprog file.
-// Returns the `raw` contents as a serialized.Object, the `objects` as serialized.Object and the PBXProject's `projectID` as string
-// If there was an error during the parsing it returns an error
-func open(absPth string) (format int, rawPbxProj serialized.Object, objects serialized.Object, projectID string, err error) {
 	pbxProjPth := filepath.Join(absPth, "project.pbxproj")
 
 	var b []byte
 	b, err = fileutil.ReadBytesFromFile(pbxProjPth)
 	if err != nil {
-		return
+		return XcodeProj{}, err
 	}
 
-	if format, err = plist.Unmarshal(b, &rawPbxProj); err != nil {
-		err = fmt.Errorf("failed to generate json from Pbxproj - error: %s", err)
-		return
-	}
-
-	objects, err = rawPbxProj.Object("objects")
+	p, err := parsePBXProjContent(b)
 	if err != nil {
-		return
+		return XcodeProj{}, err
 	}
 
+	p.Path = absPth
+	p.Name = strings.TrimSuffix(filepath.Base(absPth), filepath.Ext(absPth))
+
+	return *p, nil
+}
+
+func parsePBXProjContent(content []byte) (*XcodeProj, error) {
+	var rawPbxProj serialized.Object
+	format, err := plist.Unmarshal(content, &rawPbxProj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal project.pbxproj: %s", err)
+	}
+
+	objects, err := rawPbxProj.Object("objects")
+	if err != nil {
+		return nil, err
+	}
+
+	var projectID string
 	for id := range objects {
 		var object serialized.Object
 		object, err = objects.Object(id)
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		var objectISA string
 		objectISA, err = object.String("isa")
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		if objectISA == "PBXProject" {
@@ -363,7 +354,21 @@ func open(absPth string) (format int, rawPbxProj serialized.Object, objects seri
 			break
 		}
 	}
-	return
+
+	if projectID == "" {
+		return nil, fmt.Errorf("failed to find PBXProject's id in project.pbxproj")
+	}
+
+	proj, err := parseProj(projectID, objects)
+	if err != nil {
+		return nil, err
+	}
+
+	return &XcodeProj{
+		Proj:    proj,
+		RawProj: rawPbxProj,
+		Format:  format,
+	}, nil
 }
 
 // IsXcodeProj ...
@@ -380,11 +385,6 @@ func (p *XcodeProj) ForceCodeSign(configuration, targetName, developmentTeam, co
 	target, ok := p.Proj.TargetByName(targetName)
 	if !ok {
 		return fmt.Errorf("failed to find target with name: %s", targetName)
-	}
-
-	targetAttributes, err := p.TargetAttributes()
-	if err != nil {
-		return fmt.Errorf("failed to get project's target attributes, error: %s", err)
 	}
 
 	buildConfigurationList, err := p.BuildConfigurationList(target.ID)
@@ -408,15 +408,20 @@ func (p *XcodeProj) ForceCodeSign(configuration, targetName, developmentTeam, co
 		return fmt.Errorf("failed to find buildConfiguration for configuration %s in the buildConfiguration list: %s", configuration, pretty.Object(buildConfigurations))
 	}
 
-	// Override TargetAttributes
-	if err = forceCodeSignOnTargetAttributes(targetAttributes, target.ID, developmentTeam); err != nil {
-		return fmt.Errorf("failed to change code signing in target attributes, error: %s", err)
-	}
-
 	// Override BuildSettings
 	if err = forceCodeSignOnBuildConfiguration(buildConfiguration, developmentTeam, provisioningProfileUUID, codesignIdentity); err != nil {
 		return fmt.Errorf("failed to change code signing in build settings, error: %s", err)
 	}
+
+	if targetAttributes, err := p.TargetAttributes(); err == nil {
+		// Override TargetAttributes
+		if err = forceCodeSignOnTargetAttributes(targetAttributes, target.ID, developmentTeam); err != nil {
+			return fmt.Errorf("failed to change code signing in target attributes, error: %s", err)
+		}
+	} else if !serialized.IsKeyNotFoundError(err) {
+		return fmt.Errorf("failed to get project's target attributes, error: %s", err)
+	}
+
 	return nil
 }
 
@@ -425,7 +430,11 @@ func (p *XcodeProj) ForceCodeSign(configuration, targetName, developmentTeam, co
 func forceCodeSignOnTargetAttributes(targetAttributes serialized.Object, targetID, developmentTeam string) error {
 	targetAttribute, err := targetAttributes.Object(targetID)
 	if err != nil {
-		return fmt.Errorf("failed to get traget's (%s) attributes, error: %s", targetID, err)
+		// Skip projects not using target attributes
+		if serialized.IsKeyNotFoundError(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to get target's (%s) attributes, error: %s", targetID, err)
 	}
 
 	targetAttribute["ProvisioningStyle"] = "Manual"
