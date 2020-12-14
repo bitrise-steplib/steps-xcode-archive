@@ -177,7 +177,7 @@
   name = "golang.org/x/term"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2321bbc49cbf8303ea9834c419750e793e31be73"
+  revision = "ee85cb95a76bf5227e3c22c0267145231700654d"
 
 [[projects]]
   digest = "1:666e3df74f0c4788cc92426b18e33d93b7b62a3d4e8253f7c4b2226132a0f8de"
