@@ -3,7 +3,6 @@ package xcarchive
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-xcode/plistutil"
@@ -377,22 +376,6 @@ func (archive IosArchive) BundleIDProfileInfoMap() map[string]profileutil.Provis
 }
 
 // FindDSYMs ...
-func (archive IosArchive) FindDSYMs() (string, []string, error) {
-	dsymsDirPth := filepath.Join(archive.Path, "dSYMs")
-	dsyms, err := utility.ListEntries(dsymsDirPth, utility.ExtensionFilter(".dsym", true))
-	if err != nil {
-		return "", []string{}, err
-	}
-
-	appDSYM := ""
-	frameworkDSYMs := []string{}
-	for _, dsym := range dsyms {
-		if strings.HasSuffix(dsym, ".app.dSYM") {
-			appDSYM = dsym
-		} else {
-			frameworkDSYMs = append(frameworkDSYMs, dsym)
-		}
-	}
-
-	return appDSYM, frameworkDSYMs, nil
+func (archive IosArchive) FindDSYMs() ([]string, []string, error) {
+	return findDSYMs(archive.Path)
 }

@@ -1,13 +1,19 @@
 package xcarchive
 
 import (
+	"errors"
 	"path/filepath"
+	"strings"
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/ziputil"
 	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/utility"
+)
+
+var (
+	errNoDsymFound = errors.New("no dsym found")
 )
 
 // IsMacOS try to find the Contents dir under the .app/.
@@ -64,4 +70,27 @@ func GetEmbeddedInfoPlistPath(xcarchivePth string) (string, error) {
 
 func getAppSubfolder(basepth string) string {
 	return filepath.Join(basepth, "Products", "Applications")
+}
+
+func findDSYMs(archivePath string) ([]string, []string, error) {
+	dsymsDirPth := filepath.Join(archivePath, "dSYMs")
+	dsyms, err := utility.ListEntries(dsymsDirPth, utility.ExtensionFilter(".dsym", true))
+	if err != nil {
+		return []string{}, []string{}, err
+	}
+
+	appDSYMs := []string{}
+	frameworkDSYMs := []string{}
+	for _, dsym := range dsyms {
+		if strings.HasSuffix(dsym, ".app.dSYM") {
+			appDSYMs = append(appDSYMs, dsym)
+		} else {
+			frameworkDSYMs = append(frameworkDSYMs, dsym)
+		}
+	}
+	if len(appDSYMs) == 0 && len(frameworkDSYMs) == 0 {
+		return []string{}, []string{}, errNoDsymFound
+	}
+
+	return appDSYMs, frameworkDSYMs, nil
 }
