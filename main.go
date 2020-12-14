@@ -130,6 +130,14 @@ func determineExportMethod(desiredExportMethod string, archiveExportMethod expor
 	return exportMethod, nil
 }
 
+func exportDSYMs(dsymDir string, dsyms []string) {
+	for _, dsym := range dsyms {
+		if err := command.CopyDir(dsym, dsymDir, false); err != nil {
+			fail("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
+		}
+	}
+}
+
 func main() {
 	var cfg configs
 	if err := stepconf.Parse(&cfg); err != nil {
@@ -703,20 +711,14 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			fail("Failed to create tmp dir, error: %s", err)
 		}
 
-		if appDSYM != "" {
-			if err := command.CopyDir(appDSYM, dsymDir, false); err != nil {
-				fail("Failed to copy (%s) -> (%s), error: %s", appDSYM, dsymDir, err)
-			}
+		if len(appDSYM) > 0 {
+			exportDSYMs(dsymDir, appDSYM)
 		} else {
 			log.Warnf("no app dsyms found")
 		}
 
 		if cfg.ExportAllDsyms {
-			for _, dsym := range frameworkDSYMs {
-				if err := command.CopyDir(dsym, dsymDir, false); err != nil {
-					fail("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
-				}
-			}
+			exportDSYMs(dsymDir, frameworkDSYMs)
 		}
 
 		if err := utils.ExportOutputDir(dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
