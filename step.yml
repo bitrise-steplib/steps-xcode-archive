@@ -344,14 +344,14 @@ outputs:
     opts:
       title: The created .dSYM dir's path
       description: |-
-        If `export_all_dsyms` is set to `"yes"`, step will collect every dsym (.app dsym and framwork dsyms) in a directory and export the directory path.
-        Otherwise this environment points to the .app.DSYM directory path.
+        This environment points to the path of the directory which contains the dSYMs files.
+        If `export_all_dsyms` is set to `"yes"`, step will collect every dSYM (app dSYMs and framwork dSYMs).
   - BITRISE_DSYM_PATH:
     opts:
       title: The created .dSYM.zip file's path
       description: |-
-        If `export_all_dsyms` is set to `"yes"`, step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
-        Otherwise this environment points to the zipped .app.DSYM directory path.
+        This environment points to the path of the zip file which contains the dSYM files.
+        If `export_all_dsyms` is set to `"yes"`, step will collect every dSYM (app dSYMs and framwork dSYMs).
   - BITRISE_XCARCHIVE_PATH:
     opts:
       title: The created .xcarchive file's path
