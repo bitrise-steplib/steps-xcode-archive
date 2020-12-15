@@ -133,7 +133,7 @@ func determineExportMethod(desiredExportMethod string, archiveExportMethod expor
 func exportDSYMs(dsymDir string, dsyms []string) error {
 	for _, dsym := range dsyms {
 		if err := command.CopyDir(dsym, dsymDir, false); err != nil {
-			return fmt.Errorf("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
+			return fmt.Errorf("could not copy (%s) to directory (%s): %s", dsym, dsymDir, err)
 		}
 	}
 	return nil
