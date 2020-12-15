@@ -722,7 +722,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 		if cfg.ExportAllDsyms {
 			if err := exportDSYMs(dsymDir, frameworkDSYMs); err != nil {
-				fail(err.Error())
+				fail("Failed to export dSYMs: %v", err)
 			}
 		}
 
