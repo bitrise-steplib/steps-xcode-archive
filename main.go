@@ -714,7 +714,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 		if len(appDSYM) > 0 {
 			if err := exportDSYMs(dsymDir, appDSYM); err != nil {
-				fail("Failed to export DSYMs: %v", err)
+				fail("Failed to export dSYMs: %v", err)
 			}
 		} else {
 			log.Warnf("no app dsyms found")
