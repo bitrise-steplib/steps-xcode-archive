@@ -169,7 +169,6 @@ workflows:
             git remote add origin "${SAMPLE_APP_URL}"
             git fetch || exit 1
             [[ -n "${COMMIT}" ]] && git checkout "${COMMIT}" || git checkout "${BRANCH}"
-
     - certificate-and-profile-installer:
     - path::./:
         inputs:
