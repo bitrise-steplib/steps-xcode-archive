@@ -130,12 +130,13 @@ func determineExportMethod(desiredExportMethod string, archiveExportMethod expor
 	return exportMethod, nil
 }
 
-func exportDSYMs(dsymDir string, dsyms []string) {
+func exportDSYMs(dsymDir string, dsyms []string) error {
 	for _, dsym := range dsyms {
 		if err := command.CopyDir(dsym, dsymDir, false); err != nil {
-			fail("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
+			return fmt.Errorf("Failed to copy (%s) -> (%s), error: %s", dsym, dsymDir, err)
 		}
 	}
+	return nil
 }
 
 func main() {
@@ -712,13 +713,17 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		}
 
 		if len(appDSYM) > 0 {
-			exportDSYMs(dsymDir, appDSYM)
+			if err := exportDSYMs(dsymDir, appDSYM); err != nil {
+				fail(err.Error())
+			}
 		} else {
 			log.Warnf("no app dsyms found")
 		}
 
 		if cfg.ExportAllDsyms {
-			exportDSYMs(dsymDir, frameworkDSYMs)
+			if err := exportDSYMs(dsymDir, frameworkDSYMs); err != nil {
+				fail(err.Error())
+			}
 		}
 
 		if err := utils.ExportOutputDir(dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
