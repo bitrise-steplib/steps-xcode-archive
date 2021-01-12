@@ -40,7 +40,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:632a63518c5cd8284df748c0762e4fabd84ead5f2427f8e9ff8626a87ea17afb"
+  digest = "1:90f6a886cb0e3200795dd3b2f0f79ef378a085d7dd36f71eefc45f880e2cfb3a"
   name = "github.com/bitrise-io/go-xcode"
   packages = [
     "certificateutil",
@@ -56,7 +56,7 @@
     "xcpretty",
   ]
   pruneopts = "UT"
-  revision = "da61baacf830c2d5a1a83214538aaad789426e20"
+  revision = "13f817b37b1c63bfa16ae226f4389f026accfe87"
 
 [[projects]]
   branch = "master"
