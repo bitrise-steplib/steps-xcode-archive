@@ -324,7 +324,7 @@ inputs:
       - "yes"
       - "no"
       is_required: true
-  - verbose_log: "yes"
+  - verbose_log: "no"
     opts:
       category: Debug
       title: "Enable verbose logging?"
