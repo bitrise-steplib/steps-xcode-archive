@@ -183,7 +183,7 @@ inputs:
       description: |-
         Used for Xcode version 8 and above.
 
-        Force xcodebuild to use the specified Development Team (DEVELOPMENT_TEAM).
+        Force xcodebuild to use the specified Development Team (`DEVELOPMENT_TEAM`).
 
         Format example:
 
@@ -193,7 +193,7 @@ inputs:
       category: Force Build Settings
       title: "Force code signing with Code Signing Identity"
       description: |-
-        Force xcodebuild to use specified Code Signing Identity (CODE_SIGN_IDENTITY).
+        Force xcodebuild to use specified Code Signing Identity (`CODE_SIGN_IDENTITY`).
 
         Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
         or specify code signing group ( `iPhone Developer` or `iPhone Distribution` ).
@@ -210,7 +210,7 @@ inputs:
       description: |-
         Used for Xcode version 8 and above.
 
-        Force xcodebuild to use specified Provisioning Profile (PROVISIONING_PROFILE_SPECIFIER).
+        Force xcodebuild to use specified Provisioning Profile (`PROVISIONING_PROFILE_SPECIFIER`).
 
         How to get your Provisioning Profile Specifier:
 
@@ -226,7 +226,7 @@ inputs:
       category: Force Build Settings
       title: "Force code signing with Provisioning Profile"
       description: |-
-        Force xcodebuild to use specified Provisioning Profile (PROVISIONING_PROFILE).
+        Force xcodebuild to use specified Provisioning Profile (`PROVISIONING_PROFILE`).
 
         Use Provisioning Profile's UUID. The profile's name is not accepted by xcodebuild.
 
