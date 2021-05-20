@@ -1,0 +1,56 @@
+name: Stale Issues Workflow
+
+on:
+  # Allows manually running
+  # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#manual-events
+  workflow_dispatch:
+  
+  schedule:
+    # Runs at 08:00 UTC every day
+    # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#schedule
+    - cron: '0 8 * * *'
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/actions/stale
+      - uses: actions/stale@v3
+        with:
+          repo-token: ${{ github.token }}
+          # do not manage PRs
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          # stale issue config
+          exempt-issue-labels: 'bug'
+          days-before-issue-stale: 90
+          days-before-issue-close: 21
+          stale-issue-message: |
+            Hello there, I'm a bot. On behalf of the community I thank you for opening this issue.
+
+            To help our human contributors focus on the most relevant reports, I check up on old issues to see if they're still relevant.
+            This issue has had no activity for 90 days, so I marked it as stale.
+
+            The community would appreciate if you could check if the issue still persists. If it isn't, please close it.
+            If the issue persists, and you'd like to remove the stale label, you simply need to leave a comment. Your comment can be as simple as "still important to me".
+            
+            If no comment left within 21 days, this issue will be closed.
+          close-issue-message: >
+            I'll close this issue as it doesn't seem to be relevant anymore.
+
+            We believe an old issue probably has a bunch of context that's no longer relevant, therefore, if the problem still persists, please open a new issue.
+          stale-issue-label: stale
+      # https://github.com/jakejarvis/wait-action
+      # Wait 1m to make sure lock-threads will actually lock the issue where stale just recently left a message.
+      - uses: jakejarvis/wait-action@master
+        with:
+          time: '1m'
+      # https://github.com/dessant/lock-threads
+      - uses: dessant/lock-threads@v2
+        with:
+          github-token: ${{ github.token }}
+          # do not manage PRs
+          process-only: issues
+          # stale issue config
+          issue-lock-inactive-days: 0 # immediately lock closed issues
+          issue-lock-reason: ''
