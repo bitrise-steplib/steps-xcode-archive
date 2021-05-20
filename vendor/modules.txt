@@ -1,0 +1,93 @@
+# github.com/bitrise-io/go-steputils v0.0.0-20201016102104-03ae3a6ded35
+## explicit
+github.com/bitrise-io/go-steputils/cache
+github.com/bitrise-io/go-steputils/input
+github.com/bitrise-io/go-steputils/stepconf
+github.com/bitrise-io/go-steputils/tools
+# github.com/bitrise-io/go-utils v0.0.0-20201019131314-6cc2aa4d248a
+## explicit
+github.com/bitrise-io/go-utils/colorstring
+github.com/bitrise-io/go-utils/command
+github.com/bitrise-io/go-utils/command/rubycommand
+github.com/bitrise-io/go-utils/errorutil
+github.com/bitrise-io/go-utils/fileutil
+github.com/bitrise-io/go-utils/log
+github.com/bitrise-io/go-utils/parseutil
+github.com/bitrise-io/go-utils/pathutil
+github.com/bitrise-io/go-utils/pkcs12
+github.com/bitrise-io/go-utils/pkcs12/internal/rc2
+github.com/bitrise-io/go-utils/pointers
+github.com/bitrise-io/go-utils/progress
+github.com/bitrise-io/go-utils/sliceutil
+github.com/bitrise-io/go-utils/stringutil
+github.com/bitrise-io/go-utils/ziputil
+# github.com/bitrise-io/go-xcode v0.0.0-20210112081035-13f817b37b1c
+## explicit
+github.com/bitrise-io/go-xcode/certificateutil
+github.com/bitrise-io/go-xcode/export
+github.com/bitrise-io/go-xcode/exportoptions
+github.com/bitrise-io/go-xcode/models
+github.com/bitrise-io/go-xcode/plistutil
+github.com/bitrise-io/go-xcode/profileutil
+github.com/bitrise-io/go-xcode/utility
+github.com/bitrise-io/go-xcode/xcarchive
+github.com/bitrise-io/go-xcode/xcodebuild
+github.com/bitrise-io/go-xcode/xcodecache
+github.com/bitrise-io/go-xcode/xcpretty
+# github.com/bitrise-io/xcode-project v0.0.0-20201203153351-7ad13a1dd021
+## explicit
+github.com/bitrise-io/xcode-project
+github.com/bitrise-io/xcode-project/pretty
+github.com/bitrise-io/xcode-project/serialized
+github.com/bitrise-io/xcode-project/xcodebuild
+github.com/bitrise-io/xcode-project/xcodeproj
+github.com/bitrise-io/xcode-project/xcscheme
+github.com/bitrise-io/xcode-project/xcworkspace
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
+## explicit
+github.com/fullsailor/pkcs7
+# github.com/hashicorp/go-version v1.2.1
+## explicit
+github.com/hashicorp/go-version
+# github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
+## explicit
+github.com/kballard/go-shellquote
+# github.com/pkg/errors v0.8.1
+## explicit
+github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/ryanuber/go-glob v1.0.0
+## explicit
+github.com/ryanuber/go-glob
+# github.com/stretchr/objx v0.3.0
+## explicit
+github.com/stretchr/objx
+# github.com/stretchr/testify v1.6.1
+## explicit
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/mock
+github.com/stretchr/testify/require
+# golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9
+## explicit
+golang.org/x/crypto/ssh/terminal
+# golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d
+## explicit
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/plan9
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/term v0.0.0-20201207232118-ee85cb95a76b
+## explicit
+golang.org/x/term
+# golang.org/x/text v0.3.4
+golang.org/x/text/transform
+golang.org/x/text/unicode/norm
+# gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+## explicit
+gopkg.in/yaml.v3
+# howett.net/plist v0.0.0-20201203080718-1454fab16a06
+## explicit
+howett.net/plist
