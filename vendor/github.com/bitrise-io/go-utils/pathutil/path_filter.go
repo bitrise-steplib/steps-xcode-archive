@@ -9,12 +9,9 @@ import (
 	"strings"
 )
 
-// FilterFunc ...
-type FilterFunc func(string) (bool, error)
-
 // FilterPaths ...
 func FilterPaths(fileList []string, filters ...FilterFunc) ([]string, error) {
-	filtered := []string{}
+	var filtered []string
 
 	for _, pth := range fileList {
 		allowed := true
@@ -34,19 +31,22 @@ func FilterPaths(fileList []string, filters ...FilterFunc) ([]string, error) {
 	return filtered, nil
 }
 
-// ExtensionFilter ...
-func ExtensionFilter(ext string, allowed bool) FilterFunc {
-	return func(pth string) (bool, error) {
-		e := filepath.Ext(pth)
-		return (allowed == strings.EqualFold(ext, e)), nil
-	}
-}
+// FilterFunc ...
+type FilterFunc func(string) (bool, error)
 
 // BaseFilter ...
 func BaseFilter(base string, allowed bool) FilterFunc {
 	return func(pth string) (bool, error) {
 		b := filepath.Base(pth)
-		return (allowed == strings.EqualFold(base, b)), nil
+		return allowed == strings.EqualFold(base, b), nil
+	}
+}
+
+// ExtensionFilter ...
+func ExtensionFilter(ext string, allowed bool) FilterFunc {
+	return func(pth string) (bool, error) {
+		e := filepath.Ext(pth)
+		return allowed == strings.EqualFold(ext, e), nil
 	}
 }
 
@@ -55,7 +55,7 @@ func RegexpFilter(pattern string, allowed bool) FilterFunc {
 	return func(pth string) (bool, error) {
 		re := regexp.MustCompile(pattern)
 		found := re.FindString(pth) != ""
-		return (allowed == found), nil
+		return allowed == found, nil
 	}
 }
 
@@ -69,7 +69,7 @@ func ComponentFilter(component string, allowed bool) FilterFunc {
 				found = true
 			}
 		}
-		return (allowed == found), nil
+		return allowed == found, nil
 	}
 }
 
@@ -84,7 +84,7 @@ func ComponentWithExtensionFilter(ext string, allowed bool) FilterFunc {
 				found = true
 			}
 		}
-		return (allowed == found), nil
+		return allowed == found, nil
 	}
 }
 
@@ -98,15 +98,15 @@ func IsDirectoryFilter(allowed bool) FilterFunc {
 		if fileInf == nil {
 			return false, errors.New("no file info available")
 		}
-		return (allowed == fileInf.IsDir()), nil
+		return allowed == fileInf.IsDir(), nil
 	}
 }
 
 // InDirectoryFilter ...
 func InDirectoryFilter(dir string, allowed bool) FilterFunc {
 	return func(pth string) (bool, error) {
-		in := (filepath.Dir(pth) == dir)
-		return (allowed == in), nil
+		in := filepath.Dir(pth) == dir
+		return allowed == in, nil
 	}
 }
 
