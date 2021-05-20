@@ -3,9 +3,9 @@ package utils
 import (
 	"testing"
 
-	"github.com/bitrise-io/xcode-project/serialized"
-	"github.com/bitrise-io/xcode-project/xcodeproj"
-	"github.com/bitrise-io/xcode-project/xcscheme"
+	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )

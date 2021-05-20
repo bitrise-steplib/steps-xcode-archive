@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	project "github.com/bitrise-io/xcode-project"
-	"github.com/bitrise-io/xcode-project/serialized"
-	"github.com/bitrise-io/xcode-project/xcodeproj"
-	"github.com/bitrise-io/xcode-project/xcscheme"
+	"github.com/bitrise-io/go-xcode/xcodeproject/schemeint"
+	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 )
 
 // Platform ...
@@ -23,7 +23,7 @@ const (
 
 // OpenArchivableProject ...
 func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodeproj.XcodeProj, *xcscheme.Scheme, string, error) {
-	scheme, schemeContainerDir, err := project.Scheme(pth, schemeName)
+	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("could not get scheme (%s) from path (%s): %s", schemeName, pth, err)
 	}
