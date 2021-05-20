@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/bitrise-io/go-steputils/command/rubycommand"
 	"github.com/bitrise-io/go-utils/command"
-	"github.com/bitrise-io/go-utils/command/rubycommand"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	version "github.com/hashicorp/go-version"

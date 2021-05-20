@@ -11,9 +11,9 @@ import (
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
-	"github.com/bitrise-io/xcode-project/serialized"
-	"github.com/bitrise-io/xcode-project/xcodeproj"
-	"github.com/bitrise-io/xcode-project/xcscheme"
+	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 )
 
