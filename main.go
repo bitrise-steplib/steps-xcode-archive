@@ -95,6 +95,68 @@ type Config struct {
 	XcodeMajorVersion int
 }
 
+func fail(format string, v ...interface{}) {
+	log.Errorf(format, v...)
+	os.Exit(1)
+}
+
+func findIDEDistrubutionLogsPath(output string) (string, error) {
+	pattern := `IDEDistribution: -\[IDEDistributionLogging _createLoggingBundleAtPath:\]: Created bundle at path '(?P<log_path>.*)'`
+	re := regexp.MustCompile(pattern)
+
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if match := re.FindStringSubmatch(line); len(match) == 2 {
+			return match[1], nil
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return "", nil
+}
+
+func currentTimestamp() string {
+	timeStampFormat := "15:04:05"
+	currentTime := time.Now()
+	return currentTime.Format(timeStampFormat)
+}
+
+// ColoringFunc ...
+type ColoringFunc func(...interface{}) string
+
+func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}) {
+	message := fmt.Sprintf(format, v...)
+	messageWithTimeStamp := fmt.Sprintf("[%s] %s", currentTimestamp(), coloringFunc(message))
+	fmt.Println(messageWithTimeStamp)
+}
+
+func determineExportMethod(desiredExportMethod string, archiveExportMethod exportoptions.Method) (exportoptions.Method, error) {
+	if desiredExportMethod == "auto-detect" {
+		log.Printf("auto-detect export method specified: using the archive profile's export method: %s", archiveExportMethod)
+		return archiveExportMethod, nil
+	}
+
+	exportMethod, err := exportoptions.ParseMethod(desiredExportMethod)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse export method: %s", err)
+	}
+	log.Printf("export method specified: %s", desiredExportMethod)
+
+	return exportMethod, nil
+}
+
+func exportDSYMs(dsymDir string, dsyms []string) error {
+	for _, dsym := range dsyms {
+		if err := command.CopyDir(dsym, dsymDir, false); err != nil {
+			return fmt.Errorf("could not copy (%s) to directory (%s): %s", dsym, dsymDir, err)
+		}
+	}
+	return nil
+}
+
 // XcodeArchiveStep ...
 type XcodeArchiveStep struct{}
 
@@ -918,68 +980,6 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 		log.Donef("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, opts.DSYMZipPath)
 	}
 
-	return nil
-}
-
-func fail(format string, v ...interface{}) {
-	log.Errorf(format, v...)
-	os.Exit(1)
-}
-
-func findIDEDistrubutionLogsPath(output string) (string, error) {
-	pattern := `IDEDistribution: -\[IDEDistributionLogging _createLoggingBundleAtPath:\]: Created bundle at path '(?P<log_path>.*)'`
-	re := regexp.MustCompile(pattern)
-
-	scanner := bufio.NewScanner(strings.NewReader(output))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if match := re.FindStringSubmatch(line); len(match) == 2 {
-			return match[1], nil
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return "", err
-	}
-
-	return "", nil
-}
-
-func currentTimestamp() string {
-	timeStampFormat := "15:04:05"
-	currentTime := time.Now()
-	return currentTime.Format(timeStampFormat)
-}
-
-// ColoringFunc ...
-type ColoringFunc func(...interface{}) string
-
-func logWithTimestamp(coloringFunc ColoringFunc, format string, v ...interface{}) {
-	message := fmt.Sprintf(format, v...)
-	messageWithTimeStamp := fmt.Sprintf("[%s] %s", currentTimestamp(), coloringFunc(message))
-	fmt.Println(messageWithTimeStamp)
-}
-
-func determineExportMethod(desiredExportMethod string, archiveExportMethod exportoptions.Method) (exportoptions.Method, error) {
-	if desiredExportMethod == "auto-detect" {
-		log.Printf("auto-detect export method specified: using the archive profile's export method: %s", archiveExportMethod)
-		return archiveExportMethod, nil
-	}
-
-	exportMethod, err := exportoptions.ParseMethod(desiredExportMethod)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse export method: %s", err)
-	}
-	log.Printf("export method specified: %s", desiredExportMethod)
-
-	return exportMethod, nil
-}
-
-func exportDSYMs(dsymDir string, dsyms []string) error {
-	for _, dsym := range dsyms {
-		if err := command.CopyDir(dsym, dsymDir, false); err != nil {
-			return fmt.Errorf("could not copy (%s) to directory (%s): %s", dsym, dsymDir, err)
-		}
-	}
 	return nil
 }
 
