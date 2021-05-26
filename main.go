@@ -447,45 +447,6 @@ func (s XcodeArchiveStep) InstallDeps(opts InstallDepsOpts) error {
 	return nil
 }
 
-// RunOpts ...
-type RunOpts struct {
-	// Shared
-	ProjectPath                string
-	Scheme                     string
-	Configuration              string
-	OutputTool                 string
-	XcodebuildLogPath          string
-	XcodeMajorVersion          int
-	IDEDistributionLogsZipPath string
-	OutputDir                  string
-
-	// Archive
-	ArchivePath string
-
-	ForceTeamID                       string
-	ForceProvisioningProfileSpecifier string
-	ForceProvisioningProfile          string
-	ForceCodeSignIdentity             string
-	IsCleanBuild                      bool
-	DisableIndexWhileBuilding         bool
-	XcodebuildOptions                 string
-
-	CacheLevel string
-
-	// IPA Export
-	ExportOptionsPath string
-	IPAPath           string
-	IPAExportDir      string
-
-	CustomExportOptionsPlistContent string
-
-	ExportMethod               string
-	ICloudContainerEnvironment string
-	TeamID                     string
-	UploadBitcode              bool
-	CompileBitcode             bool
-}
-
 // XcodeArchiveOpts ...
 type XcodeArchiveOpts struct {
 	// Shared
@@ -828,6 +789,45 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	return 0, nil
 }
 
+// RunOpts ...
+type RunOpts struct {
+	// Shared
+	ProjectPath                string
+	Scheme                     string
+	Configuration              string
+	OutputTool                 string
+	XcodebuildLogPath          string
+	XcodeMajorVersion          int
+	IDEDistributionLogsZipPath string
+	OutputDir                  string
+
+	// Archive
+	ArchivePath string
+
+	ForceTeamID                       string
+	ForceProvisioningProfileSpecifier string
+	ForceProvisioningProfile          string
+	ForceCodeSignIdentity             string
+	IsCleanBuild                      bool
+	DisableIndexWhileBuilding         bool
+	XcodebuildOptions                 string
+
+	CacheLevel string
+
+	// IPA Export
+	ExportOptionsPath string
+	IPAPath           string
+	IPAExportDir      string
+
+	CustomExportOptionsPlistContent string
+
+	ExportMethod               string
+	ICloudContainerEnvironment string
+	TeamID                     string
+	UploadBitcode              bool
+	CompileBitcode             bool
+}
+
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (int, error) {
 	archiveOpts := XcodeArchiveOpts{
@@ -1037,7 +1037,7 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 
 // RunStep ...
 func RunStep() int {
-	step := XcodeArchiveStep{}
+	step := NewXcodeArchiveStep()
 
 	config, err := step.ProcessInputs()
 	if err != nil {
