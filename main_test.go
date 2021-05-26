@@ -58,7 +58,10 @@ func thisStepInputs(t *testing.T) map[string]string {
 				if v == nil {
 					inputKeyValues[k] = ""
 				} else {
-					inputKeyValues[k] = v.(string)
+					v, ok := v.(string)
+					require.True(t, ok)
+					inputKeyValues[k] = v
+
 				}
 				break
 			}
