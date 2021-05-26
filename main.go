@@ -240,6 +240,10 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 	}
 
+	if filepath.Ext(config.ProjectPath) != ".xcodeproj" && filepath.Ext(config.ProjectPath) != ".xcworkspace" {
+		return Config{}, fmt.Errorf("issue with input ProjectPath: should be and .xcodeproj or .xcworkspace path")
+	}
+
 	log.Infof("step determined configs:")
 
 	// Detect Xcode major version
