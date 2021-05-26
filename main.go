@@ -468,22 +468,22 @@ type XcodeArchiveOpts struct {
 	CacheLevel string
 }
 
-func (s XcodeArchiveStep) xcodeArchive(opts XcodeArchiveOpts) (int, error) {
+func (s XcodeArchiveStep) xcodeArchive(opts XcodeArchiveOpts) error {
 	//
 	// Open Xcode project
 	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 	if err != nil {
-		return 1, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
+		return fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 	}
 
 	platform, err := utils.BuildableTargetPlatform(xcodeProj, scheme, configuration, utils.XcodeBuild{})
 	if err != nil {
-		return 1, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
+		return fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
 
 	mainTarget, err := archivableApplicationTarget(xcodeProj, scheme, configuration)
 	if err != nil {
-		return 1, fmt.Errorf("failed to read main application target: %s", err)
+		return fmt.Errorf("failed to read main application target: %s", err)
 	}
 	if mainTarget.ProductType == appClipProductType {
 		log.Errorf("Selected scheme: '%s' targets an App Clip target (%s),", opts.Scheme, mainTarget.Name)
@@ -505,7 +505,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts XcodeArchiveOpts) (int, error) {
 	} else if ext == ".xcworkspace" {
 		isWorkspace = true
 	} else {
-		return 1, fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
+		return fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
 	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, isWorkspace, xcodebuild.ArchiveAction)
@@ -541,7 +541,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts XcodeArchiveOpts) (int, error) {
 	if opts.XcodebuildOptions != "" {
 		userOptions, err := shellquote.Split(opts.XcodebuildOptions)
 		if err != nil {
-			return 1, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", opts.XcodebuildOptions, err)
+			return fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", opts.XcodebuildOptions, err)
 		}
 
 		if sliceutil.IsStringInSlice("-destination", userOptions) {
@@ -556,7 +556,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts XcodeArchiveOpts) (int, error) {
 	if opts.XcodeMajorVersion >= 11 {
 		var err error
 		if swiftPackagesPath, err = cache.SwiftPackagesPath(opts.ProjectPath); err != nil {
-			return 1, fmt.Errorf("failed to get Swift Packages path, error: %s", err)
+			return fmt.Errorf("failed to get Swift Packages path, error: %s", err)
 		}
 	}
 
@@ -579,16 +579,16 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 		}
 	}
 	if err != nil {
-		return 1, fmt.Errorf("archive failed, error: %s", err)
+		return fmt.Errorf("archive failed, error: %s", err)
 	}
 
 	fmt.Println()
 
 	// Ensure xcarchive exists
 	if exist, err := pathutil.IsPathExists(opts.ArchivePath); err != nil {
-		return 1, fmt.Errorf("failed to check if archive exist, error: %s", err)
+		return fmt.Errorf("failed to check if archive exist, error: %s", err)
 	} else if !exist {
-		return 1, fmt.Errorf("no archive generated at: %s", opts.ArchivePath)
+		return fmt.Errorf("no archive generated at: %s", opts.ArchivePath)
 	}
 
 	// Cache swift PM
@@ -601,13 +601,13 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
 	for _, key := range envsToUnset {
 		if err := os.Unsetenv(key); err != nil {
-			return 1, fmt.Errorf("failed to unset (%s), error: %s", key, err)
+			return fmt.Errorf("failed to unset (%s), error: %s", key, err)
 		}
 	}
 
 	archive, err := xcarchive.NewIosArchive(opts.ArchivePath)
 	if err != nil {
-		return 1, fmt.Errorf("failed to parse archive, error: %s", err)
+		return fmt.Errorf("failed to parse archive, error: %s", err)
 	}
 
 	mainApplication := archive.Application
@@ -621,7 +621,7 @@ The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in
 	log.Printf("xcode managed profile: %v", archiveCodeSignIsXcodeManaged)
 	fmt.Println()
 
-	return 0, nil
+	return nil
 }
 
 // XcodeIPAExportOpts ...
@@ -652,7 +652,7 @@ type XcodeIPAExportOpts struct {
 	CompileBitcode             bool
 }
 
-func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) (int, error) {
+func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) error {
 	//
 	// Exporting the ipa with Xcode Command Line tools
 
@@ -675,24 +675,24 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) (int, error) {
 		fmt.Println(opts.CustomExportOptionsPlistContent)
 
 		if err := fileutil.WriteStringToFile(opts.ExportOptionsPath, opts.CustomExportOptionsPlistContent); err != nil {
-			return 1, fmt.Errorf("failed to write export options to file, error: %s", err)
+			return fmt.Errorf("failed to write export options to file, error: %s", err)
 		}
 	} else {
 		log.Printf("No custom export options content provided, generating export options...")
 
 		exportMethod, err := determineExportMethod(opts.ExportMethod, exportoptions.Method(opts.ArchiveExportMethod))
 		if err != nil {
-			return 1, fmt.Errorf(err.Error())
+			return fmt.Errorf(err.Error())
 		}
 
 		xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 		if err != nil {
-			return 1, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
+			return fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 		}
 
 		archive, err := xcarchive.NewIosArchive(opts.ArchivePath)
 		if err != nil {
-			return 1, fmt.Errorf("failed to parse archive, error: %s", err)
+			return fmt.Errorf("failed to parse archive, error: %s", err)
 		}
 
 		mainApplication := archive.Application
@@ -702,7 +702,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) (int, error) {
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.TeamID,
 			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
 		if err != nil {
-			return 1, fmt.Errorf(err.Error())
+			return fmt.Errorf(err.Error())
 		}
 
 		fmt.Println()
@@ -711,7 +711,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) (int, error) {
 		fmt.Println(exportOptions.String())
 
 		if err := exportOptions.WriteToFile(opts.ExportOptionsPath); err != nil {
-			return 1, fmt.Errorf(err.Error())
+			return fmt.Errorf(err.Error())
 		}
 	}
 
@@ -755,7 +755,7 @@ The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			}
 
-			return 1, fmt.Errorf("export failed, error: %s", err)
+			return fmt.Errorf("export failed, error: %s", err)
 		}
 	} else {
 		logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
@@ -779,11 +779,11 @@ The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			}
 
-			return 1, fmt.Errorf("export failed, error: %s", err)
+			return fmt.Errorf("export failed, error: %s", err)
 		}
 	}
 
-	return 0, nil
+	return nil
 }
 
 // RunOpts ...
@@ -826,7 +826,7 @@ type RunOpts struct {
 }
 
 // Run ...
-func (s XcodeArchiveStep) Run(opts RunOpts) (int, error) {
+func (s XcodeArchiveStep) Run(opts RunOpts) error {
 	archiveOpts := XcodeArchiveOpts{
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
@@ -845,9 +845,9 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (int, error) {
 		XcodebuildOptions:                 opts.XcodebuildOptions,
 		CacheLevel:                        opts.CacheLevel,
 	}
-	code, err := s.xcodeArchive(archiveOpts)
+	err := s.xcodeArchive(archiveOpts)
 	if err != nil {
-		return code, err
+		return err
 	}
 
 	IPAExportOpts := XcodeIPAExportOpts{
@@ -1033,21 +1033,19 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 }
 
 // RunStep ...
-func RunStep() int {
+func RunStep() error {
 	step := NewXcodeArchiveStep()
 
 	config, err := step.ProcessInputs()
 	if err != nil {
-		log.Errorf(err.Error())
-		return 1
+		return err
 	}
 
 	installDepsOpts := InstallDepsOpts{
 		InstallXcpretty: config.OutputTool == "xcpretty",
 	}
 	if err := step.InstallDeps(installDepsOpts); err != nil {
-		log.Errorf(err.Error())
-		return 1
+		return err
 	}
 
 	runOpts := RunOpts{
@@ -1082,9 +1080,8 @@ func RunStep() int {
 		UploadBitcode:              config.UploadBitcode,
 		CompileBitcode:             config.CompileBitcode,
 	}
-	if code, err := step.Run(runOpts); err != nil {
-		log.Errorf(err.Error())
-		return code
+	if err := step.Run(runOpts); err != nil {
+		return err
 	}
 
 	exportOpts := ExportOpts{
@@ -1101,13 +1098,15 @@ func RunStep() int {
 		ExportAllDsyms: config.ExportAllDsyms,
 	}
 	if err := step.ExportOutput(exportOpts); err != nil {
-		log.Errorf(err.Error())
-		return 1
+		return err
 	}
 
-	return 0
+	return nil
 }
 
 func main() {
-	os.Exit(RunStep())
+	if err := RunStep(); err != nil {
+		log.Errorf(err.Error())
+		os.Exit(1)
+	}
 }
