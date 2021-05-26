@@ -158,36 +158,60 @@ func exportDSYMs(dsymDir string, dsyms []string) error {
 	return nil
 }
 
+// XcodeVersionProvider ...
 type XcodeVersionProvider interface {
 	GetXcodeVersion() (models.XcodebuildVersionModel, error)
+}
+
+// XcodebuildXcodeVersionProvider ...
+type XcodebuildXcodeVersionProvider struct {
+}
+
+// NewXcodebuildXcodeVersionProvider ...
+func NewXcodebuildXcodeVersionProvider() XcodeVersionProvider {
+	return XcodebuildXcodeVersionProvider{}
+}
+
+// GetXcodeVersion ...
+func (p XcodebuildXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVersionModel, error) {
+	return utility.GetXcodeVersion()
+}
+
+type StepInputParser interface {
+	Parse(conf interface{}) error
+}
+
+// EnvStepInputParser ...
+type EnvStepInputParser struct {
+}
+
+func NewEnvStepInputParser() EnvStepInputParser {
+	return EnvStepInputParser{}
+}
+
+// Parse ...
+func (p EnvStepInputParser) Parse(conf interface{}) error {
+	return stepconf.Parse(conf)
 }
 
 // XcodeArchiveStep ...
 type XcodeArchiveStep struct {
 	xcodeVersionProvider XcodeVersionProvider
+	stepInputParser      StepInputParser
 }
 
-type XcodebuildXcodeVersionProvider struct {
-}
-
-func NewXcodebuildXcodeVersionProvider() XcodeVersionProvider {
-	return XcodebuildXcodeVersionProvider{}
-}
-
-func (p XcodebuildXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVersionModel, error) {
-	return utility.GetXcodeVersion()
-}
-
+// NewXcodeArchiveStep ...
 func NewXcodeArchiveStep() XcodeArchiveStep {
 	return XcodeArchiveStep{
 		xcodeVersionProvider: NewXcodebuildXcodeVersionProvider(),
+		stepInputParser:      NewEnvStepInputParser(),
 	}
 }
 
 // ProcessInputs ...
 func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	var inputs Inputs
-	if err := stepconf.Parse(&inputs); err != nil {
+	if err := s.stepInputParser.Parse(&inputs); err != nil {
 		fail("Issue with input: %s", err)
 	}
 
