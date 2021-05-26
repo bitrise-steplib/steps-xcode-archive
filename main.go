@@ -20,6 +20,7 @@ import (
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
+	"github.com/bitrise-io/go-xcode/models"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcarchive"
@@ -157,8 +158,31 @@ func exportDSYMs(dsymDir string, dsyms []string) error {
 	return nil
 }
 
+type XcodeVersionProvider interface {
+	GetXcodeVersion() (models.XcodebuildVersionModel, error)
+}
+
 // XcodeArchiveStep ...
-type XcodeArchiveStep struct{}
+type XcodeArchiveStep struct {
+	xcodeVersionProvider XcodeVersionProvider
+}
+
+type XcodebuildXcodeVersionProvider struct {
+}
+
+func NewXcodebuildXcodeVersionProvider() XcodeVersionProvider {
+	return XcodebuildXcodeVersionProvider{}
+}
+
+func (p XcodebuildXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVersionModel, error) {
+	return utility.GetXcodeVersion()
+}
+
+func NewXcodeArchiveStep() XcodeArchiveStep {
+	return XcodeArchiveStep{
+		xcodeVersionProvider: NewXcodebuildXcodeVersionProvider(),
+	}
+}
 
 // ProcessInputs ...
 func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
@@ -195,7 +219,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	log.Infof("step determined configs:")
 
 	// Detect Xcode major version
-	xcodebuildVersion, err := utility.GetXcodeVersion()
+	xcodebuildVersion, err := s.xcodeVersionProvider.GetXcodeVersion()
 	if err != nil {
 		fail("Failed to determin xcode version, error: %s", err)
 	}
