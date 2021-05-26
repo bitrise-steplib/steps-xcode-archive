@@ -84,6 +84,7 @@ golang.org/x/term
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+## explicit
 gopkg.in/yaml.v3
 # howett.net/plist v0.0.0-20201203080718-1454fab16a06
 ## explicit
