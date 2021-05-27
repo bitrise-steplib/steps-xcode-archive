@@ -87,7 +87,7 @@ func override(orig, new map[string]string) map[string]string {
 func TestXcodeArchiveStep_ProcessInputs(t *testing.T) {
 	tests := []struct {
 		name                 string
-		xcodeVersionProvider XcodeVersionProvider
+		xcodeVersionProvider xcodeVersionProvider
 		envs                 map[string]string
 		want                 Config
 		err                  string

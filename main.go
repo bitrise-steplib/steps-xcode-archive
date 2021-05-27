@@ -141,55 +141,49 @@ func exportDSYMs(dsymDir string, dsyms []string) error {
 	return nil
 }
 
-// XcodeVersionProvider ...
-type XcodeVersionProvider interface {
+type xcodeVersionProvider interface {
 	GetXcodeVersion() (models.XcodebuildVersionModel, error)
 }
 
-// XcodebuildXcodeVersionProvider ...
-type XcodebuildXcodeVersionProvider struct {
+type xcodebuildXcodeVersionProvider struct {
 }
 
-// NewXcodebuildXcodeVersionProvider ...
-func NewXcodebuildXcodeVersionProvider() XcodeVersionProvider {
-	return XcodebuildXcodeVersionProvider{}
+func newXcodebuildXcodeVersionProvider() xcodebuildXcodeVersionProvider {
+	return xcodebuildXcodeVersionProvider{}
 }
 
 // GetXcodeVersion ...
-func (p XcodebuildXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVersionModel, error) {
+func (p xcodebuildXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVersionModel, error) {
 	return utility.GetXcodeVersion()
 }
 
-// StepInputParser ...
-type StepInputParser interface {
+type stepInputParser interface {
 	Parse(conf interface{}) error
 }
 
-// EnvStepInputParser ...
-type EnvStepInputParser struct {
+type envStepInputParser struct {
 }
 
-// NewEnvStepInputParser ...
-func NewEnvStepInputParser() EnvStepInputParser {
-	return EnvStepInputParser{}
+func newEnvStepInputParser() envStepInputParser {
+	return envStepInputParser{}
 }
 
 // Parse ...
-func (p EnvStepInputParser) Parse(conf interface{}) error {
+func (p envStepInputParser) Parse(conf interface{}) error {
 	return stepconf.Parse(conf)
 }
 
 // XcodeArchiveStep ...
 type XcodeArchiveStep struct {
-	xcodeVersionProvider XcodeVersionProvider
-	stepInputParser      StepInputParser
+	xcodeVersionProvider xcodeVersionProvider
+	stepInputParser      stepInputParser
 }
 
 // NewXcodeArchiveStep ...
 func NewXcodeArchiveStep() XcodeArchiveStep {
 	return XcodeArchiveStep{
-		xcodeVersionProvider: NewXcodebuildXcodeVersionProvider(),
-		stepInputParser:      NewEnvStepInputParser(),
+		xcodeVersionProvider: newXcodebuildXcodeVersionProvider(),
+		stepInputParser:      newEnvStepInputParser(),
 	}
 }
 
@@ -318,40 +312,33 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	return config, nil
 }
 
-// InstallDepsOpts ...
-type InstallDepsOpts struct {
-	InstallXcpretty bool
-}
+// EnsureXCPrettyInstalled ...
+func (s XcodeArchiveStep) EnsureXCPrettyInstalled() error {
+	fmt.Println()
+	log.Infof("Checking if output tool (xcpretty) is installed")
 
-// InstallDeps ...
-func (s XcodeArchiveStep) InstallDeps(opts InstallDepsOpts) error {
-	if opts.InstallXcpretty {
+	installed, err := xcpretty.IsInstalled()
+	if err != nil {
+		return fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)
+	} else if !installed {
+		log.Warnf(`xcpretty is not installed`)
 		fmt.Println()
-		log.Infof("Checking if output tool (xcpretty) is installed")
+		log.Printf("Installing xcpretty")
 
-		installed, err := xcpretty.IsInstalled()
+		cmds, err := xcpretty.Install()
 		if err != nil {
-			return fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)
-		} else if !installed {
-			log.Warnf(`xcpretty is not installed`)
-			fmt.Println()
-			log.Printf("Installing xcpretty")
-
-			cmds, err := xcpretty.Install()
-			if err != nil {
-				return fmt.Errorf("failed to create xcpretty install command: %s", err)
-			}
-
-			for _, cmd := range cmds {
-				if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
-					if errorutil.IsExitStatusError(err) {
-						return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), out)
-					}
-					return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
-				}
-			}
-
+			return fmt.Errorf("failed to create xcpretty install command: %s", err)
 		}
+
+		for _, cmd := range cmds {
+			if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+				if errorutil.IsExitStatusError(err) {
+					return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), out)
+				}
+				return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
+			}
+		}
+
 	}
 
 	xcprettyVersion, err := xcpretty.Version()
@@ -363,8 +350,7 @@ func (s XcodeArchiveStep) InstallDeps(opts InstallDepsOpts) error {
 	return nil
 }
 
-// XcodeArchiveOpts ...
-type XcodeArchiveOpts struct {
+type xcodeArchiveOpts struct {
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
@@ -390,7 +376,7 @@ type xcodeArchiveOutput struct {
 	XcodebuildLog      string
 }
 
-func (s XcodeArchiveStep) xcodeArchive(opts XcodeArchiveOpts) (xcodeArchiveOutput, error) {
+func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
 	out := xcodeArchiveOutput{}
 	//
 	// Open Xcode project
@@ -558,32 +544,21 @@ The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be av
 	return out, nil
 }
 
-// XcodeIPAExportOpts ...
-type XcodeIPAExportOpts struct {
-	// Shared
-	ProjectPath   string
-	Scheme        string
-	Configuration string
-	OutputTool    string
-	// XcodebuildLogPath string
+type xcodeIPAExportOpts struct {
+	ProjectPath       string
+	Scheme            string
+	Configuration     string
+	OutputTool        string
 	XcodeMajorVersion int
 
-	// IPA Export
-	// ExportOptionsPath          string
-	// IPAPath                    string
-	ArchivePath string
-	// IDEDistributionLogsZipPath string
-	// IPAExportDir               string
-
+	ArchivePath                     string
 	CustomExportOptionsPlistContent string
-
-	ExportMethod        string
-	ArchiveExportMethod string
-
-	ICloudContainerEnvironment string
-	TeamID                     string
-	UploadBitcode              bool
-	CompileBitcode             bool
+	ExportMethod                    string
+	ArchiveExportMethod             string
+	ICloudContainerEnvironment      string
+	TeamID                          string
+	UploadBitcode                   bool
+	CompileBitcode                  bool
 }
 
 type xcodeIPAExportOutput struct {
@@ -593,7 +568,7 @@ type xcodeIPAExportOutput struct {
 	IDEDistrubutionLogsDir string
 }
 
-func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) (xcodeIPAExportOutput, error) {
+func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExportOutput, error) {
 	out := xcodeIPAExportOutput{}
 
 	//
@@ -796,7 +771,7 @@ type RunOut struct {
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	out := RunOut{}
 
-	archiveOpts := XcodeArchiveOpts{
+	archiveOpts := xcodeArchiveOpts{
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
 		Configuration:     opts.Configuration,
@@ -823,7 +798,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	out.AppDSYMPaths = archiveOut.AppDSYMPaths
 	out.FrameworkDSYMPaths = archiveOut.FrameworkDSYMPaths
 
-	IPAExportOpts := XcodeIPAExportOpts{
+	IPAExportOpts := xcodeIPAExportOpts{
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
 		Configuration:     opts.Configuration,
@@ -1060,13 +1035,12 @@ func RunStep() error {
 		return err
 	}
 
-	installDepsOpts := InstallDepsOpts{
-		InstallXcpretty: config.OutputTool == "xcpretty",
-	}
-	if err := step.InstallDeps(installDepsOpts); err != nil {
-		log.Warnf(err.Error())
-		log.Warnf("Switching to xcodebuild for output tool")
-		config.OutputTool = "xcodebuild"
+	if config.OutputTool == "xcpretty" {
+		if err := step.EnsureXCPrettyInstalled(); err != nil {
+			log.Warnf(err.Error())
+			log.Warnf("Switching to xcodebuild for output tool")
+			config.OutputTool = "xcodebuild"
+		}
 	}
 
 	runOpts := RunOpts{
