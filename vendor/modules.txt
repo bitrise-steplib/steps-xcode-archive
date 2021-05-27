@@ -1,6 +1,6 @@
 # github.com/bitrise-io/go-plist v0.0.0-20210301100253-4b1a112ccd10
 github.com/bitrise-io/go-plist
-# github.com/bitrise-io/go-steputils v0.0.0-20210526131411-47ab9f4f13a1
+# github.com/bitrise-io/go-steputils v0.0.0-20210527075147-910ce7a105a1
 ## explicit
 github.com/bitrise-io/go-steputils/cache
 github.com/bitrise-io/go-steputils/command/rubycommand
