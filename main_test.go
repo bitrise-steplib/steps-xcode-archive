@@ -108,7 +108,7 @@ func TestXcodeArchiveStep_ProcessInputs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := XcodeArchiveStep{
 				xcodeVersionProvider: tt.xcodeVersionProvider,
-				stepInputParser:      stepconf.NewEnvParser(stepconf.EnvParserOpts{EnvProvider: NewMockEnvProvider(tt.envs)}),
+				stepInputParser:      stepconf.NewEnvParser(NewMockEnvProvider(tt.envs)),
 			}
 
 			config, err := s.ProcessInputs()
