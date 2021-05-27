@@ -669,7 +669,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) error {
 
 		exportMethod, err := determineExportMethod(opts.ExportMethod, exportoptions.Method(opts.ArchiveExportMethod))
 		if err != nil {
-			return fmt.Errorf(err.Error())
+			return err
 		}
 
 		xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
@@ -689,7 +689,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) error {
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.TeamID,
 			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
 		if err != nil {
-			return fmt.Errorf(err.Error())
+			return err
 		}
 
 		fmt.Println()
@@ -698,7 +698,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts XcodeIPAExportOpts) error {
 		fmt.Println(exportOptions.String())
 
 		if err := exportOptions.WriteToFile(opts.ExportOptionsPath); err != nil {
-			return fmt.Errorf(err.Error())
+			return err
 		}
 	}
 
