@@ -246,7 +246,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	// Detect Xcode major version
 	xcodebuildVersion, err := s.xcodeVersionProvider.GetXcodeVersion()
 	if err != nil {
-		return Config{}, fmt.Errorf("failed to determin xcode version, error: %s", err)
+		return Config{}, fmt.Errorf("failed to determine xcode version, error: %s", err)
 	}
 	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
@@ -399,10 +399,7 @@ func (s XcodeArchiveStep) InstallDeps(opts InstallDepsOpts) error {
 
 		installed, err := xcpretty.IsInstalled()
 		if err != nil {
-			log.Warnf("Failed to check if xcpretty is installed, error: %s", err)
-			log.Printf("Switching to xcodebuild for output tool")
-			// outputTool = "xcodebuild"
-			return nil
+			return fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)
 		} else if !installed {
 			log.Warnf(`xcpretty is not installed`)
 			fmt.Println()
@@ -410,22 +407,15 @@ func (s XcodeArchiveStep) InstallDeps(opts InstallDepsOpts) error {
 
 			cmds, err := xcpretty.Install()
 			if err != nil {
-				log.Warnf("Failed to create xcpretty install command: %s", err)
-				log.Warnf("Switching to xcodebuild for output tool")
-				// outputTool = "xcodebuild"
-				return nil
+				return fmt.Errorf("failed to create xcpretty install command: %s", err)
 			}
 
 			for _, cmd := range cmds {
 				if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 					if errorutil.IsExitStatusError(err) {
-						log.Warnf("%s failed: %s", out)
-					} else {
-						log.Warnf("%s failed: %s", err)
+						return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), out)
 					}
-					log.Warnf("Switching to xcodebuild for output tool")
-					// outputTool = "xcodebuild"
-					return nil
+					return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
 				}
 			}
 
@@ -434,10 +424,7 @@ func (s XcodeArchiveStep) InstallDeps(opts InstallDepsOpts) error {
 
 	xcprettyVersion, err := xcpretty.Version()
 	if err != nil {
-		log.Warnf("Failed to determin xcpretty version, error: %s", err)
-		log.Printf("Switching to xcodebuild for output tool")
-		// outputTool = "xcodebuild"
-		return nil
+		return fmt.Errorf("failed to determine xcpretty version, error: %s", err)
 	}
 	log.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 
@@ -1045,7 +1032,9 @@ func RunStep() error {
 		InstallXcpretty: config.OutputTool == "xcpretty",
 	}
 	if err := step.InstallDeps(installDepsOpts); err != nil {
-		return err
+		log.Warnf(err.Error())
+		log.Warnf("Switching to xcodebuild for output tool")
+		config.OutputTool = "xcodebuild"
 	}
 
 	runOpts := RunOpts{
