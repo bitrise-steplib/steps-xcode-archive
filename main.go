@@ -223,14 +223,14 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		return Config{}, fmt.Errorf("issue with input ProjectPath: should be and .xcodeproj or .xcworkspace path")
 	}
 
-	log.Infof("step determined configs:")
+	log.Infof("Xcode version:")
 
 	// Detect Xcode major version
 	xcodebuildVersion, err := s.xcodeVersionProvider.GetXcodeVersion()
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to determine xcode version, error: %s", err)
 	}
-	log.Printf("- xcodebuildVersion: %s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
+	log.Printf("%s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
 	xcodeMajorVersion := xcodebuildVersion.MajorVersion
 	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
@@ -378,7 +378,7 @@ type xcodeArchiveOutput struct {
 
 func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
 	out := xcodeArchiveOutput{}
-	//
+
 	// Open Xcode project
 	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 	if err != nil {
@@ -402,10 +402,8 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		os.Exit(1)
 	}
 
-	//
 	// Create the Archive with Xcode Command Line tools
-	log.Infof("Create the Archive ...")
-	fmt.Println()
+	log.Infof("Creating the Archive ...")
 
 	isWorkspace := false
 	ext := filepath.Ext(opts.ProjectPath)
@@ -488,21 +486,11 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 
 		log.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log will be also available in the raw-xcodebuild-output.log
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
-
-		// 		if err := utils.ExportOutputFileContent(rawXcodebuildOut, opts.XcodebuildLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-		// 			log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
-		// 		} else {
-		// 			log.Infof(colorstring.Magenta(fmt.Sprintf(`You can find the last couple of lines of Xcode's build log above, but the full log is also available in the raw-xcodebuild-output.log
-		// The log file is stored in $BITRISE_DEPLOY_DIR, and its full path is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable
-		// (value: %s)`, opts.XcodebuildLogPath)))
-		// 		}
 	}
 	if err != nil {
 		out.XcodebuildLog = xcodebuildLog
 		return out, fmt.Errorf("archive failed, error: %s", err)
 	}
-
-	fmt.Println()
 
 	// Ensure xcarchive exists
 	if exist, err := pathutil.IsPathExists(archivePth); err != nil {
@@ -520,12 +508,12 @@ The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be av
 	mainApplication := archive.Application
 	out.AppPath = mainApplication.Path
 
+	fmt.Println()
 	log.Infof("Archive infos:")
 	log.Printf("team: %s (%s)", mainApplication.ProvisioningProfile.TeamName, mainApplication.ProvisioningProfile.TeamID)
 	log.Printf("profile: %s (%s)", mainApplication.ProvisioningProfile.Name, mainApplication.ProvisioningProfile.UUID)
 	log.Printf("export: %s", mainApplication.ProvisioningProfile.ExportType)
 	log.Printf("xcode managed profile: %v", profileutil.IsXcodeManaged(mainApplication.ProvisioningProfile.Name))
-	fmt.Println()
 
 	appDSYMPaths, frameworkDSYMPaths, err := archive.FindDSYMs()
 	if err != nil {
@@ -571,15 +559,7 @@ type xcodeIPAExportOutput struct {
 func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExportOutput, error) {
 	out := xcodeIPAExportOutput{}
 
-	//
 	// Exporting the ipa with Xcode Command Line tools
-
-	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
-	for _, key := range envsToUnset {
-		if err := os.Unsetenv(key); err != nil {
-			return out, fmt.Errorf("failed to unset (%s), error: %s", key, err)
-		}
-	}
 
 	/*
 		You'll get a "Error Domain=IDEDistributionErrorDomain Code=14 "No applicable devices found."" error
@@ -590,10 +570,15 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		- http://stackoverflow.com/questions/33041109/xcodebuild-no-applicable-devices-found-when-exporting-archive
 		- https://gist.github.com/claybridges/cea5d4afd24eda268164
 	*/
-	log.Infof("Exporting ipa from the archive...")
-	fmt.Println()
+	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
+	for _, key := range envsToUnset {
+		if err := os.Unsetenv(key); err != nil {
+			return out, fmt.Errorf("failed to unset (%s), error: %s", key, err)
+		}
+	}
 
-	log.Printf("Exporting ipa with ExportOptions.plist")
+	fmt.Println()
+	log.Infof("Exporting ipa from the archive...")
 
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("xcodeIPAExport")
 	if err != nil {
@@ -646,8 +631,6 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		}
 	}
 
-	fmt.Println()
-
 	ipaExportDir := filepath.Join(tmpDir, "exported")
 
 	exportCmd := xcodebuild.NewExportCommand()
@@ -658,8 +641,8 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	if opts.OutputTool == "xcpretty" {
 		xcprettyCmd := xcpretty.New(exportCmd)
 
-		logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 		fmt.Println()
+		logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 
 		xcodebuildLog, err := xcprettyCmd.Run()
 		if err != nil {
@@ -690,8 +673,8 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			return out, fmt.Errorf("export failed, error: %s", err)
 		}
 	} else {
-		logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
 		fmt.Println()
+		logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
 
 		xcodebuildLog, err := exportCmd.RunAndReturnOutput()
 		if err != nil {
@@ -846,6 +829,9 @@ type ExportOpts struct {
 
 // ExportOutput ...
 func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
+	fmt.Println()
+	log.Infof("Exporting outputs...")
+
 	cleanup := func(pth string) error {
 		if exist, err := pathutil.IsPathExists(pth); err != nil {
 			return fmt.Errorf("failed to check if path (%s) exist, error: %s", pth, err)
@@ -856,8 +842,6 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 		}
 		return nil
 	}
-
-	log.Infof("Exporting outputs...")
 
 	if opts.ArchivePath != "" {
 		fmt.Println()
