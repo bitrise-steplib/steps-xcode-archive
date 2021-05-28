@@ -238,8 +238,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 	config.XcodeMajorVersion = int(xcodeMajorVersion)
 
-	////
-
 	// Validation CustomExportOptionsPlistContent
 	customExportOptionsPlistContent := strings.TrimSpace(config.CustomExportOptionsPlistContent)
 	if customExportOptionsPlistContent != config.CustomExportOptionsPlistContent {
@@ -264,6 +262,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 			fmt.Println()
 		}
 	}
+	config.CustomExportOptionsPlistContent = customExportOptionsPlistContent
 
 	if config.ForceProvisioningProfileSpecifier != "" &&
 		xcodeMajorVersion < 8 {
@@ -312,8 +311,17 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	return config, nil
 }
 
-// EnsureXCPrettyInstalled ...
-func (s XcodeArchiveStep) EnsureXCPrettyInstalled() error {
+// EnsureDependenciesOpts ...
+type EnsureDependenciesOpts struct {
+	XCPretty bool
+}
+
+// EnsureDependencies ...
+func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error {
+	if !opts.XCPretty {
+		return nil
+	}
+
 	fmt.Println()
 	log.Infof("Checking if output tool (xcpretty) is installed")
 
@@ -1020,12 +1028,13 @@ func RunStep() error {
 		return err
 	}
 
-	if config.OutputTool == "xcpretty" {
-		if err := step.EnsureXCPrettyInstalled(); err != nil {
-			log.Warnf(err.Error())
-			log.Warnf("Switching to xcodebuild for output tool")
-			config.OutputTool = "xcodebuild"
-		}
+	dependenciesOpts := EnsureDependenciesOpts{
+		XCPretty: config.OutputTool == "xcpretty",
+	}
+	if err := step.EnsureDependencies(dependenciesOpts); err != nil {
+		log.Warnf(err.Error())
+		log.Warnf("Switching to xcodebuild for output tool")
+		config.OutputTool = "xcodebuild"
 	}
 
 	runOpts := RunOpts{
