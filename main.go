@@ -805,6 +805,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		OutputTool:        opts.OutputTool,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 
+		ArchivePath:                     archiveOut.ArchivePath,
 		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
 		ExportMethod:                    opts.ExportMethod,
 		ICloudContainerEnvironment:      opts.ICloudContainerEnvironment,
