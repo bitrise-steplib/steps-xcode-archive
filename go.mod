@@ -3,7 +3,7 @@ module github.com/bitrise-steplib/steps-xcode-archive
 go 1.16
 
 require (
-	github.com/bitrise-io/go-steputils v0.0.0-20210514150206-5b6261447e77
+	github.com/bitrise-io/go-steputils v0.0.0-20210527075147-910ce7a105a1
 	github.com/bitrise-io/go-utils v0.0.0-20210520073355-367fa34178f5
 	github.com/bitrise-io/go-xcode v0.0.0-20210520114025-bdbec53ee59f
 	github.com/hashicorp/go-version v1.3.0 // indirect
@@ -13,5 +13,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015 // indirect
 	golang.org/x/text v0.3.6 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06
 )

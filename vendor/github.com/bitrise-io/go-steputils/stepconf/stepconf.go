@@ -102,9 +102,43 @@ func parseTag(tag string) (string, string) {
 	return tag, ""
 }
 
-// Parse populates a struct with the retrieved values from environment variables
-// described by struct tags and applies the defined validations.
-func Parse(conf interface{}) error {
+// EnvProvider ...
+type EnvProvider interface {
+	Getenv(key string) string
+}
+
+// OSEnvProvider ...
+type OSEnvProvider struct{}
+
+// NewOSEnvProvider ...
+func NewOSEnvProvider() EnvProvider {
+	return OSEnvProvider{}
+}
+
+// Getenv ...
+func (p OSEnvProvider) Getenv(key string) string {
+	return os.Getenv(key)
+}
+
+// EnvParser ...
+type EnvParser struct {
+	envProvider EnvProvider
+}
+
+// NewDefaultEnvParser ...
+func NewDefaultEnvParser() EnvParser {
+	return NewEnvParser(NewOSEnvProvider())
+}
+
+// NewEnvParser ...
+func NewEnvParser(envProvider EnvProvider) EnvParser {
+	return EnvParser{
+		envProvider: envProvider,
+	}
+}
+
+// Parse ...
+func (p EnvParser) Parse(conf interface{}) error {
 	c := reflect.ValueOf(conf)
 	if c.Kind() != reflect.Ptr {
 		return ErrNotStructPtr
@@ -122,7 +156,7 @@ func Parse(conf interface{}) error {
 			continue
 		}
 		key, constraint := parseTag(tag)
-		value := os.Getenv(key)
+		value := p.envProvider.Getenv(key)
 
 		if err := setField(c.Field(i), value, constraint); err != nil {
 			errs = append(errs, &ParseError{t.Field(i).Name, value, err})
@@ -139,6 +173,22 @@ func Parse(conf interface{}) error {
 	}
 
 	return nil
+}
+
+var defaultEnvParser *EnvParser
+
+func getDefaultEnvParser() EnvParser {
+	if defaultEnvParser == nil {
+		parser := NewDefaultEnvParser()
+		defaultEnvParser = &parser
+	}
+	return *defaultEnvParser
+}
+
+// Parse populates a struct with the retrieved values from environment variables
+// described by struct tags and applies the defined validations.
+func Parse(conf interface{}) error {
+	return getDefaultEnvParser().Parse(conf)
 }
 
 func setField(field reflect.Value, value, constraint string) error {
