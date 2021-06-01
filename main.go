@@ -364,6 +364,7 @@ type xcodeArchiveOpts struct {
 	Configuration     string
 	OutputTool        string
 	XcodeMajorVersion int
+	ArtifactName      string
 
 	ForceTeamID                       string
 	ForceProvisioningProfileSpecifier string
@@ -454,7 +455,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	if err != nil {
 		return out, fmt.Errorf("failed to create temp dir, error: %s", err)
 	}
-	archivePth := filepath.Join(tmpDir, opts.Scheme+".xcarchive")
+	archivePth := filepath.Join(tmpDir, opts.ArtifactName+".xcarchive")
 
 	archiveCmd.SetArchivePath(archivePth)
 
@@ -724,6 +725,7 @@ type RunOpts struct {
 	Configuration     string
 	OutputTool        string
 	XcodeMajorVersion int
+	ArtifactName      string
 
 	// Archive
 	ForceTeamID                       string
@@ -768,6 +770,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		Configuration:     opts.Configuration,
 		OutputTool:        opts.OutputTool,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
+		ArtifactName:      opts.ArtifactName,
 
 		ForceTeamID:                       opts.ForceTeamID,
 		ForceProvisioningProfileSpecifier: opts.ForceProvisioningProfileSpecifier,
@@ -1043,6 +1046,7 @@ func RunStep() error {
 		Configuration:     config.Configuration,
 		OutputTool:        config.OutputTool,
 		XcodeMajorVersion: config.XcodeMajorVersion,
+		ArtifactName:      config.ArtifactName,
 
 		ForceTeamID:                       config.ForceTeamID,
 		ForceProvisioningProfileSpecifier: config.ForceProvisioningProfileSpecifier,
