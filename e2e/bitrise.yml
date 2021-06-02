@@ -160,12 +160,12 @@ workflows:
         - project_path: "$ORIG_BITRISE_SOURCE_DIR/_tmp/$BITRISE_PROJECT_PATH"
         - scheme: $BITRISE_SCHEME
         - artifact_name: $ARTIFACT_NAME
-        - force_team_id: $TEAM_ID
+        - force_team_id: $FORCE_TEAM_ID
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_provisioning_profile_specifier: $FORCE_PROV_PROFILE_SPECIFIER
         - export_method: $IPA_EXPORT_METHOD
-        - icloud_container_environment: $ICLOUD_CONTAINER_ENVIRONMENT
-        - team_id: $TEAM_ID
+        - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
+        - team_id: $FORCE_TEAM_ID
         - output_tool: $XCODE_OUTPUT_TOOL
         - verbose_log: "yes"
 

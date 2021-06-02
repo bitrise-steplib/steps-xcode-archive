@@ -3,9 +3,16 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
   ci:
-    before_run:
+    after_run:
     - check
+    - e2e_tests
+
+  e2e_tests:
     steps:
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_app_clip
+        - bitrise_config_path: ./e2e/bitrise.yml
     - bitrise-run:
         inputs:
         - workflow_id: test_catalyst
