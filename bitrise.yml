@@ -10,10 +10,12 @@ workflows:
   e2e_tests:
     steps:
     - bitrise-run:
+        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
         inputs:
         - workflow_id: test_app_clip
         - bitrise_config_path: ./e2e/bitrise.yml
     - bitrise-run:
+        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
         inputs:
         - workflow_id: test_catalyst
         - bitrise_config_path: ./e2e/bitrise.yml
