@@ -14,8 +14,6 @@ app:
   - BITRISE_CERTIFICATE_URL: $BITRISE_CERTIFICATE_URL
   - BITRISE_CERTIFICATE_PASSPHRASE: $BITRISE_CERTIFICATE_PASSPHRASE
   - BITRISE_PROVISION_URL: $BITRISE_PROVISION_URL
-  # Shared test variables
-  - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
 
 workflows:
   test_app_clip:
@@ -135,14 +133,14 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            rm -rf "$ORIG_BITRISE_SOURCE_DIR/_tmp"
-            mkdir -p "$ORIG_BITRISE_SOURCE_DIR/_tmp"
+            rm -rf "./_tmp"
+            mkdir -p "./_tmp"
     - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
          inputs:
            - repository_url: $TEST_APP_URL
            - branch: $TEST_APP_BRANCH
            - commit: $TEST_APP_COMMIT
-           - clone_into_dir: "$ORIG_BITRISE_SOURCE_DIR/_tmp"
+           - clone_into_dir: "./_tmp"
     - certificate-and-profile-installer:
         inputs:
         - certificate_url: $BITRISE_CERTIFICATE_URL
@@ -157,7 +155,7 @@ workflows:
         - content: envman add --key ARTIFACT_NAME --value $BITRISE_SCHEME
     - path::./:
         inputs:
-        - project_path: "$ORIG_BITRISE_SOURCE_DIR/_tmp/$BITRISE_PROJECT_PATH"
+        - project_path: "./_tmp/$BITRISE_PROJECT_PATH"
         - scheme: $BITRISE_SCHEME
         - artifact_name: $ARTIFACT_NAME
         - force_team_id: $FORCE_TEAM_ID
@@ -214,9 +212,9 @@ workflows:
         - content: |-
             set -ex
 
-            /usr/bin/unzip $BITRISE_XCARCHIVE_ZIP_PATH -d $ORIG_BITRISE_SOURCE_DIR/_tmp
+            /usr/bin/unzip $BITRISE_XCARCHIVE_ZIP_PATH -d ./_tmp
 
-            archive_path="$ORIG_BITRISE_SOURCE_DIR/_tmp/ios-simple-objc(1234).xcarchive"
+            archive_path="./_tmp/ios-simple-objc(1234).xcarchive"
             infoplist_path="$archive_path/Info.plist"
             if [[ ! -f "$infoplist_path" ]]; then
               echo "$infoplist_path does not exist."
