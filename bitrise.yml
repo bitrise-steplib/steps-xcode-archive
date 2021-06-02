@@ -2,19 +2,56 @@ format_version: 11
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
+  ci:
+    before_run:
+    - check
+    steps:
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_catalyst
+        - bitrise_config_path: ./e2e/bitrise.yml
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_cloudkit
+        - bitrise_config_path: ./e2e/bitrise.yml
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_objc_artifact_name
+        - bitrise_config_path: ./e2e/bitrise.yml
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_xcode_8
+        - bitrise_config_path: ./e2e/bitrise.yml
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_multi_target
+        - bitrise_config_path: ./e2e/bitrise.yml
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_workspace
+        - bitrise_config_path: ./e2e/bitrise.yml
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_tvos
+        - bitrise_config_path: ./e2e/bitrise.yml
+    - bitrise-run:
+        inputs:
+        - workflow_id: test_no_app_dsym
+        - bitrise_config_path: ./e2e/bitrise.yml
+
   check:
     steps:
     - git::https://github.com/bitrise-steplib/steps-check.git:
 
   sample:
     envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - BRANCH: master
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - EXPORT_METHOD: development
-    - OUTPUT_TOOL: xcodebuild
+    - IPA_EXPORT_METHOD: development
+    - XCODE_OUTPUT_TOOL: xcodebuild
     steps:
     - script:
         inputs:
@@ -29,13 +66,13 @@ workflows:
         - is_create_path: true
     - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
         inputs:
-          - repository_url: $SAMPLE_APP_URL
-          - branch: $BRANCH
+          - repository_url: $TEST_APP_URL
+          - branch: $TEST_APP_BRANCH
           - clone_into_dir: .
     - path::./:
         inputs:
         - project_path: $BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
-        - export_method: $EXPORT_METHOD
-        - output_tool: $OUTPUT_TOOL
+        - export_method: $IPA_EXPORT_METHOD
+        - output_tool: $XCODE_OUTPUT_TOOL
