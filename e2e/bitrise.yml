@@ -63,6 +63,7 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
+    - FORCE_CODE_SIGN_IDENTITY: ""
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
     after_run:
     - _run
