@@ -28,6 +28,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta
     - TEST_APP_BRANCH: xcode-12-gm
+    - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
     after_run:
@@ -47,6 +48,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/CatalystSample.git
     - TEST_APP_BRANCH: master
+    - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
     - BITRISE_SCHEME: Catalyst Sample
     after_run:
@@ -58,6 +60,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
     - TEST_APP_BRANCH: cloudkit
+    - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
@@ -70,6 +73,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - TEST_APP_BRANCH: with-pods
+    - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
     after_run:
@@ -80,6 +84,7 @@ workflows:
   test_objc_artifact_name:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: ""
     - TEST_APP_COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
@@ -94,6 +99,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
     - TEST_APP_BRANCH: "swift_version"
+    - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
     - FORCE_CODE_SIGN_IDENTITY: ""
@@ -107,6 +113,7 @@ workflows:
   test_multi_target:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: ""
     - TEST_APP_COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
@@ -118,6 +125,7 @@ workflows:
   test_workspace:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - TEST_APP_BRANCH: ""
     - TEST_APP_COMMIT: "1360413258cc7f6a8676c17f060ff39899fc28b1"
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
@@ -131,6 +139,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-tvos-swift.git
     - TEST_APP_BRANCH: "master"
+    - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: NPO Live.xcworkspace
     - BITRISE_SCHEME: "NPO Live"
     - FORCE_CODE_SIGN_IDENTITY: ""
