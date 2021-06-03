@@ -11,9 +11,9 @@ app:
   - XCODE_OUTPUT_TOOL: xcodebuild
   # Shared test secrets
   - BITRISE_KEYCHAIN_PASSWORD: $BITRISE_KEYCHAIN_PASSWORD
-  - BITRISE_CERTIFICATE_URL: $BITRISE_CERTIFICATE_URL
-  - BITRISE_CERTIFICATE_PASSPHRASE: $BITRISE_CERTIFICATE_PASSPHRASE
-  - BITRISE_PROVISION_URL: $BITRISE_PROVISION_URL
+  - BITRISE_CERTIFICATE_URL_LIST: $BITRISE_CERTIFICATE_URL_LIST
+  - BITRISE_CERTIFICATE_PASSPHRASE_LIST: $BITRISE_CERTIFICATE_PASSPHRASE_LIST
+  - BITRISE_PROVISIONING_PROFILE_URL_LIST: $BITRISE_PROVISIONING_PROFILE_URL_LIST
 
 workflows:
   test_app_clip:
@@ -143,9 +143,9 @@ workflows:
            - clone_into_dir: "./_tmp"
     - certificate-and-profile-installer:
         inputs:
-        - certificate_url: $BITRISE_CERTIFICATE_URL
-        - certificate_passphrase: $BITRISE_CERTIFICATE_PASSPHRASE
-        - provisioning_profile_url: $BITRISE_PROVISION_URL
+        - certificate_url: $BITRISE_CERTIFICATE_URL_LIST
+        - certificate_passphrase: $BITRISE_CERTIFICATE_PASSPHRASE_LIST
+        - provisioning_profile_url: $BITRISE_PROVISIONING_PROFILE_URL_LIST
         - install_defaults: "no"
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
