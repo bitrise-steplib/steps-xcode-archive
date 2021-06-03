@@ -22,6 +22,7 @@ workflows:
         run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
         inputs:
         - workflow_id: utility_test_app_clip
+        - bitrise_config_path: ./e2e/bitrise.yml
 
   utility_test_app_clip:
     envs:
@@ -40,6 +41,7 @@ workflows:
         run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
         inputs:
         - workflow_id: utility_test_catalyst
+        - bitrise_config_path: ./e2e/bitrise.yml
 
   utility_test_catalyst:
     envs:
