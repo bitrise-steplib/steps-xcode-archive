@@ -17,6 +17,13 @@ app:
 
 workflows:
   test_app_clip:
+    steps:
+    - bitrise-run:
+        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
+        inputs:
+        - workflow_id: utility_test_app_clip
+
+  utility_test_app_clip:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta
     - TEST_APP_BRANCH: xcode-12-gm
@@ -28,6 +35,13 @@ workflows:
     - _check_exported_artifacts
 
   test_catalyst:
+    steps:
+    - bitrise-run:
+        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
+        inputs:
+        - workflow_id: utility_test_catalyst
+
+  utility_test_catalyst:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/CatalystSample.git
     - TEST_APP_BRANCH: master
