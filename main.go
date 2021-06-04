@@ -551,7 +551,6 @@ type xcodeIPAExportOpts struct {
 	ArchivePath                     string
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
-	ArchiveExportMethod             string
 	ICloudContainerEnvironment      string
 	TeamID                          string
 	UploadBitcode                   bool
@@ -606,7 +605,13 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	} else {
 		log.Printf("No custom export options content provided, generating export options...")
 
-		exportMethod, err := determineExportMethod(opts.ExportMethod, exportoptions.Method(opts.ArchiveExportMethod))
+		archive, err := xcarchive.NewIosArchive(opts.ArchivePath)
+		if err != nil {
+			return out, fmt.Errorf("failed to parse archive, error: %s", err)
+		}
+		archiveExportMethod := archive.Application.ProvisioningProfile.ExportType
+
+		exportMethod, err := determineExportMethod(opts.ExportMethod, exportoptions.Method(archiveExportMethod))
 		if err != nil {
 			return out, err
 		}
@@ -614,11 +619,6 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 		if err != nil {
 			return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
-		}
-
-		archive, err := xcarchive.NewIosArchive(opts.ArchivePath)
-		if err != nil {
-			return out, fmt.Errorf("failed to parse archive, error: %s", err)
 		}
 
 		archiveCodeSignIsXcodeManaged := archive.IsXcodeManaged()

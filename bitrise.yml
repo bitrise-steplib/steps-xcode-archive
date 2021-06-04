@@ -82,7 +82,7 @@ workflows:
     - COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - EXPORT_METHOD: development
+    - EXPORT_METHOD: auto-detect
     - OUTPUT_TOOL: xcodebuild
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
