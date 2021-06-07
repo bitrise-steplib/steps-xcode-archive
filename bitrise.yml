@@ -2,52 +2,6 @@ format_version: 11
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
-  ci:
-    after_run:
-    - check
-    - e2e_tests
-
-  e2e_tests:
-    steps:
-    - bitrise-run:
-        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
-        inputs:
-        - workflow_id: test_app_clip
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
-        inputs:
-        - workflow_id: test_catalyst
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        inputs:
-        - workflow_id: test_cloudkit
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        inputs:
-        - workflow_id: test_objc_artifact_name
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        inputs:
-        - workflow_id: test_xcode_8
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        inputs:
-        - workflow_id: test_multi_target
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        inputs:
-        - workflow_id: test_workspace
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        inputs:
-        - workflow_id: test_tvos
-        - bitrise_config_path: ./e2e/bitrise.yml
-    - bitrise-run:
-        inputs:
-        - workflow_id: test_no_app_dsym
-        - bitrise_config_path: ./e2e/bitrise.yml
-
   check:
     steps:
     - git::https://github.com/bitrise-steplib/steps-check.git:
