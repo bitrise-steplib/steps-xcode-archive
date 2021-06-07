@@ -5,7 +5,6 @@ app:
   envs:
   # Shared test configs
   - BITRISE_KEYCHAIN_PATH: $HOME/Library/Keychains/login.keychain
-  - IPA_EXPORT_METHOD: development
   # Shared test secrets
   - BITRISE_KEYCHAIN_PASSWORD: $BITRISE_KEYCHAIN_PASSWORD
   - BITRISE_CERTIFICATE_URL_LIST: $BITRISE_CERTIFICATE_URL_LIST
@@ -32,6 +31,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
@@ -58,6 +58,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
@@ -76,6 +77,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: ""
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
@@ -94,6 +96,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
@@ -112,6 +115,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: auto-detect
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
@@ -131,6 +135,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: ""
     - FORCE_TEAM_ID: ""
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcpretty
     after_run:
@@ -149,6 +154,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
@@ -167,6 +173,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
@@ -185,6 +192,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: ""
     - FORCE_TEAM_ID: ""
     - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
     after_run:
