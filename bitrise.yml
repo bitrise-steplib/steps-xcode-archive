@@ -1,269 +1,36 @@
-format_version: 7
+format_version: 11
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
-app:
-  envs:
-  - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
-
 workflows:
-  # ----------------------------------------------------------------
-  # --- workflow to Step Test
-  ci:
+  check:
     steps:
-    - go-list:
-    - golint:
-    - errcheck:
-    - go-test:
-    after_run:
-    - test_catalyst
-    - test_cloudkit
-    - test_objc_artifact_name
-    - test_xcode_8
-    - test_multi_target
-    - test_workspace
-    - test_tvos
-    - test_no_app_dsym
+    - git::https://github.com/bitrise-steplib/steps-check.git:
 
-  test_app_clip:
+  sample:
     envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-io/Fruta
-    - BRANCH: xcode-12-gm
-    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
-    - BITRISE_SCHEME: Fruta iOS
-    - EXPORT_METHOD: development
-    - OUTPUT_TOOL: xcodebuild
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  test_catalyst:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-io/CatalystSample.git
-    - BRANCH: master
-    - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
-    - BITRISE_SCHEME: Catalyst Sample
-    - OUTPUT_TOOL: xcodebuild
-    - EXPORT_METHOD: development
-    - TEAM_ID: 72SA8V3WYL
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  test_cloudkit:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - BRANCH: cloudkit
-    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-    - BITRISE_SCHEME: code-sign-test-Prod
-    - EXPORT_METHOD: development
-    - OUTPUT_TOOL: xcodebuild
-    - ICLOUD_CONTAINER_ENVIRONMENT: Production
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  test_no_app_dsym:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - BRANCH: with-pods
-    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
-    - BITRISE_SCHEME: ios-simple-objc
-    - EXPORT_METHOD: development
-    - OUTPUT_TOOL: xcodebuild
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - TEAM_ID: 72SA8V3WYL
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  test_objc_artifact_name:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - EXPORT_METHOD: auto-detect
-    - OUTPUT_TOOL: xcodebuild
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - TEAM_ID: 72SA8V3WYL
-    - ARTIFACT_NAME: ios-simple-objc(1234)
-    after_run:
-    - _common
-    - _check_archive_zip
-
-  _check_archive_zip:
+    - IPA_EXPORT_METHOD: development
+    - XCODE_OUTPUT_TOOL: xcodebuild
     steps:
     - script:
         inputs:
         - content: |-
+            #!/bin/env bash
             set -ex
-
-            /usr/bin/unzip $BITRISE_XCARCHIVE_ZIP_PATH -d $ORIG_BITRISE_SOURCE_DIR/_tmp
-
-            archive_path="$ORIG_BITRISE_SOURCE_DIR/_tmp/ios-simple-objc(1234).xcarchive"
-            infoplist_path="$archive_path/Info.plist"
-            if [[ ! -f "$infoplist_path" ]]; then
-              echo "$infoplist_path does not exist."
-              exit 1
-            fi
-
-  test_xcode_8:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
-    - BRANCH: "swift_version"
-    - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
-    - BITRISE_SCHEME: ios-xcode-8.0
-    - EXPORT_METHOD: development
-    - FORCE_CODE_SIGN_IDENTITY: ""
-    - TEAM_ID: ""
-    - OUTPUT_TOOL: xcpretty
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  test_multi_target:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
-    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-    - BITRISE_SCHEME: code-sign-test
-    - EXPORT_METHOD: development
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - TEAM_ID: 72SA8V3WYL
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  test_workspace:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - COMMIT: "1360413258cc7f6a8676c17f060ff39899fc28b1"
-    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
-    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - EXPORT_METHOD: development
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
-    - TEAM_ID: 72SA8V3WYL
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  test_tvos:
-    envs:
-    - SAMPLE_APP_URL: https://github.com/bitrise-samples/sample-apps-tvos-swift.git
-    - BRANCH: "master"
-    - BITRISE_PROJECT_PATH: NPO Live.xcworkspace
-    - BITRISE_SCHEME: "NPO Live"
-    - EXPORT_METHOD: development
-    - FORCE_CODE_SIGN_IDENTITY: ""
-    - TEAM_ID: ""
-    - PROV_PROFILE_SPECIFIER: ""
-    - OUTPUT_TOOL: xcpretty
-    - ARTIFACT_NAME: $BITRISE_SCHEME
-    after_run:
-    - _common
-
-  _common:
-    steps:
-    - script:
+            rm -rf ./_tmp
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
         inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            rm -rf "$ORIG_BITRISE_SOURCE_DIR/_tmp"
-            mkdir -p "$ORIG_BITRISE_SOURCE_DIR/_tmp"
-    - change-workdir:
-        title: Switch working dir to _tmp dir
-        run_if: true
-        inputs:
-        - path: "$ORIG_BITRISE_SOURCE_DIR/_tmp"
-        - is_create_path: true
-    - script:
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-
-            if [[ -z "${SAMPLE_APP_URL}" ]]; then
-              echo "error: there is no SAMPLE_APP_URL env var specified"
-              exit 1
-            elif [[ -z "${COMMIT}" && -z "${BRANCH}" ]]; then
-              echo "error: can't checkout: there is no BRANCH or COMMIT env var specified"
-              exit 1
-            fi
-
-            git init
-            git remote add origin "${SAMPLE_APP_URL}"
-            git fetch || exit 1
-            [[ -n "${COMMIT}" ]] && git checkout "${COMMIT}" || git checkout "${BRANCH}"
-    - certificate-and-profile-installer:
+          - repository_url: $TEST_APP_URL
+          - branch: $TEST_APP_BRANCH
+          - clone_into_dir: ./_tmp
     - path::./:
         inputs:
-        - export_method: $EXPORT_METHOD
-        - output_tool: $OUTPUT_TOOL
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+        - scheme: $BITRISE_SCHEME
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
-        - force_team_id: $TEAM_ID
-        - verbose_log: "yes"
-        - force_provisioning_profile_specifier: $PROV_PROFILE_SPECIFIER
-        - icloud_container_environment: $ICLOUD_CONTAINER_ENVIRONMENT
-        - team_id: $TEAM_ID
-        - artifact_name: $ARTIFACT_NAME
-    - script:
-        title: Output (generated by the Step) tests
-        is_always_run: true
-        inputs:
-        - content: |-
-            echo "-> BITRISE_IPA_PATH:           $BITRISE_IPA_PATH"
-            echo "-> BITRISE_DSYM_PATH:          $BITRISE_DSYM_PATH"
-            echo "-> BITRISE_XCARCHIVE_ZIP_PATH: $BITRISE_XCARCHIVE_ZIP_PATH"
-
-            echo "-> BITRISE_APP_DIR_PATH:               $BITRISE_APP_DIR_PATH"
-            echo "-> BITRISE_DSYM_DIR_PATH:              $BITRISE_DSYM_DIR_PATH"
-            echo "-> BITRISE_XCARCHIVE_PATH:             $BITRISE_XCARCHIVE_PATH"
-            echo "-> BITRISE_IDEDISTRIBUTION_LOGS_PATH:  $BITRISE_IDEDISTRIBUTION_LOGS_PATH"
-            echo "-> BITRISE_XCODE_RAW_RESULT_TEXT_PATH: $BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
-    - script:
-        title: Validate exported artifacts
-        is_always_run: true
-        inputs:
-        - content: |-            
-            #!/usr/bin/env bash
-
-            cd $BITRISE_DSYM_DIR_PATH
-
-            if [ $(ls *.dSYM | wc -l) -eq 0 ]; then
-                echo "error, there are no files in the exported dSYM path!"
-                exit 1
-            fi
-
-            if [ $(ls | wc -l) -gt $(ls *.dSYM | wc -l) ]; then
-                echo "error, there are non-dSYM files in the exported dSYM path!"
-                exit 1
-            fi
-
-  # ----------------------------------------------------------------
-  # --- Utility workflows
-  dep-update:
-    title: Dep update
-    description: |
-      Used for updating bitrise dependencies with dep
-    steps:
-    - script:
-        title: Dependency update
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            go get -u -v github.com/golang/dep/cmd/dep
-            dep ensure -v
-            dep ensure -v -update
-
-  # ----------------------------------------------------------------
-  # --- workflow to Share this step into a Step Library
-  audit-this-step:
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            stepman audit --step-yml ./step.yml
+        - export_method: $IPA_EXPORT_METHOD
+        - output_tool: $XCODE_OUTPUT_TOOL
