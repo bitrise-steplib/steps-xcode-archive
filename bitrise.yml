@@ -6,6 +6,12 @@ workflows:
     steps:
     - git::https://github.com/bitrise-steplib/steps-check.git:
 
+  e2e:
+    steps:
+      - git::https://github.com/bitrise-steplib/steps-check.git:
+          inputs:
+            - workflow: e2e
+
   sample:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
