@@ -189,7 +189,7 @@ workflows:
     - BITRISE_PROJECT_PATH: NPO Live.xcworkspace
     - BITRISE_SCHEME: "NPO Live"
     - ARTIFACT_NAME: ios-simple-objc(1234)
-    - FORCE_CODE_SIGN_IDENTITY: ""
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: ""
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
