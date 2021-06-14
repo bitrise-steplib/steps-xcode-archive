@@ -1,4 +1,4 @@
-format_version: 11
+format_version: "11"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
@@ -173,25 +173,6 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - FORCE_TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
-    - IPA_EXPORT_METHOD: development
-    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
-    after_run:
-    - _run
-    - _check_outputs
-    - _check_exported_artifacts
-
-  test_tvos:
-    envs:
-    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-tvos-swift.git
-    - TEST_APP_BRANCH: "master"
-    - TEST_APP_COMMIT: ""
-    - BITRISE_PROJECT_PATH: NPO Live.xcworkspace
-    - BITRISE_SCHEME: "NPO Live"
-    - ARTIFACT_NAME: ios-simple-objc(1234)
-    - FORCE_CODE_SIGN_IDENTITY: ""
-    - FORCE_TEAM_ID: ""
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild

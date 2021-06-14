@@ -653,8 +653,8 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		fmt.Println()
 		logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 
-		xcodebuildLog, err := xcprettyCmd.Run()
-		if err != nil {
+		xcodebuildLog, exportErr := xcprettyCmd.Run()
+		if exportErr != nil {
 			out.XcodebuildLog = xcodebuildLog
 
 			log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
@@ -679,14 +679,14 @@ The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			}
 
-			return out, fmt.Errorf("export failed, error: %s", err)
+			return out, fmt.Errorf("export failed, error: %s", exportErr)
 		}
 	} else {
 		fmt.Println()
 		logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
 
-		xcodebuildLog, err := exportCmd.RunAndReturnOutput()
-		if err != nil {
+		xcodebuildLog, exportErr := exportCmd.RunAndReturnOutput()
+		if exportErr != nil {
 			out.XcodebuildLog = xcodebuildLog
 
 			// xcdistributionlogs
@@ -707,7 +707,7 @@ The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			}
 
-			return out, fmt.Errorf("export failed, error: %s", err)
+			return out, fmt.Errorf("export failed, error: %s", exportErr)
 		}
 	}
 
