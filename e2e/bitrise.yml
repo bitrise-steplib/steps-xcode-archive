@@ -7,9 +7,9 @@ app:
   - BITRISE_KEYCHAIN_PATH: $HOME/Library/Keychains/login.keychain
   # Shared test secrets
   - BITRISE_KEYCHAIN_PASSWORD: $BITRISE_KEYCHAIN_PASSWORD
-  - BITRISE_CERTIFICATE_URL_LIST: $BITRISE_CERTIFICATE_URL_LIST
-  - BITRISE_CERTIFICATE_PASSPHRASE_LIST: $BITRISE_CERTIFICATE_PASSPHRASE_LIST
-  - BITRISE_PROVISIONING_PROFILE_URL_LIST: $BITRISE_PROVISIONING_PROFILE_URL_LIST
+  - APPLE_CERTIFICATE_URL_LIST: $APPLE_CERTIFICATE_URL_LIST
+  - APPLE_CERTIFICATE_PASSHRASE_LIST: $APPLE_CERTIFICATE_PASSHRASE_LIST
+  - APPLE_PROVISIONING_PROFILE_URL_LIST: $APPLE_PROVISIONING_PROFILE_URL_LIST
 
 workflows:
   test_app_clip:
@@ -198,9 +198,9 @@ workflows:
            - clone_into_dir: "./_tmp"
     - certificate-and-profile-installer:
         inputs:
-        - certificate_url: $BITRISE_CERTIFICATE_URL_LIST
-        - certificate_passphrase: $BITRISE_CERTIFICATE_PASSPHRASE_LIST
-        - provisioning_profile_url: $BITRISE_PROVISIONING_PROFILE_URL_LIST
+        - certificate_url: $APPLE_CERTIFICATE_URL_LIST
+        - certificate_passphrase: $APPLE_CERTIFICATE_PASSHRASE_LIST
+        - provisioning_profile_url: $APPLE_PROVISIONING_PROFILE_URL_LIST
         - install_defaults: "no"
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
