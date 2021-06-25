@@ -1,0 +1,39 @@
+title: Check Step Outputs
+summary: Validates Step Output envs, files and dirs.
+
+website: https://github.com/bitrise-steplib/steps-check-step-output
+source_code_url: https://github.com/bitrise-steplib/steps-check-step-output
+support_url: https://github.com/bitrise-steplib/steps-check-step-output/issues
+
+type_tags: [utility]
+
+toolkit:
+  go:
+    package_name: github.com/bitrise-steplib/steps-check-step-output
+
+inputs:
+  - envs: 
+    opts:
+      title: "Output envs"
+      summary: "The Step will fail if any of the specified Output envs is empty."
+  - files: 
+    opts:
+      title: "Output files"
+      summary: "The Step will fail if any of the specified Output files is not exist."
+  - dirs: 
+    opts:
+      title: "Output directories"
+      summary: "The Step will fail if any of the specified Output directories is not exist."
+
+  - deploy_dir: $BITRISE_DEPLOY_DIR
+    opts:
+      title: "Deploy dir"
+      summary: "Deploy dir, where `deployed_files` and `deployed_dirs` supposed to be placed."
+  - deployed_files: 
+    opts:
+      title: "Deployed Output files"
+      summary: "The Step will fail if any of the specified Output files is not exist inside in the Deploy dir (not necessarily in the root)."
+  - deployed_dirs: 
+    opts:
+      title: "Deployed Output directories"
+      summary: "The Step will fail if any of the specified Output directories is not exist inside in the Deploy dir (not necessarily in the root)."

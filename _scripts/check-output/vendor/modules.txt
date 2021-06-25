@@ -1,0 +1,9 @@
+# github.com/bitrise-io/go-steputils v0.0.0-20210527075147-910ce7a105a1
+## explicit
+github.com/bitrise-io/go-steputils/stepconf
+# github.com/bitrise-io/go-utils v0.0.0-20210520073355-367fa34178f5
+## explicit
+github.com/bitrise-io/go-utils/colorstring
+github.com/bitrise-io/go-utils/log
+github.com/bitrise-io/go-utils/parseutil
+github.com/bitrise-io/go-utils/pointers

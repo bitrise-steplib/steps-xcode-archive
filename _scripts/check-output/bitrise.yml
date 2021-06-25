@@ -1,0 +1,30 @@
+format_version: "11"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+workflows:
+  check:
+    steps:
+    - git::https://github.com/bitrise-steplib/steps-check.git: {}
+
+  e2e:
+    steps:
+      - git::https://github.com/bitrise-steplib/steps-check.git:
+          inputs:
+            - workflow: e2e
+
+  sample:
+    envs:
+    - OUTPUT_ENV_1: "some value"
+    - OUTPUT_ENV_2: "some value"
+    - OUTPUT_FILE: ./step.yml
+    - DEPLOY_DIR: ./
+    - DEPLOYED_FILE: ./bitrise.yml
+    steps:
+    - path::./:
+        inputs:
+        - envs: "OUTPUT_ENV_1\nOUTPUT_ENV_2"
+        - files: OUTPUT_FILE
+        - dirs: 
+        - deploy_dir: $DEPLOY_DIR
+        - deployed_files: DEPLOYED_FILE
+        - deployed_dirs: 

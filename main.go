@@ -37,14 +37,19 @@ const (
 )
 
 const (
-	bitriseXcodeRawResultTextEnvKey     = "BITRISE_XCODE_RAW_RESULT_TEXT_PATH"
-	bitriseIDEDistributionLogsPthEnvKey = "BITRISE_IDEDISTRIBUTION_LOGS_PATH"
-	bitriseXCArchivePthEnvKey           = "BITRISE_XCARCHIVE_PATH"
-	bitriseXCArchiveZipPthEnvKey        = "BITRISE_XCARCHIVE_ZIP_PATH"
-	bitriseAppDirPthEnvKey              = "BITRISE_APP_DIR_PATH"
-	bitriseIPAPthEnvKey                 = "BITRISE_IPA_PATH"
-	bitriseDSYMDirPthEnvKey             = "BITRISE_DSYM_DIR_PATH"
-	bitriseDSYMPthEnvKey                = "BITRISE_DSYM_PATH"
+	// Deployed Outputs (moved to the OutputDir)
+	bitriseXCArchiveZipPthEnvKey = "BITRISE_XCARCHIVE_ZIP_PATH"
+	bitriseDSYMPthEnvKey         = "BITRISE_DSYM_PATH"
+	bitriseIPAPthEnvKey          = "BITRISE_IPA_PATH"
+	// Deployed logs
+	xcodebuildArchiveLogPathEnvKey       = "BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH"
+	xcodebuildExportArchiveLogPathEnvKey = "BITRISE_XCODEBUILD_EXPORT_ARCHIVE_LOG_PATH"
+	bitriseIDEDistributionLogsPthEnvKey  = "BITRISE_IDEDISTRIBUTION_LOGS_PATH"
+
+	// Env Outputs
+	bitriseAppDirPthEnvKey    = "BITRISE_APP_DIR_PATH"
+	bitriseDSYMDirPthEnvKey   = "BITRISE_DSYM_DIR_PATH"
+	bitriseXCArchivePthEnvKey = "BITRISE_XCARCHIVE_PATH"
 )
 
 // Inputs ...
@@ -378,11 +383,11 @@ type xcodeArchiveOpts struct {
 }
 
 type xcodeArchiveOutput struct {
-	ArchivePath        string
-	AppPath            string
-	AppDSYMPaths       []string
-	FrameworkDSYMPaths []string
-	XcodebuildLog      string
+	ArchivePath          string
+	AppPath              string
+	AppDSYMPaths         []string
+	FrameworkDSYMPaths   []string
+	XcodebuildArchiveLog string
 }
 
 func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
@@ -484,6 +489,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	}
 
 	xcodebuildLog, err := runArchiveCommandWithRetry(archiveCmd, opts.OutputTool == "xcpretty", swiftPackagesPath)
+	out.XcodebuildArchiveLog = xcodebuildLog
 	if err != nil || opts.OutputTool == "xcodebuild" {
 		const lastLinesMsg = "\nLast lines of the Xcode's build log:"
 		if err != nil {
@@ -497,7 +503,6 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
 	}
 	if err != nil {
-		out.XcodebuildLog = xcodebuildLog
 		return out, fmt.Errorf("archive failed, error: %s", err)
 	}
 
@@ -558,10 +563,10 @@ type xcodeIPAExportOpts struct {
 }
 
 type xcodeIPAExportOutput struct {
-	ExportOptionsPath      string
-	IPAExportDir           string
-	XcodebuildLog          string
-	IDEDistrubutionLogsDir string
+	ExportOptionsPath          string
+	IPAExportDir               string
+	XcodebuildExportArchiveLog string
+	IDEDistrubutionLogsDir     string
 }
 
 func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExportOutput, error) {
@@ -654,9 +659,8 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 
 		xcodebuildLog, exportErr := xcprettyCmd.Run()
+		out.XcodebuildExportArchiveLog = xcodebuildLog
 		if exportErr != nil {
-			out.XcodebuildLog = xcodebuildLog
-
 			log.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 			The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
 			is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
@@ -686,9 +690,8 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 		logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
 
 		xcodebuildLog, exportErr := exportCmd.RunAndReturnOutput()
+		out.XcodebuildExportArchiveLog = xcodebuildLog
 		if exportErr != nil {
-			out.XcodebuildLog = xcodebuildLog
-
 			// xcdistributionlogs
 			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog)
 			if err != nil {
@@ -756,8 +759,9 @@ type RunOut struct {
 	ExportOptionsPath string
 	IPAExportDir      string
 
-	XcodebuildLog          string
-	IDEDistrubutionLogsDir string
+	XcodebuildArchiveLog       string
+	XcodebuildExportArchiveLog string
+	IDEDistrubutionLogsDir     string
 }
 
 // Run ...
@@ -782,11 +786,11 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		CacheLevel:                        opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
+	out.XcodebuildArchiveLog = archiveOut.XcodebuildArchiveLog
 	if err != nil {
-		return RunOut{
-			XcodebuildLog: archiveOut.XcodebuildLog,
-		}, err
+		return out, err
 	}
+
 	out.ArchivePath = archiveOut.ArchivePath
 	out.AppPath = archiveOut.AppPath
 	out.AppDSYMPaths = archiveOut.AppDSYMPaths
@@ -808,12 +812,12 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		CompileBitcode:                  opts.CompileBitcode,
 	}
 	exportOut, err := s.xcodeIPAExport(IPAExportOpts)
+	out.XcodebuildExportArchiveLog = exportOut.XcodebuildExportArchiveLog
 	if err != nil {
-		return RunOut{
-			XcodebuildLog:          exportOut.XcodebuildLog,
-			IDEDistrubutionLogsDir: exportOut.IDEDistrubutionLogsDir,
-		}, err
+		out.IDEDistrubutionLogsDir = exportOut.IDEDistrubutionLogsDir
+		return out, err
 	}
+
 	out.ExportOptionsPath = exportOut.ExportOptionsPath
 	out.IPAExportDir = exportOut.IPAExportDir
 
@@ -834,8 +838,9 @@ type ExportOpts struct {
 	ExportOptionsPath string
 	IPAExportDir      string
 
-	XcodebuildLog          string
-	IDEDistrubutionLogsDir string
+	XcodebuildArchiveLog       string
+	XcodebuildExportArchiveLog string
+	IDEDistrubutionLogsDir     string
 }
 
 // ExportOutput ...
@@ -1006,16 +1011,29 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 		}
 	}
 
-	if opts.XcodebuildLog != "" {
-		xcodebuildLogPath := filepath.Join(opts.OutputDir, "raw-xcodebuild-output.log")
-		if err := cleanup(xcodebuildLogPath); err != nil {
+	if opts.XcodebuildArchiveLog != "" {
+		xcodebuildArchiveLogPath := filepath.Join(opts.OutputDir, "xcodebuild-archive.log")
+		if err := cleanup(xcodebuildArchiveLogPath); err != nil {
 			return err
 		}
 
-		if err := utils.ExportOutputFileContent(opts.XcodebuildLog, xcodebuildLogPath, bitriseXcodeRawResultTextEnvKey); err != nil {
-			log.Warnf("Failed to export %s, error: %s", bitriseXcodeRawResultTextEnvKey, err)
+		if err := utils.ExportOutputFileContent(opts.XcodebuildArchiveLog, xcodebuildArchiveLogPath, xcodebuildArchiveLogPathEnvKey); err != nil {
+			log.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
 		} else {
-			log.Donef("The raw xcodebuild log path is now available in the Environment Variable: %s (value: %s)", bitriseXcodeRawResultTextEnvKey, xcodebuildLogPath)
+			log.Donef("The xcodebuild archive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildArchiveLogPathEnvKey, xcodebuildArchiveLogPath)
+		}
+	}
+
+	if opts.XcodebuildExportArchiveLog != "" {
+		xcodebuildExportArchiveLogPath := filepath.Join(opts.OutputDir, "xcodebuild-export-archive.log")
+		if err := cleanup(xcodebuildExportArchiveLogPath); err != nil {
+			return err
+		}
+
+		if err := utils.ExportOutputFileContent(opts.XcodebuildExportArchiveLog, xcodebuildExportArchiveLogPath, xcodebuildExportArchiveLogPathEnvKey); err != nil {
+			log.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
+		} else {
+			log.Donef("The xcodebuild -exportArchive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildExportArchiveLogPathEnvKey, xcodebuildExportArchiveLogPath)
 		}
 	}
 
@@ -1079,8 +1097,9 @@ func RunStep() error {
 		ExportOptionsPath: out.ExportOptionsPath,
 		IPAExportDir:      out.IPAExportDir,
 
-		XcodebuildLog:          out.XcodebuildLog,
-		IDEDistrubutionLogsDir: out.IDEDistrubutionLogsDir,
+		XcodebuildArchiveLog:       out.XcodebuildArchiveLog,
+		XcodebuildExportArchiveLog: out.XcodebuildExportArchiveLog,
+		IDEDistrubutionLogsDir:     out.IDEDistrubutionLogsDir,
 	}
 	exportErr := step.ExportOutput(exportOpts)
 
