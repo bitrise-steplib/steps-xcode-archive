@@ -224,7 +224,7 @@ workflows:
 
   _check_outputs:
     steps:
-    - path::./_scripts/check-output:
+    - git::https://github.com/bitrise-steplib/bitrise-step-check-step-outputs.git@main:
         is_always_run: true
         inputs:
         - envs: 
