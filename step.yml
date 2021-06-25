@@ -360,13 +360,19 @@ outputs:
       title: The created .xcarchive.zip file's path
       description: |-
          The created .xcarchive.zip file's path.
-  - BITRISE_XCODE_ARCHIVE_RAW_RESULT_TEXT_PATH:
-    opts:
-      title: The full, raw archive output file path
-      description: |-
-        This is the path of the raw archive results log file.
 
-        If `output_tool=xcpretty` and the archive fails this log will contain the archive output.
+  - BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH:
+    opts:
+      title: "`xcodebuild archive` command log file path"
+      description: |-
+        The file path of the raw `xcodebuild archive` command log. The log is placed into the `Output directory path`.
+  - BITRISE_XCODEBUILD_EXPORT_ARCHIVE_LOG_PATH:
+    opts:
+      title: "`xcodebuild -exportArchive` command log file path"
+      description: |-
+        The file path of the raw `xcodebuild -exportArchive` command log. The log is placed into the `Output directory path`.
   - BITRISE_IDEDISTRIBUTION_LOGS_PATH:
     opts:
       title: Path to the xcdistributionlogs
+      description: |-
+        Exported when `xcodebuild -exportArchive` command fails.
