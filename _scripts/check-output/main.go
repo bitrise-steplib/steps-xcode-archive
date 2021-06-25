@@ -90,10 +90,10 @@ func run() error {
 	if err := checkFiles(parseList(inputs.Dirs), true, ""); err != nil {
 		return err
 	}
-	if err := checkFiles(parseList(inputs.Files), false, inputs.DeployDir); err != nil {
+	if err := checkFiles(parseList(inputs.DeployedFiles), false, inputs.DeployDir); err != nil {
 		return err
 	}
-	if err := checkFiles(parseList(inputs.Dirs), true, inputs.DeployDir); err != nil {
+	if err := checkFiles(parseList(inputs.DeployedDirs), true, inputs.DeployDir); err != nil {
 		return err
 	}
 
