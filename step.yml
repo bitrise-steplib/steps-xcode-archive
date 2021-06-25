@@ -371,4 +371,4 @@ outputs:
     opts:
       title: Path to the xcdistributionlogs
       description: |-
-        Exported if `xcodebuild -exportArchive` command fails.
+        Exported when `xcodebuild -exportArchive` command fails.
