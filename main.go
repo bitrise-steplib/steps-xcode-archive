@@ -383,10 +383,9 @@ type xcodeArchiveOpts struct {
 }
 
 type xcodeArchiveOutput struct {
+	Archive              xcarchive.IosArchive
 	ArchivePath          string
 	AppPath              string
-	AppDSYMPaths         []string
-	FrameworkDSYMPaths   []string
 	XcodebuildArchiveLog string
 }
 
@@ -518,23 +517,17 @@ The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be av
 	if err != nil {
 		return out, fmt.Errorf("failed to parse archive, error: %s", err)
 	}
+	out.Archive = archive
 
 	mainApplication := archive.Application
 	out.AppPath = mainApplication.Path
 
 	fmt.Println()
-	log.Infof("Archive infos:")
+	log.Infof("Archive info:")
 	log.Printf("team: %s (%s)", mainApplication.ProvisioningProfile.TeamName, mainApplication.ProvisioningProfile.TeamID)
 	log.Printf("profile: %s (%s)", mainApplication.ProvisioningProfile.Name, mainApplication.ProvisioningProfile.UUID)
 	log.Printf("export: %s", mainApplication.ProvisioningProfile.ExportType)
 	log.Printf("xcode managed profile: %v", profileutil.IsXcodeManaged(mainApplication.ProvisioningProfile.Name))
-
-	appDSYMPaths, frameworkDSYMPaths, err := archive.FindDSYMs()
-	if err != nil {
-		return out, fmt.Errorf("failed to export dsyms, error: %s", err)
-	}
-	out.AppDSYMPaths = appDSYMPaths
-	out.FrameworkDSYMPaths = frameworkDSYMPaths
 
 	// Cache swift PM
 	if opts.XcodeMajorVersion >= 11 && opts.CacheLevel == "swift_packages" {
@@ -793,8 +786,6 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 	out.ArchivePath = archiveOut.ArchivePath
 	out.AppPath = archiveOut.AppPath
-	out.AppDSYMPaths = archiveOut.AppDSYMPaths
-	out.FrameworkDSYMPaths = archiveOut.FrameworkDSYMPaths
 
 	IPAExportOpts := xcodeIPAExportOpts{
 		ProjectPath:       opts.ProjectPath,
@@ -817,6 +808,13 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		out.IDEDistrubutionLogsDir = exportOut.IDEDistrubutionLogsDir
 		return out, err
 	}
+
+	appDSYMPaths, frameworkDSYMPaths, err := archiveOut.Archive.FindDSYMs()
+	if err != nil {
+		return out, fmt.Errorf("failed to export dSYMs, error: %s", err)
+	}
+	out.AppDSYMPaths = appDSYMPaths
+	out.FrameworkDSYMPaths = frameworkDSYMPaths
 
 	out.ExportOptionsPath = exportOut.ExportOptionsPath
 	out.IPAExportDir = exportOut.IPAExportDir
