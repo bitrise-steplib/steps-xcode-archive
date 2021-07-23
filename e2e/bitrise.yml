@@ -118,6 +118,7 @@ workflows:
     - IPA_EXPORT_METHOD: auto-detect
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
+    - DSYM_EXPECTED_COUNT: 3
     after_run:
     - _run
     - _check_outputs
@@ -253,14 +254,31 @@ workflows:
 
             cd $BITRISE_DSYM_DIR_PATH
 
-            if [ $(ls *.dSYM | wc -l) -eq 0 ]; then
+            if [ $(find . -name '*.dSYM' -maxdepth 1| wc -l) -eq 0 ]; then
                 echo "error, there are no files in the exported dSYM path!"
+                ls -la
                 exit 1
             fi
 
-            if [ $(ls | wc -l) -gt $(ls *.dSYM | wc -l) ]; then
+            if [ $(find . -maxdepth 1 ! -path . | wc -l) -gt $(find . -name '*.dSYM' -maxdepth 1 | wc -l) ]; then
                 echo "error, there are non-dSYM files in the exported dSYM path!"
+                ls -la
                 exit 1
+            fi
+    - script:
+        title: Check if all dSYMs are exported
+        run_if: '{{getenv "DSYM_EXPECTED_COUNT" | ne ""}}'
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -ex
+
+            cd $BITRISE_DSYM_DIR_PATH
+
+            if [ $(find . -name '*.dSYM' -maxdepth 1 | wc -l) -ne $DSYM_EXPECTED_COUNT ]; then
+              echo "error, expected dSYM count ($DSYM_EXPECTED_COUNT) doesn\'t match folder contents: "
+              ls -la
+              exit 1
             fi
 
   _check_archive_zip:
