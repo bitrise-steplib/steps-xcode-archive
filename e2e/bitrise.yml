@@ -99,6 +99,7 @@ workflows:
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - XCODE_OUTPUT_TOOL: xcodebuild
+    - DSYM_EXPECTED_COUNT: 1 # Only 1 framework dSYM
     after_run:
     - _run
     - _check_outputs
@@ -210,6 +211,7 @@ workflows:
         inputs:
         - content: envman add --key ARTIFACT_NAME --value $BITRISE_SCHEME
     - path::./:
+        title: Execute step
         inputs:
         - project_path: "./_tmp/$BITRISE_PROJECT_PATH"
         - scheme: $BITRISE_SCHEME
