@@ -876,12 +876,12 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 				return fmt.Errorf("failed to create tmp dir, error: %s", err)
 			}
 
-			if len(frameworkDSYMPaths) > 0 {
+			if len(appDSYMPaths) > 0 {
 				if err := exportDSYMs(dsymDir, appDSYMPaths); err != nil {
 					return fmt.Errorf("failed to export dSYMs: %v", err)
 				}
 			} else {
-				log.Warnf("no app dsyms found")
+				log.Warnf("No app dSYMs found to export")
 			}
 
 			if opts.ExportAllDsyms && len(frameworkDSYMPaths) > 0 {
