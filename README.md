@@ -107,6 +107,8 @@ We welcome [pull requests](https://github.com/bitrise-steplib/steps-xcode-archiv
 
 For pull requests, work on your changes in a forked repository and use the Bitrise CLI to [run step tests locally](https://devcenter.bitrise.io/bitrise-cli/run-your-first-build/).
 
+**Note:** this step's end-to-end tests (defined in `e2e/bitrise.yml`) are working with secrets which are intentionally not stored in this repo. External contributors won't be able to run those tests. Don't worry, if you open a PR with your contribution, we will help with running tests and make sure that they pass.
+
 Learn more about developing steps:
 
 - [Create your own step](https://devcenter.bitrise.io/contributors/create-your-own-step/)
