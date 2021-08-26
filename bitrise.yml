@@ -41,6 +41,6 @@ workflows:
         - export_method: $IPA_EXPORT_METHOD
         - output_tool: $XCODE_OUTPUT_TOOL
 
-  generate-readme:
+  generate_readme:
     steps:
     - git::https://github.com/bitrise-steplib/steps-readme-generator.git@main:
