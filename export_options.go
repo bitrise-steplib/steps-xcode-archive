@@ -452,7 +452,7 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 	exportCodeSignStyle := ""
 	exportProfileMapping := map[string]string{}
 	for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap() {
-		exportProfileMapping[bundleID] = profileInfo.Name
+		exportProfileMapping[bundleID] = profileInfo.UUID
 
 		isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
 		if isXcodeManaged {
@@ -468,7 +468,7 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		}
 	}
 
-	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
+	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().SHA1Fingerprint, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
 
 	if xcodeMajorVersion >= 12 {
 		exportOpts = addXcode12Properties(exportOpts, distributionBundleIdentifier)
