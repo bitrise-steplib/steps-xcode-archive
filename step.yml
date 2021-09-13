@@ -107,6 +107,7 @@ inputs:
     opts:
       category: xcodebuild configuration
       title: Perform clean action
+      summary: If set `clean` xcodebuild action will be performed in addition to the `archive` action.
       description: |-
         If set `clean` xcodebuild action will be performed in addition to the `archive` action.
       value_options:
@@ -118,10 +119,13 @@ inputs:
     opts:
       category: xcodebuild configuration
       title: xcodebuild log persentation
+      summary: Defines how xcodebuild command’s log is presented.
       description: |-
-        If set to `xcpretty`, the xcodebuild command’s output will be prettified by xcpretty.
+        Defines how xcodebuild command’s log is presented.
 
-        If set to `xcodebuild`, only the last 20 lines of raw xcodebuild output will be visible in the build log.
+        Available options:
+        - `xcpretty`: The xcodebuild command’s output will be prettified by xcpretty.
+        - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
 
         The raw xcodebuild log will be exported in both cases.
       value_options:
@@ -133,6 +137,7 @@ inputs:
     opts:
       category: xcodebuild configuration
       title: Additional options for the xcodebuild command
+      summary: Additional options to be added to the executed xcodebuild command.
       description: |-
         Additional options to be added to the executed xcodebuild command.
 
@@ -142,14 +147,15 @@ inputs:
     opts:
       category: Automatic code signing
       title: Automatic code signing method
+      summary: This input determines which Bitrise Apple service connection should be used for automatic code signing.
       description: |-
         This input determines which Bitrise Apple service connection should be used for automatic code signing.
 
         Available values:
         - `off`: Do not do any auto codesigning
-        - `enterprise-with-apple-id`: [Bitrise Apple Service connection with an Apple Developer Enterpsie account](https://devcenter.bitrise.io/getting-started/connecting-to-services/connecting-to-an-apple-service-with-apple-id/)
-        - `api-key`: [Bitrise Apple Service connection with API Key](https://devcenter.bitrise.io/getting-started/connecting-to-services/setting-up-connection-to-an-apple-service-with-api-key/)
-        - `apple-id`: [Bitrise Apple Service connection with Apple ID](https://devcenter.bitrise.io/getting-started/connecting-to-services/setting-up-connection-to-an-apple-service-with-api-key/)
+        - `enterprise-with-apple-id`: [Bitrise Apple Service connection with an Apple Developer Enterpsie account.](https://devcenter.bitrise.io/getting-started/connecting-to-services/connecting-to-an-apple-service-with-apple-id/)
+        - `api-key`: [Bitrise Apple Service connection with API Key.](https://devcenter.bitrise.io/getting-started/connecting-to-services/setting-up-connection-to-an-apple-service-with-api-key/)
+        - `apple-id`: [Bitrise Apple Service connection with Apple ID.](https://devcenter.bitrise.io/getting-started/connecting-to-services/setting-up-connection-to-an-apple-service-with-api-key/)
       value_options:
         - "off"
         - "enterprise-with-apple-id"
@@ -175,6 +181,7 @@ inputs:
     opts:
       category: Automatic code signing
       title: The minimum days the Provisioning Profile should be valid
+      summary: If set to >0 the managed Provisioning Profile will be renewed if it expires within the configured number of days.
       description: |-
         If set to >0 the managed Provisioning Profile will be renewed if it expires within the configured number of days.
 
@@ -184,6 +191,7 @@ inputs:
     opts:
       category: Automatic code signing
       title: Code signing certificate URL
+      summary: URL of the code signing certificate to download.
       description: |-
         URL of the code signing certificate to download.
 
@@ -195,6 +203,7 @@ inputs:
     opts:
       category: Automatic code signing
       title: Code signing certificate passphrase
+      summary: Passphrases for the provided code signing certificates.
       description: |-
         Passphrases for the provided code signing certificates.
 
@@ -204,6 +213,7 @@ inputs:
     opts:
       category: Automatic code signing
       title: Keychain path
+      summary: Path to the Keychain where the code signing certificates will be installed.
       description: |-
         Path to the Keychain where the code signing certificates will be installed.
 
@@ -211,6 +221,7 @@ inputs:
     opts:
       category: Automatic code signing
       title: Keychain password
+      summary: Password for the provided Keychain.
       description: |-
         Password for the provided Keychain.
 
@@ -218,6 +229,7 @@ inputs:
     opts:
       category: Automatic code signing
       title: Bitrise build URL
+      summary: URL of the current Bitrise build.
       description: |-
         URL of the current Bitrise build.
 
@@ -225,6 +237,7 @@ inputs:
     opts:
       category: Automatic code signing
       title: Bitrise build API token
+      summary: API token to access Bitrise resources during the current build.
       description: |-
         API token to access Bitrise resources during the current build.
 
@@ -233,7 +246,7 @@ inputs:
   - distribution_method: "development"
     opts:
       title: Distribution method
-      summary: ""
+      summary: Describes how Xcode should export the archive.
       description: |-
         Describes how Xcode should export the archive.
       value_options:
@@ -257,7 +270,7 @@ inputs:
     opts:
       category: IPA export configuration
       title: Rebuild from bitcode
-      summary: ""
+      summary: For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
       description: |
         For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
       value_options:
@@ -269,7 +282,7 @@ inputs:
     opts:
       category: IPA export configuration
       title: Include bitcode
-      summary: ""
+      summary: For __App Store__ exports, should the package include bitcode?
       description: |-
         For __App Store__ exports, should the package include bitcode?
       value_options:
@@ -281,7 +294,7 @@ inputs:
     opts:
       category: IPA export configuration
       title: iCloud container environment
-      summary: ""
+      summary: If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
       description: |-
         If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
 
@@ -291,6 +304,7 @@ inputs:
     opts:
       category: IPA export configuration
       title: Export options plist content
+      summary: Specifies a plist file content that configures archive exporting.
       description: |-
         Specifies a plist file content that configures archive exporting.
 
@@ -302,7 +316,7 @@ inputs:
     opts:
       category: Step Output Export configuration
       title: Output directory path
-      summary: ""
+      summary: This directory will contain the generated  artifacts.
       description: |-
         This directory will contain the generated  artifacts.
       is_required: true
@@ -311,6 +325,7 @@ inputs:
     opts:
       category: Step Output Export configuration
       title: Export all dSYMs
+      summary: Export additional dSYM files for Frameworks, not just the app dSYM file.
       description: |-
         Export additional dSYM files for Frameworks, not just the app dSYM file.
       value_options:
@@ -322,7 +337,7 @@ inputs:
     opts:
       category: Step Output Export configuration
       title: Generated artifact name
-      summary:
+      summary: This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.
       description: |-
         This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.
 
@@ -332,10 +347,13 @@ inputs:
     opts:
       category: Caching
       title: Enable collecting cache content
+      summary: Defines what cache content should be automatically collected.
       description: |-
+        Defines what cache content should be automatically collected.
+
         Available options:
-        - `none`: Disable collecting cache content
-        - `swift_packages`: Collect Swift PM packages added to the Xcode project
+        - `none`: Disable collecting cache content.
+        - `swift_packages`: Collect Swift PM packages added to the Xcode project.
       value_options:
         - "none"
         - "swift_packages"
@@ -347,6 +365,7 @@ inputs:
     opts:
       category: Debugging
       title: Enable verbose logging
+      summary: If set the Step will print additional logs for debugging.
       description: |-
         If set the Step will print additional logs for debugging.
       value_options:
