@@ -145,7 +145,7 @@ inputs:
   # Automatic Code Signing
   - automatic_code_signing: "off"
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Automatic code signing method
       summary: This input determines which Bitrise Apple service connection should be used for automatic code signing.
       description: |-
@@ -165,7 +165,7 @@ inputs:
 
   - register_test_devices: "no"
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Register test devices on the Apple Developer Portal
       summary: If set the step will register known test devices on Bitrise from team members with the Apple Developer Portal.
       description: |-
@@ -179,7 +179,7 @@ inputs:
 
   - min_profile_validity: 0
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: The minimum days the Provisioning Profile should be valid
       summary: If set to >0 the managed Provisioning Profile will be renewed if it expires within the configured number of days.
       description: |-
@@ -189,7 +189,7 @@ inputs:
 
   - certificate_urls: $BITRISE_CERTIFICATE_URL
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Code signing certificate URL
       summary: URL of the code signing certificate to download.
       description: |-
@@ -201,7 +201,7 @@ inputs:
 
   - passphrases: $BITRISE_CERTIFICATE_PASSPHRASE
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Code signing certificate passphrase
       summary: Passphrases for the provided code signing certificates.
       description: |-
@@ -211,7 +211,7 @@ inputs:
 
   - keychain_path: $BITRISE_KEYCHAIN_PATH
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Keychain path
       summary: Path to the Keychain where the code signing certificates will be installed.
       description: |-
@@ -219,7 +219,7 @@ inputs:
 
   - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Keychain password
       summary: Password for the provided Keychain.
       description: |-
@@ -227,7 +227,7 @@ inputs:
 
   - build_url: $BITRISE_BUILD_URL
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Bitrise build URL
       summary: URL of the current Bitrise build.
       description: |-
@@ -235,7 +235,7 @@ inputs:
 
   - build_api_token: $BITRISE_BUILD_API_TOKEN
     opts:
-      category: Automatic code signing
+      category: Automatic code signing - ( Auto Provision )
       title: Bitrise build API token
       summary: API token to access Bitrise resources during the current build.
       description: |-
