@@ -145,7 +145,6 @@ inputs:
   # Automatic Code Signing
   - automatic_code_signing: "off"
     opts:
-      category: Automatic code signing
       title: Automatic code signing method
       summary: This input determines which Bitrise Apple service connection should be used for automatic code signing.
       description: |-
