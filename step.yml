@@ -2,53 +2,53 @@ title: Xcode Archive & Export for iOS
 summary: Run the Xcode archive command and then export an .ipa from the archive.
 description: |-
 
-  The Step archives your Xcode project by running the `xcodebuild archive` command and then exports the archive into an .ipa file with the `xcodebuild -exportArchive` command. This .ipa file can be shared, installed on test devices, or uploaded to the App Store Connect.
+   The Step archives your Xcode project by running the `xcodebuild archive` command and then exports the archive into an .ipa file with the `xcodebuild -exportArchive` command. This .ipa file can be shared, installed on test devices, or uploaded to the App Store Connect.
 
-  ### Configuring the Step
+   ### Configuring the Step
 
-  Before you can use the Step, you need code signing files. Certificates must be uploaded to Bitrise while provisioning profiles should be either uploaded or, if using the iOS Auto Provisioning Step, downloaded from the Apple Developer Portal or generated automatically.
+   Before you can use the Step, you need code signing files. Certificates must be uploaded to Bitrise while provisioning profiles should be either uploaded or, if using the iOS Auto Provisioning Step, downloaded from the Apple Developer Portal or generated automatically.
 
-  To configure the Step:
+   To configure the Step:
 
-  1. Make sure the **Project (or Workspace) path** input points to the correct location.
+   1. Make sure the **Project (or Workspace) path** input points to the correct location.
 
-     By default, you do not have to change this.
-  1. Set the correct value to the **Select method for export** input. If you use the **iOS Auto Provision** Step, the value of this input should be the same as the **Distribution type** input of that Step.
-  1. Make sure the target scheme is a valid, existing Xcode scheme.
-  1. Optionally, you can define a configuration type to be used (such as Debug or Release) in the **Configuration name** input.
+      By default, you do not have to change this.
+   1. Set the correct value to the **Select method for export** input. If you use the **iOS Auto Provision** Step, the value of this input should be the same as the **Distribution type** input of that Step.
+   1. Make sure the target scheme is a valid, existing Xcode scheme.
+   1. Optionally, you can define a configuration type to be used (such as Debug or Release) in the **Configuration name** input.
 
-     By default, the selected Xcode scheme determines which configuration will be used. This option overwrites the configuration set in the scheme.
-  1. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **he Developer Portal team to use for this export** input.
+      By default, the selected Xcode scheme determines which configuration will be used. This option overwrites the configuration set in the scheme.
+   1. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **he Developer Portal team to use for this export** input.
 
-  ### Troubleshooting
+   ### Troubleshooting
 
-  If the Step fails, check your code signing files first. Make sure they are the right type for your export method. For example, an `app-store` export method requires an App Store type provisioning profile and a Distribution certificate.
+   If the Step fails, check your code signing files first. Make sure they are the right type for your export method. For example, an `app-store` export method requires an App Store type provisioning profile and a Distribution certificate.
 
-  Check **Debug** for additional options to run the Step. The **Additional options for xcodebuild call** input allows you add any flags that the `xcodebuild` command supports.
+   Check **Debug** for additional options to run the Step. The **Additional options for xcodebuild call** input allows you add any flags that the `xcodebuild` command supports.
 
-  Make sure the **Scheme name** and **Configuration name** inputs contain values that actually exist in your Xcode project.
+   Make sure the **Scheme name** and **Configuration name** inputs contain values that actually exist in your Xcode project.
 
-  ### Useful links
+   ### Useful links
 
-  - https://devcenter.bitrise.io/code-signing/ios-code-signing/create-signed-ipa-for-xcode/
-  - https://devcenter.bitrise.io/code-signing/ios-code-signing/resigning-an-ipa/
-  - https://devcenter.bitrise.io/deploy/ios-deploy/ios-deploy-index/
+   - https://devcenter.bitrise.io/code-signing/ios-code-signing/create-signed-ipa-for-xcode/
+   - https://devcenter.bitrise.io/code-signing/ios-code-signing/resigning-an-ipa/
+   - https://devcenter.bitrise.io/deploy/ios-deploy/ios-deploy-index/
 
-  ### Related Steps
+   ### Related Steps
 
-  - [Certificate and profile installer](https://www.bitrise.io/integrations/steps/certificate-and-profile-installer)
-  - [iOS Auto Provision](https://www.bitrise.io/integrations/steps/ios-auto-provision)
-  - [Deploy to iTunesConnect](https://www.bitrise.io/integrations/steps/deploy-to-itunesconnect-deliver)
+   - [Certificate and profile installer](https://www.bitrise.io/integrations/steps/certificate-and-profile-installer)
+   - [iOS Auto Provision](https://www.bitrise.io/integrations/steps/ios-auto-provision)
+   - [Deploy to iTunesConnect](https://www.bitrise.io/integrations/steps/deploy-to-itunesconnect-deliver)
 
 website: https://github.com/bitrise-steplib/steps-xcode-archive
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive
 support_url: https://github.com/bitrise-steplib/steps-xcode-archive/issues
 project_type_tags:
-- ios
-- react-native
-- flutter
+  - ios
+  - react-native
+  - flutter
 type_tags:
-- build
+  - build
 is_requires_admin_user: false
 is_always_run: false
 is_skippable: false
@@ -59,280 +59,280 @@ toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-xcode-archive
 inputs:
-- project_path: $BITRISE_PROJECT_PATH
-  opts:
-    title: "Project (or Workspace) path"
-    summary: ""
-    description: |-
-      A `.xcodeproj` or `.xcworkspace` path.
-    is_required: true
-- scheme: $BITRISE_SCHEME
-  opts:
-    title: "Scheme name"
-    summary: ""
-    description: |-
-      The Scheme to use.
-    is_required: true
-- configuration:
-  opts:
-    title: "Configuration name"
-    summary: ""
-    description: |-
-      (optional) The configuration to use. By default, your Scheme
-      defines which configuration (Debug, Release, ...) should be used,
-      but you can overwrite it with this option.
+  - project_path: $BITRISE_PROJECT_PATH
+    opts:
+      title: "Project (or Workspace) path"
+      summary: ""
+      description: |-
+        A `.xcodeproj` or `.xcworkspace` path.
+      is_required: true
+  - scheme: $BITRISE_SCHEME
+    opts:
+      title: "Scheme name"
+      summary: ""
+      description: |-
+        The Scheme to use.
+      is_required: true
+  - configuration:
+    opts:
+      title: "Configuration name"
+      summary: ""
+      description: |-
+        (optional) The configuration to use. By default, your Scheme
+        defines which configuration (Debug, Release, ...) should be used,
+        but you can overwrite it with this option.
 
-      **Make sure that the Configuration you specify actually exists
-      in your Xcode Project**. If it does not (for example, if you have a typo
-      in the value of this input), Xcode will simply use the Configuration
-      specified by the Scheme and will silently ignore this parameter!
-- distribution_method: "development"
-  opts:
-    title: "Select method for export"
-    summary: ""
-    description: |-
-      Describes how Xcode should export the archive.
+        **Make sure that the Configuration you specify actually exists
+        in your Xcode Project**. If it does not (for example, if you have a typo
+        in the value of this input), Xcode will simply use the Configuration
+        specified by the Scheme and will silently ignore this parameter!
+  - distribution_method: "development"
+    opts:
+      title: "Select method for export"
+      summary: ""
+      description: |-
+        Describes how Xcode should export the archive.
 
-      If you select `auto-detect`, the step will figure out proper export method
-      based on the provisioning profile embedded into the generated xcodearchive.
-    value_options:
-    - "auto-detect"
-    - "app-store"
-    - "ad-hoc"
-    - "enterprise"
-    - "development"
-    is_required: true
-- export_development_team:
-  opts:
-    title: "The Developer Portal team to use for this export"
-    summary: ""
-    description: |-
-      The Developer Portal team to use for this export.
+        If you select `auto-detect`, the step will figure out proper export method
+        based on the provisioning profile embedded into the generated xcodearchive.
+      value_options:
+      - "auto-detect"
+      - "app-store"
+      - "ad-hoc"
+      - "enterprise"
+      - "development"
+      is_required: true
+  - export_development_team:
+    opts:
+      title: "The Developer Portal team to use for this export"
+      summary: ""
+      description: |-
+        The Developer Portal team to use for this export.
 
-      Optional, only required if you want to use a different team for
-      distribution, not the one you have set in your Xcode project.
+        Optional, only required if you want to use a different team for
+        distribution, not the one you have set in your Xcode project.
 
-      Format example:
+        Format example:
 
-      - `1MZX23ABCD4`
-- compile_bitcode: "yes"
-  opts:
-    title: "Rebuild from bitcode"
-    summary: ""
-    description: |
-      For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-- upload_bitcode: "yes"
-  opts:
-    title: "Include bitcode"
-    summary: ""
-    description: |-
-      For __App Store__ exports, should the package include bitcode?
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-- icloud_container_environment:
-  opts:
-    title: "iCloud container environment"
-    summary: ""
-    description: |-
-      If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
-      Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
-- disable_index_while_building: "yes"
-  opts:
-    title: Disable indexing during the build
-    summary: Could make the build faster by disabling the indexing during the build run.
-    description: |-
-      Could make the build faster by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command which will disable the indexing during the build.
+        - `1MZX23ABCD4`
+  - compile_bitcode: "yes"
+    opts:
+      title: "Rebuild from bitcode"
+      summary: ""
+      description: |
+        For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
+  - upload_bitcode: "yes"
+    opts:
+      title: "Include bitcode"
+      summary: ""
+      description: |-
+        For __App Store__ exports, should the package include bitcode?
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
+  - icloud_container_environment:
+    opts:
+      title: "iCloud container environment"
+      summary: ""
+      description: |-
+        If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
+        Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
+  - disable_index_while_building: "yes"
+    opts:
+      title: Disable indexing during the build
+      summary: Could make the build faster by disabling the indexing during the build run.
+      description: |-
+        Could make the build faster by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command which will disable the indexing during the build.
 
-      Indexing is needed for
+        Indexing is needed for
 
-      * Autocomplete
-      * Ability to quickly jump to definition
-      * Get class and method help by alt clicking.
+        * Autocomplete
+        * Ability to quickly jump to definition
+        * Get class and method help by alt clicking.
 
-      Which are not needed in CI environment.
+        Which are not needed in CI environment.
 
-      **Note:** In Xcode you can turn off the `Index-WhileBuilding` feature  by disabling the `Enable Index-WhileBuilding Functionality` in the `Build Settings`.<br/>
-      In CI environment you can disable it by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command.
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-- cache_level: swift_packages
-  opts:
-    title: Enable caching of Swift Package Manager packages
-    description: |-
-      Available options:
-      - `none` : Disable caching
-      - `swift_packages` : Cache Swift PM packages added to the Xcode project
-    value_options:
-    - "none"
-    - "swift_packages"
-    is_required: true
-- force_code_sign_identity:
-  opts:
-    category: Force Build Settings
-    title: "Force code signing with Code Signing Identity"
-    description: |-
-      Force xcodebuild to use specified Code Signing Identity (`CODE_SIGN_IDENTITY`).
+        **Note:** In Xcode you can turn off the `Index-WhileBuilding` feature  by disabling the `Enable Index-WhileBuilding Functionality` in the `Build Settings`.<br/>
+        In CI environment you can disable it by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
+  - cache_level: swift_packages
+    opts:
+      title: Enable caching of Swift Package Manager packages
+      description: |-
+        Available options:
+        - `none` : Disable caching
+        - `swift_packages` : Cache Swift PM packages added to the Xcode project
+      value_options:
+      - "none"
+      - "swift_packages"
+      is_required: true
+  - force_code_sign_identity:
+    opts:
+      category: Force Build Settings
+      title: "Force code signing with Code Signing Identity"
+      description: |-
+        Force xcodebuild to use specified Code Signing Identity (`CODE_SIGN_IDENTITY`).
 
-      Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
-      or specify code signing group ( `iPhone Developer` or `iPhone Distribution` ).
+        Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
+        or specify code signing group ( `iPhone Developer` or `iPhone Distribution` ).
 
-      You also have to **specify the Identity in the format it's stored in Xcode project settings**,
-      and **not how it's presented in the Xcode.app GUI**!
-      This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
-      `iPhone` (`iPhone Distribution` or `iPhone Development`).
-      **The input is case sensitive**: `iPhone Distribution` works but `iphone distribution` does not!
-- force_provisioning_profile_specifier:
-  opts:
-    category: Force Build Settings
-    title: "Force code signing with Provisioning Profile Specifier"
-    description: |-
-      Used for Xcode version 8 and above.
+        You also have to **specify the Identity in the format it's stored in Xcode project settings**,
+        and **not how it's presented in the Xcode.app GUI**!
+        This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
+        `iPhone` (`iPhone Distribution` or `iPhone Development`).
+        **The input is case sensitive**: `iPhone Distribution` works but `iphone distribution` does not!
+  - force_provisioning_profile_specifier:
+    opts:
+      category: Force Build Settings
+      title: "Force code signing with Provisioning Profile Specifier"
+      description: |-
+        Used for Xcode version 8 and above.
 
-      Force xcodebuild to use specified Provisioning Profile (`PROVISIONING_PROFILE_SPECIFIER`).
+        Force xcodebuild to use specified Provisioning Profile (`PROVISIONING_PROFILE_SPECIFIER`).
 
-      How to get your Provisioning Profile Specifier:
+        How to get your Provisioning Profile Specifier:
 
-      - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
-      - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
-      - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
+        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
+        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
+        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
 
-      Format example:
+        Format example:
 
-      - `1MZX23ABCD4/My Provisioning Profile`
-- custom_export_options_plist_content:
-  opts:
-    category: Debug
-    title: "Custom export options plist content"
-    description: |-
-      Used for Xcode version 7 and above.
+        - `1MZX23ABCD4/My Provisioning Profile`
+  - custom_export_options_plist_content:
+    opts:
+      category: Debug
+      title: "Custom export options plist content"
+      description: |-
+        Used for Xcode version 7 and above.
 
-      Specifies a custom export options plist content that configures archive exporting.
-      If empty, the step generates these options based on provisioning profile,
-      with default values.
+        Specifies a custom export options plist content that configures archive exporting.
+        If empty, the step generates these options based on provisioning profile,
+        with default values.
 
-      Auto generated export options available for export methods:
+        Auto generated export options available for export methods:
 
-      - app-store
-      - ad-hoc
-      - enterprise
-      - development
+        - app-store
+        - ad-hoc
+        - enterprise
+        - development
 
-      If the step doesn't find an export method based on the provisioning profile, the development method will be used.
+        If the step doesn't find an export method based on the provisioning profile, the development method will be used.
 
-      Call `xcodebuild -help` for available export options.
-- artifact_name: ${scheme}
-  opts:
-    category: Debug
-    title: "Generated Artifact Name"
-    description: |-
-      This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
-- xcodebuild_options:
-  opts:
-    category: Debug
-    title: Additional options for xcodebuild call
-    description: |-
-      Options added to the end of the xcodebuild call.
+        Call `xcodebuild -help` for available export options.
+  - artifact_name: ${scheme}
+    opts:
+      category: Debug
+      title: "Generated Artifact Name"
+      description: |-
+        This name will be used as basename for the generated .xcarchive, .ipa and .dSYM.zip files.
+  - xcodebuild_options:
+    opts:
+      category: Debug
+      title: Additional options for xcodebuild call
+      description: |-
+        Options added to the end of the xcodebuild call.
 
-      You can use multiple options, separated by a space
-      character. Example: `-xcconfig PATH -verbose`
-- output_dir: $BITRISE_DEPLOY_DIR
-  opts:
-    category: Debug
-    title: "Output directory path"
-    summary: ""
-    description: |-
-      This directory will contain the generated .ipa and .dSYM.zip files.
-    is_required: true
-- perform_clean_action: "no"
-  opts:
-    category: Debug
-    title: "Do a clean Xcode build before the archive?"
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-- output_tool: xcpretty
-  opts:
-    category: Debug
-    title: Output tool
-    description: |-
-      If set to `xcpretty`, the xcodebuild output will be prettified by xcpretty.
+        You can use multiple options, separated by a space
+        character. Example: `-xcconfig PATH -verbose`
+  - output_dir: $BITRISE_DEPLOY_DIR
+    opts:
+      category: Debug
+      title: "Output directory path"
+      summary: ""
+      description: |-
+        This directory will contain the generated .ipa and .dSYM.zip files.
+      is_required: true
+  - perform_clean_action: "no"
+    opts:
+      category: Debug
+      title: "Do a clean Xcode build before the archive?"
+      value_options:
+        - "yes"
+        - "no"
+      is_required: true
+  - output_tool: xcpretty
+    opts:
+      category: Debug
+      title: Output tool
+      description: |-
+        If set to `xcpretty`, the xcodebuild output will be prettified by xcpretty.
 
 
-      If set to `xcodebuild`, only the last 20 lines of raw xcodebuild output will be visible in the build log.
-      The build log will always be added as an artifact.
-    value_options:
-    - xcpretty
-    - xcodebuild
-    is_required: true
-- export_all_dsyms: "yes"
-  opts:
-    category: Debug
-    title: Export all dsyms
-    description: |-
-      If this input is set to `yes` step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
-      Otherwise only .app dsym will be zipped and the zip path exported.
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-- verbose_log: "no"
-  opts:
-    category: Debug
-    title: "Enable verbose logging?"
-    description: Enable verbose logging?
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
+        If set to `xcodebuild`, only the last 20 lines of raw xcodebuild output will be visible in the build log.
+        The build log will always be added as an artifact.
+      value_options:
+      - xcpretty
+      - xcodebuild
+      is_required: true
+  - export_all_dsyms: "yes"
+    opts:
+      category: Debug
+      title: Export all dsyms
+      description: |-
+        If this input is set to `yes` step will collect every dsym (.app dsym and framwork dsyms) in a directory, zip it and export the zipped directory path.
+        Otherwise only .app dsym will be zipped and the zip path exported.
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
+  - verbose_log: "no"
+    opts:
+      category: Debug
+      title: "Enable verbose logging?"
+      description: Enable verbose logging?
+      value_options:
+      - "yes"
+      - "no"
+      is_required: true
 outputs:
-- BITRISE_IPA_PATH:
-  opts:
-    title: The created .ipa file's path
-- BITRISE_APP_DIR_PATH:
-  opts:
-    title: The generated .app directory
-- BITRISE_DSYM_DIR_PATH:
-  opts:
-    title: The created .dSYM dir's path
-    description: |-
-      This Environment Variable points to the path of the directory which contains the dSYMs files.
-      If `export_all_dsyms` is set to `yes`, the Step will collect every dSYM (app dSYMs and framwork dSYMs).
-- BITRISE_DSYM_PATH:
-  opts:
-    title: The created .dSYM.zip file's path
-    description: |-
-      This Environment Variable points to the path of the zip file which contains the dSYM files.
-      If `export_all_dsyms` is set to `yes`, the Step will also collect framework dSYMs in addition to app dSYMs.
-- BITRISE_XCARCHIVE_PATH:
-  opts:
-    title: The created .xcarchive file's path
-- BITRISE_XCARCHIVE_ZIP_PATH:
-  opts:
-    title: The created .xcarchive.zip file's path
-    description: |-
-      The created .xcarchive.zip file's path.
+  - BITRISE_IPA_PATH:
+    opts:
+      title: The created .ipa file's path
+  - BITRISE_APP_DIR_PATH:
+    opts:
+      title: The generated .app directory
+  - BITRISE_DSYM_DIR_PATH:
+    opts:
+      title: The created .dSYM dir's path
+      description: |-
+        This Environment Variable points to the path of the directory which contains the dSYMs files.
+        If `export_all_dsyms` is set to `yes`, the Step will collect every dSYM (app dSYMs and framwork dSYMs).
+  - BITRISE_DSYM_PATH:
+    opts:
+      title: The created .dSYM.zip file's path
+      description: |-
+        This Environment Variable points to the path of the zip file which contains the dSYM files.
+        If `export_all_dsyms` is set to `yes`, the Step will also collect framework dSYMs in addition to app dSYMs.
+  - BITRISE_XCARCHIVE_PATH:
+    opts:
+      title: The created .xcarchive file's path
+  - BITRISE_XCARCHIVE_ZIP_PATH:
+    opts:
+      title: The created .xcarchive.zip file's path
+      description: |-
+         The created .xcarchive.zip file's path.
 
-- BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH:
-  opts:
-    title: "`xcodebuild archive` command log file path"
-    description: |-
-      The file path of the raw `xcodebuild archive` command log. The log is placed into the `Output directory path`.
-- BITRISE_XCODEBUILD_EXPORT_ARCHIVE_LOG_PATH:
-  opts:
-    title: "`xcodebuild -exportArchive` command log file path"
-    description: |-
-      The file path of the raw `xcodebuild -exportArchive` command log. The log is placed into the `Output directory path`.
-- BITRISE_IDEDISTRIBUTION_LOGS_PATH:
-  opts:
-    title: Path to the xcdistributionlogs
-    description: |-
-      Exported when `xcodebuild -exportArchive` command fails.
+  - BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH:
+    opts:
+      title: "`xcodebuild archive` command log file path"
+      description: |-
+        The file path of the raw `xcodebuild archive` command log. The log is placed into the `Output directory path`.
+  - BITRISE_XCODEBUILD_EXPORT_ARCHIVE_LOG_PATH:
+    opts:
+      title: "`xcodebuild -exportArchive` command log file path"
+      description: |-
+        The file path of the raw `xcodebuild -exportArchive` command log. The log is placed into the `Output directory path`.
+  - BITRISE_IDEDISTRIBUTION_LOGS_PATH:
+    opts:
+      title: Path to the xcdistributionlogs
+      description: |-
+        Exported when `xcodebuild -exportArchive` command fails.
