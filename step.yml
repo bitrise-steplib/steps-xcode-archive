@@ -259,7 +259,7 @@ inputs:
         - "yes"
         - "no"
       is_required: true
-  - output_tool: xcpretty
+  - log_formatter: xcpretty
     opts:
       category: Debug
       title: Output tool

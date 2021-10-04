@@ -35,7 +35,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -62,7 +62,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -81,7 +81,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -100,7 +100,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     - DSYM_EXPECTED_COUNT: 1 # Only 1 framework dSYM
     after_run:
     - _run
@@ -120,7 +120,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: auto-detect
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     - DSYM_EXPECTED_COUNT: 3
     after_run:
     - _run
@@ -141,7 +141,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcpretty
+    - LOG_FORMATTER: xcpretty
     after_run:
     - _run
     - _check_outputs
@@ -160,7 +160,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -179,7 +179,7 @@ workflows:
     - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -223,7 +223,7 @@ workflows:
         - export_method: $IPA_EXPORT_METHOD
         - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
         - export_development_team: $TEAM_ID
-        - output_tool: $XCODE_OUTPUT_TOOL
+        - log_formatter: $LOG_FORMATTER
         - verbose_log: "yes"
 
   _check_outputs:

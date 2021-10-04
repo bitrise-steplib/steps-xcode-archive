@@ -64,7 +64,7 @@ type Inputs struct {
 	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
 	CustomExportOptionsPlistContent   string `env:"custom_export_options_plist_content"`
 
-	OutputTool                string `env:"output_tool,opt[xcpretty,xcodebuild]"`
+	LogFormatter              string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
 	ProjectPath               string `env:"project_path,file"`
 	Scheme                    string `env:"scheme,required"`
 	Configuration             string `env:"configuration"`
@@ -338,7 +338,7 @@ type xcodeArchiveOpts struct {
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
-	OutputTool        string
+	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
 
@@ -446,9 +446,9 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		}
 	}
 
-	xcodebuildLog, err := runArchiveCommandWithRetry(archiveCmd, opts.OutputTool == "xcpretty", swiftPackagesPath)
+	xcodebuildLog, err := runArchiveCommandWithRetry(archiveCmd, opts.LogFormatter == "xcpretty", swiftPackagesPath)
 	out.XcodebuildArchiveLog = xcodebuildLog
-	if err != nil || opts.OutputTool == "xcodebuild" {
+	if err != nil || opts.LogFormatter == "xcodebuild" {
 		const lastLinesMsg = "\nLast lines of the Xcode's build log:"
 		if err != nil {
 			log.Infof(colorstring.Red(lastLinesMsg))
@@ -500,7 +500,7 @@ type xcodeIPAExportOpts struct {
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
-	OutputTool        string
+	LogFormatter      string
 	XcodeMajorVersion int
 
 	Archive                         xcarchive.IosArchive
@@ -598,7 +598,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	exportCmd.SetExportDir(ipaExportDir)
 	exportCmd.SetExportOptionsPlist(exportOptionsPath)
 
-	if opts.OutputTool == "xcpretty" {
+	if opts.LogFormatter == "xcpretty" {
 		xcprettyCmd := xcpretty.New(exportCmd)
 
 		fmt.Println()
@@ -672,7 +672,7 @@ type RunOpts struct {
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
-	OutputTool        string
+	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
 
@@ -714,7 +714,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
 		Configuration:     opts.Configuration,
-		OutputTool:        opts.OutputTool,
+		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		ArtifactName:      opts.ArtifactName,
 
@@ -737,7 +737,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
 		Configuration:     opts.Configuration,
-		OutputTool:        opts.OutputTool,
+		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 
 		Archive:                         *archiveOut.Archive,
@@ -988,19 +988,19 @@ func RunStep() error {
 	}
 
 	dependenciesOpts := EnsureDependenciesOpts{
-		XCPretty: config.OutputTool == "xcpretty",
+		XCPretty: config.LogFormatter == "xcpretty",
 	}
 	if err := step.EnsureDependencies(dependenciesOpts); err != nil {
 		log.Warnf(err.Error())
 		log.Warnf("Switching to xcodebuild for output tool")
-		config.OutputTool = "xcodebuild"
+		config.LogFormatter = "xcodebuild"
 	}
 
 	runOpts := RunOpts{
 		ProjectPath:       config.ProjectPath,
 		Scheme:            config.Scheme,
 		Configuration:     config.Configuration,
-		OutputTool:        config.OutputTool,
+		LogFormatter:      config.LogFormatter,
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
