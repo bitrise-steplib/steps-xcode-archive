@@ -207,7 +207,7 @@ inputs:
         Format example:
 
         - `1MZX23ABCD4/My Provisioning Profile`
-  - custom_export_options_plist_content:
+  - export_options_plist_content:
     opts:
       category: Debug
       title: "Custom export options plist content"

@@ -62,7 +62,7 @@ type Inputs struct {
 	ForceTeamID                       string `env:"force_team_id"`
 	ForceProvisioningProfileSpecifier string `env:"force_provisioning_profile_specifier"`
 	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
-	CustomExportOptionsPlistContent   string `env:"custom_export_options_plist_content"`
+	ExportOptionsPlistContent         string `env:"export_options_plist_content"`
 
 	LogFormatter              string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
 	ProjectPath               string `env:"project_path,file"`
@@ -202,10 +202,10 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	config := Config{Inputs: inputs}
 	log.SetEnableDebugLog(config.VerboseLog)
 
-	if config.CustomExportOptionsPlistContent != "" {
+	if config.ExportOptionsPlistContent != "" {
 		var options map[string]interface{}
-		if _, err := plist.Unmarshal([]byte(config.CustomExportOptionsPlistContent), &options); err != nil {
-			return Config{}, fmt.Errorf("issue with input CustomExportOptionsPlistContent: " + err.Error())
+		if _, err := plist.Unmarshal([]byte(config.ExportOptionsPlistContent), &options); err != nil {
+			return Config{}, fmt.Errorf("issue with input ExportOptionsPlistContent: " + err.Error())
 		}
 	}
 
@@ -228,22 +228,22 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 	config.XcodeMajorVersion = int(xcodeMajorVersion)
 
-	// Validation CustomExportOptionsPlistContent
-	customExportOptionsPlistContent := strings.TrimSpace(config.CustomExportOptionsPlistContent)
-	if customExportOptionsPlistContent != config.CustomExportOptionsPlistContent {
+	// Validation ExportOptionsPlistContent
+	exportOptionsPlistContent := strings.TrimSpace(config.ExportOptionsPlistContent)
+	if exportOptionsPlistContent != config.ExportOptionsPlistContent {
 		fmt.Println()
-		log.Warnf("CustomExportOptionsPlistContent is stripped to remove spaces and new lines:")
-		log.Printf(customExportOptionsPlistContent)
+		log.Warnf("ExportOptionsPlistContent is stripped to remove spaces and new lines:")
+		log.Printf(exportOptionsPlistContent)
 	}
 
-	if customExportOptionsPlistContent != "" {
+	if exportOptionsPlistContent != "" {
 		if xcodeMajorVersion < 7 {
 			fmt.Println()
-			log.Warnf("CustomExportOptionsPlistContent is set, but CustomExportOptionsPlistContent only used if xcodeMajorVersion > 6")
-			customExportOptionsPlistContent = ""
+			log.Warnf("ExportOptionsPlistContent is set, but ExportOptionsPlistContent only used if xcodeMajorVersion > 6")
+			exportOptionsPlistContent = ""
 		} else {
 			fmt.Println()
-			log.Warnf("Ignoring the following options because CustomExportOptionsPlistContent provided:")
+			log.Warnf("Ignoring the following options because ExportOptionsPlistContent provided:")
 			log.Printf("- DistributionMethod: %s", config.DistributionMethod)
 			log.Printf("- UploadBitcode: %s", config.UploadBitcode)
 			log.Printf("- CompileBitcode: %s", config.CompileBitcode)
@@ -252,7 +252,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 			fmt.Println()
 		}
 	}
-	config.CustomExportOptionsPlistContent = customExportOptionsPlistContent
+	config.ExportOptionsPlistContent = exportOptionsPlistContent
 
 	if config.ForceProvisioningProfileSpecifier != "" &&
 		xcodeMajorVersion < 8 {
@@ -1011,7 +1011,7 @@ func RunStep() error {
 		XcodebuildOptions:                 config.XcodebuildOptions,
 		CacheLevel:                        config.CacheLevel,
 
-		CustomExportOptionsPlistContent: config.CustomExportOptionsPlistContent,
+		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
 		ExportMethod:                    config.DistributionMethod,
 		ICloudContainerEnvironment:      config.ICloudContainerEnvironment,
 		ExportDevelopmentTeam:           config.ExportDevelopmentTeam,
