@@ -46,7 +46,7 @@ func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.
 // GenerateApplicationExportOptions generates exportOptions for an application export.
 func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
-	mainTarget, err := archivableApplicationTarget(g.xcodeProj, g.scheme, g.configuration)
+	mainTarget, err := archivableApplicationTarget(g.xcodeProj, g.scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configu
 	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
 }
 
-func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configurationName string) (*xcodeproj.Target, error) {
+func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme) (*xcodeproj.Target, error) {
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
 		return nil, fmt.Errorf("archivable entry not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
@@ -306,7 +306,7 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 	}
 
 	if teamID != "" {
-		log.Warnf("Export TeamID specified: %s, filtering CodeSignInfo groups...", teamID)
+		log.Warnf("ExportDevelopmentTeam specified: %s, filtering CodeSignInfo groups...", teamID)
 
 		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateTeamSelectableCodeSignGroupFilter(teamID))
 

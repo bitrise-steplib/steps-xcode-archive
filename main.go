@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/go-steputils/input"
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/command"
@@ -54,25 +53,23 @@ const (
 
 // Inputs ...
 type Inputs struct {
-	ExportMethod               string `env:"export_method,opt[auto-detect,app-store,ad-hoc,enterprise,development]"`
+	DistributionMethod         string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
 	UploadBitcode              bool   `env:"upload_bitcode,opt[yes,no]"`
 	CompileBitcode             bool   `env:"compile_bitcode,opt[yes,no]"`
 	ICloudContainerEnvironment string `env:"icloud_container_environment"`
-	TeamID                     string `env:"team_id"`
+	ExportDevelopmentTeam      string `env:"export_development_team"`
 
 	ForceTeamID                       string `env:"force_team_id"`
 	ForceProvisioningProfileSpecifier string `env:"force_provisioning_profile_specifier"`
-	ForceProvisioningProfile          string `env:"force_provisioning_profile"`
 	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
 	CustomExportOptionsPlistContent   string `env:"custom_export_options_plist_content"`
 
 	OutputTool                string `env:"output_tool,opt[xcpretty,xcodebuild]"`
-	Workdir                   string `env:"workdir"`
 	ProjectPath               string `env:"project_path,file"`
 	Scheme                    string `env:"scheme,required"`
 	Configuration             string `env:"configuration"`
 	OutputDir                 string `env:"output_dir,required"`
-	IsCleanBuild              bool   `env:"is_clean_build,opt[yes,no]"`
+	PerformCleanAction        bool   `env:"perform_clean_action,opt[yes,no]"`
 	XcodebuildOptions         string `env:"xcodebuild_options"`
 	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
 
@@ -205,18 +202,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	config := Config{Inputs: inputs}
 	log.SetEnableDebugLog(config.VerboseLog)
 
-	if config.ExportMethod == "auto-detect" {
-		exportMethods := []exportoptions.Method{exportoptions.MethodAppStore, exportoptions.MethodAdHoc, exportoptions.MethodEnterprise, exportoptions.MethodDevelopment}
-		log.Warnf("Export method: auto-detect is DEPRECATED, use a direct export method %s", exportMethods)
-		fmt.Println()
-	}
-
-	if config.Workdir != "" {
-		if err := input.ValidateIfDirExists(config.Workdir); err != nil {
-			return Config{}, fmt.Errorf("issue with input Workdir: " + err.Error())
-		}
-	}
-
 	if config.CustomExportOptionsPlistContent != "" {
 		var options map[string]interface{}
 		if _, err := plist.Unmarshal([]byte(config.CustomExportOptionsPlistContent), &options); err != nil {
@@ -259,10 +244,10 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		} else {
 			fmt.Println()
 			log.Warnf("Ignoring the following options because CustomExportOptionsPlistContent provided:")
-			log.Printf("- ExportMethod: %s", config.ExportMethod)
+			log.Printf("- DistributionMethod: %s", config.DistributionMethod)
 			log.Printf("- UploadBitcode: %s", config.UploadBitcode)
 			log.Printf("- CompileBitcode: %s", config.CompileBitcode)
-			log.Printf("- TeamID: %s", config.TeamID)
+			log.Printf("- ExportDevelopmentTeam: %s", config.ExportDevelopmentTeam)
 			log.Printf("- ICloudContainerEnvironment: %s", config.ICloudContainerEnvironment)
 			fmt.Println()
 		}
@@ -274,20 +259,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		fmt.Println()
 		log.Warnf("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
 		config.ForceProvisioningProfileSpecifier = ""
-	}
-
-	if config.ForceTeamID != "" &&
-		xcodeMajorVersion < 8 {
-		fmt.Println()
-		log.Warnf("ForceTeamID is set, but ForceTeamID only used if xcodeMajorVersion > 7")
-		config.ForceTeamID = ""
-	}
-
-	if config.ForceProvisioningProfileSpecifier != "" &&
-		config.ForceProvisioningProfile != "" {
-		fmt.Println()
-		log.Warnf("both ForceProvisioningProfileSpecifier and ForceProvisioningProfile are set, using ForceProvisioningProfileSpecifier")
-		config.ForceProvisioningProfile = ""
 	}
 
 	fmt.Println()
@@ -371,11 +342,9 @@ type xcodeArchiveOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
-	ForceTeamID                       string
 	ForceProvisioningProfileSpecifier string
-	ForceProvisioningProfile          string
 	ForceCodeSignIdentity             string
-	IsCleanBuild                      bool
+	PerformCleanAction                bool
 	DisableIndexWhileBuilding         bool
 	XcodebuildOptions                 string
 
@@ -401,7 +370,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
 
-	mainTarget, err := archivableApplicationTarget(xcodeProj, scheme, configuration)
+	mainTarget, err := archivableApplicationTarget(xcodeProj, scheme)
 	if err != nil {
 		return out, fmt.Errorf("failed to read main application target: %s", err)
 	}
@@ -430,24 +399,16 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	archiveCmd.SetScheme(opts.Scheme)
 	archiveCmd.SetConfiguration(opts.Configuration)
 
-	if opts.ForceTeamID != "" {
-		log.Printf("Forcing Development Team: %s", opts.ForceTeamID)
-		archiveCmd.SetForceDevelopmentTeam(opts.ForceTeamID)
-	}
 	if opts.ForceProvisioningProfileSpecifier != "" {
 		log.Printf("Forcing Provisioning Profile Specifier: %s", opts.ForceProvisioningProfileSpecifier)
 		archiveCmd.SetForceProvisioningProfileSpecifier(opts.ForceProvisioningProfileSpecifier)
-	}
-	if opts.ForceProvisioningProfile != "" {
-		log.Printf("Forcing Provisioning Profile: %s", opts.ForceProvisioningProfile)
-		archiveCmd.SetForceProvisioningProfile(opts.ForceProvisioningProfile)
 	}
 	if opts.ForceCodeSignIdentity != "" {
 		log.Printf("Forcing Code Signing Identity: %s", opts.ForceCodeSignIdentity)
 		archiveCmd.SetForceCodeSignIdentity(opts.ForceCodeSignIdentity)
 	}
 
-	if opts.IsCleanBuild {
+	if opts.PerformCleanAction {
 		archiveCmd.SetCustomBuildAction("clean")
 	}
 
@@ -546,7 +507,7 @@ type xcodeIPAExportOpts struct {
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
 	ICloudContainerEnvironment      string
-	TeamID                          string
+	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
 	CompileBitcode                  bool
 }
@@ -564,7 +525,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	// Exporting the ipa with Xcode Command Line tools
 
 	/*
-		You'll get a "Error Domain=IDEDistributionErrorDomain Code=14 "No applicable devices found."" error
+		You'll get an "Error Domain=IDEDistributionErrorDomain Code=14 "No applicable devices found."" error
 		if $GEM_HOME is set and the project's directory includes a Gemfile - to fix this
 		we'll unset GEM_HOME as that's not required for xcodebuild anyway.
 		This probably fixes the RVM issue too, but that still should be tested.
@@ -614,7 +575,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
 
 		generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration)
-		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.TeamID,
+		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
 			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
 		if err != nil {
 			return out, err
@@ -718,9 +679,8 @@ type RunOpts struct {
 	// Archive
 	ForceTeamID                       string
 	ForceProvisioningProfileSpecifier string
-	ForceProvisioningProfile          string
 	ForceCodeSignIdentity             string
-	IsCleanBuild                      bool
+	PerformCleanAction                bool
 	DisableIndexWhileBuilding         bool
 	XcodebuildOptions                 string
 	CacheLevel                        string
@@ -729,7 +689,7 @@ type RunOpts struct {
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
 	ICloudContainerEnvironment      string
-	TeamID                          string
+	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
 	CompileBitcode                  bool
 }
@@ -758,11 +718,9 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		ArtifactName:      opts.ArtifactName,
 
-		ForceTeamID:                       opts.ForceTeamID,
 		ForceProvisioningProfileSpecifier: opts.ForceProvisioningProfileSpecifier,
-		ForceProvisioningProfile:          opts.ForceProvisioningProfile,
 		ForceCodeSignIdentity:             opts.ForceCodeSignIdentity,
-		IsCleanBuild:                      opts.IsCleanBuild,
+		PerformCleanAction:                opts.PerformCleanAction,
 		DisableIndexWhileBuilding:         opts.DisableIndexWhileBuilding,
 		XcodebuildOptions:                 opts.XcodebuildOptions,
 		CacheLevel:                        opts.CacheLevel,
@@ -786,7 +744,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
 		ExportMethod:                    opts.ExportMethod,
 		ICloudContainerEnvironment:      opts.ICloudContainerEnvironment,
-		TeamID:                          opts.TeamID,
+		ExportDevelopmentTeam:           opts.ExportDevelopmentTeam,
 		UploadBitcode:                   opts.UploadBitcode,
 		CompileBitcode:                  opts.CompileBitcode,
 	}
@@ -1046,19 +1004,17 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
-		ForceTeamID:                       config.ForceTeamID,
 		ForceProvisioningProfileSpecifier: config.ForceProvisioningProfileSpecifier,
-		ForceProvisioningProfile:          config.ForceProvisioningProfile,
 		ForceCodeSignIdentity:             config.ForceCodeSignIdentity,
-		IsCleanBuild:                      config.IsCleanBuild,
+		PerformCleanAction:                config.PerformCleanAction,
 		DisableIndexWhileBuilding:         config.DisableIndexWhileBuilding,
 		XcodebuildOptions:                 config.XcodebuildOptions,
 		CacheLevel:                        config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.CustomExportOptionsPlistContent,
-		ExportMethod:                    config.ExportMethod,
+		ExportMethod:                    config.DistributionMethod,
 		ICloudContainerEnvironment:      config.ICloudContainerEnvironment,
-		TeamID:                          config.TeamID,
+		ExportDevelopmentTeam:           config.ExportDevelopmentTeam,
 		UploadBitcode:                   config.UploadBitcode,
 		CompileBitcode:                  config.CompileBitcode,
 	}
