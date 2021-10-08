@@ -228,7 +228,7 @@ inputs:
         If the step doesn't find an export method based on the provisioning profile, the development method will be used.
 
         Call `xcodebuild -help` for available export options.
-  - artifact_name: ${scheme}
+  - artifact_name:
     opts:
       category: Debug
       title: "Generated Artifact Name"

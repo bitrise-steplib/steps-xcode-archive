@@ -2,6 +2,7 @@ package ziputil
 
 import (
 	"fmt"
+	"github.com/bitrise-io/go-utils/env"
 	"path/filepath"
 
 	"github.com/bitrise-io/go-utils/command"
@@ -29,8 +30,9 @@ func ZipDir(sourceDirPth, destinationZipPth string, isContentOnly bool) error {
 	// -r - Travel the directory structure recursively
 	// -T - Test the integrity of the new zip file
 	// -y - Store symbolic links as such in the zip archive, instead of compressing and storing the file referred to by the link
-	cmd := command.New("/usr/bin/zip", "-rTy", destinationZipPth, zipTarget)
-	cmd.SetDir(workDir)
+	opts := &command.Opts{Dir: workDir}
+	factory := command.NewFactory(env.NewRepository())
+	cmd := factory.Create("/usr/bin/zip", []string{"-rTy", destinationZipPth, zipTarget}, opts)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		return fmt.Errorf("command: (%s) failed, output: %s, error: %s", cmd.PrintableCommandArgs(), out, err)
 	}
@@ -51,8 +53,9 @@ func ZipFile(sourceFilePth, destinationZipPth string) error {
 
 	// -T - Test the integrity of the new zip file
 	// -y - Store symbolic links as such in the zip archive, instead of compressing and storing the file referred to by the link
-	cmd := command.New("/usr/bin/zip", "-Ty", destinationZipPth, zipTarget)
-	cmd.SetDir(workDir)
+	opts := &command.Opts{Dir: workDir}
+	factory := command.NewFactory(env.NewRepository())
+	cmd := factory.Create("/usr/bin/zip", []string{"-Ty", destinationZipPth, zipTarget}, opts)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		return fmt.Errorf("command: (%s) failed, output: %s, error: %s", cmd.PrintableCommandArgs(), out, err)
 	}
@@ -62,7 +65,8 @@ func ZipFile(sourceFilePth, destinationZipPth string) error {
 
 // UnZip ...
 func UnZip(zip, intoDir string) error {
-	cmd := command.New("/usr/bin/unzip", zip, "-d", intoDir)
+	factory := command.NewFactory(env.NewRepository())
+	cmd := factory.Create("/usr/bin/unzip", []string{zip, "-d", intoDir}, nil)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		return fmt.Errorf("command: (%s) failed, output: %s, error: %s", cmd.PrintableCommandArgs(), out, err)
 	}

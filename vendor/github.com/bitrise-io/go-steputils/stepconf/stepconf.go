@@ -9,136 +9,22 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/bitrise-io/go-utils/env"
 	"github.com/bitrise-io/go-utils/parseutil"
 )
 
-// ErrNotStructPtr indicates a type is not a pointer to a struct.
-var ErrNotStructPtr = errors.New("must be a pointer to a struct")
+const (
+	rangeMinimumGroupName    = "min"
+	rangeMaximumGroupName    = "max"
+	rangeMinBracketGroupName = "minbr"
+	rangeMaxBracketGroupName = "maxbr"
+	rangeRegex               = `range(?P<` + rangeMinBracketGroupName + `>\[|\])(?P<` + rangeMinimumGroupName + `>.*?)\.\.(?P<` + rangeMaximumGroupName + `>.*?)(?P<` + rangeMaxBracketGroupName + `>\[|\])`
+	multilineConstraintName  = "multiline"
+)
 
-// ParseError occurs when a struct field cannot be set.
-type ParseError struct {
-	Field string
-	Value string
-	Err   error
-}
-
-const rangeMinimumGroupName = "min"
-const rangeMaximumGroupName = "max"
-const rangeMinBracketGroupName = "minbr"
-const rangeMaxBracketGroupName = "maxbr"
-const rangeRegex = `range(?P<` + rangeMinBracketGroupName + `>\[|\])(?P<` + rangeMinimumGroupName + `>.*?)\.\.(?P<` + rangeMaximumGroupName + `>.*?)(?P<` + rangeMaxBracketGroupName + `>\[|\])`
-const multilineConstraintName = "multiline"
-
-// Error implements builtin errors.Error.
-func (e *ParseError) Error() string {
-	segments := []string{e.Field}
-	if e.Value != "" {
-		segments = append(segments, e.Value)
-	}
-	segments = append(segments, e.Err.Error())
-	return strings.Join(segments, ": ")
-}
-
-// Secret variables are not shown in the printed output.
-type Secret string
-
-const secret = "*****"
-
-// String implements fmt.Stringer.String.
-// When a Secret is printed, it's masking the underlying string with asterisks.
-func (s Secret) String() string {
-	if s == "" {
-		return ""
-	}
-	return secret
-}
-
-// Print the name of the struct with Title case in blue color with followed by a newline,
-// then print all fields formatted as '- field name: field value` separated by newline.
-func Print(config interface{}) {
-	fmt.Print(toString(config))
-}
-
-func valueString(v reflect.Value) string {
-	if v.Kind() != reflect.Ptr {
-		return fmt.Sprintf("%v", v.Interface())
-	}
-
-	if !v.IsNil() {
-		return fmt.Sprintf("%v", v.Elem().Interface())
-	}
-
-	return ""
-}
-
-// returns the name of the struct with Title case in blue color followed by a newline,
-// then print all fields formatted as '- field name: field value` separated by newline.
-func toString(config interface{}) string {
-	v := reflect.ValueOf(config)
-	t := reflect.TypeOf(config)
-
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	str := fmt.Sprint(colorstring.Bluef("%s:\n", strings.Title(t.Name())))
-	for i := 0; i < t.NumField(); i++ {
-		str += fmt.Sprintf("- %s: %s\n", t.Field(i).Name, valueString(v.Field(i)))
-	}
-
-	return str
-}
-
-// parseTag splits a struct field's env tag into its name and option.
-func parseTag(tag string) (string, string) {
-	if idx := strings.Index(tag, ","); idx != -1 {
-		return tag[:idx], tag[idx+1:]
-	}
-	return tag, ""
-}
-
-// EnvProvider ...
-type EnvProvider interface {
-	Getenv(key string) string
-}
-
-// OSEnvProvider ...
-type OSEnvProvider struct{}
-
-// NewOSEnvProvider ...
-func NewOSEnvProvider() EnvProvider {
-	return OSEnvProvider{}
-}
-
-// Getenv ...
-func (p OSEnvProvider) Getenv(key string) string {
-	return os.Getenv(key)
-}
-
-// EnvParser ...
-type EnvParser struct {
-	envProvider EnvProvider
-}
-
-// NewDefaultEnvParser ...
-func NewDefaultEnvParser() EnvParser {
-	return NewEnvParser(NewOSEnvProvider())
-}
-
-// NewEnvParser ...
-func NewEnvParser(envProvider EnvProvider) EnvParser {
-	return EnvParser{
-		envProvider: envProvider,
-	}
-}
-
-// Parse ...
-func (p EnvParser) Parse(conf interface{}) error {
+// parse populates a struct with the retrieved values from environment variables
+// described by struct tags and applies the defined validations.
+func parse(conf interface{}, envRepository env.Repository) error {
 	c := reflect.ValueOf(conf)
 	if c.Kind() != reflect.Ptr {
 		return ErrNotStructPtr
@@ -156,7 +42,7 @@ func (p EnvParser) Parse(conf interface{}) error {
 			continue
 		}
 		key, constraint := parseTag(tag)
-		value := p.envProvider.Getenv(key)
+		value := envRepository.Get(key)
 
 		if err := setField(c.Field(i), value, constraint); err != nil {
 			errs = append(errs, &ParseError{t.Field(i).Name, value, err})
@@ -175,20 +61,12 @@ func (p EnvParser) Parse(conf interface{}) error {
 	return nil
 }
 
-var defaultEnvParser *EnvParser
-
-func getDefaultEnvParser() EnvParser {
-	if defaultEnvParser == nil {
-		parser := NewDefaultEnvParser()
-		defaultEnvParser = &parser
+// parseTag splits a struct field's env tag into its name and option.
+func parseTag(tag string) (string, string) {
+	if idx := strings.Index(tag, ","); idx != -1 {
+		return tag[:idx], tag[idx+1:]
 	}
-	return *defaultEnvParser
-}
-
-// Parse populates a struct with the retrieved values from environment variables
-// described by struct tags and applies the defined validations.
-func Parse(conf interface{}) error {
-	return getDefaultEnvParser().Parse(conf)
+	return tag, ""
 }
 
 func setField(field reflect.Value, value, constraint string) error {
@@ -261,7 +139,7 @@ func validateConstraint(value, constraint string) error {
 			return fmt.Errorf("value is not in value options (%s)", constraint)
 		}
 	case regexp.MustCompile(rangeRegex).FindString(constraint):
-		if err := ValidateRangeFields(value, constraint); err != nil {
+		if err := validateRangeFields(value, constraint); err != nil {
 			return err
 		}
 	case multilineConstraintName:
@@ -272,12 +150,12 @@ func validateConstraint(value, constraint string) error {
 	return nil
 }
 
-//ValidateRangeFields validates if the given range is proper. Ranges are optional, empty values are valid.
-func ValidateRangeFields(valueStr, constraint string) error {
+// validateRangeFields validates if the given range is proper. Ranges are optional, empty values are valid.
+func validateRangeFields(valueStr, constraint string) error {
 	if valueStr == "" {
 		return nil
 	}
-	constraintMin, constraintMax, constraintMinBr, constraintMaxBr, err := GetRangeValues(constraint)
+	constraintMin, constraintMax, constraintMinBr, constraintMaxBr, err := getRangeValues(constraint)
 	if err != nil {
 		return err
 	}
@@ -497,8 +375,8 @@ func validateRangeMaxFieldValue(max float64, value float64, inclusive bool) erro
 	return nil
 }
 
-// GetRangeValues reads up the given range constraint and returns the values, or an error if the constraint is malformed or could not be parsed.
-func GetRangeValues(value string) (min string, max string, minBracket string, maxBracket string, err error) {
+// getRangeValues reads up the given range constraint and returns the values, or an error if the constraint is malformed or could not be parsed.
+func getRangeValues(value string) (min string, max string, minBracket string, maxBracket string, err error) {
 	regex := regexp.MustCompile(rangeRegex)
 	groups := regex.FindStringSubmatch(value)
 	if len(groups) < 1 {

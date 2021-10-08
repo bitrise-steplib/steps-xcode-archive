@@ -9,5 +9,5 @@ const (
 // CommandModel ...
 type CommandModel interface {
 	PrintableCmd() string
-	Command() *command.Model
+	Command(opts *command.Opts) command.Command
 }

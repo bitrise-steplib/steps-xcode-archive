@@ -2,7 +2,6 @@ package xcodebuild
 
 import (
 	"os"
-	"os/exec"
 
 	"github.com/bitrise-io/go-utils/command"
 )
@@ -31,6 +30,8 @@ xcodebuild -workspace <workspacename> \
 
 // TestCommandModel ...
 type TestCommandModel struct {
+	commandFactory command.Factory
+
 	projectPath string
 	isWorkspace bool
 	scheme      string
@@ -48,10 +49,11 @@ type TestCommandModel struct {
 }
 
 // NewTestCommand ...
-func NewTestCommand(projectPath string, isWorkspace bool) *TestCommandModel {
+func NewTestCommand(projectPath string, isWorkspace bool, commandFactory command.Factory) *TestCommandModel {
 	return &TestCommandModel{
-		projectPath: projectPath,
-		isWorkspace: isWorkspace,
+		commandFactory: commandFactory,
+		projectPath:    projectPath,
+		isWorkspace:    isWorkspace,
 	}
 }
 
@@ -91,8 +93,8 @@ func (c *TestCommandModel) SetDisableIndexWhileBuilding(disable bool) *TestComma
 	return c
 }
 
-func (c *TestCommandModel) cmdSlice() []string {
-	slice := []string{toolName}
+func (c *TestCommandModel) args() []string {
+	var slice []string
 
 	if c.projectPath != "" {
 		if c.isWorkspace {
@@ -125,30 +127,21 @@ func (c *TestCommandModel) cmdSlice() []string {
 	return slice
 }
 
+// Command ...
+func (c TestCommandModel) Command(opts *command.Opts) command.Command {
+	return c.commandFactory.Create(toolName, c.args(), opts)
+}
+
 // PrintableCmd ...
 func (c TestCommandModel) PrintableCmd() string {
-	cmdSlice := c.cmdSlice()
-	return command.PrintableCommandArgs(false, cmdSlice)
-}
-
-// Command ...
-func (c TestCommandModel) Command() *command.Model {
-	cmdSlice := c.cmdSlice()
-	return command.New(cmdSlice[0], cmdSlice[1:]...)
-}
-
-// Cmd ...
-func (c TestCommandModel) Cmd() *exec.Cmd {
-	command := c.Command()
-	return command.GetCmd()
+	return c.Command(nil).PrintableCommandArgs()
 }
 
 // Run ...
 func (c TestCommandModel) Run() error {
-	command := c.Command()
-
-	command.SetStdout(os.Stdout)
-	command.SetStderr(os.Stderr)
-
+	command := c.Command(&command.Opts{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	})
 	return command.Run()
 }

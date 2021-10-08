@@ -2,7 +2,6 @@ package xcodebuild
 
 import (
 	"os"
-	"os/exec"
 
 	"github.com/bitrise-io/go-utils/command"
 )
@@ -19,6 +18,8 @@ xcodebuild -exportArchive \
 
 // LegacyExportCommandModel ...
 type LegacyExportCommandModel struct {
+	commandFactory command.Factory
+
 	exportFormat                  string
 	archivePath                   string
 	exportPath                    string
@@ -26,8 +27,10 @@ type LegacyExportCommandModel struct {
 }
 
 // NewLegacyExportCommand ...
-func NewLegacyExportCommand() *LegacyExportCommandModel {
-	return &LegacyExportCommandModel{}
+func NewLegacyExportCommand(commandFactory command.Factory) *LegacyExportCommandModel {
+	return &LegacyExportCommandModel{
+		commandFactory: commandFactory,
+	}
 }
 
 // SetExportFormat ...
@@ -54,8 +57,8 @@ func (c *LegacyExportCommandModel) SetExportProvisioningProfileName(exportProvis
 	return c
 }
 
-func (c LegacyExportCommandModel) cmdSlice() []string {
-	slice := []string{toolName, "-exportArchive"}
+func (c LegacyExportCommandModel) args() []string {
+	slice := []string{"-exportArchive"}
 	if c.exportFormat != "" {
 		slice = append(slice, "-exportFormat", c.exportFormat)
 	}
@@ -71,30 +74,21 @@ func (c LegacyExportCommandModel) cmdSlice() []string {
 	return slice
 }
 
+// Command ...
+func (c LegacyExportCommandModel) Command(opts *command.Opts) command.Command {
+	return c.commandFactory.Create(toolName, c.args(), opts)
+}
+
 // PrintableCmd ...
 func (c LegacyExportCommandModel) PrintableCmd() string {
-	cmdSlice := c.cmdSlice()
-	return command.PrintableCommandArgs(false, cmdSlice)
-}
-
-// Command ...
-func (c LegacyExportCommandModel) Command() *command.Model {
-	cmdSlice := c.cmdSlice()
-	return command.New(cmdSlice[0], cmdSlice[1:]...)
-}
-
-// Cmd ...
-func (c LegacyExportCommandModel) Cmd() *exec.Cmd {
-	command := c.Command()
-	return command.GetCmd()
+	return c.Command(nil).PrintableCommandArgs()
 }
 
 // Run ...
 func (c LegacyExportCommandModel) Run() error {
-	command := c.Command()
-
-	command.SetStdout(os.Stdout)
-	command.SetStderr(os.Stderr)
-
+	command := c.Command(&command.Opts{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	})
 	return command.Run()
 }

@@ -6,8 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/bitrise-io/go-steputils/command/rubycommand"
+	"github.com/bitrise-io/go-steputils/ruby"
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/env"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	version "github.com/hashicorp/go-version"
@@ -36,32 +37,21 @@ func (c *CommandModel) SetCustomOptions(customOptions []string) *CommandModel {
 	return c
 }
 
-func (c CommandModel) cmdSlice() []string {
-	slice := []string{toolName}
-	slice = append(slice, c.customOptions...)
-	return slice
-}
-
 // Command ...
-func (c CommandModel) Command() *command.Model {
-	cmdSlice := c.cmdSlice()
-	return command.New(cmdSlice[0])
+func (c CommandModel) Command(opts *command.Opts) command.Command {
+	return command.NewFactory(env.NewRepository()).Create(toolName, c.customOptions, opts)
 }
 
 // PrintableCmd ...
 func (c CommandModel) PrintableCmd() string {
-	prettyCmdSlice := c.cmdSlice()
-	prettyCmdStr := command.PrintableCommandArgs(false, prettyCmdSlice)
+	prettyCmdStr := c.Command(nil).PrintableCommandArgs()
+	xcodebuildCmdStr := c.xcodebuildCommand.PrintableCmd()
 
-	cmdStr := c.xcodebuildCommand.PrintableCmd()
-
-	return fmt.Sprintf("set -o pipefail && %s | %s", cmdStr, prettyCmdStr)
+	return fmt.Sprintf("set -o pipefail && %s | %s", xcodebuildCmdStr, prettyCmdStr)
 }
 
 // Run ...
 func (c CommandModel) Run() (string, error) {
-	prettyCmd := c.Command()
-	xcodebuildCmd := c.xcodebuildCommand.Command()
 
 	// Configure cmd in- and outputs
 	pipeReader, pipeWriter := io.Pipe()
@@ -69,20 +59,24 @@ func (c CommandModel) Run() (string, error) {
 	var outBuffer bytes.Buffer
 	outWriter := io.MultiWriter(&outBuffer, pipeWriter)
 
-	xcodebuildCmd.SetStdin(nil)
-	xcodebuildCmd.SetStdout(outWriter)
-	xcodebuildCmd.SetStderr(outWriter)
+	xcodebuildCmd := c.xcodebuildCommand.Command(&command.Opts{
+		Stdin:  nil,
+		Stdout: outWriter,
+		Stderr: outWriter,
+	})
 
-	prettyCmd.SetStdin(pipeReader)
-	prettyCmd.SetStdout(os.Stdout)
-	prettyCmd.SetStderr(os.Stdout)
+	prettyCmd := c.Command(&command.Opts{
+		Stdin:  pipeReader,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	})
 
 	// Run
-	if err := xcodebuildCmd.GetCmd().Start(); err != nil {
+	if err := xcodebuildCmd.Start(); err != nil {
 		out := outBuffer.String()
 		return out, err
 	}
-	if err := prettyCmd.GetCmd().Start(); err != nil {
+	if err := prettyCmd.Start(); err != nil {
 		out := outBuffer.String()
 		return out, err
 	}
@@ -93,12 +87,12 @@ func (c CommandModel) Run() (string, error) {
 			log.Warnf("Failed to close xcodebuild-xcpretty pipe, error: %s", err)
 		}
 
-		if err := prettyCmd.GetCmd().Wait(); err != nil {
+		if err := prettyCmd.Wait(); err != nil {
 			log.Warnf("xcpretty command failed, error: %s", err)
 		}
 	}()
 
-	if err := xcodebuildCmd.GetCmd().Wait(); err != nil {
+	if err := xcodebuildCmd.Wait(); err != nil {
 		out := outBuffer.String()
 		return out, err
 	}
@@ -108,21 +102,31 @@ func (c CommandModel) Run() (string, error) {
 
 // IsInstalled ...
 func IsInstalled() (bool, error) {
-	return rubycommand.IsGemInstalled("xcpretty", "")
+	locator := env.NewCommandLocator()
+	factory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), locator)
+	if err != nil {
+		return false, err
+	}
+
+	return ruby.NewEnvironment(factory, locator).IsGemInstalled("xcpretty", "")
 }
 
 // Install ...
-func Install() ([]*command.Model, error) {
-	cmds, err := rubycommand.GemInstall("xcpretty", "", false)
+func Install() ([]command.Command, error) {
+	locator := env.NewCommandLocator()
+	factory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), locator)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create command model, error: %s", err)
+		return nil, err
 	}
+
+	cmds := factory.CreateGemInstall("xcpretty", "", false, false, nil)
+
 	return cmds, nil
 }
 
 // Version ...
 func Version() (*version.Version, error) {
-	cmd := command.New("xcpretty", "--version")
+	cmd := command.NewFactory(env.NewRepository()).Create("xcpretty", []string{"--version"}, nil)
 	versionOut, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return nil, err

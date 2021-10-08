@@ -43,18 +43,29 @@ func (t Target) DependentTargets() []Target {
 	return targets
 }
 
+// DependesOn ...
+func (t Target) DependesOn(targetID string) bool {
+	for _, targetDependency := range t.Dependencies {
+		childTarget := targetDependency.Target
+		if childTarget.ID == targetID {
+			return true
+		}
+	}
+	return false
+}
+
 // DependentExecutableProductTargets ...
-func (t Target) DependentExecutableProductTargets(includeUITest bool) []Target {
+func (t Target) DependentExecutableProductTargets() []Target {
 	var targets []Target
 	for _, targetDependency := range t.Dependencies {
 		childTarget := targetDependency.Target
-		if !childTarget.IsExecutableProduct() && (!includeUITest || !childTarget.IsUITestProduct()) {
+		if !childTarget.IsExecutableProduct() {
 			continue
 		}
 
 		targets = append(targets, childTarget)
 
-		childDependentTargets := childTarget.DependentExecutableProductTargets(includeUITest)
+		childDependentTargets := childTarget.DependentExecutableProductTargets()
 		targets = append(targets, childDependentTargets...)
 	}
 
@@ -74,6 +85,14 @@ func (t Target) IsAppExtensionProduct() bool {
 // IsExecutableProduct ...
 func (t Target) IsExecutableProduct() bool {
 	return t.IsAppProduct() || t.IsAppExtensionProduct()
+}
+
+// IsTest identifies test targets
+// Based on https://github.com/CocoaPods/Xcodeproj/blob/907c81763a7660978fda93b2f38f05de0cbb51ad/lib/xcodeproj/project/object/native_target.rb#L470
+func (t Target) IsTest() bool {
+	return t.IsTestProduct() ||
+		t.IsUITestProduct() ||
+		t.ProductType == "com.apple.product-type.bundle" // OCTest bundle
 }
 
 // IsTestProduct ...

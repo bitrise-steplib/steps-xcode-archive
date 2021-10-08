@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/progress"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
@@ -41,10 +42,8 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool) 
 	logWithTimestamp(colorstring.Green, "$ %s", archiveCmd.PrintableCmd())
 	fmt.Println()
 
-	archiveRootCmd := archiveCmd.Command()
 	var output bytes.Buffer
-	archiveRootCmd.SetStdout(&output)
-	archiveRootCmd.SetStderr(&output)
+	archiveRootCmd := archiveCmd.Command(&command.Opts{Stdout: &output, Stderr: &output})
 
 	var err error
 	progress.SimpleProgress(".", time.Minute, func() {

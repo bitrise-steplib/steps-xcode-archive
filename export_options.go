@@ -115,7 +115,7 @@ func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcschem
 }
 
 func dependentApplicationBundleTargetsOf(exportMethod exportoptions.Method, applicationtarget xcodeproj.Target) (dependentTargets []xcodeproj.Target) {
-	for _, target := range applicationtarget.DependentExecutableProductTargets(false) {
+	for _, target := range applicationtarget.DependentExecutableProductTargets() {
 		// App store exports contain App Clip too. App Clip provisioning profile has to be included in export options:
 		// ..
 		// <key>provisioningProfiles</key>
