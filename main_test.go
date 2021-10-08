@@ -27,16 +27,30 @@ func (p MockXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVersionMod
 	return p.version, nil
 }
 
-type MockEnvProvider struct {
+type MockEnvRepository struct {
 	envs map[string]string
 }
 
-func NewMockEnvProvider(envs map[string]string) MockEnvProvider {
-	return MockEnvProvider{envs: envs}
+func (r MockEnvRepository) List() []string {
+	var keyValuePairs []string
+	for key, value := range r.envs {
+		keyValuePairs = append(keyValuePairs, key+"="+value)
+	}
+	return keyValuePairs
 }
 
-func (p MockEnvProvider) Getenv(key string) string {
-	return p.envs[key]
+func (r MockEnvRepository) Unset(key string) error {
+	delete(r.envs, key)
+	return nil
+}
+
+func (r MockEnvRepository) Set(key, value string) error {
+	r.envs[key] = value
+	return nil
+}
+
+func (r MockEnvRepository) Get(key string) string {
+	return r.envs[key]
 }
 
 func thisStepInputs(t *testing.T) map[string]string {
@@ -106,14 +120,15 @@ func TestXcodeArchiveStep_ProcessInputs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			envRepository := MockEnvRepository{envs: tt.envs}
 			s := XcodeArchiveStep{
 				xcodeVersionProvider: tt.xcodeVersionProvider,
-				stepInputParser:      stepconf.NewEnvParser(NewMockEnvProvider(tt.envs)),
+				stepInputParser:      stepconf.NewInputParser(envRepository),
 			}
 
 			config, err := s.ProcessInputs()
-			gotErr := (err != nil)
-			wantErr := (tt.err != "")
+			gotErr := err != nil
+			wantErr := tt.err != ""
 			require.Equal(t, wantErr, gotErr, fmt.Sprintf("Step.ValidateConfig() error = %v, wantErr %v", err, tt.err))
 			require.Equal(t, tt.want, config)
 		})
