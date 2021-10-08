@@ -304,7 +304,10 @@ func envInBuildSettings(envKey string, buildSettings serialized.Object) (string,
 
 // TargetBuildSettings ...
 func (p XcodeProj) TargetBuildSettings(target, configuration string, customOptions ...string) (serialized.Object, error) {
-	commandModel := xcodebuild.NewShowBuildSettingsCommand(p.Path, false, target, "", configuration, customOptions, temporaryFactory)
+	commandModel := xcodebuild.NewShowBuildSettingsCommand(p.Path, temporaryFactory)
+	commandModel.SetTarget(target)
+	commandModel.SetConfiguration(configuration)
+	commandModel.SetCustomOptions(customOptions)
 	return commandModel.RunAndReturnSettings()
 }
 

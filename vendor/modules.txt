@@ -22,7 +22,7 @@ github.com/bitrise-io/go-utils/progress
 github.com/bitrise-io/go-utils/sliceutil
 github.com/bitrise-io/go-utils/stringutil
 github.com/bitrise-io/go-utils/ziputil
-# github.com/bitrise-io/go-xcode v0.0.0-20211008091612-9fce28dcdf67
+# github.com/bitrise-io/go-xcode v0.0.0-20211008092947-b1d65f94e858
 ## explicit
 github.com/bitrise-io/go-xcode/certificateutil
 github.com/bitrise-io/go-xcode/export

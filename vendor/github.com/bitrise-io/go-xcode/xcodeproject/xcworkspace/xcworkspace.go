@@ -51,7 +51,10 @@ func (w Workspace) Scheme(name string) (*xcscheme.Scheme, string, error) {
 
 // SchemeBuildSettings ...
 func (w Workspace) SchemeBuildSettings(cmdFactory command.Factory, scheme, configuration string, customOptions ...string) (serialized.Object, error) {
-	commandModel := xcodebuild.NewShowBuildSettingsCommand(w.Path, true, "", scheme, configuration, customOptions, cmdFactory)
+	commandModel := xcodebuild.NewShowBuildSettingsCommand(w.Path, cmdFactory)
+	commandModel.SetScheme(scheme)
+	commandModel.SetConfiguration(configuration)
+	commandModel.SetCustomOptions(customOptions)
 	return commandModel.RunAndReturnSettings()
 }
 
