@@ -29,7 +29,6 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -56,7 +55,6 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
     - BITRISE_SCHEME: Catalyst Sample
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -75,7 +73,6 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: ""
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -94,7 +91,6 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -114,7 +110,6 @@ workflows:
     - TEST_APP_COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -135,7 +130,6 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: ""
     - TEAM_ID: ""
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -154,7 +148,6 @@ workflows:
     - TEST_APP_COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -173,7 +166,6 @@ workflows:
     - TEST_APP_COMMIT: "1360413258cc7f6a8676c17f060ff39899fc28b1"
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
@@ -217,7 +209,6 @@ workflows:
         inputs:
         - project_path: "./_tmp/$BITRISE_PROJECT_PATH"
         - scheme: $BITRISE_SCHEME
-        - artifact_name: $ARTIFACT_NAME
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_provisioning_profile_specifier: $FORCE_PROV_PROFILE_SPECIFIER
         - export_method: $IPA_EXPORT_METHOD
