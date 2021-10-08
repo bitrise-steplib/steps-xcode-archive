@@ -10,11 +10,10 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 )
 
-func zip(sourceDir, destinationZipPth string) error {
+func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error {
 	parentDir := filepath.Dir(sourceDir)
 	dirName := filepath.Base(sourceDir)
-	cmd := command.New("/usr/bin/zip", "-rTy", destinationZipPth, dirName)
-	cmd.SetDir(parentDir)
+	cmd := cmdFactory.Create("/usr/bin/zip", []string{"-rTy", destinationZipPth, dirName}, &command.Opts{Dir: parentDir})
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Failed to zip dir: %s, output: %s, error: %s", sourceDir, out, err)
@@ -23,45 +22,44 @@ func zip(sourceDir, destinationZipPth string) error {
 	return nil
 }
 
-func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
-	cmd := command.New("envman", "add", "--key", keyStr)
-	cmd.SetStdin(strings.NewReader(valueStr))
+func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr string) error {
+	cmd := cmdFactory.Create("envman", []string{"add", "--key", keyStr}, &command.Opts{Stdin: strings.NewReader(valueStr)})
 	return cmd.Run()
 }
 
 // ExportOutputDir ...
-func ExportOutputDir(sourceDirPth, destinationDirPth, envKey string) error {
+func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string) error {
 	if sourceDirPth != destinationDirPth {
 		if err := command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
 		}
 	}
 
-	return exportEnvironmentWithEnvman(envKey, destinationDirPth)
+	return exportEnvironmentWithEnvman(cmdFactory, envKey, destinationDirPth)
 }
 
 // ExportOutputFile ...
-func ExportOutputFile(sourcePth, destinationPth, envKey string) error {
+func ExportOutputFile(cmdFactory command.Factory, sourcePth, destinationPth, envKey string) error {
 	if sourcePth != destinationPth {
 		if err := command.CopyFile(sourcePth, destinationPth); err != nil {
 			return err
 		}
 	}
 
-	return exportEnvironmentWithEnvman(envKey, destinationPth)
+	return exportEnvironmentWithEnvman(cmdFactory, envKey, destinationPth)
 }
 
 // ExportOutputFileContent ...
-func ExportOutputFileContent(content, destinationPth, envKey string) error {
+func ExportOutputFileContent(cmdFactory command.Factory, content, destinationPth, envKey string) error {
 	if err := fileutil.WriteStringToFile(destinationPth, content); err != nil {
 		return err
 	}
 
-	return ExportOutputFile(destinationPth, destinationPth, envKey)
+	return ExportOutputFile(cmdFactory, destinationPth, destinationPth, envKey)
 }
 
 // ExportOutputDirAsZip ...
-func ExportOutputDirAsZip(sourceDirPth, destinationPth, envKey string) error {
+func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationPth, envKey string) error {
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("__export_tmp_dir__")
 	if err != nil {
 		return err
@@ -70,9 +68,9 @@ func ExportOutputDirAsZip(sourceDirPth, destinationPth, envKey string) error {
 	base := filepath.Base(sourceDirPth)
 	tmpZipFilePth := filepath.Join(tmpDir, base+".zip")
 
-	if err := zip(sourceDirPth, tmpZipFilePth); err != nil {
+	if err := zip(cmdFactory, sourceDirPth, tmpZipFilePth); err != nil {
 		return err
 	}
 
-	return ExportOutputFile(tmpZipFilePth, destinationPth, envKey)
+	return ExportOutputFile(cmdFactory, tmpZipFilePth, destinationPth, envKey)
 }
