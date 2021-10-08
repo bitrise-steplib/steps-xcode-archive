@@ -3,6 +3,7 @@ package xcodebuild
 import (
 	"bufio"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
@@ -13,9 +14,8 @@ import (
 // ShowBuildSettingsCommandModel ...
 type ShowBuildSettingsCommandModel struct {
 	commandFactory command.Factory
+	projectPath    string
 
-	projectPath   string
-	isWorkspace   bool
 	target        string
 	scheme        string
 	configuration string
@@ -23,23 +23,38 @@ type ShowBuildSettingsCommandModel struct {
 }
 
 // NewShowBuildSettingsCommand ...
-func NewShowBuildSettingsCommand(projectPath string, isWorkspace bool, target, scheme, configuration string, customOptions []string, commandFactory command.Factory) *ShowBuildSettingsCommandModel {
+func NewShowBuildSettingsCommand(projectPath string, commandFactory command.Factory) *ShowBuildSettingsCommandModel {
 	return &ShowBuildSettingsCommandModel{
 		commandFactory: commandFactory,
 		projectPath:    projectPath,
-		isWorkspace:    isWorkspace,
-		target:         target,
-		scheme:         scheme,
-		configuration:  configuration,
-		customOptions:  customOptions,
 	}
+}
+
+func (c *ShowBuildSettingsCommandModel) SetTarget(target string) *ShowBuildSettingsCommandModel {
+	c.target = target
+	return c
+}
+
+func (c *ShowBuildSettingsCommandModel) SetScheme(scheme string) *ShowBuildSettingsCommandModel {
+	c.scheme = scheme
+	return c
+}
+
+func (c *ShowBuildSettingsCommandModel) SetConfiguration(configuration string) *ShowBuildSettingsCommandModel {
+	c.configuration = configuration
+	return c
+}
+
+func (c *ShowBuildSettingsCommandModel) SetCustomOptions(customOptions []string) *ShowBuildSettingsCommandModel {
+	c.customOptions = customOptions
+	return c
 }
 
 func (c *ShowBuildSettingsCommandModel) args() []string {
 	var slice []string
 
 	if c.projectPath != "" {
-		if c.isWorkspace {
+		if filepath.Ext(c.projectPath) == ".xcworkspace" {
 			slice = append(slice, "-workspace", c.projectPath)
 		} else {
 			slice = append(slice, "-project", c.projectPath)

@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/bitrise-io/go-steputils v0.0.0-20210929162140-866a65a1e14a
 	github.com/bitrise-io/go-utils v0.0.0-20210930092040-cceb74a5ac24
-	github.com/bitrise-io/go-xcode v0.0.0-20211007151503-8a5d36651dba
+	github.com/bitrise-io/go-xcode v0.0.0-20211008091612-9fce28dcdf67
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/pkg/errors v0.9.1 // indirect

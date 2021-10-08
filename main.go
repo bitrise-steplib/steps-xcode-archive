@@ -26,7 +26,6 @@ import (
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace"
 	"github.com/bitrise-io/go-xcode/xcpretty"
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
@@ -219,7 +218,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		return Config{}, fmt.Errorf("issue with input ProjectPath: should be and .xcodeproj or .xcworkspace path")
 	}
 
-	log.Infof("Xcode version:")
+	logger.Infof("Xcode version:")
 
 	// Detect Xcode major version
 	xcodebuildVersion, err := s.xcodeVersionProvider.GetXcodeVersion()
@@ -291,9 +290,9 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 
 	if config.ArtifactName == "" {
-		isWorkspace := xcworkspace.IsWorkspace(config.ProjectPath)
-		// TODO: target?
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(config.ProjectPath, isWorkspace, "", config.Scheme, config.Configuration, nil, cmdFactory)
+		cmdModel := xcodebuild.NewShowBuildSettingsCommand(config.ProjectPath, cmdFactory)
+		cmdModel.SetScheme(config.Scheme)
+		cmdModel.SetConfiguration(config.Configuration)
 		settings, err := cmdModel.RunAndReturnSettings()
 		if err != nil {
 			return Config{}, fmt.Errorf("failed to read build settings: %w", err)
