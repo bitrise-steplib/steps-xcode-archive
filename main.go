@@ -698,7 +698,6 @@ type RunOpts struct {
 	ArtifactName      string
 
 	// Archive
-	ForceTeamID                       string
 	ForceProvisioningProfileSpecifier string
 	ForceCodeSignIdentity             string
 	PerformCleanAction                bool
