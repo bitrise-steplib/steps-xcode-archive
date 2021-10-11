@@ -18,7 +18,7 @@ description: |-
    1. Optionally, you can define a configuration type to be used (such as Debug or Release) in the **Configuration name** input.
 
       By default, the selected Xcode scheme determines which configuration will be used. This option overwrites the configuration set in the scheme.
-   1. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **he Developer Portal team to use for this export** input.
+   1. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **Developer Portal team to use for this export** input.
 
    ### Troubleshooting
 
