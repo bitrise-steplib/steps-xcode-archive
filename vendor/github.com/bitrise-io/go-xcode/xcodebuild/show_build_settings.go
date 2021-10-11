@@ -30,21 +30,25 @@ func NewShowBuildSettingsCommand(projectPath string, commandFactory command.Fact
 	}
 }
 
+// SetTarget ...
 func (c *ShowBuildSettingsCommandModel) SetTarget(target string) *ShowBuildSettingsCommandModel {
 	c.target = target
 	return c
 }
 
+// SetScheme ...
 func (c *ShowBuildSettingsCommandModel) SetScheme(scheme string) *ShowBuildSettingsCommandModel {
 	c.scheme = scheme
 	return c
 }
 
+// SetConfiguration ...
 func (c *ShowBuildSettingsCommandModel) SetConfiguration(configuration string) *ShowBuildSettingsCommandModel {
 	c.configuration = configuration
 	return c
 }
 
+// SetCustomOptions ...
 func (c *ShowBuildSettingsCommandModel) SetCustomOptions(customOptions []string) *ShowBuildSettingsCommandModel {
 	c.customOptions = customOptions
 	return c
@@ -73,8 +77,8 @@ func (c *ShowBuildSettingsCommandModel) args() []string {
 		slice = append(slice, "-configuration", c.configuration)
 	}
 
-	slice = append(slice, c.customOptions...)
 	slice = append(slice, "-showBuildSettings")
+	slice = append(slice, c.customOptions...)
 
 	return slice
 }
@@ -96,9 +100,9 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		if split := strings.Split(line, "="); len(split) == 2 {
+		if split := strings.Split(line, "="); len(split) > 1 {
 			key := strings.TrimSpace(split[0])
-			value := strings.TrimSpace(split[1])
+			value := strings.TrimSpace(strings.Join(split[1:], "="))
 			value = strings.Trim(value, `"`)
 
 			settings[key] = value
