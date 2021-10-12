@@ -37,7 +37,8 @@ workflows:
         inputs:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
-        - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
+        - xcconfig_content: |
+            CODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY
         - distribution_method: $IPA_DISTRIBUTION_METHOD
         - log_formatter: $LOG_FORMATTER
 

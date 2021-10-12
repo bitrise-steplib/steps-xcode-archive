@@ -204,14 +204,31 @@ workflows:
         run_if: '{{enveq "ARTIFACT_NAME" ""}}'
         inputs:
         - content: envman add --key ARTIFACT_NAME --value $BITRISE_SCHEME
+    - script:
+        title: Construct xcconfig contents
+        inputs:
+        - content: |
+            CONFIG="COMPILER_INDEX_STORE_ENABLE = NO"
+
+            if [ "$FORCE_CODE_SIGN_IDENTITY" != "" ]; then
+              CONFIG="$CONFIG\nCODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY"
+            fi
+
+            if [ "$FORCE_PROV_PROFILE_SPECIFIER" != "" ]; then
+              CONFIG="$CONFIG\nPROVISIONING_PROFILE_SPECIFIER = $FORCE_PROV_PROFILE_SPECIFIER"
+            fi
+
+            echo "xcconfig contents:"
+            echo $CONFIG
+
+            envman add --key XCCONFIG_CONTENT --value $CONFIG
     - path::./:
         title: Execute step
         inputs:
         - project_path: "./_tmp/$BITRISE_PROJECT_PATH"
         - scheme: $BITRISE_SCHEME
-        - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
-        - force_provisioning_profile_specifier: $FORCE_PROV_PROFILE_SPECIFIER
-        - export_method: $IPA_EXPORT_METHOD
+        - xcconfig_content: $XCCONFIG_CONTENT
+        - distribution_method: $IPA_EXPORT_METHOD
         - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
         - export_development_team: $TEAM_ID
         - log_formatter: $LOG_FORMATTER
