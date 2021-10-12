@@ -54,13 +54,12 @@ const (
 
 // Inputs ...
 type Inputs struct {
-	DistributionMethod         string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
+	ExportMethod               string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
 	UploadBitcode              bool   `env:"upload_bitcode,opt[yes,no]"`
 	CompileBitcode             bool   `env:"compile_bitcode,opt[yes,no]"`
 	ICloudContainerEnvironment string `env:"icloud_container_environment"`
 	ExportDevelopmentTeam      string `env:"export_development_team"`
 
-	ForceTeamID                       string `env:"force_team_id"`
 	ForceProvisioningProfileSpecifier string `env:"force_provisioning_profile_specifier"`
 	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
 	ExportOptionsPlistContent         string `env:"export_options_plist_content"`
@@ -249,7 +248,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		} else {
 			fmt.Println()
 			logger.Warnf("Ignoring the following options because ExportOptionsPlistContent provided:")
-			logger.Printf("- DistributionMethod: %s", config.DistributionMethod)
+			logger.Printf("- DistributionMethod: %s", config.ExportMethod)
 			logger.Printf("- UploadBitcode: %s", config.UploadBitcode)
 			logger.Printf("- CompileBitcode: %s", config.CompileBitcode)
 			logger.Printf("- ExportDevelopmentTeam: %s", config.ExportDevelopmentTeam)
@@ -1032,7 +1031,7 @@ func RunStep() error {
 		CacheLevel:                        config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
-		ExportMethod:                    config.DistributionMethod,
+		ExportMethod:                    config.ExportMethod,
 		ICloudContainerEnvironment:      config.ICloudContainerEnvironment,
 		ExportDevelopmentTeam:           config.ExportDevelopmentTeam,
 		UploadBitcode:                   config.UploadBitcode,
