@@ -61,9 +61,7 @@ type Inputs struct {
 	ICloudContainerEnvironment string `env:"icloud_container_environment"`
 	ExportDevelopmentTeam      string `env:"export_development_team"`
 
-	ForceProvisioningProfileSpecifier string `env:"force_provisioning_profile_specifier"`
-	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
-	ExportOptionsPlistContent         string `env:"export_options_plist_content"`
+	ExportOptionsPlistContent string `env:"export_options_plist_content"`
 
 	LogFormatter       string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
 	ProjectPath        string `env:"project_path,file"`
@@ -263,13 +261,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
 
-	if config.ForceProvisioningProfileSpecifier != "" &&
-		xcodeMajorVersion < 8 {
-		fmt.Println()
-		logger.Warnf("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
-		config.ForceProvisioningProfileSpecifier = ""
-	}
-
 	fmt.Println()
 
 	absProjectPath, err := filepath.Abs(config.ProjectPath)
@@ -367,11 +358,9 @@ type xcodeArchiveOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
-	ForceProvisioningProfileSpecifier string
-	ForceCodeSignIdentity             string
-	PerformCleanAction                bool
-	XcconfigContent                   string
-	XcodebuildOptions                 string
+	PerformCleanAction bool
+	XcconfigContent    string
+	XcodebuildOptions  string
 
 	CacheLevel string
 }
@@ -423,15 +412,6 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, isWorkspace, xcodebuild.ArchiveAction, cmdFactory)
 	archiveCmd.SetScheme(opts.Scheme)
 	archiveCmd.SetConfiguration(opts.Configuration)
-
-	if opts.ForceProvisioningProfileSpecifier != "" {
-		logger.Printf("Forcing Provisioning Profile Specifier: %s", opts.ForceProvisioningProfileSpecifier)
-		archiveCmd.SetForceProvisioningProfileSpecifier(opts.ForceProvisioningProfileSpecifier)
-	}
-	if opts.ForceCodeSignIdentity != "" {
-		logger.Printf("Forcing Code Signing Identity: %s", opts.ForceCodeSignIdentity)
-		archiveCmd.SetForceCodeSignIdentity(opts.ForceCodeSignIdentity)
-	}
 
 	if opts.PerformCleanAction {
 		archiveCmd.SetCustomBuildAction("clean")
@@ -707,12 +687,10 @@ type RunOpts struct {
 	ArtifactName      string
 
 	// Archive
-	ForceProvisioningProfileSpecifier string
-	ForceCodeSignIdentity             string
-	PerformCleanAction                bool
-	XcconfigContent                   string
-	XcodebuildOptions                 string
-	CacheLevel                        string
+	PerformCleanAction bool
+	XcconfigContent    string
+	XcodebuildOptions  string
+	CacheLevel         string
 
 	// IPA Export
 	CustomExportOptionsPlistContent string
@@ -747,12 +725,10 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		ArtifactName:      opts.ArtifactName,
 
-		ForceProvisioningProfileSpecifier: opts.ForceProvisioningProfileSpecifier,
-		ForceCodeSignIdentity:             opts.ForceCodeSignIdentity,
-		PerformCleanAction:                opts.PerformCleanAction,
-		XcconfigContent:                   opts.XcconfigContent,
-		XcodebuildOptions:                 opts.XcodebuildOptions,
-		CacheLevel:                        opts.CacheLevel,
+		PerformCleanAction: opts.PerformCleanAction,
+		XcconfigContent:    opts.XcconfigContent,
+		XcodebuildOptions:  opts.XcodebuildOptions,
+		CacheLevel:         opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
 	out.XcodebuildArchiveLog = archiveOut.XcodebuildArchiveLog
@@ -1033,12 +1009,10 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
-		ForceProvisioningProfileSpecifier: config.ForceProvisioningProfileSpecifier,
-		ForceCodeSignIdentity:             config.ForceCodeSignIdentity,
-		PerformCleanAction:                config.PerformCleanAction,
-		XcconfigContent:                   config.XcconfigContent,
-		XcodebuildOptions:                 config.XcodebuildOptions,
-		CacheLevel:                        config.CacheLevel,
+		PerformCleanAction: config.PerformCleanAction,
+		XcconfigContent:    config.XcconfigContent,
+		XcodebuildOptions:  config.XcodebuildOptions,
+		CacheLevel:         config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
 		ExportMethod:                    config.ExportMethod,

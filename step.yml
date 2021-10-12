@@ -170,39 +170,6 @@ inputs:
       - "none"
       - "swift_packages"
       is_required: true
-  - force_code_sign_identity:
-    opts:
-      category: Force Build Settings
-      title: "Force code signing with Code Signing Identity"
-      description: |-
-        Force xcodebuild to use specified Code Signing Identity (`CODE_SIGN_IDENTITY`).
-
-        Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
-        or specify code signing group ( `iPhone Developer` or `iPhone Distribution` ).
-
-        You also have to **specify the Identity in the format it's stored in Xcode project settings**,
-        and **not how it's presented in the Xcode.app GUI**!
-        This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
-        `iPhone` (`iPhone Distribution` or `iPhone Development`).
-        **The input is case sensitive**: `iPhone Distribution` works but `iphone distribution` does not!
-  - force_provisioning_profile_specifier:
-    opts:
-      category: Force Build Settings
-      title: "Force code signing with Provisioning Profile Specifier"
-      description: |-
-        Used for Xcode version 8 and above.
-
-        Force xcodebuild to use specified Provisioning Profile (`PROVISIONING_PROFILE_SPECIFIER`).
-
-        How to get your Provisioning Profile Specifier:
-
-        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
-        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
-        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
-
-        Format example:
-
-        - `1MZX23ABCD4/My Provisioning Profile`
   - export_options_plist_content:
     opts:
       category: Debug
