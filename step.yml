@@ -10,23 +10,23 @@ description: |-
 
   To configure the Step:
 
-  1. Make sure the **Project (or Workspace) path** input points to the correct location.
+  1. Make sure the **Project path** input points to the correct location.
 
      By default, you do not have to change this.
-  1. Set the correct value to the **Select method for export** input. If you use the **iOS Auto Provision** Step, the value of this input should be the same as the **Distribution type** input of that Step.
-  1. Make sure the target scheme is a valid, existing Xcode scheme.
-  1. Optionally, you can define a configuration type to be used (such as Debug or Release) in the **Configuration name** input.
+  2. Set the correct value to the **Distribution method** input. If you use the **iOS Auto Provision** Step, the value of this input should be the same as the **Distribution type** input of that Step.
+  3. Make sure the target scheme is a valid, existing Xcode scheme.
+  4. Optionally, you can define a configuration type to be used (such as Debug or Release) in the **Build configuration** input.
 
      By default, the selected Xcode scheme determines which configuration will be used. This option overwrites the configuration set in the scheme.
-  1. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **Developer Portal team to use for this export** input.
+  5. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **Developer Portal team** input.
 
   ### Troubleshooting
 
-  If the Step fails, check your code signing files first. Make sure they are the right type for your export method. For example, an `app-store` export method requires an App Store type provisioning profile and a Distribution certificate.
+  If the Step fails, check your code signing files first. Make sure they are the right type for your export method. For example, an `app-store` distribution method requires an App Store type provisioning profile and a Distribution certificate.
 
-  Check **Debug** for additional options to run the Step. The **Additional options for xcodebuild call** input allows you add any flags that the `xcodebuild` command supports.
+  Check **Debugging** for additional options to run the Step. The **Additional options for xcodebuild command** input allows you add any flags that the `xcodebuild` command supports.
 
-  Make sure the **Scheme name** and **Configuration name** inputs contain values that actually exist in your Xcode project.
+  Make sure the **Scheme** and **Build configuration** inputs contain values that actually exist in your Xcode project.
 
   ### Useful links
 
