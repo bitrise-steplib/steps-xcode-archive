@@ -121,23 +121,23 @@ inputs:
       The input value sets xcodebuild's `-xcconfig` option.
 
 - perform_clean_action: "no"
-    opts:
-      category: xcodebuild configuration
-      title: "Perform clean action"
-      summary: "If this input is set, `clean` xcodebuild action will be performed besides the `archive` action."
-      description: "If this input is set, `clean` xcodebuild action will be performed besides the `archive` action."
-      value_options:
-      - "yes"
-      - "no"
-      is_required: true
+  opts:
+    category: xcodebuild configuration
+    title: "Perform clean action"
+    summary: "If this input is set, `clean` xcodebuild action will be performed besides the `archive` action."
+    description: "If this input is set, `clean` xcodebuild action will be performed besides the `archive` action."
+    value_options:
+    - "yes"
+    - "no"
+    is_required: true
 
 - xcodebuild_options:
-    opts:
-      category: xcodebuild configuration
-      title: "Additional options for the xcodebuild command"
-      summary: "Additional options to be added to the executed xcodebuild command."
-      description: |-
-        Additional options to be added to the executed xcodebuild command.
+  opts:
+    category: xcodebuild configuration
+    title: "Additional options for the xcodebuild command"
+    summary: "Additional options to be added to the executed xcodebuild command."
+    description: |-
+      Additional options to be added to the executed xcodebuild command.
 
 # xcodebuild log formatting
 
