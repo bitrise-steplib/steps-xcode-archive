@@ -86,6 +86,23 @@ inputs:
         in your Xcode Project**. If it does not (for example, if you have a typo
         in the value of this input), Xcode will simply use the Configuration
         specified by the Scheme and will silently ignore this parameter!
+  - xcconfig_content: "COMPILER_INDEX_STORE_ENABLE = NO"
+    opts:
+      title: Build settings (xcconfig)
+      summary: Build settings to override the project's build settings.
+      description: |-
+        Build settings to override the project's build settings.
+
+        Build settings must be separated by newline character (`\n`).
+
+        Example:
+
+        ```
+        COMPILER_INDEX_STORE_ENABLE = NO
+        ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES
+        ```
+
+        The input value sets xcodebuild's `-xcconfig` option.
   - distribution_method: "development"
     opts:
       title: "Select method for export"
@@ -142,27 +159,6 @@ inputs:
       description: |-
         If the app is using CloudKit, this configures the "com.apple.developer.icloud-container-environment" entitlement.
         Available options vary depending on the type of provisioning profile used, but may include: Development and Production.
-  - disable_index_while_building: "yes"
-    opts:
-      title: Disable indexing during the build
-      summary: Could make the build faster by disabling the indexing during the build run.
-      description: |-
-        Could make the build faster by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command which will disable the indexing during the build.
-
-        Indexing is needed for
-
-        * Autocomplete
-        * Ability to quickly jump to definition
-        * Get class and method help by alt clicking.
-
-        Which are not needed in CI environment.
-
-        **Note:** In Xcode you can turn off the `Index-WhileBuilding` feature  by disabling the `Enable Index-WhileBuilding Functionality` in the `Build Settings`.<br/>
-        In CI environment you can disable it by adding `COMPILER_INDEX_STORE_ENABLE=NO` flag to the `xcodebuild` command.
-      value_options:
-      - "yes"
-      - "no"
-      is_required: true
   - cache_level: swift_packages
     opts:
       title: Enable caching of Swift Package Manager packages
@@ -174,39 +170,6 @@ inputs:
       - "none"
       - "swift_packages"
       is_required: true
-  - force_code_sign_identity:
-    opts:
-      category: Force Build Settings
-      title: "Force code signing with Code Signing Identity"
-      description: |-
-        Force xcodebuild to use specified Code Signing Identity (`CODE_SIGN_IDENTITY`).
-
-        Specify Code Signing Identity as full ID (e.g. `iPhone Developer: Bitrise Bot (VV2J4SV8V4)`)
-        or specify code signing group ( `iPhone Developer` or `iPhone Distribution` ).
-
-        You also have to **specify the Identity in the format it's stored in Xcode project settings**,
-        and **not how it's presented in the Xcode.app GUI**!
-        This means that instead of `iOS` (`iOS Distribution/Development`) you have to use
-        `iPhone` (`iPhone Distribution` or `iPhone Development`).
-        **The input is case sensitive**: `iPhone Distribution` works but `iphone distribution` does not!
-  - force_provisioning_profile_specifier:
-    opts:
-      category: Force Build Settings
-      title: "Force code signing with Provisioning Profile Specifier"
-      description: |-
-        Used for Xcode version 8 and above.
-
-        Force xcodebuild to use specified Provisioning Profile (`PROVISIONING_PROFILE_SPECIFIER`).
-
-        How to get your Provisioning Profile Specifier:
-
-        - In Xcode make sure you disabled `Automatically manage signing` on your project's `General` tab
-        - Now you can select your Provisioning Profile Specifier's name as `Provisioning Profile` input value on your project's `General` tab
-        - `force_provisioning_profile_specifier` input value build up by the Team ID and the Provisioning Profile Specifier name, separated with slash character ('/'): `TEAM_ID/PROFILE_SPECIFIER_NAME`
-
-        Format example:
-
-        - `1MZX23ABCD4/My Provisioning Profile`
   - export_options_plist_content:
     opts:
       category: Debug

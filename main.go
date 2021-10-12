@@ -24,6 +24,7 @@ import (
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcarchive"
+	"github.com/bitrise-io/go-xcode/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
@@ -60,18 +61,16 @@ type Inputs struct {
 	ICloudContainerEnvironment string `env:"icloud_container_environment"`
 	ExportDevelopmentTeam      string `env:"export_development_team"`
 
-	ForceProvisioningProfileSpecifier string `env:"force_provisioning_profile_specifier"`
-	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
-	ExportOptionsPlistContent         string `env:"export_options_plist_content"`
+	ExportOptionsPlistContent string `env:"export_options_plist_content"`
 
-	LogFormatter              string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
-	ProjectPath               string `env:"project_path,file"`
-	Scheme                    string `env:"scheme,required"`
-	Configuration             string `env:"configuration"`
-	OutputDir                 string `env:"output_dir,required"`
-	PerformCleanAction        bool   `env:"perform_clean_action,opt[yes,no]"`
-	XcodebuildOptions         string `env:"xcodebuild_options"`
-	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
+	LogFormatter       string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
+	ProjectPath        string `env:"project_path,file"`
+	Scheme             string `env:"scheme,required"`
+	Configuration      string `env:"configuration"`
+	OutputDir          string `env:"output_dir,required"`
+	PerformCleanAction bool   `env:"perform_clean_action,opt[yes,no]"`
+	XcodebuildOptions  string `env:"xcodebuild_options"`
+	XcconfigContent    string `env:"xcconfig_content"`
 
 	ExportAllDsyms bool   `env:"export_all_dsyms,opt[yes,no]"`
 	ArtifactName   string `env:"artifact_name"`
@@ -183,6 +182,8 @@ func (p envStepInputParser) Parse(conf interface{}) error {
 type XcodeArchiveStep struct {
 	xcodeVersionProvider xcodeVersionProvider
 	stepInputParser      stepInputParser
+	pathProvider         pathutil.PathProvider
+	fileManager          fileutil.FileManager
 }
 
 // NewXcodeArchiveStep ...
@@ -190,6 +191,8 @@ func NewXcodeArchiveStep() XcodeArchiveStep {
 	return XcodeArchiveStep{
 		xcodeVersionProvider: newXcodebuildXcodeVersionProvider(),
 		stepInputParser:      newEnvStepInputParser(),
+		pathProvider:         pathutil.NewPathProvider(),
+		fileManager:          fileutil.NewFileManager(),
 	}
 }
 
@@ -257,13 +260,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
-
-	if config.ForceProvisioningProfileSpecifier != "" &&
-		xcodeMajorVersion < 8 {
-		fmt.Println()
-		logger.Warnf("ForceProvisioningProfileSpecifier is set, but ForceProvisioningProfileSpecifier only used if xcodeMajorVersion > 7")
-		config.ForceProvisioningProfileSpecifier = ""
-	}
 
 	fmt.Println()
 
@@ -362,11 +358,9 @@ type xcodeArchiveOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
-	ForceProvisioningProfileSpecifier string
-	ForceCodeSignIdentity             string
-	PerformCleanAction                bool
-	DisableIndexWhileBuilding         bool
-	XcodebuildOptions                 string
+	PerformCleanAction bool
+	XcconfigContent    string
+	XcodebuildOptions  string
 
 	CacheLevel string
 }
@@ -419,20 +413,16 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	archiveCmd.SetScheme(opts.Scheme)
 	archiveCmd.SetConfiguration(opts.Configuration)
 
-	if opts.ForceProvisioningProfileSpecifier != "" {
-		logger.Printf("Forcing Provisioning Profile Specifier: %s", opts.ForceProvisioningProfileSpecifier)
-		archiveCmd.SetForceProvisioningProfileSpecifier(opts.ForceProvisioningProfileSpecifier)
-	}
-	if opts.ForceCodeSignIdentity != "" {
-		logger.Printf("Forcing Code Signing Identity: %s", opts.ForceCodeSignIdentity)
-		archiveCmd.SetForceCodeSignIdentity(opts.ForceCodeSignIdentity)
-	}
-
 	if opts.PerformCleanAction {
 		archiveCmd.SetCustomBuildAction("clean")
 	}
 
-	archiveCmd.SetDisableIndexWhileBuilding(opts.DisableIndexWhileBuilding)
+	xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager)
+	xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
+	if err != nil {
+		return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+	}
+	archiveCmd.SetXCConfigPath(xcconfigPath)
 
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("xcodeArchive")
 	if err != nil {
@@ -697,12 +687,10 @@ type RunOpts struct {
 	ArtifactName      string
 
 	// Archive
-	ForceProvisioningProfileSpecifier string
-	ForceCodeSignIdentity             string
-	PerformCleanAction                bool
-	DisableIndexWhileBuilding         bool
-	XcodebuildOptions                 string
-	CacheLevel                        string
+	PerformCleanAction bool
+	XcconfigContent    string
+	XcodebuildOptions  string
+	CacheLevel         string
 
 	// IPA Export
 	CustomExportOptionsPlistContent string
@@ -737,12 +725,10 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		ArtifactName:      opts.ArtifactName,
 
-		ForceProvisioningProfileSpecifier: opts.ForceProvisioningProfileSpecifier,
-		ForceCodeSignIdentity:             opts.ForceCodeSignIdentity,
-		PerformCleanAction:                opts.PerformCleanAction,
-		DisableIndexWhileBuilding:         opts.DisableIndexWhileBuilding,
-		XcodebuildOptions:                 opts.XcodebuildOptions,
-		CacheLevel:                        opts.CacheLevel,
+		PerformCleanAction: opts.PerformCleanAction,
+		XcconfigContent:    opts.XcconfigContent,
+		XcodebuildOptions:  opts.XcodebuildOptions,
+		CacheLevel:         opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
 	out.XcodebuildArchiveLog = archiveOut.XcodebuildArchiveLog
@@ -1023,12 +1009,10 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
-		ForceProvisioningProfileSpecifier: config.ForceProvisioningProfileSpecifier,
-		ForceCodeSignIdentity:             config.ForceCodeSignIdentity,
-		PerformCleanAction:                config.PerformCleanAction,
-		DisableIndexWhileBuilding:         config.DisableIndexWhileBuilding,
-		XcodebuildOptions:                 config.XcodebuildOptions,
-		CacheLevel:                        config.CacheLevel,
+		PerformCleanAction: config.PerformCleanAction,
+		XcconfigContent:    config.XcconfigContent,
+		XcodebuildOptions:  config.XcodebuildOptions,
+		CacheLevel:         config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
 		ExportMethod:                    config.ExportMethod,

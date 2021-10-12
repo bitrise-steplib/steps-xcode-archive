@@ -32,6 +32,7 @@ github.com/bitrise-io/go-xcode/plistutil
 github.com/bitrise-io/go-xcode/profileutil
 github.com/bitrise-io/go-xcode/utility
 github.com/bitrise-io/go-xcode/xcarchive
+github.com/bitrise-io/go-xcode/xcconfig
 github.com/bitrise-io/go-xcode/xcodebuild
 github.com/bitrise-io/go-xcode/xcodecache
 github.com/bitrise-io/go-xcode/xcodeproject/schemeint
