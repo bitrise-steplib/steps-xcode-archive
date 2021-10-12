@@ -113,7 +113,7 @@ workflows:
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
-    - IPA_EXPORT_METHOD: auto-detect
+    - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
     - DSYM_EXPECTED_COUNT: 3
@@ -207,15 +207,17 @@ workflows:
             CONFIG="COMPILER_INDEX_STORE_ENABLE = NO"
 
             if [ "$FORCE_CODE_SIGN_IDENTITY" != "" ]; then
-              CONFIG="$CONFIG\nCODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY"
+              CONFIG="$CONFIG
+            CODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY"
             fi
 
             if [ "$FORCE_PROV_PROFILE_SPECIFIER" != "" ]; then
-              CONFIG="$CONFIG\nPROVISIONING_PROFILE_SPECIFIER = $FORCE_PROV_PROFILE_SPECIFIER"
+              CONFIG="$CONFIG
+            PROVISIONING_PROFILE_SPECIFIER = $FORCE_PROV_PROFILE_SPECIFIER"
             fi
 
-            echo "xcconfig contents:"
-            printf $CONFIG
+            printf "xcconfig contents:\n"
+            printf "$CONFIG"
 
             envman add --key XCCONFIG_CONTENT --value "$CONFIG"
     - path::./:
