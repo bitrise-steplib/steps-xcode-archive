@@ -24,6 +24,7 @@ import (
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/utility"
 	"github.com/bitrise-io/go-xcode/xcarchive"
+	"github.com/bitrise-io/go-xcode/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	cache "github.com/bitrise-io/go-xcode/xcodecache"
 	"github.com/bitrise-io/go-xcode/xcpretty"
@@ -64,14 +65,14 @@ type Inputs struct {
 	ForceCodeSignIdentity             string `env:"force_code_sign_identity"`
 	ExportOptionsPlistContent         string `env:"export_options_plist_content"`
 
-	LogFormatter              string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
-	ProjectPath               string `env:"project_path,file"`
-	Scheme                    string `env:"scheme,required"`
-	Configuration             string `env:"configuration"`
-	OutputDir                 string `env:"output_dir,required"`
-	PerformCleanAction        bool   `env:"perform_clean_action,opt[yes,no]"`
-	XcodebuildOptions         string `env:"xcodebuild_options"`
-	DisableIndexWhileBuilding bool   `env:"disable_index_while_building,opt[yes,no]"`
+	LogFormatter       string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
+	ProjectPath        string `env:"project_path,file"`
+	Scheme             string `env:"scheme,required"`
+	Configuration      string `env:"configuration"`
+	OutputDir          string `env:"output_dir,required"`
+	PerformCleanAction bool   `env:"perform_clean_action,opt[yes,no]"`
+	XcodebuildOptions  string `env:"xcodebuild_options"`
+	XcconfigContent    string `env:"xcconfig_content"`
 
 	ExportAllDsyms bool   `env:"export_all_dsyms,opt[yes,no]"`
 	ArtifactName   string `env:"artifact_name"`
@@ -183,6 +184,8 @@ func (p envStepInputParser) Parse(conf interface{}) error {
 type XcodeArchiveStep struct {
 	xcodeVersionProvider xcodeVersionProvider
 	stepInputParser      stepInputParser
+	pathProvider         pathutil.PathProvider
+	fileManager          fileutil.FileManager
 }
 
 // NewXcodeArchiveStep ...
@@ -190,6 +193,8 @@ func NewXcodeArchiveStep() XcodeArchiveStep {
 	return XcodeArchiveStep{
 		xcodeVersionProvider: newXcodebuildXcodeVersionProvider(),
 		stepInputParser:      newEnvStepInputParser(),
+		pathProvider:         pathutil.NewPathProvider(),
+		fileManager:          fileutil.NewFileManager(),
 	}
 }
 
@@ -365,7 +370,7 @@ type xcodeArchiveOpts struct {
 	ForceProvisioningProfileSpecifier string
 	ForceCodeSignIdentity             string
 	PerformCleanAction                bool
-	DisableIndexWhileBuilding         bool
+	XcconfigContent                   string
 	XcodebuildOptions                 string
 
 	CacheLevel string
@@ -432,7 +437,12 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		archiveCmd.SetCustomBuildAction("clean")
 	}
 
-	archiveCmd.SetDisableIndexWhileBuilding(opts.DisableIndexWhileBuilding)
+	xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager)
+	xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
+	if err != nil {
+		return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+	}
+	archiveCmd.SetXCConfigPath(xcconfigPath)
 
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("xcodeArchive")
 	if err != nil {
@@ -700,7 +710,7 @@ type RunOpts struct {
 	ForceProvisioningProfileSpecifier string
 	ForceCodeSignIdentity             string
 	PerformCleanAction                bool
-	DisableIndexWhileBuilding         bool
+	XcconfigContent                   string
 	XcodebuildOptions                 string
 	CacheLevel                        string
 
@@ -740,7 +750,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		ForceProvisioningProfileSpecifier: opts.ForceProvisioningProfileSpecifier,
 		ForceCodeSignIdentity:             opts.ForceCodeSignIdentity,
 		PerformCleanAction:                opts.PerformCleanAction,
-		DisableIndexWhileBuilding:         opts.DisableIndexWhileBuilding,
+		XcconfigContent:                   opts.XcconfigContent,
 		XcodebuildOptions:                 opts.XcodebuildOptions,
 		CacheLevel:                        opts.CacheLevel,
 	}
@@ -1026,7 +1036,7 @@ func RunStep() error {
 		ForceProvisioningProfileSpecifier: config.ForceProvisioningProfileSpecifier,
 		ForceCodeSignIdentity:             config.ForceCodeSignIdentity,
 		PerformCleanAction:                config.PerformCleanAction,
-		DisableIndexWhileBuilding:         config.DisableIndexWhileBuilding,
+		XcconfigContent:                   config.XcconfigContent,
 		XcodebuildOptions:                 config.XcodebuildOptions,
 		CacheLevel:                        config.CacheLevel,
 
