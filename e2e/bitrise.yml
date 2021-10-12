@@ -201,10 +201,6 @@ workflows:
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
     - script:
-        run_if: '{{enveq "ARTIFACT_NAME" ""}}'
-        inputs:
-        - content: envman add --key ARTIFACT_NAME --value $BITRISE_SCHEME
-    - script:
         title: Construct xcconfig contents
         inputs:
         - content: |
@@ -219,9 +215,9 @@ workflows:
             fi
 
             echo "xcconfig contents:"
-            echo $CONFIG
+            printf $CONFIG
 
-            envman add --key XCCONFIG_CONTENT --value $CONFIG
+            envman add --key XCCONFIG_CONTENT --value "$CONFIG"
     - path::./:
         title: Execute step
         inputs:
