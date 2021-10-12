@@ -628,8 +628,8 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		out.XcodebuildExportArchiveLog = xcodebuildLog
 		if exportErr != nil {
 			logger.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
-			The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
-			is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
+The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
+is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 			// xcdistributionlogs
 			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog)
