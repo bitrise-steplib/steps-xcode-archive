@@ -4,7 +4,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 workflows:
   check:
     steps:
-    - git::https://github.com/bitrise-steplib/steps-check.git:
+    - git::https://github.com/bitrise-steplib/steps-check.git: {}
 
   e2e:
     steps:
@@ -19,8 +19,8 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - IPA_EXPORT_METHOD: development
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - IPA_DISTRIBUTION_METHOD: development
+    - LOG_FORMATTER: xcodebuild
     steps:
     - script:
         inputs:
@@ -38,8 +38,8 @@ workflows:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
-        - export_method: $IPA_EXPORT_METHOD
-        - output_tool: $XCODE_OUTPUT_TOOL
+        - distribution_method: $IPA_DISTRIBUTION_METHOD
+        - log_formatter: $LOG_FORMATTER
 
   generate_readme:
     steps:

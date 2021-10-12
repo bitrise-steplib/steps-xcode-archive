@@ -29,13 +29,12 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - FORCE_TEAM_ID: 72SA8V3WYL
+    - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -56,13 +55,12 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
     - BITRISE_SCHEME: Catalyst Sample
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - FORCE_TEAM_ID: 72SA8V3WYL
+    - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -75,13 +73,12 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: ""
-    - FORCE_TEAM_ID: 72SA8V3WYL
+    - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -94,13 +91,12 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - FORCE_TEAM_ID: 72SA8V3WYL
+    - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     - DSYM_EXPECTED_COUNT: 1 # Only 1 framework dSYM
     after_run:
     - _run
@@ -114,13 +110,12 @@ workflows:
     - TEST_APP_COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - FORCE_TEAM_ID: 72SA8V3WYL
+    - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: auto-detect
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     - DSYM_EXPECTED_COUNT: 3
     after_run:
     - _run
@@ -135,13 +130,12 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: ""
-    - FORCE_TEAM_ID: ""
+    - TEAM_ID: ""
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcpretty
+    - LOG_FORMATTER: xcpretty
     after_run:
     - _run
     - _check_outputs
@@ -154,13 +148,12 @@ workflows:
     - TEST_APP_COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - FORCE_TEAM_ID: 72SA8V3WYL
+    - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -173,13 +166,12 @@ workflows:
     - TEST_APP_COMMIT: "1360413258cc7f6a8676c17f060ff39899fc28b1"
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-    - ARTIFACT_NAME: ios-simple-objc(1234)
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - FORCE_TEAM_ID: 72SA8V3WYL
+    - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - XCODE_OUTPUT_TOOL: xcodebuild
+    - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
@@ -217,14 +209,12 @@ workflows:
         inputs:
         - project_path: "./_tmp/$BITRISE_PROJECT_PATH"
         - scheme: $BITRISE_SCHEME
-        - artifact_name: $ARTIFACT_NAME
-        - force_team_id: $FORCE_TEAM_ID
         - force_code_sign_identity: $FORCE_CODE_SIGN_IDENTITY
         - force_provisioning_profile_specifier: $FORCE_PROV_PROFILE_SPECIFIER
         - export_method: $IPA_EXPORT_METHOD
         - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
-        - team_id: $FORCE_TEAM_ID
-        - output_tool: $XCODE_OUTPUT_TOOL
+        - export_development_team: $TEAM_ID
+        - log_formatter: $LOG_FORMATTER
         - verbose_log: "yes"
 
   _check_outputs:
@@ -294,7 +284,7 @@ workflows:
 
             /usr/bin/unzip $BITRISE_XCARCHIVE_ZIP_PATH -d ./_tmp
 
-            archive_path="./_tmp/ios-simple-objc(1234).xcarchive"
+            archive_path="./_tmp/ios-simple-objcTests.xcarchive"
             infoplist_path="$archive_path/Info.plist"
             if [[ ! -f "$infoplist_path" ]]; then
               echo "$infoplist_path does not exist."

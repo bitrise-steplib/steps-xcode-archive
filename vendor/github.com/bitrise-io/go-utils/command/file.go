@@ -2,6 +2,7 @@ package command
 
 import (
 	"errors"
+	"github.com/bitrise-io/go-utils/env"
 	"os"
 	"strings"
 
@@ -20,7 +21,7 @@ func CopyFile(src, dst string) error {
 		return errors.New("Source is a directory: " + src)
 	}
 	args := []string{src, dst}
-	return RunCommand("rsync", args...)
+	return NewFactory(env.NewRepository()).Create("rsync", args, &Opts{Stderr: os.Stderr, Stdout: os.Stdout}).Run()
 }
 
 // CopyDir ...
@@ -29,7 +30,7 @@ func CopyDir(src, dst string, isOnlyContent bool) error {
 		src = src + "/"
 	}
 	args := []string{"-ar", src, dst}
-	return RunCommand("rsync", args...)
+	return NewFactory(env.NewRepository()).Create("rsync", args, &Opts{Stderr: os.Stderr, Stdout: os.Stdout}).Run()
 }
 
 // RemoveDir ...

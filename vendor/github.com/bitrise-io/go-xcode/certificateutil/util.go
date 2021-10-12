@@ -9,10 +9,14 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/env"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/pkcs12"
 	"github.com/pkg/errors"
 )
+
+// TODO remove
+var temporaryFactory = command.NewFactory(env.NewRepository())
 
 func commandError(printableCmd string, cmdOut string, cmdErr error) error {
 	return errors.Wrapf(cmdErr, "%s failed, out: %s", printableCmd, cmdOut)
@@ -94,7 +98,7 @@ func installedCodesigningCertificateNamesFromOutput(out string) ([]string, error
 
 // InstalledCodesigningCertificateNames ...
 func InstalledCodesigningCertificateNames() ([]string, error) {
-	cmd := command.New("security", "find-identity", "-v", "-p", "codesigning")
+	cmd := temporaryFactory.Create("security", []string{"find-identity", "-v", "-p", "codesigning"}, nil)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return nil, commandError(cmd.PrintableCommandArgs(), out, err)
@@ -104,7 +108,7 @@ func InstalledCodesigningCertificateNames() ([]string, error) {
 
 // InstalledMacAppStoreCertificateNames ...
 func InstalledMacAppStoreCertificateNames() ([]string, error) {
-	cmd := command.New("security", "find-identity", "-v", "-p", "macappstore")
+	cmd := temporaryFactory.Create("security", []string{"find-identity", "-v", "-p", "macappstore"}, nil)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return nil, commandError(cmd.PrintableCommandArgs(), out, err)
@@ -154,7 +158,7 @@ func InstalledMacAppStoreCertificates() ([]*x509.Certificate, error) {
 func getInstalledCertificatesByNameSlice(certificateNames []string) ([]*x509.Certificate, error) {
 	certificates := []*x509.Certificate{}
 	for _, name := range certificateNames {
-		cmd := command.New("security", "find-certificate", "-c", name, "-p", "-a")
+		cmd := temporaryFactory.Create("security", []string{"find-certificate", "-c", name, "-p", "-a"}, nil)
 		out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
 			return nil, commandError(cmd.PrintableCommandArgs(), out, err)

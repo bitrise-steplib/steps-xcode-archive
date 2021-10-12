@@ -2,86 +2,128 @@ package xcodebuild
 
 import (
 	"bufio"
-	"os/exec"
+	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/errorutil"
+	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
 
 // ShowBuildSettingsCommandModel ...
 type ShowBuildSettingsCommandModel struct {
-	projectPath string
-	isWorkspace bool
+	commandFactory command.Factory
+	projectPath    string
+
+	target        string
+	scheme        string
+	configuration string
+	customOptions []string
 }
 
 // NewShowBuildSettingsCommand ...
-func NewShowBuildSettingsCommand(projectPath string, isWorkspace bool) *ShowBuildSettingsCommandModel {
+func NewShowBuildSettingsCommand(projectPath string, commandFactory command.Factory) *ShowBuildSettingsCommandModel {
 	return &ShowBuildSettingsCommandModel{
-		projectPath: projectPath,
-		isWorkspace: isWorkspace,
+		commandFactory: commandFactory,
+		projectPath:    projectPath,
 	}
 }
 
-func (c *ShowBuildSettingsCommandModel) cmdSlice() []string {
-	slice := []string{toolName}
+// SetTarget ...
+func (c *ShowBuildSettingsCommandModel) SetTarget(target string) *ShowBuildSettingsCommandModel {
+	c.target = target
+	return c
+}
+
+// SetScheme ...
+func (c *ShowBuildSettingsCommandModel) SetScheme(scheme string) *ShowBuildSettingsCommandModel {
+	c.scheme = scheme
+	return c
+}
+
+// SetConfiguration ...
+func (c *ShowBuildSettingsCommandModel) SetConfiguration(configuration string) *ShowBuildSettingsCommandModel {
+	c.configuration = configuration
+	return c
+}
+
+// SetCustomOptions ...
+func (c *ShowBuildSettingsCommandModel) SetCustomOptions(customOptions []string) *ShowBuildSettingsCommandModel {
+	c.customOptions = customOptions
+	return c
+}
+
+func (c *ShowBuildSettingsCommandModel) args() []string {
+	var slice []string
 
 	if c.projectPath != "" {
-		if c.isWorkspace {
+		if filepath.Ext(c.projectPath) == ".xcworkspace" {
 			slice = append(slice, "-workspace", c.projectPath)
 		} else {
 			slice = append(slice, "-project", c.projectPath)
 		}
 	}
 
+	if c.target != "" {
+		slice = append(slice, "-target", c.target)
+	}
+
+	if c.scheme != "" {
+		slice = append(slice, "-scheme", c.scheme)
+	}
+
+	if c.configuration != "" {
+		slice = append(slice, "-configuration", c.configuration)
+	}
+
+	slice = append(slice, "-showBuildSettings")
+	slice = append(slice, c.customOptions...)
+
 	return slice
+}
+
+// Command ...
+func (c ShowBuildSettingsCommandModel) Command(opts *command.Opts) command.Command {
+	return c.commandFactory.Create(toolName, c.args(), opts)
 }
 
 // PrintableCmd ...
 func (c ShowBuildSettingsCommandModel) PrintableCmd() string {
-	cmdSlice := c.cmdSlice()
-	return command.PrintableCommandArgs(false, cmdSlice)
+	return c.Command(nil).PrintableCommandArgs()
 }
 
-// Command ...
-func (c ShowBuildSettingsCommandModel) Command() *command.Model {
-	cmdSlice := c.cmdSlice()
-	return command.New(cmdSlice[0], cmdSlice[1:]...)
-}
-
-// Cmd ...
-func (c ShowBuildSettingsCommandModel) Cmd() *exec.Cmd {
-	command := c.Command()
-	return command.GetCmd()
-}
-
-func parseBuildSettings(out string) (map[string]string, error) {
-	settings := map[string]string{}
+func parseBuildSettings(out string) (serialized.Object, error) {
+	settings := serialized.Object{}
 
 	scanner := bufio.NewScanner(strings.NewReader(out))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		if split := strings.Split(line, "="); len(split) == 2 {
+		if split := strings.Split(line, "="); len(split) > 1 {
 			key := strings.TrimSpace(split[0])
-			value := strings.TrimSpace(split[1])
+			value := strings.TrimSpace(strings.Join(split[1:], "="))
 			value = strings.Trim(value, `"`)
 
 			settings[key] = value
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return map[string]string{}, err
+		return nil, err
 	}
 
 	return settings, nil
 }
 
 // RunAndReturnSettings ...
-func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (map[string]string, error) {
-	command := c.Command()
-	out, err := command.RunAndReturnTrimmedCombinedOutput()
+func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object, error) {
+	cmd := c.Command(nil)
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return map[string]string{}, err
+		if errorutil.IsExitStatusError(err) {
+			return nil, fmt.Errorf("%s command failed: output: %s", cmd.PrintableCommandArgs(), out)
+		}
+		return nil, fmt.Errorf("failed to run command %s: %s", cmd.PrintableCommandArgs(), err)
 	}
 
 	return parseBuildSettings(out)
