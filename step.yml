@@ -76,7 +76,7 @@ inputs:
     description: |-
       Xcode Scheme name.
 
-      The input value sets xcodebuild’s `-scheme` option.
+      The input value sets xcodebuild's `-scheme` option.
     is_required: true
 
 - distribution_method: development
@@ -145,13 +145,13 @@ inputs:
   opts:
     category: xcodebuild log formatting
     title: Log formatter
-    summary: Defines how `xcodebuild` command’s log is formatted.
+    summary: Defines how `xcodebuild` command's log is formatted.
     description: |-
-      Defines how `xcodebuild` command’s log is formatted.
+      Defines how `xcodebuild` command's log is formatted.
 
       Available options:
 
-      - `xcpretty`: The xcodebuild command’s output will be prettified by xcpretty.
+      - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty.
       - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
 
       The raw xcodebuild log will be exported in both cases.

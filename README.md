@@ -60,24 +60,24 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
-| `project_path` | Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path. | required | `$BITRISE_PROJECT_PATH` |
-| `scheme` | Xcode Scheme name. | required | `$BITRISE_SCHEME` |
-| `distribution_method` | Describes how Xcode should export the archive. | required | `development` |
-| `configuration` | Xcode Build Configuration.  If not specified, the default Build Configuration will be used. |  |  |
+| `project_path` | Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.  The input value sets xcodebuild's `-project` or `-workspace` option. | required | `$BITRISE_PROJECT_PATH` |
+| `scheme` | Xcode Scheme name.  The input value sets xcodebuild's `-scheme` option. | required | `$BITRISE_SCHEME` |
+| `distribution_method` |  | required | `development` |
+| `configuration` | Xcode Build Configuration.  If not specified, the default Build Configuration will be used.  The input value sets xcodebuild's `-configuration` option. |  |  |
 | `xcconfig_content` | Build settings to override the project's build settings.  Build settings must be separated by newline character (`\n`).  Example:  ``` COMPILER_INDEX_STORE_ENABLE = NO ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES ```  The input value sets xcodebuild's `-xcconfig` option. |  | `COMPILER_INDEX_STORE_ENABLE = NO` |
-| `perform_clean_action` | If this input is set, `clean` xcodebuild action will be performed besides the `archive` action. | required | `no` |
-| `xcodebuild_options` | Additional options to be added to the executed xcodebuild command. |  |  |
-| `log_formatter` | Defines how `xcodebuild` command’s log is formatted.  Available options:  - `xcpretty`: The xcodebuild command’s output will be prettified by xcpretty. - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.  The raw xcodebuild log will be exported in both cases. | required | `xcpretty` |
+| `perform_clean_action` |  | required | `no` |
+| `xcodebuild_options` |  |  |  |
+| `log_formatter` | Defines how `xcodebuild` command's log is formatted.  Available options:  - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.  The raw xcodebuild log will be exported in both cases. | required | `xcpretty` |
 | `export_development_team` | The Developer Portal team to use for this export / code signing.  Defaults to the team used to build the archive. |  |  |
-| `compile_bitcode` | For __non-App Store__ exports, should Xcode re-compile the app from bitcode?  | required | `yes` |
-| `upload_bitcode` | For __App Store__ exports, should the package include bitcode? | required | `yes` |
+| `compile_bitcode` |  | required | `yes` |
+| `upload_bitcode` |  | required | `yes` |
 | `icloud_container_environment` | If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.  Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`. |  |  |
 | `export_options_plist_content` | Specifies a plist file content that configures archive exporting.  If not specified, the Step will auto-generate it. |  |  |
-| `output_dir` | This directory will contain the generated artifacts. | required | `$BITRISE_DEPLOY_DIR` |
-| `export_all_dsyms` | Export additional dSYM files besides the app dSYM file for Frameworks. | required | `yes` |
+| `output_dir` |  | required | `$BITRISE_DEPLOY_DIR` |
+| `export_all_dsyms` |  | required | `yes` |
 | `artifact_name` | This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.  If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used. |  |  |
 | `cache_level` | Defines what cache content should be automatically collected.  Available options:  - `none`: Disable collecting cache content - `swift_packages`: Collect Swift PM packages added to the Xcode project | required | `swift_packages` |
-| `verbose_log` | If this input is set, the Step will print additional logs for debugging. | required | `no` |
+| `verbose_log` |  | required | `no` |
 </details>
 
 <details>
