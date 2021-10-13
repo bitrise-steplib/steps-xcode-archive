@@ -427,6 +427,17 @@ func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBu
 	return nil
 }
 
+func addXcode13Properties(exportOpts exportoptions.ExportOptions) exportoptions.ExportOptions {
+	switch options := exportOpts.(type) {
+	case exportoptions.AppStoreOptionsModel:
+		options.ManageAppVersion = false
+
+		return options
+	}
+
+	return exportOpts
+}
+
 // generateExportOptions generates an exportOptions based on the provided conditions.
 func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64, distributionBundleIdentifier string) (exportoptions.ExportOptions, error) {
@@ -472,6 +483,10 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 
 	if xcodeMajorVersion >= 12 {
 		exportOpts = addXcode12Properties(exportOpts, distributionBundleIdentifier)
+	}
+
+	if xcodeMajorVersion >= 13 {
+		exportOpts = addXcode13Properties(exportOpts)
 	}
 
 	return exportOpts, nil

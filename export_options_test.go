@@ -71,6 +71,8 @@ func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
 	<dict>
 		<key>iCloudContainerEnvironment</key>
 		<string>Production</string>
+		<key>manageAppVersionAndBuildNumber</key>
+		<false/>
 		<key>method</key>
 		<string>app-store</string>
 		<key>provisioningProfiles</key>
@@ -135,7 +137,7 @@ func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
 
 		t.Run(testName, func(t *testing.T) {
 			// Act
-			opts, err := g.GenerateApplicationExportOptions(exportMethod, "Production", teamID, true, true, false, 12)
+			opts, err := g.GenerateApplicationExportOptions(exportMethod, "Production", teamID, true, true, false, 13)
 
 			// Assert
 			require.NoError(t, err)
