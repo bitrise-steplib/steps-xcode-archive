@@ -427,10 +427,10 @@ func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBu
 	return nil
 }
 
-func addXcode13Properties(exportOpts exportoptions.ExportOptions) exportoptions.ExportOptions {
+func disableXcode13ManagedBuildNumber(exportOpts exportoptions.ExportOptions) exportoptions.ExportOptions {
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
-		options.ManageAppVersion = false
+		options.ManageAppVersion = false // Only available for app-store exports
 
 		return options
 	}
@@ -486,7 +486,7 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 	}
 
 	if xcodeMajorVersion >= 13 {
-		exportOpts = addXcode13Properties(exportOpts)
+		exportOpts = disableXcode13ManagedBuildNumber(exportOpts)
 	}
 
 	return exportOpts, nil
