@@ -104,7 +104,7 @@ inputs:
 
       The input value sets xcodebuild's `-configuration` option.
 
-- xcconfig_content: "COMPILER_INDEX_STORE_ENABLE = NO"
+- xcconfig_content: COMPILER_INDEX_STORE_ENABLE = NO
   opts:
     category: xcodebuild configuration
     title: Build settings (xcconfig)
