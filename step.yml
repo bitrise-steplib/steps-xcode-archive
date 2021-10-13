@@ -61,32 +61,35 @@ toolkit:
 inputs:
 - project_path: $BITRISE_PROJECT_PATH
   opts:
-    title: "Project path"
-    summary: "Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path."
+    title: Project path
+    summary: Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.
     description: |-
       Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.
+
+      The input value sets xcodebuild's `-project` or `-workspace` option.
     is_required: true
 
 - scheme: $BITRISE_SCHEME
   opts:
-    title: "Scheme"
-    summary: "Xcode Scheme name."
+    title: Scheme
+    summary: Xcode Scheme name.
     description: |-
       Xcode Scheme name.
+
+      The input value sets xcodebuild’s `-scheme` option.
     is_required: true
 
-- distribution_method: "development"
+- distribution_method: development
   opts:
-    title: "Distribution method"
-    summary: "Describes how Xcode should export the archive."
+    title: Distribution method
+    summary: Describes how Xcode should export the archive.
     description: |-
       Describes how Xcode should export the archive.
     value_options:
-    - "auto-detect"
-    - "app-store"
-    - "ad-hoc"
-    - "enterprise"
-    - "development"
+    - development
+    - app-store
+    - ad-hoc
+    - enterprise
     is_required: true
 
 # xcodebuild configuration
@@ -94,12 +97,14 @@ inputs:
 - configuration:
   opts:
     category: xcodebuild configuration
-    title: "Build Configuration"
-    summary: "Xcode Build Configuration."
+    title: Build Configuration
+    summary: Xcode Build Configuration.
     description: |-
       Xcode Build Configuration.
 
       If not specified, the default Build Configuration will be used.
+
+      The input value sets xcodebuild’s `-configuration` option.
 
 - xcconfig_content: "COMPILER_INDEX_STORE_ENABLE = NO"
   opts:
@@ -123,9 +128,8 @@ inputs:
 - perform_clean_action: "no"
   opts:
     category: xcodebuild configuration
-    title: "Perform clean action"
-    summary: "If this input is set, `clean` xcodebuild action will be performed besides the `archive` action."
-    description: "If this input is set, `clean` xcodebuild action will be performed besides the `archive` action."
+    title: Perform clean action
+    summary: If this input is set, `clean` xcodebuild action will be performed besides the `archive` action.
     value_options:
     - "yes"
     - "no"
@@ -134,18 +138,16 @@ inputs:
 - xcodebuild_options:
   opts:
     category: xcodebuild configuration
-    title: "Additional options for the xcodebuild command"
-    summary: "Additional options to be added to the executed xcodebuild command."
-    description: |-
-      Additional options to be added to the executed xcodebuild command.
+    title: Additional options for the xcodebuild command
+    summary: Additional options to be added to the executed xcodebuild command.
 
 # xcodebuild log formatting
 
 - log_formatter: xcpretty
   opts:
     category: xcodebuild log formatting
-    title: "Log formatter"
-    summary: "Defines how `xcodebuild` command’s log is formatted."
+    title: Log formatter
+    summary: Defines how `xcodebuild` command’s log is formatted.
     description: |-
       Defines how `xcodebuild` command’s log is formatted.
 
@@ -165,8 +167,8 @@ inputs:
 - export_development_team:
   opts:
     category: IPA export configuration
-    title: "Developer Portal team"
-    summary: "The Developer Portal team to use for this export / code signing."
+    title: Developer Portal team
+    summary: The Developer Portal team to use for this export.
     description: |-
       The Developer Portal team to use for this export / code signing.
 
@@ -175,10 +177,8 @@ inputs:
 - compile_bitcode: "yes"
   opts:
     category: IPA export configuration
-    title: "Rebuild from bitcode"
-    summary: "For __non-App Store__ exports, should Xcode re-compile the app from bitcode?"
-    description: |
-      For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
+    title: Rebuild from bitcode
+    summary: For __non-App Store__ exports, should Xcode re-compile the app from bitcode?
     value_options:
     - "yes"
     - "no"
@@ -187,10 +187,8 @@ inputs:
 - upload_bitcode: "yes"
   opts:
     category: IPA export configuration
-    title: "Include bitcode"
-    summary: "For __App Store__ exports, should the package include bitcode?"
-    description: |-
-      For __App Store__ exports, should the package include bitcode?
+    title: Include bitcode
+    summary: For __App Store__ exports, should the package include bitcode?
     value_options:
     - "yes"
     - "no"
@@ -199,8 +197,8 @@ inputs:
 - icloud_container_environment:
   opts:
     category: IPA export configuration
-    title: "iCloud container environment"
-    summary: "If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement."
+    title: iCloud container environment
+    summary: If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.
     description: |-
       If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.
 
@@ -209,8 +207,8 @@ inputs:
 - export_options_plist_content:
   opts:
     category: IPA export configuration
-    title: "Export options plist content"
-    summary: "Specifies a plist file content that configures archive exporting."
+    title: Export options plist content
+    summary: Specifies a plist file content that configures archive exporting.
     description: |-
       Specifies a plist file content that configures archive exporting.
 
@@ -221,19 +219,15 @@ inputs:
 - output_dir: $BITRISE_DEPLOY_DIR
   opts:
     category: Step Output Export configuration
-    title: "Output directory path"
-    summary: "This directory will contain the generated artifacts."
-    description: |-
-      This directory will contain the generated artifacts.
+    title: Output directory path
+    summary: This directory will contain the generated artifacts.
     is_required: true
 
 - export_all_dsyms: "yes"
   opts:
     category: Step Output Export configuration
-    title: "Export all dSYMs"
-    summary: "Export additional dSYM files besides the app dSYM file for Frameworks."
-    description: |-
-      Export additional dSYM files besides the app dSYM file for Frameworks.
+    title: Export all dSYMs
+    summary: Export additional dSYM files besides the app dSYM file for Frameworks.
     value_options:
     - "yes"
     - "no"
@@ -242,8 +236,8 @@ inputs:
 - artifact_name:
   opts:
     category: Step Output Export configuration
-    title: "Override generated artifact names"
-    summary: "This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files."
+    title: Override generated artifact names
+    summary: This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.
     description: |-
       This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.
 
@@ -254,8 +248,8 @@ inputs:
 - cache_level: swift_packages
   opts:
     category: Caching
-    title: "Enable collecting cache content"
-    summary: "Defines what cache content should be automatically collected."
+    title: Enable collecting cache content
+    summary: Defines what cache content should be automatically collected.
     description: |-
       Defines what cache content should be automatically collected.
 
@@ -264,8 +258,8 @@ inputs:
       - `none`: Disable collecting cache content
       - `swift_packages`: Collect Swift PM packages added to the Xcode project
     value_options:
-    - "none"
-    - "swift_packages"
+    - none
+    - swift_packages
     is_required: true
 
 # Debugging
@@ -273,10 +267,8 @@ inputs:
 - verbose_log: "no"
   opts:
     category: Debugging
-    title: "Enable verbose logging"
-    summary: "If this input is set, the Step will print additional logs for debugging."
-    description: |-
-      If this input is set, the Step will print additional logs for debugging.
+    title: Enable verbose logging
+    summary: If this input is set, the Step will print additional logs for debugging.
     value_options:
     - "yes"
     - "no"
