@@ -83,8 +83,6 @@ inputs:
   opts:
     title: Distribution method
     summary: Describes how Xcode should export the archive.
-    description: |-
-      Describes how Xcode should export the archive.
     value_options:
     - development
     - app-store
@@ -104,7 +102,7 @@ inputs:
 
       If not specified, the default Build Configuration will be used.
 
-      The input value sets xcodebuild’s `-configuration` option.
+      The input value sets xcodebuild's `-configuration` option.
 
 - xcconfig_content: "COMPILER_INDEX_STORE_ENABLE = NO"
   opts:
