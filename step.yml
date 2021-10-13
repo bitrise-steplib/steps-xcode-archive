@@ -168,7 +168,7 @@ inputs:
     title: Developer Portal team
     summary: The Developer Portal team to use for this export.
     description: |-
-      The Developer Portal team to use for this export / code signing.
+      The Developer Portal team to use for this export
 
       Defaults to the team used to build the archive.
 

@@ -68,7 +68,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `perform_clean_action` |  | required | `no` |
 | `xcodebuild_options` |  |  |  |
 | `log_formatter` | Defines how `xcodebuild` command's log is formatted.  Available options:  - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.  The raw xcodebuild log will be exported in both cases. | required | `xcpretty` |
-| `export_development_team` | The Developer Portal team to use for this export / code signing.  Defaults to the team used to build the archive. |  |  |
+| `export_development_team` | The Developer Portal team to use for this export  Defaults to the team used to build the archive. |  |  |
 | `compile_bitcode` |  | required | `yes` |
 | `upload_bitcode` |  | required | `yes` |
 | `icloud_container_environment` | If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.  Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`. |  |  |
