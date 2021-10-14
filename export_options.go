@@ -381,8 +381,8 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 	return &iosCodeSignGroups[0], nil
 }
 
-// addXcode9Properties adds new exportOption properties introduced in Xcode 9.
-func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
+// addPropertiesFromXcode9 adds new exportOption properties introduced in Xcode 9.
+func addPropertiesFromXcode9(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
@@ -414,7 +414,7 @@ func addXcode9Properties(exportOpts exportoptions.ExportOptions, teamID, codesig
 	return nil
 }
 
-func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBundleIdentifier string) exportoptions.ExportOptions {
+func addDistributionBundleIdentifierFromXcode12(exportOpts exportoptions.ExportOptions, distributionBundleIdentifier string) exportoptions.ExportOptions {
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		// Export option plist with App store export method (Xcode 12.0.1) do not contain distribution bundle identifier.
@@ -425,6 +425,17 @@ func addXcode12Properties(exportOpts exportoptions.ExportOptions, distributionBu
 		return options
 	}
 	return nil
+}
+
+func disableManagedBuildNumberFromXcode13(exportOpts exportoptions.ExportOptions) exportoptions.ExportOptions {
+	switch options := exportOpts.(type) {
+	case exportoptions.AppStoreOptionsModel:
+		options.ManageAppVersion = false // Only available for app-store exports
+
+		return options
+	}
+
+	return exportOpts
 }
 
 // generateExportOptions generates an exportOptions based on the provided conditions.
@@ -468,10 +479,14 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		}
 	}
 
-	exportOpts = addXcode9Properties(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
+	exportOpts = addPropertiesFromXcode9(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
 
 	if xcodeMajorVersion >= 12 {
-		exportOpts = addXcode12Properties(exportOpts, distributionBundleIdentifier)
+		exportOpts = addDistributionBundleIdentifierFromXcode12(exportOpts, distributionBundleIdentifier)
+	}
+
+	if xcodeMajorVersion >= 13 {
+		exportOpts = disableManagedBuildNumberFromXcode13(exportOpts)
 	}
 
 	return exportOpts, nil

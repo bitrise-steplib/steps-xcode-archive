@@ -14,16 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
-	log.SetEnableDebugLog(true)
-
-	// Arrange
-	appClipTarget := givenAppClipTarget()
-	applicationTarget := givenApplicationTarget([]xcodeproj.Target{appClipTarget})
-	xcodeProj := givenXcodeproj([]xcodeproj.Target{applicationTarget, appClipTarget})
-	scheme := givenScheme(applicationTarget)
-
-	expected := `<?xml version="1.0" encoding="UTF-8"?>
+const (
+	expectedDevelopementExportOptions = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
@@ -44,7 +36,7 @@ func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
 		<string>TEAM123</string>
 	</dict>
 </plist>`
-	expectedForAdHoc := `<?xml version="1.0" encoding="UTF-8"?>
+	expectedAdHocExportOptions = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
@@ -65,7 +57,7 @@ func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
 		<string>TEAM123</string>
 	</dict>
 </plist>`
-	expectedForAppStore := `<?xml version="1.0" encoding="UTF-8"?>
+	expectedXcode12AppStoreExportOptions = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
@@ -86,66 +78,122 @@ func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
 		<string>TEAM123</string>
 	</dict>
 </plist>`
+	expectedXcode13AppStoreExportOptions = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>iCloudContainerEnvironment</key>
+		<string>Production</string>
+		<key>manageAppVersionAndBuildNumber</key>
+		<false/>
+		<key>method</key>
+		<string>app-store</string>
+		<key>provisioningProfiles</key>
+		<dict>
+			<key>io.bundle.id</key>
+			<string>Development Application Profile</string>
+			<key>io.bundle.id.AppClipID</key>
+			<string>Development App Clip Profile</string>
+		</dict>
+		<key>signingCertificate</key>
+		<string>Development Certificate</string>
+		<key>teamID</key>
+		<string>TEAM123</string>
+	</dict>
+</plist>`
+)
 
-	g := NewExportOptionsGenerator(&xcodeProj, &scheme, "")
+func TestExportOptionsGenerator_GenerateApplicationExportOptions(t *testing.T) {
+	log.SetEnableDebugLog(true)
+	const (
+		bundleID     = "io.bundle.id"
+		bundleIDClip = "io.bundle.id.AppClipID"
+		teamID       = "TEAM123"
+	)
 
-	const bundleID = "io.bundle.id"
-	const bundleIDClip = "io.bundle.id.AppClipID"
-	const teamID = "TEAM123"
 	certificate := certificateutil.CertificateInfoModel{Serial: "serial", CommonName: "Development Certificate", TeamID: teamID}
-	g.certificateProvider = MockCodesignIdentityProvider{
-		[]certificateutil.CertificateInfoModel{certificate},
+
+	tests := []struct {
+		name         string
+		exportMethod exportoptions.Method
+		xcodeVersion int64
+		want         string
+		wantErr      bool
+	}{
+		{
+			name:         "Development",
+			exportMethod: exportoptions.MethodDevelopment,
+			xcodeVersion: 13,
+			want:         expectedDevelopementExportOptions,
+		},
+		{
+			name:         "Ad-hoc",
+			exportMethod: exportoptions.MethodAdHoc,
+			xcodeVersion: 13,
+			want:         expectedAdHocExportOptions,
+		},
+		{
+			name:         "App-store Xcode 12",
+			exportMethod: exportoptions.MethodAppStore,
+			xcodeVersion: 12,
+			want:         expectedXcode12AppStoreExportOptions,
+		},
+		{
+			name:         "App-store Xcode 13",
+			exportMethod: exportoptions.MethodAppStore,
+			xcodeVersion: 13,
+			want:         expectedXcode13AppStoreExportOptions,
+		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			appClipTarget := givenAppClipTarget()
+			applicationTarget := givenApplicationTarget([]xcodeproj.Target{appClipTarget})
+			xcodeProj := givenXcodeproj([]xcodeproj.Target{applicationTarget, appClipTarget})
+			scheme := givenScheme(applicationTarget)
+			g := NewExportOptionsGenerator(&xcodeProj, &scheme, "")
+			g.certificateProvider = MockCodesignIdentityProvider{
+				[]certificateutil.CertificateInfoModel{certificate},
+			}
 
-	exportMethods := map[exportoptions.Method]string{
-		exportoptions.MethodDevelopment: expected,
-		exportoptions.MethodAdHoc:       expectedForAdHoc,
-		exportoptions.MethodAppStore:    expectedForAppStore,
-	}
+			profile := profileutil.ProvisioningProfileInfoModel{
+				BundleID:              bundleID,
+				TeamID:                teamID,
+				ExportType:            tt.exportMethod,
+				Name:                  "Development Application Profile",
+				DeveloperCertificates: []certificateutil.CertificateInfoModel{certificate},
+			}
+			profileForClip := profileutil.ProvisioningProfileInfoModel{
+				BundleID:              bundleIDClip,
+				TeamID:                teamID,
+				ExportType:            tt.exportMethod,
+				Name:                  "Development App Clip Profile",
+				DeveloperCertificates: []certificateutil.CertificateInfoModel{certificate},
+			}
+			g.profileProvider = MockProvisioningProfileProvider{
+				[]profileutil.ProvisioningProfileInfoModel{
+					profile,
+					profileForClip,
+				},
+			}
 
-	for exportMethod, expectedExportOptions := range exportMethods {
-		profile := profileutil.ProvisioningProfileInfoModel{
-			BundleID:              bundleID,
-			TeamID:                teamID,
-			ExportType:            exportMethod,
-			Name:                  "Development Application Profile",
-			DeveloperCertificates: []certificateutil.CertificateInfoModel{certificate},
-		}
-		profileForClip := profileutil.ProvisioningProfileInfoModel{
-			BundleID:              bundleIDClip,
-			TeamID:                teamID,
-			ExportType:            exportMethod,
-			Name:                  "Development App Clip Profile",
-			DeveloperCertificates: []certificateutil.CertificateInfoModel{certificate},
-		}
-		g.profileProvider = MockProvisioningProfileProvider{
-			[]profileutil.ProvisioningProfileInfoModel{
-				profile,
-				profileForClip,
-			},
-		}
+			cloudKitEntitlement := map[string]interface{}{"com.apple.developer.icloud-services": []string{"CloudKit"}}
+			g.targetInfoProvider = MockTargetInfoProvider{
+				bundleID:             map[string]string{"Application": bundleID, "App Clip": bundleIDClip},
+				codesignEntitlements: map[string]serialized.Object{"Application": cloudKitEntitlement},
+			}
 
-		cloudKitEntitlement := map[string]interface{}{"com.apple.developer.icloud-services": []string{"CloudKit"}}
-		g.targetInfoProvider = MockTargetInfoProvider{
-			bundleID:             map[string]string{"Application": bundleID, "App Clip": bundleIDClip},
-			codesignEntitlements: map[string]serialized.Object{"Application": cloudKitEntitlement},
-		}
-
-		testName := fmt.Sprintf("Test export options generation for %s", exportMethod)
-
-		t.Run(testName, func(t *testing.T) {
 			// Act
-			opts, err := g.GenerateApplicationExportOptions(exportMethod, "Production", teamID, true, true, false, 12)
+			gotOpts, err := g.GenerateApplicationExportOptions(tt.exportMethod, "Production", teamID, true, true, false, tt.xcodeVersion)
 
 			// Assert
 			require.NoError(t, err)
 
-			s, err := opts.String()
+			got, err := gotOpts.String()
 			require.NoError(t, err)
-
-			fmt.Println(s)
-
-			require.Equal(t, expectedExportOptions, s)
+			fmt.Println(got)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
