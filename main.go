@@ -294,8 +294,8 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 		productName, err := settings.String("PRODUCT_NAME")
 		if err != nil {
-			logger.Warnf("Product name not found in build settings, using 'app' as artifact name")
-			config.ArtifactName = "app"
+			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", config.Scheme)
+			productName = config.Scheme
 		}
 		config.ArtifactName = productName
 	}
