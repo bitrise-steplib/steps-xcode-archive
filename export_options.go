@@ -386,40 +386,6 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 	return &iosCodeSignGroups[0], nil
 }
 
-// addPropertiesFromXcode9 adds new exportOption properties introduced in Xcode 9.
-func (g ExportOptionsGenerator) addPropertiesFromXcode9(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
-	setManualSigning := false
-	if xcodeManaged && signingStyle == manualSigningStyle {
-		g.logger.Warnf("App was signed with xcode managed profile when archiving,")
-		g.logger.Warnf("ipa export uses manual code signing.")
-		g.logger.Warnf(`Setting "signingStyle" to "manual"`)
-
-		setManualSigning = true
-	}
-
-	switch options := exportOpts.(type) {
-	case exportoptions.AppStoreOptionsModel:
-		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
-		options.SigningCertificate = codesignIdentity
-		options.TeamID = teamID
-
-		if setManualSigning {
-			options.SigningStyle = manualSigningStyle
-		}
-		return options
-	case exportoptions.NonAppStoreOptionsModel:
-		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
-		options.SigningCertificate = codesignIdentity
-		options.TeamID = teamID
-
-		if setManualSigning {
-			options.SigningStyle = manualSigningStyle
-		}
-		return options
-	}
-	return nil
-}
-
 func addDistributionBundleIdentifierFromXcode12(exportOpts exportoptions.ExportOptions, distributionBundleIdentifier string) exportoptions.ExportOptions {
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
@@ -454,10 +420,6 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 
 	exportOpts := generateBaseExportOptions(exportMethod, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
 
-	if xcodeMajorVersion < 9 {
-		return exportOpts, nil
-	}
-
 	codeSignGroup, err := g.determineCodesignGroup(bundleIDEntitlementsMap, exportMethod, teamID, xcodeManaged)
 	if err != nil {
 		return nil, err
@@ -485,7 +447,33 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		}
 	}
 
-	exportOpts = g.addPropertiesFromXcode9(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
+	setManualSigning := xcodeManaged && exportCodeSignStyle == manualSigningStyle
+	if setManualSigning {
+		g.logger.Warnf("App was signed with xcode managed profile when archiving,")
+		g.logger.Warnf("ipa export uses manual code signing.")
+		g.logger.Warnf(`Setting "signingStyle" to "manual"`)
+	}
+
+	switch options := exportOpts.(type) {
+	case exportoptions.AppStoreOptionsModel:
+		options.BundleIDProvisioningProfileMapping = exportProfileMapping
+		options.SigningCertificate = codeSignGroup.Certificate().CommonName
+		options.TeamID = codeSignGroup.Certificate().TeamID
+
+		if setManualSigning {
+			options.SigningStyle = manualSigningStyle
+		}
+		exportOpts = options
+	case exportoptions.NonAppStoreOptionsModel:
+		options.BundleIDProvisioningProfileMapping = exportProfileMapping
+		options.SigningCertificate = codeSignGroup.Certificate().CommonName
+		options.TeamID = codeSignGroup.Certificate().TeamID
+
+		if setManualSigning {
+			options.SigningStyle = manualSigningStyle
+		}
+		exportOpts = options
+	}
 
 	if xcodeMajorVersion >= 12 {
 		exportOpts = addDistributionBundleIdentifierFromXcode12(exportOpts, distributionBundleIdentifier)
