@@ -208,6 +208,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 
 	config := Config{Inputs: inputs}
 	logger.EnableDebugLog(config.VerboseLog)
+	log.SetEnableDebugLog(config.VerboseLog) // For compatibility
 
 	if config.ExportOptionsPlistContent != "" {
 		var options map[string]interface{}
@@ -244,20 +245,14 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 
 	if exportOptionsPlistContent != "" {
-		if xcodeMajorVersion < 7 {
-			fmt.Println()
-			logger.Warnf("ExportOptionsPlistContent is set, but ExportOptionsPlistContent only used if xcodeMajorVersion > 6")
-			exportOptionsPlistContent = ""
-		} else {
-			fmt.Println()
-			logger.Warnf("Ignoring the following options because ExportOptionsPlistContent provided:")
-			logger.Printf("- DistributionMethod: %s", config.ExportMethod)
-			logger.Printf("- UploadBitcode: %s", config.UploadBitcode)
-			logger.Printf("- CompileBitcode: %s", config.CompileBitcode)
-			logger.Printf("- ExportDevelopmentTeam: %s", config.ExportDevelopmentTeam)
-			logger.Printf("- ICloudContainerEnvironment: %s", config.ICloudContainerEnvironment)
-			fmt.Println()
-		}
+		fmt.Println()
+		logger.Warnf("Ignoring the following options because ExportOptionsPlistContent provided:")
+		logger.Printf("- DistributionMethod: %s", config.ExportMethod)
+		logger.Printf("- UploadBitcode: %s", config.UploadBitcode)
+		logger.Printf("- CompileBitcode: %s", config.CompileBitcode)
+		logger.Printf("- ExportDevelopmentTeam: %s", config.ExportDevelopmentTeam)
+		logger.Printf("- ICloudContainerEnvironment: %s", config.ICloudContainerEnvironment)
+		fmt.Println()
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
 
@@ -584,7 +579,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 
 		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
 
-		generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration)
+		generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration, logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
 			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
 		if err != nil {
