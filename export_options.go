@@ -22,7 +22,7 @@ const (
 	manualSigningStyle = "manual"
 )
 
-// ExportOptionsGenerator generates an exportOptions.plist file from Xcode version 7 to Xcode version 11.
+// ExportOptionsGenerator generates an exportOptions.plist file (above Xcode 9)
 type ExportOptionsGenerator struct {
 	xcodeProj     *xcodeproj.XcodeProj
 	scheme        *xcscheme.Scheme
@@ -241,8 +241,6 @@ func (p LocalProvisioningProfileProvider) ListProvisioningProfiles() ([]profileu
 // determineCodesignGroup finds the best codesign group (certificate + profiles)
 // based on the installed Provisioning Profiles and Codesign Certificates.
 func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistData, exportMethod exportoptions.Method, teamID string, xcodeManaged bool) (*export.IosCodeSignGroup, error) {
-	g.logger.Printf("xcode major version > 9, generating provisioningProfiles node")
-
 	fmt.Println()
 	g.logger.Printf("Target Bundle ID - Entitlements map")
 	var bundleIDs []string
@@ -322,9 +320,9 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 	}
 
 	if !xcodeManaged {
-		g.logger.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
-			"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
-			"Removing xcode managed CodeSignInfo groups")
+		g.logger.Warnf("App was signed with NON Xcode managed profile when archiving,\n" +
+			"only NOT Xcode managed profiles are allowed to sign when exporting the archive.\n" +
+			"Removing Xcode managed CodeSignInfo groups")
 
 		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
 
@@ -436,22 +434,22 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
 		if isXcodeManaged {
 			if exportCodeSignStyle != "" && exportCodeSignStyle != "automatic" {
-				g.logger.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
+				g.logger.Errorf("Both Xcode managed and NON Xcode managed profiles in code signing group")
 			}
 			exportCodeSignStyle = "automatic"
 		} else {
 			if exportCodeSignStyle != "" && exportCodeSignStyle != manualSigningStyle {
-				g.logger.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
+				g.logger.Errorf("Both Xcode managed and NON Xcode managed profiles in code signing group")
 			}
 			exportCodeSignStyle = manualSigningStyle
 		}
 	}
 
-	setManualSigning := xcodeManaged && exportCodeSignStyle == manualSigningStyle
-	if setManualSigning {
-		g.logger.Warnf("App was signed with xcode managed profile when archiving,")
+	shouldSetManualSigning := xcodeManaged && exportCodeSignStyle == manualSigningStyle
+	if shouldSetManualSigning {
+		g.logger.Warnf("App was signed with Xcode managed profile when archiving,")
 		g.logger.Warnf("ipa export uses manual code signing.")
-		g.logger.Warnf(`Setting "signingStyle" to "manual"`)
+		g.logger.Warnf(`Setting "signingStyle" to "manual".`)
 	}
 
 	switch options := exportOpts.(type) {
@@ -460,7 +458,7 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		options.SigningCertificate = codeSignGroup.Certificate().CommonName
 		options.TeamID = codeSignGroup.Certificate().TeamID
 
-		if setManualSigning {
+		if shouldSetManualSigning {
 			options.SigningStyle = manualSigningStyle
 		}
 		exportOpts = options
@@ -469,7 +467,7 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		options.SigningCertificate = codeSignGroup.Certificate().CommonName
 		options.TeamID = codeSignGroup.Certificate().TeamID
 
-		if setManualSigning {
+		if shouldSetManualSigning {
 			options.SigningStyle = manualSigningStyle
 		}
 		exportOpts = options
