@@ -208,6 +208,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 
 	config := Config{Inputs: inputs}
 	logger.EnableDebugLog(config.VerboseLog)
+	log.SetEnableDebugLog(config.VerboseLog) // For compatibility
 
 	if config.ExportOptionsPlistContent != "" {
 		var options map[string]interface{}
@@ -584,7 +585,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 
 		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
 
-		generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration)
+		generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration, logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
 			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
 		if err != nil {

@@ -28,10 +28,11 @@ type ExportOptionsGenerator struct {
 	certificateProvider CodesignIdentityProvider
 	profileProvider     ProvisioningProfileProvider
 	targetInfoProvider  TargetInfoProvider
+	logger              log.Logger
 }
 
 // NewExportOptionsGenerator constructs a new ExportOptionsGenerator.
-func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string) ExportOptionsGenerator {
+func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string, logger log.Logger) ExportOptionsGenerator {
 	g := ExportOptionsGenerator{
 		xcodeProj:     xcodeProj,
 		scheme:        scheme,
@@ -40,6 +41,7 @@ func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.
 	g.certificateProvider = LocalCodesignIdentityProvider{}
 	g.profileProvider = LocalProvisioningProfileProvider{}
 	g.targetInfoProvider = XcodebuildTargetInfoProvider{xcodeProj: xcodeProj}
+	g.logger = logger
 	return g
 }
 
@@ -236,10 +238,10 @@ func (p LocalProvisioningProfileProvider) ListProvisioningProfiles() ([]profileu
 // determineCodesignGroup finds the best codesign group (certificate + profiles)
 // based on the installed Provisioning Profiles and Codesign Certificates.
 func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap map[string]plistutil.PlistData, exportMethod exportoptions.Method, teamID string, xcodeManaged bool) (*export.IosCodeSignGroup, error) {
-	log.Printf("xcode major version > 9, generating provisioningProfiles node")
+	g.logger.Printf("xcode major version > 9, generating provisioningProfiles node")
 
 	fmt.Println()
-	log.Printf("Target Bundle ID - Entitlements map")
+	g.logger.Printf("Target Bundle ID - Entitlements map")
 	var bundleIDs []string
 	for bundleID, entitlements := range bundleIDEntitlementsMap {
 		bundleIDs = append(bundleIDs, bundleID)
@@ -248,20 +250,20 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 		for key := range entitlements {
 			entitlementKeys = append(entitlementKeys, key)
 		}
-		log.Printf("%s: %s", bundleID, entitlementKeys)
+		g.logger.Printf("%s: %s", bundleID, entitlementKeys)
 	}
 
 	fmt.Println()
-	log.Printf("Resolving CodeSignGroups...")
+	g.logger.Printf("Resolving CodeSignGroups...")
 
 	certs, err := g.certificateProvider.ListCodesignIdentities()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get installed certificates, error: %s", err)
 	}
 
-	log.Debugf("Installed certificates:")
+	g.logger.Debugf("Installed certificates:")
 	for _, certInfo := range certs {
-		log.Debugf(certInfo.String())
+		g.logger.Debugf(certInfo.String())
 	}
 
 	profs, err := g.profileProvider.ListProvisioningProfiles()
@@ -269,78 +271,78 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 		return nil, fmt.Errorf("Failed to get installed provisioning profiles, error: %s", err)
 	}
 
-	log.Debugf("Installed profiles:")
+	g.logger.Debugf("Installed profiles:")
 	for _, profileInfo := range profs {
-		log.Debugf(profileInfo.String(certs...))
+		g.logger.Debugf(profileInfo.String(certs...))
 	}
 
-	log.Printf("Resolving CodeSignGroups...")
+	g.logger.Printf("Resolving CodeSignGroups...")
 	codeSignGroups := export.CreateSelectableCodeSignGroups(certs, profs, bundleIDs)
 	if len(codeSignGroups) == 0 {
-		log.Errorf("Failed to find code signing groups for specified export method (%s)", exportMethod)
+		g.logger.Errorf("Failed to find code signing groups for specified export method (%s)", exportMethod)
 	}
 
-	log.Debugf("\nGroups:")
+	g.logger.Debugf("\nGroups:")
 	for _, group := range codeSignGroups {
-		log.Debugf(group.String())
+		g.logger.Debugf(group.String())
 	}
 
 	if len(bundleIDEntitlementsMap) > 0 {
-		log.Warnf("Filtering CodeSignInfo groups for target capabilities")
+		g.logger.Warnf("Filtering CodeSignInfo groups for target capabilities")
 
 		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
 
-		log.Debugf("\nGroups after filtering for target capabilities:")
+		g.logger.Debugf("\nGroups after filtering for target capabilities:")
 		for _, group := range codeSignGroups {
-			log.Debugf(group.String())
+			g.logger.Debugf(group.String())
 		}
 	}
 
-	log.Warnf("Filtering CodeSignInfo groups for export method")
+	g.logger.Warnf("Filtering CodeSignInfo groups for export method")
 
 	codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateExportMethodSelectableCodeSignGroupFilter(exportMethod))
 
-	log.Debugf("\nGroups after filtering for export method:")
+	g.logger.Debugf("\nGroups after filtering for export method:")
 	for _, group := range codeSignGroups {
-		log.Debugf(group.String())
+		g.logger.Debugf(group.String())
 	}
 
 	if teamID != "" {
-		log.Warnf("ExportDevelopmentTeam specified: %s, filtering CodeSignInfo groups...", teamID)
+		g.logger.Warnf("ExportDevelopmentTeam specified: %s, filtering CodeSignInfo groups...", teamID)
 
 		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateTeamSelectableCodeSignGroupFilter(teamID))
 
-		log.Debugf("\nGroups after filtering for team ID:")
+		g.logger.Debugf("\nGroups after filtering for team ID:")
 		for _, group := range codeSignGroups {
-			log.Debugf(group.String())
+			g.logger.Debugf(group.String())
 		}
 	}
 
 	if !xcodeManaged {
-		log.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
+		g.logger.Warnf("App was signed with NON xcode managed profile when archiving,\n" +
 			"only NOT xcode managed profiles are allowed to sign when exporting the archive.\n" +
 			"Removing xcode managed CodeSignInfo groups")
 
 		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateNotXcodeManagedSelectableCodeSignGroupFilter())
 
-		log.Debugf("\nGroups after filtering for NOT Xcode managed profiles:")
+		g.logger.Debugf("\nGroups after filtering for NOT Xcode managed profiles:")
 		for _, group := range codeSignGroups {
-			log.Debugf(group.String())
+			g.logger.Debugf(group.String())
 		}
 	}
 
 	defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
 	if teamID == "" && defaultProfileURL != "" {
 		if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil {
-			log.Debugf("\ndefault profile: %v\n", defaultProfile)
+			g.logger.Debugf("\ndefault profile: %v\n", defaultProfile)
 			filteredCodeSignGroups := export.FilterSelectableCodeSignGroups(codeSignGroups,
 				export.CreateExcludeProfileNameSelectableCodeSignGroupFilter(defaultProfile.Name))
 			if len(filteredCodeSignGroups) > 0 {
 				codeSignGroups = filteredCodeSignGroups
 
-				log.Debugf("\nGroups after removing default profile:")
+				g.logger.Debugf("\nGroups after removing default profile:")
 				for _, group := range codeSignGroups {
-					log.Debugf(group.String())
+					g.logger.Debugf(group.String())
 				}
 			}
 		}
@@ -354,35 +356,35 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 			if len(profiles) > 0 {
 				bundleIDProfileMap[bundleID] = profiles[0]
 			} else {
-				log.Warnf("No profile available to sign (%s) target!", bundleID)
+				g.logger.Warnf("No profile available to sign (%s) target!", bundleID)
 			}
 		}
 
 		iosCodeSignGroups = append(iosCodeSignGroups, *export.NewIOSGroup(selectable.Certificate, bundleIDProfileMap))
 	}
 
-	log.Debugf("\nFiltered groups:")
+	g.logger.Debugf("\nFiltered groups:")
 	for i, group := range iosCodeSignGroups {
-		log.Debugf("Group #%d:", i)
+		g.logger.Debugf("Group #%d:", i)
 		for bundleID, profile := range group.BundleIDProfileMap() {
-			log.Debugf(" - %s: %s (%s)", bundleID, profile.Name, profile.UUID)
+			g.logger.Debugf(" - %s: %s (%s)", bundleID, profile.Name, profile.UUID)
 		}
 	}
 
 	if len(iosCodeSignGroups) < 1 {
-		log.Errorf("Failed to find Codesign Groups")
+		g.logger.Errorf("Failed to find Codesign Groups")
 		return nil, nil
 	}
 
 	if len(iosCodeSignGroups) > 1 {
-		log.Warnf("Multiple code signing groups found! Using the first code signing group")
+		g.logger.Warnf("Multiple code signing groups found! Using the first code signing group")
 	}
 
 	return &iosCodeSignGroups[0], nil
 }
 
 // addPropertiesFromXcode9 adds new exportOption properties introduced in Xcode 9.
-func addPropertiesFromXcode9(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
+func (g ExportOptionsGenerator) addPropertiesFromXcode9(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
@@ -390,9 +392,9 @@ func addPropertiesFromXcode9(exportOpts exportoptions.ExportOptions, teamID, cod
 		options.TeamID = teamID
 
 		if xcodeManaged && signingStyle == "manual" {
-			log.Warnf("App was signed with xcode managed profile when archiving,")
-			log.Warnf("ipa export uses manual code signing.")
-			log.Warnf(`Setting "signingStyle" to "manual"`)
+			g.logger.Warnf("App was signed with xcode managed profile when archiving,")
+			g.logger.Warnf("ipa export uses manual code signing.")
+			g.logger.Warnf(`Setting "signingStyle" to "manual"`)
 
 			options.SigningStyle = "manual"
 		}
@@ -403,9 +405,9 @@ func addPropertiesFromXcode9(exportOpts exportoptions.ExportOptions, teamID, cod
 		options.TeamID = teamID
 
 		if xcodeManaged && signingStyle == "manual" {
-			log.Warnf("App was signed with xcode managed profile when archiving,")
-			log.Warnf("ipa export uses manual code signing.")
-			log.Warnf(`Setting "signingStyle" to "manual"`)
+			g.logger.Warnf("App was signed with xcode managed profile when archiving,")
+			g.logger.Warnf("ipa export uses manual code signing.")
+			g.logger.Warnf(`Setting "signingStyle" to "manual"`)
 
 			options.SigningStyle = "manual"
 		}
@@ -468,18 +470,18 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		isXcodeManaged := profileutil.IsXcodeManaged(profileInfo.Name)
 		if isXcodeManaged {
 			if exportCodeSignStyle != "" && exportCodeSignStyle != "automatic" {
-				log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
+				g.logger.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
 			}
 			exportCodeSignStyle = "automatic"
 		} else {
 			if exportCodeSignStyle != "" && exportCodeSignStyle != "manual" {
-				log.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
+				g.logger.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
 			}
 			exportCodeSignStyle = "manual"
 		}
 	}
 
-	exportOpts = addPropertiesFromXcode9(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
+	exportOpts = g.addPropertiesFromXcode9(exportOpts, codeSignGroup.Certificate().TeamID, codeSignGroup.Certificate().CommonName, exportCodeSignStyle, exportProfileMapping, xcodeManaged)
 
 	if xcodeMajorVersion >= 12 {
 		exportOpts = addDistributionBundleIdentifierFromXcode12(exportOpts, distributionBundleIdentifier)
