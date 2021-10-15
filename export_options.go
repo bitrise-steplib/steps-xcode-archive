@@ -22,7 +22,7 @@ const (
 	manualSigningStyle = "manual"
 )
 
-// ExportOptionsGenerator generates an exportOptions.plist file (above Xcode 9)
+// ExportOptionsGenerator generates an exportOptions.plist file.
 type ExportOptionsGenerator struct {
 	xcodeProj     *xcodeproj.XcodeProj
 	scheme        *xcscheme.Scheme
