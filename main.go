@@ -245,20 +245,14 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 
 	if exportOptionsPlistContent != "" {
-		if xcodeMajorVersion < 7 {
-			fmt.Println()
-			logger.Warnf("ExportOptionsPlistContent is set, but ExportOptionsPlistContent only used if xcodeMajorVersion > 6")
-			exportOptionsPlistContent = ""
-		} else {
-			fmt.Println()
-			logger.Warnf("Ignoring the following options because ExportOptionsPlistContent provided:")
-			logger.Printf("- DistributionMethod: %s", config.ExportMethod)
-			logger.Printf("- UploadBitcode: %s", config.UploadBitcode)
-			logger.Printf("- CompileBitcode: %s", config.CompileBitcode)
-			logger.Printf("- ExportDevelopmentTeam: %s", config.ExportDevelopmentTeam)
-			logger.Printf("- ICloudContainerEnvironment: %s", config.ICloudContainerEnvironment)
-			fmt.Println()
-		}
+		fmt.Println()
+		logger.Warnf("Ignoring the following options because ExportOptionsPlistContent provided:")
+		logger.Printf("- DistributionMethod: %s", config.ExportMethod)
+		logger.Printf("- UploadBitcode: %s", config.UploadBitcode)
+		logger.Printf("- CompileBitcode: %s", config.CompileBitcode)
+		logger.Printf("- ExportDevelopmentTeam: %s", config.ExportDevelopmentTeam)
+		logger.Printf("- ICloudContainerEnvironment: %s", config.ICloudContainerEnvironment)
+		fmt.Println()
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
 

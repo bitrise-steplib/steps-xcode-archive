@@ -17,7 +17,10 @@ import (
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 )
 
-const appClipProductType = "com.apple.product-type.application.on-demand-install-capable"
+const (
+	appClipProductType = "com.apple.product-type.application.on-demand-install-capable"
+	manualSigningStyle = "manual"
+)
 
 // ExportOptionsGenerator generates an exportOptions.plist file from Xcode version 7 to Xcode version 11.
 type ExportOptionsGenerator struct {
@@ -385,18 +388,23 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 
 // addPropertiesFromXcode9 adds new exportOption properties introduced in Xcode 9.
 func (g ExportOptionsGenerator) addPropertiesFromXcode9(exportOpts exportoptions.ExportOptions, teamID, codesignIdentity, signingStyle string, bundleIDProfileMap map[string]string, xcodeManaged bool) exportoptions.ExportOptions {
+	setManualSigning := false
+	if xcodeManaged && signingStyle == manualSigningStyle {
+		g.logger.Warnf("App was signed with xcode managed profile when archiving,")
+		g.logger.Warnf("ipa export uses manual code signing.")
+		g.logger.Warnf(`Setting "signingStyle" to "manual"`)
+
+		setManualSigning = true
+	}
+
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		options.BundleIDProvisioningProfileMapping = bundleIDProfileMap
 		options.SigningCertificate = codesignIdentity
 		options.TeamID = teamID
 
-		if xcodeManaged && signingStyle == "manual" {
-			g.logger.Warnf("App was signed with xcode managed profile when archiving,")
-			g.logger.Warnf("ipa export uses manual code signing.")
-			g.logger.Warnf(`Setting "signingStyle" to "manual"`)
-
-			options.SigningStyle = "manual"
+		if setManualSigning {
+			options.SigningStyle = manualSigningStyle
 		}
 		return options
 	case exportoptions.NonAppStoreOptionsModel:
@@ -404,12 +412,8 @@ func (g ExportOptionsGenerator) addPropertiesFromXcode9(exportOpts exportoptions
 		options.SigningCertificate = codesignIdentity
 		options.TeamID = teamID
 
-		if xcodeManaged && signingStyle == "manual" {
-			g.logger.Warnf("App was signed with xcode managed profile when archiving,")
-			g.logger.Warnf("ipa export uses manual code signing.")
-			g.logger.Warnf(`Setting "signingStyle" to "manual"`)
-
-			options.SigningStyle = "manual"
+		if setManualSigning {
+			options.SigningStyle = manualSigningStyle
 		}
 		return options
 	}
@@ -420,7 +424,7 @@ func addDistributionBundleIdentifierFromXcode12(exportOpts exportoptions.ExportO
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		// Export option plist with App store export method (Xcode 12.0.1) do not contain distribution bundle identifier.
-		// Propably due to App store IPAs containing App Clips also, which are executable targets with a seperate bundle ID.
+		// Propably due to App store IPAs containing App Clips also, which are executable targets with a separate bundle ID.
 		return exportOpts
 	case exportoptions.NonAppStoreOptionsModel:
 		options.DistributionBundleIdentifier = distributionBundleIdentifier
@@ -474,10 +478,10 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 			}
 			exportCodeSignStyle = "automatic"
 		} else {
-			if exportCodeSignStyle != "" && exportCodeSignStyle != "manual" {
+			if exportCodeSignStyle != "" && exportCodeSignStyle != manualSigningStyle {
 				g.logger.Errorf("Both xcode managed and NON xcode managed profiles in code signing group")
 			}
-			exportCodeSignStyle = "manual"
+			exportCodeSignStyle = manualSigningStyle
 		}
 	}
 
