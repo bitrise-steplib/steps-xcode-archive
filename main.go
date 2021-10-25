@@ -288,7 +288,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 			return Config{}, fmt.Errorf("failed to read build settings: %w", err)
 		}
 		productName, err := settings.String("PRODUCT_NAME")
-		if err != nil {
+		if err != nil || productName == "" {
 			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", config.Scheme)
 			productName = config.Scheme
 		}
