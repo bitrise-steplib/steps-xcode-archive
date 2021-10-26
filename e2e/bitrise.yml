@@ -17,7 +17,8 @@ workflows:
   test_app_clip:
     steps:
     - bitrise-run:
-        run_if: "{{enveq 'BITRISEIO_STACK_ID' 'osx-xcode-12.5.x'}}"
+        run_if: |-
+          {{ enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x" }}
         inputs:
         - workflow_id: utility_test_app_clip
         - bitrise_config_path: ./e2e/bitrise.yml
@@ -43,7 +44,8 @@ workflows:
   test_catalyst:
     steps:
     - bitrise-run:
-        run_if: "{{enveq 'BITRISEIO_STACK_ID' 'osx-xcode-12.5.x'}}"
+        run_if: |-
+          {{ enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x" }}
         inputs:
         - workflow_id: utility_test_catalyst
         - bitrise_config_path: ./e2e/bitrise.yml
@@ -276,7 +278,8 @@ workflows:
             fi
     - script:
         title: Check if all dSYMs are exported
-        run_if: "{{getenv 'DSYM_EXPECTED_COUNT' | ne ''}}"
+        run_if: |-
+          {{ getenv "DSYM_EXPECTED_COUNT" | ne "" }}
         inputs:
         - content: |-
             #!/usr/bin/env bash
