@@ -17,7 +17,8 @@ workflows:
   test_app_clip:
     steps:
     - bitrise-run:
-        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
+        run_if: |-
+          {{ enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x" }}
         inputs:
         - workflow_id: utility_test_app_clip
         - bitrise_config_path: ./e2e/bitrise.yml
@@ -43,7 +44,8 @@ workflows:
   test_catalyst:
     steps:
     - bitrise-run:
-        run_if: '{{enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x"}}'
+        run_if: |-
+          {{ enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x" }}
         inputs:
         - workflow_id: utility_test_catalyst
         - bitrise_config_path: ./e2e/bitrise.yml
@@ -97,7 +99,7 @@ workflows:
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
-    - DSYM_EXPECTED_COUNT: 1 # Only 1 framework dSYM
+    - DSYM_EXPECTED_COUNT: 1  # Only 1 framework dSYM
     after_run:
     - _run
     - _check_outputs
@@ -107,7 +109,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - TEST_APP_BRANCH: ""
-    - TEST_APP_COMMIT: "65cd120bf4459c2881cfe2b731395b4efc53855d"
+    - TEST_APP_COMMIT: 65cd120bf4459c2881cfe2b731395b4efc53855d
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
@@ -126,7 +128,7 @@ workflows:
   test_xcode_8:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
-    - TEST_APP_BRANCH: "swift_version"
+    - TEST_APP_BRANCH: swift_version
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
     - BITRISE_SCHEME: ios-xcode-8.0
@@ -145,7 +147,7 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
     - TEST_APP_BRANCH: ""
-    - TEST_APP_COMMIT: "ab36ed563bbc3125118e9f27df91474822dc0d46"
+    - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
@@ -163,12 +165,12 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
     - TEST_APP_BRANCH: ""
-    - TEST_APP_COMMIT: "1360413258cc7f6a8676c17f060ff39899fc28b1"
+    - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
+    - FORCE_PROV_PROFILE_SPECIFIER: BitriseBot-Wildcard
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
@@ -187,11 +189,11 @@ workflows:
             rm -rf "./_tmp"
             mkdir -p "./_tmp"
     - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
-         inputs:
-           - repository_url: $TEST_APP_URL
-           - branch: $TEST_APP_BRANCH
-           - commit: $TEST_APP_COMMIT
-           - clone_into_dir: "./_tmp"
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - branch: $TEST_APP_BRANCH
+        - commit: $TEST_APP_COMMIT
+        - clone_into_dir: ./_tmp
     - certificate-and-profile-installer:
         inputs:
         - certificate_url: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
@@ -223,7 +225,7 @@ workflows:
     - path::./:
         title: Execute step
         inputs:
-        - project_path: "./_tmp/$BITRISE_PROJECT_PATH"
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         - xcconfig_content: $XCCONFIG_CONTENT
         - distribution_method: $IPA_EXPORT_METHOD
@@ -237,8 +239,8 @@ workflows:
     - git::https://github.com/bitrise-steplib/bitrise-step-check-step-outputs.git@main:
         is_always_run: true
         inputs:
-        - envs: 
-        - files: 
+        - envs:
+        - files:
         - dirs: |-
             BITRISE_APP_DIR_PATH
             BITRISE_DSYM_DIR_PATH
@@ -250,7 +252,7 @@ workflows:
             BITRISE_XCARCHIVE_ZIP_PATH
             BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH
             BITRISE_XCODEBUILD_EXPORT_ARCHIVE_LOG_PATH
-        - deployed_dirs: 
+        - deployed_dirs:
 
   _check_exported_artifacts:
     steps:
@@ -258,7 +260,7 @@ workflows:
         title: Validate exported artifacts
         is_always_run: true
         inputs:
-        - content: |-            
+        - content: |-
             #!/usr/bin/env bash
 
             cd $BITRISE_DSYM_DIR_PATH
@@ -276,7 +278,8 @@ workflows:
             fi
     - script:
         title: Check if all dSYMs are exported
-        run_if: '{{getenv "DSYM_EXPECTED_COUNT" | ne ""}}'
+        run_if: |-
+          {{ getenv "DSYM_EXPECTED_COUNT" | ne "" }}
         inputs:
         - content: |-
             #!/usr/bin/env bash
