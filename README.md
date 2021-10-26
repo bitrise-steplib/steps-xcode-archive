@@ -75,7 +75,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `export_options_plist_content` | Specifies a plist file content that configures archive exporting.  If not specified, the Step will auto-generate it. |  |  |
 | `output_dir` |  | required | `$BITRISE_DEPLOY_DIR` |
 | `export_all_dsyms` |  | required | `yes` |
-| `artifact_name` | This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.  If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used. |  |  |
+| `artifact_name` | This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.  If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used. If Product Name is not specified, the Scheme will be used. |  |  |
 | `cache_level` | Defines what cache content should be automatically collected.  Available options:  - `none`: Disable collecting cache content - `swift_packages`: Collect Swift PM packages added to the Xcode project | required | `swift_packages` |
 | `verbose_log` |  | required | `no` |
 </details>

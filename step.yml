@@ -240,6 +240,7 @@ inputs:
       This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.
 
       If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used.
+      If Product Name is not specified, the Scheme will be used.
 
 # Caching
 
