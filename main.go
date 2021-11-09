@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -19,6 +20,8 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
+	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/models"
 	"github.com/bitrise-io/go-xcode/profileutil"
@@ -77,6 +80,9 @@ type Inputs struct {
 	VerboseLog     bool   `env:"verbose_log,opt[yes,no]"`
 
 	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
+
+	BuildAPIToken string `env:"BITRISE_BUILD_API_TOKEN"`
+	BuildURL      string `env:"BITRISE_BUILD_URL"`
 }
 
 // Config ...
@@ -356,6 +362,7 @@ type xcodeArchiveOpts struct {
 	PerformCleanAction bool
 	XcconfigContent    string
 	XcodebuildOptions  string
+	XcodeAuthOptions   []string
 
 	CacheLevel string
 }
@@ -428,19 +435,28 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	archiveCmd.SetArchivePath(archivePth)
 
 	destination := "generic/platform=" + string(platform)
-	options := []string{"-destination", destination}
+	destinationOptions := []string{"-destination", destination}
+
+	options := []string{}
 	if opts.XcodebuildOptions != "" {
 		userOptions, err := shellquote.Split(opts.XcodebuildOptions)
 		if err != nil {
 			return out, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", opts.XcodebuildOptions, err)
 		}
 
-		if sliceutil.IsStringInSlice("-destination", userOptions) {
-			options = userOptions
-		} else {
-			options = append(options, userOptions...)
+		if !sliceutil.IsStringInSlice("-destination", userOptions) {
+			options = append(options, destinationOptions...)
 		}
+		if !sliceutil.IsStringInSlice("-allowProvisioningUpdates", userOptions) {
+			options = append(options, opts.XcodeAuthOptions...)
+		}
+
+		options = append(options, userOptions...)
+	} else {
+		options = append(options, destinationOptions...)
+		options = append(options, opts.XcodeAuthOptions...)
 	}
+
 	archiveCmd.SetCustomOptions(options)
 
 	var swiftPackagesPath string
@@ -694,6 +710,10 @@ type RunOpts struct {
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
 	CompileBitcode                  bool
+
+	// Authentication
+	BuildURL      string
+	BuildAPIToken string
 }
 
 // RunOut ...
@@ -708,8 +728,63 @@ type RunOut struct {
 	IDEDistrubutionLogsDir     string
 }
 
+func validateArgValue(key string, arg string) (string, error) {
+	args, err := shellquote.Split(arg)
+	if err != nil {
+		return "", err
+	}
+
+	if len(args) == 0 {
+		return "", fmt.Errorf("argument %s has empty value", key)
+	}
+
+	return args[0], nil
+}
+
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
+	var connection devportalservice.AppleDeveloperConnection
+	if opts.BuildURL != "" {
+		f := devportalclient.NewClientFactory()
+		var err error
+
+		if connection, err = f.CreateBitriseConnection(opts.BuildURL, opts.BuildAPIToken); err != nil {
+			return RunOut{}, fmt.Errorf("failed to create Apple Servie connecton: %s", err)
+		}
+	}
+
+	authOptions := []string{}
+	if connection.APIKeyConnection != nil {
+		logger.Infof("API Key found")
+
+		privateKey := filepath.Join(os.TempDir(), "privateKey.p8")
+		if err := ioutil.WriteFile(privateKey, []byte(connection.APIKeyConnection.PrivateKey), os.ModePerm); err != nil {
+			return RunOut{}, fmt.Errorf("failed to write private key: %s", err)
+		}
+		defer func() {
+			if err := os.Remove(privateKey); err != nil {
+				logger.Warnf("failed to remove private key file: %s", err)
+			}
+		}()
+
+		keyID, err := validateArgValue("Key ID", connection.APIKeyConnection.KeyID)
+		if err != nil {
+			return RunOut{}, err
+		}
+
+		issuerID, err := validateArgValue("Issuer ID", connection.APIKeyConnection.IssuerID)
+		if err != nil {
+			return RunOut{}, err
+		}
+		authOptions = []string{
+			"-allowProvisioningUpdates",
+			"-authenticationKeyPath", privateKey,
+			"-authenticationKeyID", keyID,
+			"-authenticationKeyIssuerID", issuerID,
+		}
+	}
+
+	//
 	out := RunOut{}
 
 	archiveOpts := xcodeArchiveOpts{
@@ -722,6 +797,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
+		XcodeAuthOptions:   authOptions,
 		XcodebuildOptions:  opts.XcodebuildOptions,
 		CacheLevel:         opts.CacheLevel,
 	}
@@ -1015,6 +1091,9 @@ func RunStep() error {
 		ExportDevelopmentTeam:           config.ExportDevelopmentTeam,
 		UploadBitcode:                   config.UploadBitcode,
 		CompileBitcode:                  config.CompileBitcode,
+
+		BuildURL:      config.BuildURL,
+		BuildAPIToken: config.BuildAPIToken,
 	}
 	out, runErr := step.Run(runOpts)
 
