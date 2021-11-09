@@ -3,6 +3,7 @@ github.com/bitrise-io/go-plist
 # github.com/bitrise-io/go-steputils v0.0.0-20210929162140-866a65a1e14a
 ## explicit
 github.com/bitrise-io/go-steputils/cache
+github.com/bitrise-io/go-steputils/input
 github.com/bitrise-io/go-steputils/ruby
 github.com/bitrise-io/go-steputils/stepconf
 github.com/bitrise-io/go-steputils/tools
@@ -12,19 +13,29 @@ github.com/bitrise-io/go-utils/colorstring
 github.com/bitrise-io/go-utils/command
 github.com/bitrise-io/go-utils/env
 github.com/bitrise-io/go-utils/errorutil
+github.com/bitrise-io/go-utils/filedownloader
 github.com/bitrise-io/go-utils/fileutil
+github.com/bitrise-io/go-utils/httputil
 github.com/bitrise-io/go-utils/log
 github.com/bitrise-io/go-utils/parseutil
 github.com/bitrise-io/go-utils/pathutil
 github.com/bitrise-io/go-utils/pointers
 github.com/bitrise-io/go-utils/pretty
 github.com/bitrise-io/go-utils/progress
+github.com/bitrise-io/go-utils/retry
 github.com/bitrise-io/go-utils/sliceutil
 github.com/bitrise-io/go-utils/stringutil
 github.com/bitrise-io/go-utils/ziputil
-# github.com/bitrise-io/go-xcode v0.0.0-20211013131222-3dd904b5ee1e
+# github.com/bitrise-io/go-xcode v0.0.0-20211021131230-4e6dee6a01ac
 ## explicit
+github.com/bitrise-io/go-xcode/appleauth
+github.com/bitrise-io/go-xcode/autocodesign
+github.com/bitrise-io/go-xcode/autocodesign/devportalclient
+github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnect
+github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnectclient
+github.com/bitrise-io/go-xcode/autocodesign/devportalclient/spaceship
 github.com/bitrise-io/go-xcode/certificateutil
+github.com/bitrise-io/go-xcode/devportalservice
 github.com/bitrise-io/go-xcode/export
 github.com/bitrise-io/go-xcode/exportoptions
 github.com/bitrise-io/go-xcode/models
@@ -46,8 +57,16 @@ github.com/bitrise-io/pkcs12
 github.com/bitrise-io/pkcs12/internal/rc2
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
+github.com/dgrijalva/jwt-go
 # github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
 github.com/fullsailor/pkcs7
+# github.com/google/go-querystring v1.1.0
+github.com/google/go-querystring/query
+# github.com/hashicorp/go-cleanhttp v0.5.2
+github.com/hashicorp/go-cleanhttp
+# github.com/hashicorp/go-retryablehttp v0.7.0
+github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-version v1.3.0
 github.com/hashicorp/go-version
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
