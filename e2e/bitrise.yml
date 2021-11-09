@@ -19,6 +19,15 @@ app:
 
 workflows:
   test_sample:
+    steps:
+    - bitrise-run:
+        run_if: |-
+          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+        inputs:
+        - workflow_id: utility_test_sample
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_sample:
     envs:
     # - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta
