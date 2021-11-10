@@ -358,11 +358,11 @@ type xcodeArchiveOpts struct {
 	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
+	XcodeAuthOptions  *xcodebuild.AuthenticationParams
 
 	PerformCleanAction bool
 	XcconfigContent    string
 	XcodebuildOptions  string
-	XcodeAuthOptions   []string
 
 	CacheLevel string
 }
@@ -433,6 +433,9 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	archivePth := filepath.Join(tmpDir, opts.ArtifactName+".xcarchive")
 
 	archiveCmd.SetArchivePath(archivePth)
+	if opts.XcodeAuthOptions != nil {
+		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	}
 
 	destination := "generic/platform=" + string(platform)
 	destinationOptions := []string{"-destination", destination}
@@ -447,14 +450,10 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		if !sliceutil.IsStringInSlice("-destination", userOptions) {
 			options = append(options, destinationOptions...)
 		}
-		if !sliceutil.IsStringInSlice("-allowProvisioningUpdates", userOptions) {
-			options = append(options, opts.XcodeAuthOptions...)
-		}
 
 		options = append(options, userOptions...)
 	} else {
 		options = append(options, destinationOptions...)
-		options = append(options, opts.XcodeAuthOptions...)
 	}
 
 	archiveCmd.SetCustomOptions(options)
@@ -523,6 +522,7 @@ type xcodeIPAExportOpts struct {
 	Configuration     string
 	LogFormatter      string
 	XcodeMajorVersion int
+	XcodeAuthOptions  *xcodebuild.AuthenticationParams
 
 	Archive                         xcarchive.IosArchive
 	CustomExportOptionsPlistContent string
@@ -618,6 +618,9 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	exportCmd.SetArchivePath(opts.Archive.Path)
 	exportCmd.SetExportDir(ipaExportDir)
 	exportCmd.SetExportOptionsPlist(exportOptionsPath)
+	if opts.XcodeAuthOptions != nil {
+		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	}
 
 	if opts.LogFormatter == "xcpretty" {
 		xcprettyCmd := xcpretty.New(exportCmd)
@@ -753,7 +756,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		}
 	}
 
-	authOptions := []string{}
+	var authOptions *xcodebuild.AuthenticationParams = nil
 	if connection.APIKeyConnection != nil {
 		logger.Infof("API Key found")
 
@@ -776,11 +779,11 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		if err != nil {
 			return RunOut{}, err
 		}
-		authOptions = []string{
-			"-allowProvisioningUpdates",
-			"-authenticationKeyPath", privateKey,
-			"-authenticationKeyID", keyID,
-			"-authenticationKeyIssuerID", issuerID,
+
+		authOptions = &xcodebuild.AuthenticationParams{
+			KeyID:     keyID,
+			IsssuerID: issuerID,
+			KeyPath:   privateKey,
 		}
 	}
 
@@ -794,10 +797,10 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		ArtifactName:      opts.ArtifactName,
+		XcodeAuthOptions:  authOptions,
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
-		XcodeAuthOptions:   authOptions,
 		XcodebuildOptions:  opts.XcodebuildOptions,
 		CacheLevel:         opts.CacheLevel,
 	}
@@ -815,6 +818,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		Configuration:     opts.Configuration,
 		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
+		XcodeAuthOptions:  authOptions,
 
 		Archive:                         *archiveOut.Archive,
 		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
