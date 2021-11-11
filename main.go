@@ -56,8 +56,8 @@ const (
 
 	// Code Signing Authentication Source
 	codeSignSourceOff     = "off"
-	codeSignSourceAPIKey  = "api-key"
-	codeSignSourceAppleID = "apple-id"
+	codeSignSourceAPIKey  = "api-key"  //nolint:deadcode
+	codeSignSourceAppleID = "apple-id" //nolint:deadcode
 )
 
 // Inputs ...
