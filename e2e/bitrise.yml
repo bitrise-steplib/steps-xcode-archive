@@ -59,6 +59,7 @@ workflows:
         - clone_into_dir: ./_tmp
     - path::./:
         inputs:
+        - automatic_code_signing: api-key
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         # - xcconfig_content: |
