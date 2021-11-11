@@ -39,33 +39,86 @@ type CodeSignOpts struct {
 	KeychainPassword       stepconf.Secret
 }
 
-func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, error) {
-	if opts.XcodeMajorVersion < 13 {
-		logger.Infof("Bitrise Code Signing")
-		if err := bitriseCodeSign(opts, devportalclient.APIKeyClient); err != nil {
-			return nil, err
-		}
+type codeSigningStrategy int
 
-		return nil, nil
+const (
+	noCodeSign codeSigningStrategy = iota
+	codeSigningXcode
+	codeSigningBitriseAPIKey
+	// codeSigningBitriseAppleID
+)
+
+func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, error) {
+	strategy, err := selectCodeSigningStrategy(opts)
+	if err != nil {
+		return nil, err
 	}
 
-	authConfig, err := appleauth.Select(&opts.AppleServiceConnection, []appleauth.Source{&appleauth.ConnectionAPIKeySource{}}, appleauth.Inputs{})
-	if err != nil {
-		if authConfig.APIKey == nil {
-			fmt.Println()
-			log.Warnf("%s", notConnected)
-		}
+	switch strategy {
+	case noCodeSign:
+		return nil, nil
+	case codeSigningXcode:
+		{
+			authConfig, err := appleauth.Select(&opts.AppleServiceConnection, []appleauth.Source{&appleauth.ConnectionAPIKeySource{}}, appleauth.Inputs{})
+			if err != nil {
+				if authConfig.APIKey == nil {
+					fmt.Println()
+					log.Warnf("%s", notConnected)
+				}
 
-		if errors.Is(err, &appleauth.MissingAuthConfigError{}) {
+				if errors.Is(err, &appleauth.MissingAuthConfigError{}) {
+					return nil, nil
+				}
+
+				return nil, fmt.Errorf("could not configure Apple service authentication: %v", err)
+			}
+
+			logger.Infof("Xcode Code Signing")
+
+			return authConfig.APIKey, nil
+		}
+	case codeSigningBitriseAPIKey:
+		{
+			logger.Infof("Bitrise Code Signing")
+			if err := bitriseCodeSign(opts, devportalclient.APIKeyClient); err != nil {
+				return nil, err
+			}
+
 			return nil, nil
 		}
-
-		return nil, fmt.Errorf("could not configure Apple service authentication: %v", err)
 	}
 
-	logger.Infof("Xcode Code Signing")
+	return nil, nil
+}
 
-	return authConfig.APIKey, nil
+func selectCodeSigningStrategy(opts CodeSignOpts) (codeSigningStrategy, error) {
+	if opts.AppleServiceConnection.APIKeyConnection == nil {
+		return noCodeSign, nil
+	}
+
+	if opts.XcodeMajorVersion < 13 {
+		return codeSigningBitriseAPIKey, nil
+	}
+
+	project, err := projectmanager.NewProject(projectmanager.InitParams{
+		ProjectOrWorkspacePath: opts.ProjectPath,
+		SchemeName:             opts.Scheme,
+		ConfigurationName:      opts.Configuration,
+	})
+	if err != nil {
+		return noCodeSign, err
+	}
+
+	autoSign, err := project.IsSigningManagedAutomatically()
+	if err != nil {
+		return noCodeSign, err
+	}
+
+	if autoSign {
+		return codeSigningXcode, nil
+	}
+
+	return codeSigningBitriseAPIKey, nil
 }
 
 // Does not registe devices
