@@ -15,6 +15,12 @@ Most likely because there is no configured Bitrise Apple service connection.
 Read more: https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/`
 
 func manageCodeSigning(opts RunOpts) (*devportalservice.APIKeyConnection, error) {
+	if opts.XcodeMajorVersion < 13 {
+		log.Warnf("Skipping Code Signing, at least Xcode 13 is required for Cloud Signing")
+
+		return nil, nil
+	}
+
 	authConfig, err := appleauth.Select(&opts.AppleServiceConnection, []appleauth.Source{&appleauth.ConnectionAPIKeySource{}}, appleauth.Inputs{})
 	if err != nil {
 		if authConfig.APIKey == nil {
@@ -25,6 +31,7 @@ func manageCodeSigning(opts RunOpts) (*devportalservice.APIKeyConnection, error)
 		if errors.Is(err, &appleauth.MissingAuthConfigError{}) {
 			return nil, nil
 		}
+
 		return nil, fmt.Errorf("could not configure Apple service authentication: %v", err)
 	}
 
