@@ -301,7 +301,7 @@ inputs:
       URL of the code signing certificate to download.
 
       Multiple URLs can be specified, separated by a pipe (|) character.
-      
+
       Local file path can be specified, using the file:// URL scheme.
     is_required: true
     is_sensitive: true
@@ -311,7 +311,7 @@ inputs:
     category: Debugging
     title: Code signing certificate passphrase
     summary: Passphrases for the provided code signing certificates.
-    description: |- 
+    description: |-
       Passphrases for the provided code signing certificates.
 
       Specify as many passphrases as many Code signing certificate URL provided, separated by a pipe (|) character.
