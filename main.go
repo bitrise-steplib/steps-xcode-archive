@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -54,6 +53,11 @@ const (
 	bitriseAppDirPthEnvKey    = "BITRISE_APP_DIR_PATH"
 	bitriseDSYMDirPthEnvKey   = "BITRISE_DSYM_DIR_PATH"
 	bitriseXCArchivePthEnvKey = "BITRISE_XCARCHIVE_PATH"
+
+	// Code Signing Authentication Source
+	codeSignSourceOff     = "off"
+	codeSignSourceAPIKey  = "api-key"
+	codeSignSourceAppleID = "apple-id"
 )
 
 // Inputs ...
@@ -81,14 +85,16 @@ type Inputs struct {
 
 	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
 
-	BuildAPIToken string `env:"BITRISE_BUILD_API_TOKEN"`
-	BuildURL      string `env:"BITRISE_BUILD_URL"`
+	CodeSigningAuthSource string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
+	BuildURL              string          `env:"BITRISE_BUILD_URL"`
+	BuildAPIToken         stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
 
 // Config ...
 type Config struct {
 	Inputs
-	XcodeMajorVersion int
+	XcodeMajorVersion      int
+	AppleServiceConnection devportalservice.AppleDeveloperConnection
 }
 
 var envRepository = env.NewRepository()
@@ -299,6 +305,19 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 			productName = config.Scheme
 		}
 		config.ArtifactName = productName
+	}
+
+	isRunningOnBitrise := inputs.BuildURL != "" && string(inputs.BuildAPIToken) != ""
+	if inputs.CodeSigningAuthSource != codeSignSourceOff {
+		if !isRunningOnBitrise {
+			fmt.Println()
+			log.Warnf("Automatic Code Signing disabled, as Connected Apple Developer Portal Account is unavailable in local development environment.")
+		} else {
+			f := devportalclient.NewClientFactory()
+			if config.AppleServiceConnection, err = f.CreateBitriseConnection(inputs.BuildURL, string(inputs.BuildAPIToken)); err != nil {
+				return Config{}, err
+			}
+		}
 	}
 
 	return config, nil
@@ -715,8 +734,7 @@ type RunOpts struct {
 	CompileBitcode                  bool
 
 	// Authentication
-	BuildURL      string
-	BuildAPIToken string
+	AppleServiceConnection devportalservice.AppleDeveloperConnection
 }
 
 // RunOut ...
@@ -731,63 +749,33 @@ type RunOut struct {
 	IDEDistrubutionLogsDir     string
 }
 
-func validateArgValue(key string, arg string) (string, error) {
-	args, err := shellquote.Split(arg)
-	if err != nil {
-		return "", err
-	}
-
-	if len(args) == 0 {
-		return "", fmt.Errorf("argument %s has empty value", key)
-	}
-
-	return args[0], nil
-}
-
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
-	var connection devportalservice.AppleDeveloperConnection
-	if opts.BuildURL != "" {
-		f := devportalclient.NewClientFactory()
-		var err error
-
-		if connection, err = f.CreateBitriseConnection(opts.BuildURL, opts.BuildAPIToken); err != nil {
-			return RunOut{}, fmt.Errorf("failed to create Apple Servie connecton: %s", err)
-		}
+	XcodeAPIConnection, err := manageCodeSigning(opts)
+	if err != nil {
+		return RunOut{}, fmt.Errorf("failed to manage Code Signing: %s", err)
 	}
 
 	var authOptions *xcodebuild.AuthenticationParams = nil
-	if connection.APIKeyConnection != nil {
-		logger.Infof("API Key found")
-
-		privateKey := filepath.Join(os.TempDir(), "privateKey.p8")
-		if err := ioutil.WriteFile(privateKey, []byte(connection.APIKeyConnection.PrivateKey), os.ModePerm); err != nil {
-			return RunOut{}, fmt.Errorf("failed to write private key: %s", err)
+	if XcodeAPIConnection != nil {
+		privateKey, err := writePrivateKey([]byte(XcodeAPIConnection.PrivateKey))
+		if err != nil {
+			return RunOut{}, err
 		}
+
 		defer func() {
 			if err := os.Remove(privateKey); err != nil {
 				logger.Warnf("failed to remove private key file: %s", err)
 			}
 		}()
 
-		keyID, err := validateArgValue("Key ID", connection.APIKeyConnection.KeyID)
-		if err != nil {
-			return RunOut{}, err
-		}
-
-		issuerID, err := validateArgValue("Issuer ID", connection.APIKeyConnection.IssuerID)
-		if err != nil {
-			return RunOut{}, err
-		}
-
 		authOptions = &xcodebuild.AuthenticationParams{
-			KeyID:     keyID,
-			IsssuerID: issuerID,
+			KeyID:     XcodeAPIConnection.KeyID,
+			IsssuerID: XcodeAPIConnection.IssuerID,
 			KeyPath:   privateKey,
 		}
 	}
 
-	//
 	out := RunOut{}
 
 	archiveOpts := xcodeArchiveOpts{
@@ -1096,8 +1084,7 @@ func RunStep() error {
 		UploadBitcode:                   config.UploadBitcode,
 		CompileBitcode:                  config.CompileBitcode,
 
-		BuildURL:      config.BuildURL,
-		BuildAPIToken: config.BuildAPIToken,
+		AppleServiceConnection: config.AppleServiceConnection,
 	}
 	out, runErr := step.Run(runOpts)
 

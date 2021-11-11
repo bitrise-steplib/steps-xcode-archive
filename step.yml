@@ -90,6 +90,25 @@ inputs:
     - enterprise
     is_required: true
 
+# Manage Code Signing
+
+- automatic_code_signing: "off"
+  opts:
+    title: Automatic Code Signing method
+    summary: This input determines which Bitrise Apple service connection should be used for automatic Code Signing.
+    description: |-
+      This input determines which Bitrise Apple service connection should be used for automatic Code Signing.
+
+      Available values:
+      - `off`: Do not manage Code Signing.
+      - `api-key`: Bitrise Apple Service connection with API Key.
+      - `apple-id`: Bitrise Apple Service connection with Apple ID.
+    value_options:
+    - "off"
+    - api-key
+    - apple-id
+    is_required: true
+
 # xcodebuild configuration
 
 - configuration:
