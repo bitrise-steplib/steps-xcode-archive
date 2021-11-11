@@ -292,6 +292,51 @@ inputs:
     - "no"
     is_required: true
 
+- certificate_urls: $BITRISE_CERTIFICATE_URL
+  opts:
+    category: Debugging
+    title: Code signing certificate URL
+    summary: URL of the code signing certificate to download.
+    description: |-
+      URL of the code signing certificate to download.
+
+      Multiple URLs can be specified, separated by a pipe (|) character.
+      
+      Local file path can be specified, using the file:// URL scheme.
+    is_required: true
+    is_sensitive: true
+
+- passphrases: $BITRISE_CERTIFICATE_PASSPHRASE
+  opts:
+    category: Debugging
+    title: Code signing certificate passphrase
+    summary: Passphrases for the provided code signing certificates.
+    description: |- 
+      Passphrases for the provided code signing certificates.
+
+      Specify as many passphrases as many Code signing certificate URL provided, separated by a pipe (|) character.
+    is_required: true
+    is_sensitive: true
+
+- keychain_path: $HOME/Library/Keychains/login.keychain
+  opts:
+    category: Debugging
+    title: Keychain path
+    summary: Path to the Keychain where the code signing certificates will be installed.
+    description: Path to the Keychain where the code signing certificates will be installed.
+    is_required: true
+    is_dont_change_value: true
+
+- keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+  opts:
+    category: Debugging
+    title: Keychain password
+    summary: Password for the provided Keychain.
+    description: Password for the provided Keychain.
+    is_required: true
+    is_sensitive: true
+    is_dont_change_value: true
+
 outputs:
 - BITRISE_IPA_PATH:
   opts:

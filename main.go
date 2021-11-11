@@ -19,6 +19,7 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-xcode/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
 	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
@@ -85,9 +86,13 @@ type Inputs struct {
 
 	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
 
-	CodeSigningAuthSource string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
-	BuildURL              string          `env:"BITRISE_BUILD_URL"`
-	BuildAPIToken         stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
+	CodeSigningAuthSource     string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
+	CertificateURLList        string          `env:"certificate_urls"`
+	CertificatePassphraseList stepconf.Secret `env:"passphrases"`
+	KeychainPath              string          `env:"keychain_path"`
+	KeychainPassword          stepconf.Secret `env:"keychain_password"`
+	BuildURL                  string          `env:"BITRISE_BUILD_URL"`
+	BuildAPIToken             stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
 
 // Config ...
@@ -718,6 +723,13 @@ type RunOpts struct {
 	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
+	// Authentication
+	AppleServiceConnection    devportalservice.AppleDeveloperConnection
+	KeychainPath              string
+	KeychainPassword          stepconf.Secret
+	CertificateURLList        string
+	CertificatePassphraseList stepconf.Secret
+	Certificates              []certdownloader.CertificateAndPassphrase
 
 	// Archive
 	PerformCleanAction bool
@@ -732,9 +744,6 @@ type RunOpts struct {
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
 	CompileBitcode                  bool
-
-	// Authentication
-	AppleServiceConnection devportalservice.AppleDeveloperConnection
 }
 
 // RunOut ...
@@ -751,7 +760,18 @@ type RunOut struct {
 
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
-	XcodeAPIConnection, err := manageCodeSigning(opts)
+	XcodeAPIConnection, err := manageCodeSigning(CodeSignOpts{
+		ProjectPath:               opts.ProjectPath,
+		Scheme:                    opts.Scheme,
+		Configuration:             opts.Configuration,
+		ExportMethod:              opts.ExportMethod,
+		XcodeMajorVersion:         opts.XcodeMajorVersion,
+		AppleServiceConnection:    opts.AppleServiceConnection,
+		CertificateURLList:        opts.CertificateURLList,
+		CertificatePassphraseList: opts.CertificatePassphraseList,
+		KeychainPath:              opts.KeychainPath,
+		KeychainPassword:          opts.KeychainPassword,
+	})
 	if err != nil {
 		return RunOut{}, fmt.Errorf("failed to manage Code Signing: %s", err)
 	}
@@ -1072,6 +1092,12 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
+		AppleServiceConnection:    config.AppleServiceConnection,
+		KeychainPath:              config.KeychainPath,
+		KeychainPassword:          config.KeychainPassword,
+		CertificateURLList:        config.CertificateURLList,
+		CertificatePassphraseList: config.CertificatePassphraseList,
+
 		PerformCleanAction: config.PerformCleanAction,
 		XcconfigContent:    config.XcconfigContent,
 		XcodebuildOptions:  config.XcodebuildOptions,
@@ -1083,8 +1109,6 @@ func RunStep() error {
 		ExportDevelopmentTeam:           config.ExportDevelopmentTeam,
 		UploadBitcode:                   config.UploadBitcode,
 		CompileBitcode:                  config.CompileBitcode,
-
-		AppleServiceConnection: config.AppleServiceConnection,
 	}
 	out, runErr := step.Run(runOpts)
 
