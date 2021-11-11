@@ -342,7 +342,8 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 	fmt.Println()
 	logger.Infof("Checking if output tool (xcpretty) is installed")
 
-	installed, err := xcpretty.IsInstalled()
+	xcprettyCommand := xcpretty.NewXcpretty()
+	installed, err := xcprettyCommand.IsInstalled()
 	if err != nil {
 		return fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)
 	} else if !installed {
@@ -350,7 +351,7 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 		fmt.Println()
 		logger.Printf("Installing xcpretty")
 
-		cmds, err := xcpretty.Install()
+		cmds, err := xcprettyCommand.Install()
 		if err != nil {
 			return fmt.Errorf("failed to create xcpretty install command: %s", err)
 		}
@@ -366,7 +367,7 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 
 	}
 
-	xcprettyVersion, err := xcpretty.Version()
+	xcprettyVersion, err := xcprettyCommand.Version()
 	if err != nil {
 		return fmt.Errorf("failed to determine xcpretty version, error: %s", err)
 	}
