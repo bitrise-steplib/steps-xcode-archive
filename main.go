@@ -20,6 +20,7 @@ import (
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
+	"github.com/bitrise-io/go-xcode/exportoptionsgenerator"
 	"github.com/bitrise-io/go-xcode/models"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/utility"
@@ -312,6 +313,8 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 	fmt.Println()
 	logger.Infof("Checking if output tool (xcpretty) is installed")
 
+	var xcpretty = xcpretty.NewXcpretty()
+
 	installed, err := xcpretty.IsInstalled()
 	if err != nil {
 		return fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)
@@ -379,11 +382,11 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
 
-	mainTarget, err := archivableApplicationTarget(xcodeProj, scheme)
+	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
 	if err != nil {
 		return out, fmt.Errorf("failed to read main application target: %s", err)
 	}
-	if mainTarget.ProductType == appClipProductType {
+	if mainTarget.ProductType == exportoptionsgenerator.AppClipProductType {
 		logger.Errorf("Selected scheme: '%s' targets an App Clip target (%s),", opts.Scheme, mainTarget.Name)
 		logger.Errorf("'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.")
 		logger.Errorf("Please select a scheme targeting an Application target to archive and export the main Application")
@@ -579,7 +582,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 
 		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
 
-		generator := NewExportOptionsGenerator(xcodeProj, scheme, configuration, logger)
+		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
 			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
 		if err != nil {
