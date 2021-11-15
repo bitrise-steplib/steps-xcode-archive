@@ -1,10 +1,14 @@
-package main
+package exportoptionsgenerator
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/export"
@@ -14,11 +18,10 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
-	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 )
 
 const (
-	appClipProductType = "com.apple.product-type.application.on-demand-install-capable"
+	AppClipProductType = "com.apple.product-type.application.on-demand-install-capable"
 	manualSigningStyle = "manual"
 )
 
@@ -34,8 +37,8 @@ type ExportOptionsGenerator struct {
 	logger              log.Logger
 }
 
-// NewExportOptionsGenerator constructs a new ExportOptionsGenerator.
-func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string, logger log.Logger) ExportOptionsGenerator {
+// New constructs a new ExportOptionsGenerator.
+func New(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string, logger log.Logger) ExportOptionsGenerator {
 	g := ExportOptionsGenerator{
 		xcodeProj:     xcodeProj,
 		scheme:        scheme,
@@ -51,7 +54,7 @@ func NewExportOptionsGenerator(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.
 // GenerateApplicationExportOptions generates exportOptions for an application export.
 func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
-	mainTarget, err := archivableApplicationTarget(g.xcodeProj, g.scheme)
+	mainTarget, err := ArchivableApplicationTarget(g.xcodeProj, g.scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +108,7 @@ func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configu
 	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
 }
 
-func archivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme) (*xcodeproj.Target, error) {
+func ArchivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme) (*xcodeproj.Target, error) {
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
 		return nil, fmt.Errorf("archivable entry not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
@@ -132,7 +135,7 @@ func dependentApplicationBundleTargetsOf(exportMethod exportoptions.Method, appl
 		// </dict>
 		// ..,
 		if exportMethod != exportoptions.MethodAppStore &&
-			target.ProductType == appClipProductType {
+			target.ProductType == AppClipProductType {
 			continue
 		}
 
@@ -334,7 +337,7 @@ func (g ExportOptionsGenerator) determineCodesignGroup(bundleIDEntitlementsMap m
 
 	defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
 	if teamID == "" && defaultProfileURL != "" {
-		if defaultProfile, err := utils.GetDefaultProvisioningProfile(); err == nil {
+		if defaultProfile, err := GetDefaultProvisioningProfile(); err == nil {
 			g.logger.Debugf("\ndefault profile: %v\n", defaultProfile)
 			filteredCodeSignGroups := export.FilterSelectableCodeSignGroups(codeSignGroups,
 				export.CreateExcludeProfileNameSelectableCodeSignGroupFilter(defaultProfile.Name))
@@ -482,4 +485,49 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 	}
 
 	return exportOpts, nil
+}
+
+// GetDefaultProvisioningProfile ...
+func GetDefaultProvisioningProfile() (profileutil.ProvisioningProfileInfoModel, error) {
+	defaultProfileURL := os.Getenv("BITRISE_DEFAULT_PROVISION_URL")
+	if defaultProfileURL == "" {
+		return profileutil.ProvisioningProfileInfoModel{}, nil
+	}
+
+	tmpDir, err := pathutil.NormalizedOSTempDirPath("tmp_default_profile")
+	if err != nil {
+		return profileutil.ProvisioningProfileInfoModel{}, err
+	}
+
+	tmpDst := filepath.Join(tmpDir, "default.mobileprovision")
+	tmpDstFile, err := os.Create(tmpDst)
+	if err != nil {
+		return profileutil.ProvisioningProfileInfoModel{}, err
+	}
+	defer func() {
+		if err := tmpDstFile.Close(); err != nil {
+			log.Errorf("Failed to close file (%s), error: %s", tmpDst, err)
+		}
+	}()
+
+	response, err := http.Get(defaultProfileURL)
+	if err != nil {
+		return profileutil.ProvisioningProfileInfoModel{}, err
+	}
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			log.Errorf("Failed to close response body, error: %s", err)
+		}
+	}()
+
+	if _, err := io.Copy(tmpDstFile, response.Body); err != nil {
+		return profileutil.ProvisioningProfileInfoModel{}, err
+	}
+
+	defaultProfile, err := profileutil.NewProvisioningProfileInfoFromFile(tmpDst)
+	if err != nil {
+		return profileutil.ProvisioningProfileInfoModel{}, err
+	}
+
+	return defaultProfile, nil
 }
