@@ -113,6 +113,7 @@ workflows:
         - scheme: $BITRISE_SCHEME
         - distribution_method: $IPA_DISTRIBUTION_METHOD
         - log_formatter: xcpretty
+        - verbose_log: yes
 
   # test_app_clip:
   #   steps:
