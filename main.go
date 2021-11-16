@@ -56,9 +56,9 @@ const (
 	bitriseXCArchivePthEnvKey = "BITRISE_XCARCHIVE_PATH"
 
 	// Code Signing Authentication Source
-	codeSignSourceOff     = "off"
-	codeSignSourceAPIKey  = "api-key"  //nolint:deadcode,varcheck
-	codeSignSourceAppleID = "apple-id" //nolint:deadcode,varcheck
+	codeSignSourceOff     = "off" //nolint:deadcode,varcheck
+	codeSignSourceAPIKey  = "api-key"
+	codeSignSourceAppleID = "apple-id"
 )
 
 // Inputs ...
@@ -312,16 +312,16 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		config.ArtifactName = productName
 	}
 
-	isRunningOnBitrise := inputs.BuildURL != "" && string(inputs.BuildAPIToken) != ""
-	if inputs.CodeSigningAuthSource != codeSignSourceOff {
-		if !isRunningOnBitrise {
-			fmt.Println()
-			log.Warnf("Automatic Code Signing disabled, as Connected Apple Developer Portal Account is unavailable in local development environment.")
-		} else {
+	if inputs.CodeSigningAuthSource == codeSignSourceAPIKey || inputs.CodeSigningAuthSource == codeSignSourceAppleID {
+		isRunningOnBitrise := inputs.BuildURL != "" && string(inputs.BuildAPIToken) != ""
+		if isRunningOnBitrise {
 			f := devportalclient.NewClientFactory()
 			if config.AppleServiceConnection, err = f.CreateBitriseConnection(inputs.BuildURL, string(inputs.BuildAPIToken)); err != nil {
 				return Config{}, err
 			}
+		} else {
+			fmt.Println()
+			logger.Warnf("Automatic Code Signing disabled, as connection to the Apple Developer Portal is only available in builds on Bitrise.io")
 		}
 	}
 

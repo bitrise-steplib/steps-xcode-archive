@@ -45,7 +45,7 @@ const (
 	noCodeSign codeSigningStrategy = iota
 	codeSigningXcode
 	codeSigningBitriseAPIKey
-	// codeSigningBitriseAppleID
+	codeSigningBitriseAppleID
 )
 
 func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, error) {
@@ -79,8 +79,17 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 		}
 	case codeSigningBitriseAPIKey:
 		{
-			logger.Infof("Bitrise Code Signing")
+			logger.Infof("Bitrise Code Signing with Apple API key")
 			if err := bitriseCodeSign(opts, devportalclient.APIKeyClient); err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		}
+	case codeSigningBitriseAppleID:
+		{
+			logger.Infof("Bitrise Code Signing with Apple ID")
+			if err := bitriseCodeSign(opts, devportalclient.AppleIDClient); err != nil {
 				return nil, err
 			}
 
@@ -93,7 +102,11 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 
 func selectCodeSigningStrategy(opts CodeSignOpts) (codeSigningStrategy, error) {
 	if opts.AppleServiceConnection.APIKeyConnection == nil {
-		return noCodeSign, nil
+		if opts.AppleServiceConnection.AppleIDConnection != nil {
+			return codeSigningBitriseAppleID, nil
+		} else {
+			return noCodeSign, nil
+		}
 	}
 
 	if opts.XcodeMajorVersion < 13 {
@@ -121,7 +134,7 @@ func selectCodeSigningStrategy(opts CodeSignOpts) (codeSigningStrategy, error) {
 	return codeSigningBitriseAPIKey, nil
 }
 
-// Does not registe devices
+// TODO: Does not register devices
 func bitriseCodeSign(opts CodeSignOpts, authType devportalclient.ClientType) error {
 	minProfileValidity := 30
 	verboseLog := true
@@ -144,8 +157,7 @@ func bitriseCodeSign(opts CodeSignOpts, authType devportalclient.ClientType) err
 		return err
 	}
 
-	signUITests := false
-	appLayout, err := project.GetAppLayout(signUITests)
+	appLayout, err := project.GetAppLayout(false)
 	if err != nil {
 		return err
 	}
@@ -193,7 +205,7 @@ func writePrivateKey(contents []byte) (string, error) {
 		return "", fmt.Errorf("failed to create private key file: %s", err)
 	}
 
-	if _, err := privatekeyFile.Write([]byte(contents)); err != nil {
+	if _, err := privatekeyFile.Write(contents); err != nil {
 		return "", fmt.Errorf("failed to write private key: %s", err)
 	}
 
