@@ -109,6 +109,18 @@ inputs:
     - apple-id
     is_required: true
 
+- register_test_devices: "no"
+  opts:
+    title: Register test devices on the Apple Developer Portal
+    summary: If this input is set, the Step will register the known test devices on Bitrise from team members with the Apple Developer Portal.
+    description: |-
+      If this input is set, the Step will register the known test devices on Bitrise from team members with the Apple Developer Portal.
+      Note that setting this to yes may cause devices to be registered against your limited quantity of test devices in the Apple Developer Portal, which can only be removed once annually during your renewal window.
+    is_required: true
+    value_options:
+    - "yes"
+    - "no"
+
 # xcodebuild configuration
 
 - configuration:
