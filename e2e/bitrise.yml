@@ -18,16 +18,16 @@ app:
   # - BITRISE_APPLE_TEAM_ID : $BITRISE_APPLE_TEAM_ID
 
 workflows:
-  test_sample:
+  test_api_key_signing:
     steps:
     - bitrise-run:
         run_if: |-
           {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
         inputs:
-        - workflow_id: utility_test_sample
+        - workflow_id: utility_test_api_key_signing
         - bitrise_config_path: ./e2e/bitrise.yml
 
-  utility_test_sample:
+  utility_test_api_key_signing:
     envs:
     # - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta

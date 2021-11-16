@@ -62,22 +62,27 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | --- | --- | --- | --- |
 | `project_path` | Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.  The input value sets xcodebuild's `-project` or `-workspace` option. | required | `$BITRISE_PROJECT_PATH` |
 | `scheme` | Xcode Scheme name.  The input value sets xcodebuild's `-scheme` option. | required | `$BITRISE_SCHEME` |
-| `distribution_method` |  | required | `development` |
+| `distribution_method` | Describes how Xcode should export the archive. | required | `development` |
+| `automatic_code_signing` | This input determines which Bitrise Apple service connection should be used for automatic Code Signing.  Available values: - `off`: Do not manage Code Signing. - `api-key`: Bitrise Apple Service connection with API Key. - `apple-id`: Bitrise Apple Service connection with Apple ID. | required | `off` |
 | `configuration` | Xcode Build Configuration.  If not specified, the default Build Configuration will be used.  The input value sets xcodebuild's `-configuration` option. |  |  |
 | `xcconfig_content` | Build settings to override the project's build settings.  Build settings must be separated by newline character (`\n`).  Example:  ``` COMPILER_INDEX_STORE_ENABLE = NO ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES ```  The input value sets xcodebuild's `-xcconfig` option. |  | `COMPILER_INDEX_STORE_ENABLE = NO` |
-| `perform_clean_action` |  | required | `no` |
-| `xcodebuild_options` |  |  |  |
+| `perform_clean_action` | If this input is set, `clean` xcodebuild action will be performed besides the `archive` action. | required | `no` |
+| `xcodebuild_options` | Additional options to be added to the executed xcodebuild command. |  |  |
 | `log_formatter` | Defines how `xcodebuild` command's log is formatted.  Available options:  - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.  The raw xcodebuild log will be exported in both cases. | required | `xcpretty` |
 | `export_development_team` | The Developer Portal team to use for this export  Defaults to the team used to build the archive. |  |  |
-| `compile_bitcode` |  | required | `yes` |
-| `upload_bitcode` |  | required | `yes` |
+| `compile_bitcode` | For __non-App Store__ exports, should Xcode re-compile the app from bitcode? | required | `yes` |
+| `upload_bitcode` | For __App Store__ exports, should the package include bitcode? | required | `yes` |
 | `icloud_container_environment` | If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.  Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`. |  |  |
 | `export_options_plist_content` | Specifies a plist file content that configures archive exporting.  If not specified, the Step will auto-generate it. |  |  |
-| `output_dir` |  | required | `$BITRISE_DEPLOY_DIR` |
-| `export_all_dsyms` |  | required | `yes` |
+| `output_dir` | This directory will contain the generated artifacts. | required | `$BITRISE_DEPLOY_DIR` |
+| `export_all_dsyms` | Export additional dSYM files besides the app dSYM file for Frameworks. | required | `yes` |
 | `artifact_name` | This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.  If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used. If Product Name is not specified, the Scheme will be used. |  |  |
 | `cache_level` | Defines what cache content should be automatically collected.  Available options:  - `none`: Disable collecting cache content - `swift_packages`: Collect Swift PM packages added to the Xcode project | required | `swift_packages` |
-| `verbose_log` |  | required | `no` |
+| `verbose_log` | If this input is set, the Step will print additional logs for debugging. | required | `no` |
+| `certificate_url_list` | URL of the code signing certificate to download.  Multiple URLs can be specified, separated by a pipe (\|) character.  Local file path can be specified, using the file:// URL scheme. | required, sensitive | `$BITRISE_CERTIFICATE_URL` |
+| `passphrase_list` | Passphrases for the provided code signing certificates.  Specify as many passphrases as many Code signing certificate URL provided, separated by a pipe (\|) character. | required, sensitive | `$BITRISE_CERTIFICATE_PASSPHRASE` |
+| `keychain_path` | Path to the Keychain where the code signing certificates will be installed. | required | `$HOME/Library/Keychains/login.keychain` |
+| `keychain_password` | Password for the provided Keychain. | required, sensitive | `$BITRISE_KEYCHAIN_PASSWORD` |
 </details>
 
 <details>
@@ -85,11 +90,11 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 
 | Environment Variable | Description |
 | --- | --- |
-| `BITRISE_IPA_PATH` |  |
-| `BITRISE_APP_DIR_PATH` |  |
+| `BITRISE_IPA_PATH` | Local path of the created .ipa file |
+| `BITRISE_APP_DIR_PATH` | Local path of the generated `.app` directory |
 | `BITRISE_DSYM_DIR_PATH` | This Environment Variable points to the path of the directory which contains the dSYMs files. If `export_all_dsyms` is set to `yes`, the Step will collect every dSYM (app dSYMs and framwork dSYMs). |
 | `BITRISE_DSYM_PATH` | This Environment Variable points to the path of the zip file which contains the dSYM files. If `export_all_dsyms` is set to `yes`, the Step will also collect framework dSYMs in addition to app dSYMs. |
-| `BITRISE_XCARCHIVE_PATH` |  |
+| `BITRISE_XCARCHIVE_PATH` | The created .xcarchive file's path |
 | `BITRISE_XCARCHIVE_ZIP_PATH` | The created .xcarchive.zip file's path. |
 | `BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH` | The file path of the raw `xcodebuild archive` command log. The log is placed into the `Output directory path`. |
 | `BITRISE_XCODEBUILD_EXPORT_ARCHIVE_LOG_PATH` | The file path of the raw `xcodebuild -exportArchive` command log. The log is placed into the `Output directory path`. |

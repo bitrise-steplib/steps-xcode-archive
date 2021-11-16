@@ -292,7 +292,7 @@ inputs:
     - "no"
     is_required: true
 
-- certificate_urls: $BITRISE_CERTIFICATE_URL
+- certificate_url_list: $BITRISE_CERTIFICATE_URL
   opts:
     category: Debugging
     title: Code signing certificate URL
@@ -306,7 +306,7 @@ inputs:
     is_required: true
     is_sensitive: true
 
-- passphrases: $BITRISE_CERTIFICATE_PASSPHRASE
+- passphrase_list: $BITRISE_CERTIFICATE_PASSPHRASE
   opts:
     category: Debugging
     title: Code signing certificate passphrase
@@ -340,10 +340,12 @@ inputs:
 outputs:
 - BITRISE_IPA_PATH:
   opts:
-    title: The created .ipa file's path
+    title: .ipa file path
+    summary: Local path of the created .ipa file
 - BITRISE_APP_DIR_PATH:
   opts:
-    title: The generated .app directory
+    title: .app directory path
+    summary: Local path of the generated `.app` directory
 - BITRISE_DSYM_DIR_PATH:
   opts:
     title: The created .dSYM dir's path
@@ -358,12 +360,12 @@ outputs:
       If `export_all_dsyms` is set to `yes`, the Step will also collect framework dSYMs in addition to app dSYMs.
 - BITRISE_XCARCHIVE_PATH:
   opts:
-    title: The created .xcarchive file's path
+    title: .xcarchive file path
+    summary: The created .xcarchive file's path
 - BITRISE_XCARCHIVE_ZIP_PATH:
   opts:
-    title: The created .xcarchive.zip file's path
-    description: |-
-      The created .xcarchive.zip file's path.
+    title: .xcarchive.zip path
+    summary: The created .xcarchive.zip file's path.
 
 - BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH:
   opts:

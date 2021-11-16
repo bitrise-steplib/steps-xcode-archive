@@ -87,8 +87,8 @@ type Inputs struct {
 	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
 
 	CodeSigningAuthSource     string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
-	CertificateURLList        string          `env:"certificate_urls"`
-	CertificatePassphraseList stepconf.Secret `env:"passphrases"`
+	CertificateURLList        string          `env:"certificate_url_list"`
+	CertificatePassphraseList stepconf.Secret `env:"passphrase_list"`
 	KeychainPath              string          `env:"keychain_path"`
 	KeychainPassword          stepconf.Secret `env:"keychain_password"`
 	BuildURL                  string          `env:"BITRISE_BUILD_URL"`
