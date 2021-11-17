@@ -56,6 +56,8 @@ workflows:
         - automatic_code_signing: api-key
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
+        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
         # - xcconfig_content: |
         #     CODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY
         - distribution_method: $IPA_DISTRIBUTION_METHOD
