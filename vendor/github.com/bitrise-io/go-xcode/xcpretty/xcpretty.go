@@ -100,8 +100,22 @@ func (c CommandModel) Run() (string, error) {
 	return outBuffer.String(), nil
 }
 
-// IsInstalled ...
-func IsInstalled() (bool, error) {
+// Xcpretty ...
+type Xcpretty interface {
+	IsInstalled() (bool, error)
+	Install() ([]command.Command, error)
+	Version() (*version.Version, error)
+}
+
+type xcpretty struct {
+}
+
+// NewXcpretty ...
+func NewXcpretty() Xcpretty {
+	return &xcpretty{}
+}
+
+func (x xcpretty) IsInstalled() (bool, error) {
 	locator := env.NewCommandLocator()
 	factory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), locator)
 	if err != nil {
@@ -112,7 +126,7 @@ func IsInstalled() (bool, error) {
 }
 
 // Install ...
-func Install() ([]command.Command, error) {
+func (x xcpretty) Install() ([]command.Command, error) {
 	locator := env.NewCommandLocator()
 	factory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), locator)
 	if err != nil {
@@ -125,7 +139,7 @@ func Install() ([]command.Command, error) {
 }
 
 // Version ...
-func Version() (*version.Version, error) {
+func (x xcpretty) Version() (*version.Version, error) {
 	cmd := command.NewFactory(env.NewRepository()).Create("xcpretty", []string{"--version"}, nil)
 	versionOut, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {

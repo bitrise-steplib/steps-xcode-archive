@@ -3,3 +3,4 @@ _tmp
 .bitrise*
 .idea/
 .vscode
+.DS_Store
