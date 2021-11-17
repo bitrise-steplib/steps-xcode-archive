@@ -131,6 +131,7 @@ workflows:
         - clone_into_dir: ./_tmp
     - path::./:
         inputs:
+        - distribution_method: app-store
         - automatic_code_signing: apple-id
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
