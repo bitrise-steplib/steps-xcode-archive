@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/go-xcode/autocodesign"
 	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
 )
@@ -377,4 +378,39 @@ func (archive IosArchive) BundleIDProfileInfoMap() map[string]profileutil.Provis
 // FindDSYMs ...
 func (archive IosArchive) FindDSYMs() ([]string, []string, error) {
 	return findDSYMs(archive.Path)
+}
+
+// ReadCodesignParameters ...
+func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, error) {
+	var teamID string
+	entitlementsMap := map[string]autocodesign.Entitlements{}
+
+	bundleIDProfileInfoMap := archive.BundleIDProfileInfoMap()
+	for bundleIdentifier, provisioningProfile := range bundleIDProfileInfoMap {
+		if teamID == "" {
+			teamID = provisioningProfile.TeamID
+		}
+
+		entitlementsMap[bundleIdentifier] = autocodesign.Entitlements(provisioningProfile.Entitlements)
+	}
+
+	var platform autocodesign.Platform
+
+	platformName := archive.Application.InfoPlist["DTPlatformName"]
+	switch platformName {
+	case "iphoneos":
+		platform = autocodesign.IOS
+	case "appletvos":
+		platform = autocodesign.TVOS
+	default:
+		return nil, fmt.Errorf("unsupported platform found: %s", platformName)
+	}
+
+	codesignParameters := autocodesign.AppLayout{
+		TeamID:                                 teamID,
+		Platform:                               platform,
+		EntitlementsByArchivableTargetBundleID: entitlementsMap,
+		UITestTargetBundleIDs:                  nil,
+	}
+	return &codesignParameters, nil
 }
