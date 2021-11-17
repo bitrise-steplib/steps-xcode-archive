@@ -75,6 +75,10 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 				return nil, fmt.Errorf("could not configure Apple service authentication: %v", err)
 			}
 
+			if err := downloadAndInstallCertificates(opts.CertificateURLList, opts.CertificatePassphraseList, opts.KeychainPath, opts.KeychainPassword); err != nil {
+				return nil, err
+			}
+
 			logger.Infof("Xcode Code Signing")
 
 			return authConfig.APIKey, nil
@@ -141,6 +145,34 @@ func selectCodeSigningStrategy(opts CodeSignOpts) (CodeSigningStrategy, error) {
 	}
 
 	return noCodeSign, nil
+}
+
+func downloadAndInstallCertificates(urls string, passphrases stepconf.Secret, keychainPath string, keychainPassword stepconf.Secret) error {
+	certificateAndPassphrase, err := Certificates(urls, passphrases)
+	if err != nil {
+		return err
+	}
+
+	downloader := certdownloader.NewDownloader(certificateAndPassphrase, retry.NewHTTPClient().StandardClient())
+	certificates, err := downloader.GetCertificates()
+	if err != nil {
+		return fmt.Errorf("failed to download certificates: %s", err)
+	}
+
+	repository := env.NewRepository()
+	keychainWriter, err := keychain.New(keychainPath, keychainPassword, command.NewFactory(repository))
+	if err != nil {
+		return fmt.Errorf("failed to open Keychain: %s", err)
+	}
+
+	for _, cert := range certificates {
+		// Empty passphrase provided, as already parsed certificate + private key
+		if err := keychainWriter.InstallCertificate(cert, ""); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // TODO: Does not register devices
