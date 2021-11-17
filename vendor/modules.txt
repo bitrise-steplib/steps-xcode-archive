@@ -42,6 +42,7 @@ github.com/bitrise-io/go-xcode/certificateutil
 github.com/bitrise-io/go-xcode/devportalservice
 github.com/bitrise-io/go-xcode/export
 github.com/bitrise-io/go-xcode/exportoptions
+github.com/bitrise-io/go-xcode/exportoptionsgenerator
 github.com/bitrise-io/go-xcode/models
 github.com/bitrise-io/go-xcode/plistutil
 github.com/bitrise-io/go-xcode/profileutil
