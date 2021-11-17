@@ -19,15 +19,9 @@ app:
 
 workflows:
   test_api_key_signing_managed:
-    steps:
-    - bitrise-run:
-        run_if: |-
-          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
-        inputs:
-        - workflow_id: utility_test_api_key_signing_managed
-        - bitrise_config_path: ./e2e/bitrise.yml
-
-  utility_test_api_key_signing_managed:
+    description: |
+      Tests API key based code signing on a project with automatically managed signing.
+      This should use the Xcode mechanism on Xcode13+ and Bitrise auto-provision on older stacks.
     envs:
     # - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta
@@ -67,45 +61,45 @@ workflows:
         - distribution_method: $IPA_DISTRIBUTION_METHOD
         - log_formatter: xcpretty
 
-  test_api_key_signing_manual:
-    steps:
-    - bitrise-run:
-        run_if: |-
-          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
-        inputs:
-        - workflow_id: utility_test_api_key_signing_manual
-        - bitrise_config_path: ./e2e/bitrise.yml
-
-  utility_test_api_key_signing_manual:
-    envs:
-    # - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - TEST_APP_URL: https://github.com/bitrise-io/Fruta
-    - TEST_APP_BRANCH: manual-signing
-    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
-    - BITRISE_SCHEME: Fruta iOS
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - IPA_DISTRIBUTION_METHOD: development
-    - LOG_FORMATTER: xcodebuild
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/env bash
-            set -ex
-            rm -rf ./_tmp
-    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
-        inputs:
-        - repository_url: $TEST_APP_URL
-        - branch: $TEST_APP_BRANCH
-        - clone_into_dir: ./_tmp
-    - path::./:
-        inputs:
-        - automatic_code_signing: api-key
-        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
-        - scheme: $BITRISE_SCHEME
-        - distribution_method: $IPA_DISTRIBUTION_METHOD
-        - log_formatter: xcpretty
-        - verbose_log: "yes"
+#  test_api_key_signing_manual:
+#    steps:
+#    - bitrise-run:
+#        run_if: |-
+#          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+#        inputs:
+#        - workflow_id: utility_test_api_key_signing_manual
+#        - bitrise_config_path: ./e2e/bitrise.yml
+#
+#  utility_test_api_key_signing_manual:
+#    envs:
+#    # - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+#    - TEST_APP_URL: https://github.com/bitrise-io/Fruta
+#    - TEST_APP_BRANCH: manual-signing
+#    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
+#    - BITRISE_SCHEME: Fruta iOS
+#    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+#    - IPA_DISTRIBUTION_METHOD: development
+#    - LOG_FORMATTER: xcodebuild
+#    steps:
+#    - script:
+#        inputs:
+#        - content: |-
+#            #!/bin/env bash
+#            set -ex
+#            rm -rf ./_tmp
+#    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
+#        inputs:
+#        - repository_url: $TEST_APP_URL
+#        - branch: $TEST_APP_BRANCH
+#        - clone_into_dir: ./_tmp
+#    - path::./:
+#        inputs:
+#        - automatic_code_signing: api-key
+#        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+#        - scheme: $BITRISE_SCHEME
+#        - distribution_method: $IPA_DISTRIBUTION_METHOD
+#        - log_formatter: xcpretty
+#        - verbose_log: "yes"
 
   # test_app_clip:
   #   steps:

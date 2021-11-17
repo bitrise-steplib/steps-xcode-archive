@@ -99,6 +99,7 @@ type Inputs struct {
 type Config struct {
 	Inputs
 	XcodeMajorVersion      int
+	CodeSigningStrategy    CodeSigningStrategy
 	AppleServiceConnection devportalservice.AppleDeveloperConnection
 }
 
@@ -325,6 +326,15 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 	}
 
+	switch inputs.CodeSigningAuthSource {
+	case codeSignSourceOff:
+		config.CodeSigningStrategy = noCodeSign
+	case codeSignSourceAppleID:
+		config.CodeSigningStrategy = codeSigningBitriseAppleID
+	case codeSignSourceAPIKey:
+		config.CodeSigningStrategy = codeSigningBitriseAPIKey
+	}
+
 	return config, nil
 }
 
@@ -340,7 +350,7 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 	}
 
 	fmt.Println()
-	logger.Infof("Checking if output tool (xcpretty) is installed")
+	logger.Infof("Checking if log formatter (xcpretty) is installed")
 
 	xcprettyCommand := xcpretty.NewXcpretty()
 	installed, err := xcprettyCommand.IsInstalled()
@@ -724,7 +734,9 @@ type RunOpts struct {
 	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
+
 	// Authentication
+	CodeSigningStrategy       CodeSigningStrategy
 	AppleServiceConnection    devportalservice.AppleDeveloperConnection
 	KeychainPath              string
 	KeychainPassword          stepconf.Secret
@@ -762,6 +774,7 @@ type RunOut struct {
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	XcodeAPIConnection, err := manageCodeSigning(CodeSignOpts{
+		CodeSigningStrategy:       opts.CodeSigningStrategy,
 		ProjectPath:               opts.ProjectPath,
 		Scheme:                    opts.Scheme,
 		Configuration:             opts.Configuration,
@@ -1093,6 +1106,7 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
+		CodeSigningStrategy:       config.CodeSigningStrategy,
 		AppleServiceConnection:    config.AppleServiceConnection,
 		KeychainPath:              config.KeychainPath,
 		KeychainPassword:          config.KeychainPassword,

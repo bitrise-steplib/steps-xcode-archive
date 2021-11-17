@@ -25,6 +25,8 @@ Most likely because there is no configured Bitrise Apple service connection.
 Read more: https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/`
 
 type CodeSignOpts struct {
+	CodeSigningStrategy
+
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
@@ -39,10 +41,10 @@ type CodeSignOpts struct {
 	KeychainPassword       stepconf.Secret
 }
 
-type codeSigningStrategy int
+type CodeSigningStrategy int
 
 const (
-	noCodeSign codeSigningStrategy = iota
+	noCodeSign CodeSigningStrategy = iota
 	codeSigningXcode
 	codeSigningBitriseAPIKey
 	codeSigningBitriseAppleID
@@ -100,38 +102,45 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 	return nil, nil
 }
 
-func selectCodeSigningStrategy(opts CodeSignOpts) (codeSigningStrategy, error) {
-	if opts.AppleServiceConnection.APIKeyConnection == nil {
-		if opts.AppleServiceConnection.AppleIDConnection != nil {
-			return codeSigningBitriseAppleID, nil
-		} else {
-			return noCodeSign, nil
+func selectCodeSigningStrategy(opts CodeSignOpts) (CodeSigningStrategy, error) {
+	if opts.CodeSigningStrategy == codeSigningBitriseAppleID {
+		if opts.AppleServiceConnection.AppleIDConnection == nil {
+			return noCodeSign, fmt.Errorf("Apple ID authentication is selected in step inputs, but connection is not set up properly.")
 		}
+		return codeSigningBitriseAppleID, nil
 	}
 
-	if opts.XcodeMajorVersion < 13 {
+	if opts.CodeSigningStrategy == codeSigningBitriseAPIKey {
+		if opts.AppleServiceConnection.APIKeyConnection == nil {
+			return noCodeSign, fmt.Errorf("Apple API key authentication is selected in step inputs, but connection is not set up properly.")
+		}
+
+		if opts.XcodeMajorVersion < 13 {
+			return codeSigningBitriseAPIKey, nil
+		}
+
+		project, err := projectmanager.NewProject(projectmanager.InitParams{
+			ProjectOrWorkspacePath: opts.ProjectPath,
+			SchemeName:             opts.Scheme,
+			ConfigurationName:      opts.Configuration,
+		})
+		if err != nil {
+			return noCodeSign, err
+		}
+
+		managedSigning, err := project.IsSigningManagedAutomatically()
+		if err != nil {
+			return noCodeSign, err
+		}
+
+		if managedSigning {
+			return codeSigningXcode, nil
+		}
+
 		return codeSigningBitriseAPIKey, nil
 	}
 
-	project, err := projectmanager.NewProject(projectmanager.InitParams{
-		ProjectOrWorkspacePath: opts.ProjectPath,
-		SchemeName:             opts.Scheme,
-		ConfigurationName:      opts.Configuration,
-	})
-	if err != nil {
-		return noCodeSign, err
-	}
-
-	autoSign, err := project.IsSigningManagedAutomatically()
-	if err != nil {
-		return noCodeSign, err
-	}
-
-	if autoSign {
-		return codeSigningXcode, nil
-	}
-
-	return codeSigningBitriseAPIKey, nil
+	return noCodeSign, nil
 }
 
 // TODO: Does not register devices
