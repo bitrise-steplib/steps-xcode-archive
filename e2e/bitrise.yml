@@ -66,8 +66,6 @@ workflows:
         - scheme: $BITRISE_SCHEME
         - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
         - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
-        # - xcconfig_content: |
-        #     CODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY
         - distribution_method: $IPA_DISTRIBUTION_METHOD
         - log_formatter: xcpretty
 
@@ -86,7 +84,6 @@ workflows:
     - TEST_APP_BRANCH: manual-signing
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - IPA_DISTRIBUTION_METHOD: development
     - LOG_FORMATTER: xcodebuild
     steps:
@@ -104,6 +101,37 @@ workflows:
     - path::./:
         inputs:
         - automatic_code_signing: api-key
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+        - scheme: $BITRISE_SCHEME
+        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+        - distribution_method: $IPA_DISTRIBUTION_METHOD
+        - log_formatter: xcpretty
+        - verbose_log: "yes"
+
+  test_apple_id:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: master
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    - BITRISE_SCHEME: ios-simple-objc
+    - IPA_DISTRIBUTION_METHOD: development
+    - LOG_FORMATTER: xcodebuild
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+            rm -rf ./_tmp
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - branch: $TEST_APP_BRANCH
+        - clone_into_dir: ./_tmp
+    - path::./:
+        inputs:
+        - automatic_code_signing: apple-id
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
