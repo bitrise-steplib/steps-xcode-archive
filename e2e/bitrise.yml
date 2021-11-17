@@ -112,7 +112,7 @@ workflows:
   test_apple_id:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - TEST_APP_BRANCH: master
+    - TEST_APP_BRANCH: new-certificates
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - IPA_DISTRIBUTION_METHOD: development
