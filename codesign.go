@@ -148,7 +148,7 @@ func bitriseCodeSign(opts CodeSignOpts, authType devportalclient.ClientType) err
 	minProfileValidity := 30
 	verboseLog := true
 
-	// Fetch Bitrise hosted certificates
+	// Parse certificate list inputs
 	certificateAndPassphrase, err := Certificates(opts.CertificateURLList, opts.CertificatePassphraseList)
 	if err != nil {
 		return err
@@ -198,11 +198,11 @@ func bitriseCodeSign(opts CodeSignOpts, authType devportalclient.ClientType) err
 		VerboseLog:             verboseLog,
 	})
 	if err != nil {
-		return fmt.Errorf("Automatic code signing failed: %s", err)
+		return fmt.Errorf("automatic code signing failed: %s", err)
 	}
 
 	if err := project.ForceCodesignAssets(distribution, codesignAssetsByDistributionType); err != nil {
-		return fmt.Errorf("Failed to force codesign settings: %s", err)
+		return fmt.Errorf("failed to force codesign settings: %s", err)
 	}
 
 	return nil
