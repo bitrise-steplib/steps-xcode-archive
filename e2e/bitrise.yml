@@ -230,12 +230,12 @@ workflows:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/Application-Loader-Test.git
     - TEST_APP_BRANCH: master
-    - BITRISE_PROJECT_PATH: "./Application Loader Test.xcodeproj"
+    - BITRISE_PROJECT_PATH: ./Application Loader Test.xcodeproj
     - BITRISE_SCHEME: Application Loader Test
     - CODE_SIGNING_METHOD: api-key
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
+    - FORCE_PROV_PROFILE_SPECIFIER: BitriseBot-Wildcard
     - IPA_EXPORT_METHOD: app-store
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
