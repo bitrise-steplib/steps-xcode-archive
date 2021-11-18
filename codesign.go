@@ -37,6 +37,7 @@ type CodeSignOpts struct {
 	CertificatePassphraseList stepconf.Secret
 
 	AppleServiceConnection devportalservice.AppleDeveloperConnection
+	RegisterTestDevices    bool
 	KeychainPath           string
 	KeychainPassword       stepconf.Secret
 }
@@ -62,6 +63,7 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 		return nil, nil
 	case codeSigningXcode:
 		{
+			logger.Println()
 			logger.Infof("Xcode-managed Code Signing selected")
 
 			authConfig, err := appleauth.Select(&opts.AppleServiceConnection, []appleauth.Source{&appleauth.ConnectionAPIKeySource{}}, appleauth.Inputs{})
@@ -83,10 +85,18 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 				return nil, err
 			}
 
+			if opts.RegisterTestDevices && len(opts.AppleServiceConnection.TestDevices) != 0 &&
+				autocodesign.DistributionTypeRequiresDeviceList([]autocodesign.DistributionType{autocodesign.DistributionType(opts.ExportMethod)}) {
+				if err := registerTestDevices(opts); err != nil {
+					return nil, err
+				}
+			}
+
 			return authConfig.APIKey, nil
 		}
 	case codeSigningBitriseAPIKey:
 		{
+			logger.Println()
 			logger.Infof("Bitrise Code Signing with Apple API key")
 			if err := bitriseCodeSign(opts, devportalclient.APIKeyClient); err != nil {
 				return nil, err
@@ -96,6 +106,7 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 		}
 	case codeSigningBitriseAppleID:
 		{
+			logger.Println()
 			logger.Infof("Bitrise Code Signing with Apple ID")
 			if err := bitriseCodeSign(opts, devportalclient.AppleIDClient); err != nil {
 				return nil, err
@@ -125,11 +136,7 @@ func selectCodeSigningStrategy(opts CodeSignOpts) (CodeSigningStrategy, error) {
 			return codeSigningBitriseAPIKey, nil
 		}
 
-		project, err := projectmanager.NewProject(projectmanager.InitParams{
-			ProjectOrWorkspacePath: opts.ProjectPath,
-			SchemeName:             opts.Scheme,
-			ConfigurationName:      opts.Configuration,
-		})
+		project, err := projectmanager.NewProjectHelper(opts.ProjectPath, opts.Scheme, opts.Configuration)
 		if err != nil {
 			return noCodeSign, err
 		}
@@ -179,7 +186,30 @@ func downloadAndInstallCertificates(urls string, passphrases stepconf.Secret, ke
 	return nil
 }
 
-// TODO: Does not register devices
+func registerTestDevices(opts CodeSignOpts) error {
+	projectHelper, err := projectmanager.NewProjectHelper(opts.ProjectPath, opts.Scheme, opts.Configuration)
+	if err != nil {
+		return err
+	}
+	platform, err := projectHelper.Platform(opts.Configuration)
+	if err != nil {
+		return fmt.Errorf("failed to read platform from project: %s", err)
+	}
+
+	clientFactory := devportalclient.NewClientFactory()
+	// No Team ID required for API key client
+	devPortalClient, err := clientFactory.CreateClient(devportalclient.APIKeyClient, "", opts.AppleServiceConnection)
+	if err != nil {
+		return err
+	}
+
+	if _, err = autocodesign.EnsureTestDevices(devPortalClient, opts.AppleServiceConnection.TestDevices, autocodesign.Platform(platform)); err != nil {
+		return fmt.Errorf("failed to ensure test devices: %w", err)
+	}
+
+	return nil
+}
+
 func bitriseCodeSign(opts CodeSignOpts, authType devportalclient.ClientType) error {
 	minProfileValidity := 30
 	verboseLog := true
@@ -227,9 +257,13 @@ func bitriseCodeSign(opts CodeSignOpts, authType devportalclient.ClientType) err
 
 	// Auto codesign
 	distribution := autocodesign.DistributionType(opts.ExportMethod)
+	testDevices := []devportalservice.TestDevice{}
+	if opts.RegisterTestDevices {
+		testDevices = opts.AppleServiceConnection.TestDevices
+	}
 	codesignAssetsByDistributionType, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
 		DistributionType:       distribution,
-		BitriseTestDevices:     []devportalservice.TestDevice{},
+		BitriseTestDevices:     testDevices,
 		MinProfileValidityDays: minProfileValidity,
 		VerboseLog:             verboseLog,
 	})

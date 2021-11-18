@@ -92,6 +92,7 @@ type Inputs struct {
 	CertificatePassphraseList stepconf.Secret `env:"passphrase_list"`
 	KeychainPath              string          `env:"keychain_path"`
 	KeychainPassword          stepconf.Secret `env:"keychain_password"`
+	RegisterTestDevices       bool            `env:"register_test_devices,opt[yes,no]"`
 	BuildURL                  string          `env:"BITRISE_BUILD_URL"`
 	BuildAPIToken             stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
@@ -740,6 +741,7 @@ type RunOpts struct {
 	// Authentication
 	CodeSigningStrategy       CodeSigningStrategy
 	AppleServiceConnection    devportalservice.AppleDeveloperConnection
+	RegisterTestDevices       bool
 	KeychainPath              string
 	KeychainPassword          stepconf.Secret
 	CertificateURLList        string
@@ -785,6 +787,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		ExportMethod:              opts.ExportMethod,
 		XcodeMajorVersion:         opts.XcodeMajorVersion,
 		AppleServiceConnection:    opts.AppleServiceConnection,
+		RegisterTestDevices:       opts.RegisterTestDevices,
 		CertificateURLList:        opts.CertificateURLList,
 		CertificatePassphraseList: opts.CertificatePassphraseList,
 		KeychainPath:              opts.KeychainPath,
@@ -1112,6 +1115,7 @@ func RunStep() error {
 
 		CodeSigningStrategy:       config.CodeSigningStrategy,
 		AppleServiceConnection:    config.AppleServiceConnection,
+		RegisterTestDevices:       config.RegisterTestDevices,
 		KeychainPath:              config.KeychainPath,
 		KeychainPassword:          config.KeychainPassword,
 		CertificateURLList:        config.CertificateURLList,

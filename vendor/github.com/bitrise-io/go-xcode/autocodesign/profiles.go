@@ -74,7 +74,7 @@ func ensureProfiles(profileClient DevPortalClient, distrTypes []DistributionType
 
 		for bundleIDIdentifier, entitlements := range app.EntitlementsByArchivableTargetBundleID {
 			var profileDeviceIDs []string
-			if distributionTypeRequiresDeviceList([]DistributionType{distrType}) {
+			if DistributionTypeRequiresDeviceList([]DistributionType{distrType}) {
 				profileDeviceIDs = devPortalDeviceIDs
 			}
 
@@ -286,7 +286,7 @@ func hasSignInWithAppleEntitlement(entitlements Entitlements) bool {
 	return false
 }
 
-func distributionTypeRequiresDeviceList(distrTypes []DistributionType) bool {
+func DistributionTypeRequiresDeviceList(distrTypes []DistributionType) bool {
 	for _, distrType := range distrTypes {
 		if distrType == Development || distrType == AdHoc {
 			return true

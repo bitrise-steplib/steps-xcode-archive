@@ -20,6 +20,7 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 )
 
+// const for AppClipProductType and manualSigningStyle
 const (
 	AppClipProductType = "com.apple.product-type.application.on-demand-install-capable"
 	manualSigningStyle = "manual"
@@ -108,6 +109,7 @@ func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configu
 	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
 }
 
+// ArchivableApplicationTarget locate archivable app target from a given project and scheme
 func ArchivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme) (*xcodeproj.Target, error) {
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
@@ -391,7 +393,7 @@ func addDistributionBundleIdentifierFromXcode12(exportOpts exportoptions.ExportO
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		// Export option plist with App store export method (Xcode 12.0.1) do not contain distribution bundle identifier.
-		// Propably due to App store IPAs containing App Clips also, which are executable targets with a separate bundle ID.
+		// Probably due to App store IPAs containing App Clips also, which are executable targets with a separate bundle ID.
 		return exportOpts
 	case exportoptions.NonAppStoreOptionsModel:
 		options.DistributionBundleIdentifier = distributionBundleIdentifier

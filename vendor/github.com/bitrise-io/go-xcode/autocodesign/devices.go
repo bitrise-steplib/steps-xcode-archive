@@ -9,7 +9,7 @@ import (
 	"github.com/bitrise-io/go-xcode/devportalservice"
 )
 
-func ensureTestDevices(deviceClient DevPortalClient, testDevices []devportalservice.TestDevice, platform Platform) ([]string, error) {
+func EnsureTestDevices(deviceClient DevPortalClient, testDevices []devportalservice.TestDevice, platform Platform) ([]string, error) {
 	var devPortalDeviceIDs []string
 
 	log.Infof("Fetching Apple Developer Portal devices")

@@ -46,22 +46,6 @@ func (p Project) MainTargetBundleID() (string, error) {
 	return bundleID, nil
 }
 
-// IsSigningManagedAutomatically checks the "Automatically manage signing" checkbox in Xcode
-// Note: it only checks the main Target based on the given Scheme and Configuration
-func (p Project) IsSigningManagedAutomatically() (bool, error) {
-	targetName := p.projHelper.MainTarget.Name
-	settings, err := p.projHelper.targetBuildSettings(targetName, p.projHelper.Configuration)
-	if err != nil {
-		return false, fmt.Errorf("failed to fetch code signing info from target (%s) settings: %s", targetName, err)
-	}
-	codeSignStyle, err := settings.String("CODE_SIGN_STYLE")
-	if err != nil {
-		return false, fmt.Errorf("failed to fetch code signing info from target (%s) settings: %s", targetName, err)
-	}
-
-	return codeSignStyle != "Manual", nil
-}
-
 // GetAppLayout ...
 func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error) {
 	log.Printf("Configuration: %s", p.projHelper.Configuration)
