@@ -167,11 +167,13 @@ func downloadAndInstallCertificates(urls string, passphrases stepconf.Secret, ke
 		return fmt.Errorf("failed to open Keychain: %s", err)
 	}
 
+	logger.Infof("Installing downloaded certificates:")
 	for _, cert := range certificates {
 		// Empty passphrase provided, as already parsed certificate + private key
 		if err := keychainWriter.InstallCertificate(cert, ""); err != nil {
 			return err
 		}
+		logger.Infof("- %s (serial: %s", cert.CommonName, cert.Serial)
 	}
 
 	return nil
