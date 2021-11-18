@@ -133,7 +133,8 @@ workflows:
 #        - log_formatter: xcpretty
 #        - verbose_log: "yes"
 
-  test_api_key_entitlements:
+  test_api_key_signing_manual_entitlements:
+    description: Test API key based code signing on a project where code signing is not managed automatically and has special entitlements.
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
     - TEST_APP_BRANCH: entitlements
@@ -155,6 +156,68 @@ workflows:
     - path::./:
         inputs:
         - automatic_code_signing: api-key
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+        - scheme: $BITRISE_SCHEME
+        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+        - distribution_method: $IPA_DISTRIBUTION_METHOD
+        - log_formatter: xcpretty
+        - verbose_log: "yes"
+
+  test_api_key_signing_managed_app_store:
+    description: Test API key based code signing and app store export on a project where signing is managed automatically
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: automatic
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - IPA_DISTRIBUTION_METHOD: app-store
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+            rm -rf ./_tmp
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - branch: $TEST_APP_BRANCH
+        - clone_into_dir: ./_tmp
+    - path::./:
+        inputs:
+        - automatic_code_signing: api-key
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+        - scheme: $BITRISE_SCHEME
+        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+        - distribution_method: $IPA_DISTRIBUTION_METHOD
+        - log_formatter: xcpretty
+        - verbose_log: "yes"
+
+  test_apple_id_signing_managed_app_store:
+    description: Test Apple ID based code signing and app store export on a project where signing is managed automatically
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: automatic
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - IPA_DISTRIBUTION_METHOD: app-store
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+            rm -rf ./_tmp
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - branch: $TEST_APP_BRANCH
+        - clone_into_dir: ./_tmp
+    - path::./:
+        inputs:
+        - automatic_code_signing: apple-id
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
