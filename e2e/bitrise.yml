@@ -103,35 +103,35 @@ workflows:
         - log_formatter: xcpretty
         - verbose_log: "yes"
 
-#  test_apple_id:
-#    envs:
-#    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-#    - TEST_APP_BRANCH: new-certificates
-#    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
-#    - BITRISE_SCHEME: ios-simple-objc
-#    - IPA_DISTRIBUTION_METHOD: development
-#    steps:
-#    - script:
-#        inputs:
-#        - content: |-
-#            #!/bin/env bash
-#            set -ex
-#            rm -rf ./_tmp
-#    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
-#        inputs:
-#        - repository_url: $TEST_APP_URL
-#        - branch: $TEST_APP_BRANCH
-#        - clone_into_dir: ./_tmp
-#    - path::./:
-#        inputs:
-#        - automatic_code_signing: apple-id
-#        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
-#        - scheme: $BITRISE_SCHEME
-#        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
-#        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
-#        - distribution_method: $IPA_DISTRIBUTION_METHOD
-#        - log_formatter: xcpretty
-#        - verbose_log: "yes"
+  #  test_apple_id:
+  #    envs:
+  #    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+  #    - TEST_APP_BRANCH: new-certificates
+  #    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+  #    - BITRISE_SCHEME: ios-simple-objc
+  #    - IPA_DISTRIBUTION_METHOD: development
+  #    steps:
+  #    - script:
+  #        inputs:
+  #        - content: |-
+  #            #!/bin/env bash
+  #            set -ex
+  #            rm -rf ./_tmp
+  #    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
+  #        inputs:
+  #        - repository_url: $TEST_APP_URL
+  #        - branch: $TEST_APP_BRANCH
+  #        - clone_into_dir: ./_tmp
+  #    - path::./:
+  #        inputs:
+  #        - automatic_code_signing: apple-id
+  #        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+  #        - scheme: $BITRISE_SCHEME
+  #        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+  #        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+  #        - distribution_method: $IPA_DISTRIBUTION_METHOD
+  #        - log_formatter: xcpretty
+  #        - verbose_log: "yes"
 
   test_api_key_signing_manual_entitlements:
     description: Test API key based code signing on a project where code signing is not managed automatically and has special entitlements.
@@ -226,242 +226,209 @@ workflows:
         - log_formatter: xcpretty
         - verbose_log: "yes"
 
-  # test_app_clip:
-  #   steps:
-  #   - bitrise-run:
-  #       run_if: |-
-  #         {{ enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x" }}
-  #       inputs:
-  #       - workflow_id: utility_test_app_clip
-  #       - bitrise_config_path: ./e2e/bitrise.yml
+  test_app_store:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-samples/Application-Loader-Test.git
+    - TEST_APP_BRANCH: master
+    - BITRISE_PROJECT_PATH: "./Application Loader Test.xcodeproj"
+    - BITRISE_SCHEME: Application Loader Test
+    - CODE_SIGNING_METHOD: api-key
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    - TEAM_ID: 72SA8V3WYL
+    - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
+    - IPA_EXPORT_METHOD: app-store
+    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
 
-  # test_app_store:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-samples/Application-Loader-Test.git
-  #   - TEST_APP_BRANCH: master
-  #   - BITRISE_PROJECT_PATH: "./Application Loader Test.xcodeproj"
-  #   - BITRISE_SCHEME: Application Loader Test
-  #   # - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-  #   - TEAM_ID: 72SA8V3WYL
-  #   # - FORCE_PROV_PROFILE_SPECIFIER: "BitriseBot-Wildcard"
-  #   - IPA_EXPORT_METHOD: app-store
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcodebuild
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+  test_catalyst:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/CatalystSample.git
+    - TEST_APP_BRANCH: master
+    - TEST_APP_COMMIT: ""
+    - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
+    - BITRISE_SCHEME: Catalyst Sample
+    - CODE_SIGNING_METHOD: api-key
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    - TEAM_ID: 72SA8V3WYL
+    - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - IPA_EXPORT_METHOD: development
+    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
 
-  # utility_test_app_clip:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-io/Fruta
-  #   - TEST_APP_BRANCH: xcode-12-gm
-  #   - TEST_APP_COMMIT: ""
-  #   - BITRISE_PROJECT_PATH: Fruta.xcodeproj
-  #   - BITRISE_SCHEME: Fruta iOS
-  #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-  #   - TEAM_ID: 72SA8V3WYL
-  #   - FORCE_PROV_PROFILE_SPECIFIER: ""
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcodebuild
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+    # test_cloudkit:
+    #   envs:
+    #   - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
+    #   - TEST_APP_BRANCH: cloudkit
+    #   - TEST_APP_COMMIT: ""
+    #   - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    #   - BITRISE_SCHEME: code-sign-test-Prod
+    #   - FORCE_CODE_SIGN_IDENTITY: ""
+    #   - TEAM_ID: 72SA8V3WYL
+    #   - FORCE_PROV_PROFILE_SPECIFIER: ""
+    #   - IPA_EXPORT_METHOD: development
+    #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
+    #   - LOG_FORMATTER: xcodebuild
+    #   after_run:
+    #   - _run
+    #   - _check_outputs
+    #   - _check_exported_artifacts
 
-  # test_catalyst:
-  #   steps:
-  #   - bitrise-run:
-  #       run_if: |-
-  #         {{ enveq "BITRISEIO_STACK_ID" "osx-xcode-12.5.x" }}
-  #       inputs:
-  #       - workflow_id: utility_test_catalyst
-  #       - bitrise_config_path: ./e2e/bitrise.yml
+    # test_no_app_dsym:
+    #   envs:
+    #   - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    #   - TEST_APP_BRANCH: with-pods
+    #   - TEST_APP_COMMIT: ""
+    #   - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
+    #   - BITRISE_SCHEME: ios-simple-objc
+    #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    #   - TEAM_ID: 72SA8V3WYL
+    #   - FORCE_PROV_PROFILE_SPECIFIER: ""
+    #   - IPA_EXPORT_METHOD: development
+    #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    #   - LOG_FORMATTER: xcodebuild
+    #   - DSYM_EXPECTED_COUNT: 1  # Only 1 framework dSYM
+    #   after_run:
+    #   - _run
+    #   - _check_outputs
+    #   - _check_exported_artifacts
 
-  # utility_test_catalyst:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-io/CatalystSample.git
-  #   - TEST_APP_BRANCH: master
-  #   - TEST_APP_COMMIT: ""
-  #   - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
-  #   - BITRISE_SCHEME: Catalyst Sample
-  #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-  #   - TEAM_ID: 72SA8V3WYL
-  #   - FORCE_PROV_PROFILE_SPECIFIER: ""
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcodebuild
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+    # test_objc_artifact_name:
+    #   envs:
+    #   - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    #   - TEST_APP_BRANCH: ""
+    #   - TEST_APP_COMMIT: 65cd120bf4459c2881cfe2b731395b4efc53855d
+    #   - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    #   - BITRISE_SCHEME: ios-simple-objc
+    #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    #   - TEAM_ID: 72SA8V3WYL
+    #   - FORCE_PROV_PROFILE_SPECIFIER: ""
+    #   - IPA_EXPORT_METHOD: development
+    #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    #   - LOG_FORMATTER: xcodebuild
+    #   - DSYM_EXPECTED_COUNT: 3
+    #   after_run:
+    #   - _run
+    #   - _check_outputs
+    #   - _check_exported_artifacts
+    #   - _check_archive_zip
 
-  # test_cloudkit:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-  #   - TEST_APP_BRANCH: cloudkit
-  #   - TEST_APP_COMMIT: ""
-  #   - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-  #   - BITRISE_SCHEME: code-sign-test-Prod
-  #   - FORCE_CODE_SIGN_IDENTITY: ""
-  #   - TEAM_ID: 72SA8V3WYL
-  #   - FORCE_PROV_PROFILE_SPECIFIER: ""
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
-  #   - LOG_FORMATTER: xcodebuild
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+    # test_xcode_8:
+    #   envs:
+    #   - TEST_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
+    #   - TEST_APP_BRANCH: swift_version
+    #   - TEST_APP_COMMIT: ""
+    #   - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
+    #   - BITRISE_SCHEME: ios-xcode-8.0
+    #   - FORCE_CODE_SIGN_IDENTITY: ""
+    #   - TEAM_ID: ""
+    #   - FORCE_PROV_PROFILE_SPECIFIER: ""
+    #   - IPA_EXPORT_METHOD: development
+    #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    #   - LOG_FORMATTER: xcpretty
+    #   after_run:
+    #   - _run
+    #   - _check_outputs
+    #   - _check_exported_artifacts
 
-  # test_no_app_dsym:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-  #   - TEST_APP_BRANCH: with-pods
-  #   - TEST_APP_COMMIT: ""
-  #   - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
-  #   - BITRISE_SCHEME: ios-simple-objc
-  #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-  #   - TEAM_ID: 72SA8V3WYL
-  #   - FORCE_PROV_PROFILE_SPECIFIER: ""
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcodebuild
-  #   - DSYM_EXPECTED_COUNT: 1  # Only 1 framework dSYM
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+    # test_multi_target:
+    #   envs:
+    #   - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
+    #   - TEST_APP_BRANCH: ""
+    #   - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
+    #   - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    #   - BITRISE_SCHEME: code-sign-test
+    #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    #   - TEAM_ID: 72SA8V3WYL
+    #   - FORCE_PROV_PROFILE_SPECIFIER: ""
+    #   - IPA_EXPORT_METHOD: development
+    #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    #   - LOG_FORMATTER: xcodebuild
+    #   after_run:
+    #   - _run
+    #   - _check_outputs
+    #   - _check_exported_artifacts
 
-  # test_objc_artifact_name:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-  #   - TEST_APP_BRANCH: ""
-  #   - TEST_APP_COMMIT: 65cd120bf4459c2881cfe2b731395b4efc53855d
-  #   - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
-  #   - BITRISE_SCHEME: ios-simple-objc
-  #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-  #   - TEAM_ID: 72SA8V3WYL
-  #   - FORCE_PROV_PROFILE_SPECIFIER: ""
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcodebuild
-  #   - DSYM_EXPECTED_COUNT: 3
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
-  #   - _check_archive_zip
+    # test_workspace:
+    #   envs:
+    #   - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    #   - TEST_APP_BRANCH: ""
+    #   - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
+    #   - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    #   - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    #   - TEAM_ID: 72SA8V3WYL
+    #   - FORCE_PROV_PROFILE_SPECIFIER: BitriseBot-Wildcard
+    #   - IPA_EXPORT_METHOD: development
+    #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    #   - LOG_FORMATTER: xcodebuild
+    #   after_run:
+    #   - _run
+    #   - _check_outputs
+    #   - _check_exported_artifacts
 
-  # test_xcode_8:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
-  #   - TEST_APP_BRANCH: swift_version
-  #   - TEST_APP_COMMIT: ""
-  #   - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
-  #   - BITRISE_SCHEME: ios-xcode-8.0
-  #   - FORCE_CODE_SIGN_IDENTITY: ""
-  #   - TEAM_ID: ""
-  #   - FORCE_PROV_PROFILE_SPECIFIER: ""
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcpretty
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+  _run:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf "./_tmp"
+            mkdir -p "./_tmp"
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - branch: $TEST_APP_BRANCH
+        - commit: $TEST_APP_COMMIT
+        - clone_into_dir: ./_tmp
+    #   - certificate-and-profile-installer:
+    #       inputs:
+    #       - certificate_url: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+    #       - certificate_passphrase: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+    #       - provisioning_profile_url: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
+    #       - install_defaults: "no"
+    #       - keychain_path: $BITRISE_KEYCHAIN_PATH
+    #       - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+    - script:
+        title: Construct xcconfig contents
+        inputs:
+        - content: |
+            CONFIG="COMPILER_INDEX_STORE_ENABLE = NO"
 
-  # test_multi_target:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-  #   - TEST_APP_BRANCH: ""
-  #   - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
-  #   - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-  #   - BITRISE_SCHEME: code-sign-test
-  #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-  #   - TEAM_ID: 72SA8V3WYL
-  #   - FORCE_PROV_PROFILE_SPECIFIER: ""
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcodebuild
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+            if [ "$FORCE_CODE_SIGN_IDENTITY" != "" ]; then
+              CONFIG="$CONFIG
+            CODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY"
+            fi
 
-  # test_workspace:
-  #   envs:
-  #   - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-  #   - TEST_APP_BRANCH: ""
-  #   - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
-  #   - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
-  #   - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-  #   - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-  #   - TEAM_ID: 72SA8V3WYL
-  #   - FORCE_PROV_PROFILE_SPECIFIER: BitriseBot-Wildcard
-  #   - IPA_EXPORT_METHOD: development
-  #   - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #   - LOG_FORMATTER: xcodebuild
-  #   after_run:
-  #   - _run
-  #   - _check_outputs
-  #   - _check_exported_artifacts
+            if [ "$FORCE_PROV_PROFILE_SPECIFIER" != "" ]; then
+              CONFIG="$CONFIG
+            PROVISIONING_PROFILE_SPECIFIER = $FORCE_PROV_PROFILE_SPECIFIER"
+            fi
 
-  # _run:
-  #   steps:
-  #   - script:
-  #       inputs:
-  #       - content: |-
-  #           #!/bin/bash
-  #           set -ex
-  #           rm -rf "./_tmp"
-  #           mkdir -p "./_tmp"
-  #   - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
-  #       inputs:
-  #       - repository_url: $TEST_APP_URL
-  #       - branch: $TEST_APP_BRANCH
-  #       - commit: $TEST_APP_COMMIT
-  #       - clone_into_dir: ./_tmp
-  #   - certificate-and-profile-installer:
-  #       inputs:
-  #       - certificate_url: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
-  #       - certificate_passphrase: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
-  #       - provisioning_profile_url: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
-  #       - install_defaults: "no"
-  #       - keychain_path: $BITRISE_KEYCHAIN_PATH
-  #       - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
-  #   - script:
-  #       title: Construct xcconfig contents
-  #       inputs:
-  #       - content: |
-  #           CONFIG="COMPILER_INDEX_STORE_ENABLE = NO"
+            printf "xcconfig contents:\n"
+            printf "$CONFIG"
 
-  #           if [ "$FORCE_CODE_SIGN_IDENTITY" != "" ]; then
-  #             CONFIG="$CONFIG
-  #           CODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY"
-  #           fi
-
-  #           if [ "$FORCE_PROV_PROFILE_SPECIFIER" != "" ]; then
-  #             CONFIG="$CONFIG
-  #           PROVISIONING_PROFILE_SPECIFIER = $FORCE_PROV_PROFILE_SPECIFIER"
-  #           fi
-
-  #           printf "xcconfig contents:\n"
-  #           printf "$CONFIG"
-
-  #           envman add --key XCCONFIG_CONTENT --value "$CONFIG"
-  #   - path::./:
-  #       title: Execute step
-  #       inputs:
-  #       - project_path: ./_tmp/$BITRISE_PROJECT_PATH
-  #       - scheme: $BITRISE_SCHEME
-  #       - xcconfig_content: $XCCONFIG_CONTENT
-  #       - distribution_method: $IPA_EXPORT_METHOD
-  #       - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
-  #       - export_development_team: $TEAM_ID
-  #       - log_formatter: $LOG_FORMATTER
-  #       - verbose_log: "yes"
+            envman add --key XCCONFIG_CONTENT --value "$CONFIG"
+    - path::./:
+        title: Execute step
+        inputs:
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+        - scheme: $BITRISE_SCHEME
+        - automatic_code_signing: $CODE_SIGNING_METHOD
+        - xcconfig_content: $XCCONFIG_CONTENT
+        - distribution_method: $IPA_EXPORT_METHOD
+        - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
+        - export_development_team: $TEAM_ID
+        - log_formatter: $LOG_FORMATTER
+        - verbose_log: "yes"
 
   _check_outputs:
     steps:
