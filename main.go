@@ -775,6 +775,8 @@ type RunOut struct {
 
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
+	logger.Infof("Setting up code signing assets (certificates, profiles) before Archive action")
+
 	XcodeAPIConnection, err := manageCodeSigning(CodeSignOpts{
 		CodeSigningStrategy:       opts.CodeSigningStrategy,
 		ProjectPath:               opts.ProjectPath,

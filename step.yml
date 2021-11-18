@@ -193,6 +193,7 @@ inputs:
 
 # IPA export configuration
 
+# TODO: use for forcing team ID in autocodesign?
 - export_development_team:
   opts:
     category: IPA export configuration

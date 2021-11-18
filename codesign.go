@@ -58,14 +58,17 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 
 	switch strategy {
 	case noCodeSign:
+		logger.Infof("Skip downloading any Code Signing assets")
 		return nil, nil
 	case codeSigningXcode:
 		{
+			logger.Infof("Xcode-managed Code Signing selected")
+
 			authConfig, err := appleauth.Select(&opts.AppleServiceConnection, []appleauth.Source{&appleauth.ConnectionAPIKeySource{}}, appleauth.Inputs{})
 			if err != nil {
 				if authConfig.APIKey == nil {
 					fmt.Println()
-					log.Warnf("%s", notConnected)
+					logger.Warnf("%s", notConnected)
 				}
 
 				if errors.Is(err, &appleauth.MissingAuthConfigError{}) {
@@ -75,11 +78,10 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 				return nil, fmt.Errorf("could not configure Apple service authentication: %v", err)
 			}
 
+			logger.Infof("Downloading certificates from Bitrise")
 			if err := downloadAndInstallCertificates(opts.CertificateURLList, opts.CertificatePassphraseList, opts.KeychainPath, opts.KeychainPassword); err != nil {
 				return nil, err
 			}
-
-			logger.Infof("Xcode Code Signing")
 
 			return authConfig.APIKey, nil
 		}
