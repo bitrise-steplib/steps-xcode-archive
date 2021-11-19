@@ -325,7 +325,9 @@ func profileName(profileType appstoreconnect.ProfileType, bundleID string) strin
 		prefix = "Wildcard "
 	}
 
-	return fmt.Sprintf("%sBitrise %s %s - (%s)", prefix, platform, distribution, bundleID)
+	name := fmt.Sprintf("%sBitrise %s %s - (%s)", prefix, platform, distribution, bundleID)
+
+	return name[:50]
 }
 
 func checkProfileEntitlements(client DevPortalClient, prof Profile, appEntitlements Entitlements) error {
