@@ -174,17 +174,17 @@ func (c *ProfileClient) DeleteProfile(id string) error {
 
 // CreateProfile ...
 func (c *ProfileClient) CreateProfile(name string, profileType appstoreconnect.ProfileType, bundleID appstoreconnect.BundleID, certificateIDs []string, deviceIDs []string) (autocodesign.Profile, error) {
-	cmd, err := c.client.createRequestCommand("create_profile",
-		bundleIDIdentifierArgKey, bundleID.Attributes.Identifier,
-		certificateIDArgKey, certificateIDs[0],
-		profileNameArgKey, name,
-		profileTypeArgKey, string(profileType),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	for i := 0; i < 5; i++ {
+		cmd, err := c.client.createRequestCommand("create_profile",
+			bundleIDIdentifierArgKey, bundleID.Attributes.Identifier,
+			certificateIDArgKey, certificateIDs[0],
+			profileNameArgKey, name,
+			profileTypeArgKey, string(profileType),
+		)
+		if err != nil {
+			return nil, err
+		}
+
 		output, err := runSpaceshipCommand(cmd)
 		if err != nil {
 			return nil, err
