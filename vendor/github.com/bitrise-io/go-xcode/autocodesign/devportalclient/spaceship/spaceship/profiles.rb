@@ -68,6 +68,8 @@ def create_profile(profile_type, bundle_id, certificate_id, profile_name)
     sub_platform: sub_platform
   )
 
+  Log.info("PROFILE #{profile}")
+
   profile_base64 = Base64.encode64(profile.download)
   {
     id: profile.id,
@@ -81,6 +83,7 @@ def create_profile(profile_type, bundle_id, certificate_id, profile_name)
     bundle_id: profile.app.bundle_id
   }
 rescue => e
+  Log.info("EEEE #{e}")
   raise e unless e.to_s =~ /Multiple profiles found with the name/i
 
   raise RetryNeeded

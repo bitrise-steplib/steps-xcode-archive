@@ -82,7 +82,7 @@ func ensureProfiles(profileClient DevPortalClient, distrTypes []DistributionType
 			if err != nil {
 				return nil, err
 			}
-			log.Infof("PROFILE: %+v", profile)
+			log.Infof("PROFILE: %+v", *profile)
 
 			codesignAssets.ArchivableTargetProfilesByBundleID[bundleIDIdentifier] = *profile
 		}
