@@ -101,7 +101,7 @@ type Inputs struct {
 type Config struct {
 	Inputs
 	XcodeMajorVersion      int
-	CodeSigningStrategy    CodeSigningStrategy
+	AuthType               AuthType
 	AppleServiceConnection devportalservice.AppleDeveloperConnection
 }
 
@@ -330,11 +330,11 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 
 	switch inputs.CodeSigningAuthSource {
 	case codeSignSourceOff:
-		config.CodeSigningStrategy = noCodeSign
+		config.AuthType = NoAuth
 	case codeSignSourceAppleID:
-		config.CodeSigningStrategy = codeSigningBitriseAppleID
+		config.AuthType = AppleIDAuth
 	case codeSignSourceAPIKey:
-		config.CodeSigningStrategy = codeSigningBitriseAPIKey
+		config.AuthType = APIKeyAuth
 	}
 
 	return config, nil
@@ -739,7 +739,7 @@ type RunOpts struct {
 	ArtifactName      string
 
 	// Authentication
-	CodeSigningStrategy       CodeSigningStrategy
+	AuthType                  AuthType
 	AppleServiceConnection    devportalservice.AppleDeveloperConnection
 	RegisterTestDevices       bool
 	KeychainPath              string
@@ -780,7 +780,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	logger.Infof("Setting up code signing assets (certificates, profiles) before Archive action")
 
 	XcodeAPIConnection, err := manageCodeSigning(CodeSignOpts{
-		CodeSigningStrategy:       opts.CodeSigningStrategy,
+		AuthType:                  opts.AuthType,
 		ProjectPath:               opts.ProjectPath,
 		Scheme:                    opts.Scheme,
 		Configuration:             opts.Configuration,
@@ -1113,7 +1113,7 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
-		CodeSigningStrategy:       config.CodeSigningStrategy,
+		AuthType:                  config.AuthType,
 		AppleServiceConnection:    config.AppleServiceConnection,
 		RegisterTestDevices:       config.RegisterTestDevices,
 		KeychainPath:              config.KeychainPath,
