@@ -50,17 +50,22 @@ const (
 	AppleIDAuth
 )
 
-type CodeSigningStrategy int
+type codeSigningStrategy int
 
 const (
-	noCodeSign CodeSigningStrategy = iota
+	noCodeSign codeSigningStrategy = iota
 	codeSigningXcode
 	codeSigningBitriseAPIKey
 	codeSigningBitriseAppleID
 )
 
 func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, error) {
-	strategy, err := selectCodeSigningStrategy(opts)
+	projectHelper, err := projectmanager.NewProjectHelper(opts.ProjectPath, opts.Scheme, opts.Configuration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open project: %s", err)
+	}
+
+	strategy, err := selectCodeSigningStrategy(opts, projectHelper)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +132,11 @@ func manageCodeSigning(opts CodeSignOpts) (*devportalservice.APIKeyConnection, e
 	return nil, nil
 }
 
-func selectCodeSigningStrategy(opts CodeSignOpts) (CodeSigningStrategy, error) {
+type ProjectHelper interface {
+	IsSigningManagedAutomatically() (bool, error)
+}
+
+func selectCodeSigningStrategy(opts CodeSignOpts, projectHelper ProjectHelper) (codeSigningStrategy, error) {
 	if opts.AuthType == AppleIDAuth {
 		if opts.AppleServiceConnection.AppleIDConnection == nil {
 			return noCodeSign, fmt.Errorf("Apple ID authentication is selected in step inputs, but connection is not set up properly.")
@@ -145,12 +154,7 @@ func selectCodeSigningStrategy(opts CodeSignOpts) (CodeSigningStrategy, error) {
 			return codeSigningBitriseAPIKey, nil
 		}
 
-		project, err := projectmanager.NewProjectHelper(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		if err != nil {
-			return noCodeSign, err
-		}
-
-		managedSigning, err := project.IsSigningManagedAutomatically()
+		managedSigning, err := projectHelper.IsSigningManagedAutomatically()
 		if err != nil {
 			return noCodeSign, err
 		}
