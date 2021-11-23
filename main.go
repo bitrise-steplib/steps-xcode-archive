@@ -344,19 +344,19 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 
 	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
 	if inputs.CodeSigningAuthSource == codeSignSourceAPIKey || inputs.CodeSigningAuthSource == codeSignSourceAppleID {
-		isRunningOnBitrise := inputs.BuildURL != "" && string(inputs.BuildAPIToken) != ""
-		if isRunningOnBitrise {
-			f := devportalclient.NewFactory(logger)
-			if serviceConnection, err = f.CreateBitriseConnection(inputs.BuildURL, string(inputs.BuildAPIToken)); err != nil {
-				return Config{}, err
-			}
-		} else {
-			fmt.Println()
-			logger.Warnf("Automatic Code Signing disabled, as connection to the Apple Developer Portal is only available in builds on Bitrise.io")
+		f := devportalclient.NewFactory(logger)
+		if serviceConnection, err = f.CreateBitriseConnection(inputs.BuildURL, string(inputs.BuildAPIToken)); err != nil {
+			return Config{}, err
 		}
 	}
 
+	appleAuthCredentials, err := codesign.SelectConnectionCredentials(config.AuthType, serviceConnection, logger)
+	if err != nil {
+		return Config{}, err
+	}
+
 	config.CodesignManager = codesign.New(logger,
+		appleAuthCredentials,
 		serviceConnection,
 		devportalclient.NewFactory(logger),
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
