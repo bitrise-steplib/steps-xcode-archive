@@ -284,61 +284,60 @@ workflows:
       #    - _check_outputs
       #    - _check_exported_artifacts
 
-      # TODO: re-enable when CODE_SIGN_STYLE error handling is added
-      #  test_objc_artifact_name:
-      #    envs:
-      #    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-      #    - TEST_APP_BRANCH: ""
-      #    - TEST_APP_COMMIT: 65cd120bf4459c2881cfe2b731395b4efc53855d
-      #    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
-      #    - BITRISE_SCHEME: ios-simple-objc
-      #    - CODE_SIGNING_METHOD: api-key
-      #    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-      #    - TEAM_ID: 72SA8V3WYL
-      #    - FORCE_PROV_PROFILE_SPECIFIER: ""
-      #    - IPA_EXPORT_METHOD: development
-      #    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-      #    - LOG_FORMATTER: xcodebuild
-      #    - DSYM_EXPECTED_COUNT: 3
-      #    after_run:
-      #    - _run
-      #    - _check_outputs
-      #    - _check_exported_artifacts
-      #    - _check_archive_zip
-
-#  test_multi_target:
-#    envs:
-#    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-#    - TEST_APP_BRANCH: ""
-#    - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
-#    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-#    - BITRISE_SCHEME: code-sign-test
-#    - CODE_SIGNING_METHOD: api-key
-#    - TEAM_ID: 72SA8V3WYL
-#    - IPA_EXPORT_METHOD: development
-#    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-#    - LOG_FORMATTER: xcodebuild
-#    after_run:
-#    - _run
-#    - _check_outputs
-#    - _check_exported_artifacts
-
-  test_workspace:
+  test_objc_artifact_name:
     envs:
-    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - TEST_APP_BRANCH: ""
-    - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
-    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
-    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - TEST_APP_COMMIT: 65cd120bf4459c2881cfe2b731395b4efc53855d
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    - BITRISE_SCHEME: ios-simple-objc
     - CODE_SIGNING_METHOD: api-key
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
+    - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
+    - DSYM_EXPECTED_COUNT: 3
     after_run:
     - _run
     - _check_outputs
     - _check_exported_artifacts
+    - _check_archive_zip
+
+  #  test_multi_target:
+  #    envs:
+  #    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
+  #    - TEST_APP_BRANCH: ""
+  #    - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
+  #    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+  #    - BITRISE_SCHEME: code-sign-test
+  #    - CODE_SIGNING_METHOD: api-key
+  #    - TEAM_ID: 72SA8V3WYL
+  #    - IPA_EXPORT_METHOD: development
+  #    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+  #    - LOG_FORMATTER: xcodebuild
+  #    after_run:
+  #    - _run
+  #    - _check_outputs
+  #    - _check_exported_artifacts
+
+  #  test_workspace:
+  #    envs:
+  #    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+  #    - TEST_APP_BRANCH: ""
+  #    - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
+  #    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+  #    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+  #    - CODE_SIGNING_METHOD: api-key
+  #    - TEAM_ID: 72SA8V3WYL
+  #    - IPA_EXPORT_METHOD: development
+  #    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+  #    - LOG_FORMATTER: xcodebuild
+  #    after_run:
+  #    - _run
+  #    - _check_outputs
+  #    - _check_exported_artifacts
 
   _run:
     steps:
