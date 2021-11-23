@@ -274,7 +274,7 @@ workflows:
     - TEAM_ID: 72SA8V3WYL
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - LOG_FORMATTER: xcodebuildÍ
+    - LOG_FORMATTER: xcodebuild
     - DSYM_EXPECTED_COUNT: 1  # Only 1 framework dSYM
     after_run:
     - _run
@@ -360,6 +360,7 @@ workflows:
     - script:
         title: Construct xcconfig contents
         inputs:
+        # TODO: still needed?
         - content: |
             CONFIG="COMPILER_INDEX_STORE_ENABLE = NO"
 
