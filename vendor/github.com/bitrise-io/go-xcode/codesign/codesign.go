@@ -38,8 +38,8 @@ const (
 
 // Opts ...
 type Opts struct {
-	AuthType                  AuthType
-	IsXcodeCodeSigningEnabled bool
+	AuthType                   AuthType
+	ShouldConsiderXcodeSigning bool
 
 	ExportMethod      autocodesign.DistributionType
 	XcodeMajorVersion int
@@ -57,6 +57,8 @@ type Result struct {
 
 // Manager ...
 type Manager struct {
+	opts Opts
+
 	appleAuthCredentials   appleauth.Credentials
 	bitriseConnection      *devportalservice.AppleDeveloperConnection
 	devPortalClientFactory devportalclient.Factory
@@ -70,8 +72,10 @@ type Manager struct {
 	logger log.Logger
 }
 
-// New ...
-func New(logger log.Logger,
+// NewManager ...
+func NewManager(
+	opts Opts,
+	logger log.Logger,
 	appleAuth appleauth.Credentials,
 	connection *devportalservice.AppleDeveloperConnection,
 	clientFactory devportalclient.Factory,
@@ -81,6 +85,7 @@ func New(logger log.Logger,
 	projectFactory projectmanager.Factory,
 ) Manager {
 	return Manager{
+		opts:                   opts,
 		appleAuthCredentials:   appleAuth,
 		bitriseConnection:      connection,
 		devPortalClientFactory: clientFactory,
@@ -113,15 +118,15 @@ func (m *Manager) getProject() (Project, error) {
 }
 
 // PrepareCodesigning ...
-func (m *Manager) PrepareCodesigning(opts Opts) (Result, error) {
-	if opts.AuthType == NoAuth {
+func (m *Manager) PrepareCodesigning() (Result, error) {
+	if m.opts.AuthType == NoAuth {
 		m.logger.Println()
 		m.logger.Infof("Skip downloading any Code Signing assets")
 
 		return Result{}, nil
 	}
 
-	strategy, reason, err := m.selectCodeSigningStrategy(m.appleAuthCredentials, opts.IsXcodeCodeSigningEnabled, opts.XcodeMajorVersion)
+	strategy, reason, err := m.selectCodeSigningStrategy(m.appleAuthCredentials)
 	if err != nil {
 		m.logger.Warnf("%s", err)
 	}
@@ -138,8 +143,8 @@ func (m *Manager) PrepareCodesigning(opts Opts) (Result, error) {
 				return Result{}, err
 			}
 
-			if opts.RegisterTestDevices && m.bitriseConnection != nil && len(m.bitriseConnection.TestDevices) != 0 &&
-				autocodesign.DistributionTypeRequiresDeviceList([]autocodesign.DistributionType{opts.ExportMethod}) {
+			needsTestDevices := autocodesign.DistributionTypeRequiresDeviceList([]autocodesign.DistributionType{m.opts.ExportMethod})
+			if needsTestDevices && m.opts.RegisterTestDevices && m.bitriseConnection != nil && len(m.bitriseConnection.TestDevices) != 0 {
 				if err := m.registerTestDevices(m.appleAuthCredentials, m.bitriseConnection.TestDevices); err != nil {
 					return Result{}, err
 				}
@@ -149,23 +154,12 @@ func (m *Manager) PrepareCodesigning(opts Opts) (Result, error) {
 				XcodebuildAuthParams: m.appleAuthCredentials.APIKey,
 			}, nil
 		}
-	case codeSigningBitriseAPIKey:
+	case codeSigningBitriseAPIKey, codeSigningBitriseAppleID:
 		{
 			m.logger.Println()
-			m.logger.Infof("Bitrise-managed code-signing with Apple API key")
-			log.Printf(reason)
-			if err := m.manageCodeSigningBitrise(m.appleAuthCredentials, opts); err != nil {
-				return Result{}, err
-			}
-
-			return Result{}, nil
-		}
-	case codeSigningBitriseAppleID:
-		{
-			m.logger.Println()
-			m.logger.Infof("Bitrise-managed code-signing with Apple ID")
+			m.logger.Infof("Bitrise-managed code-signing")
 			m.logger.Printf(reason)
-			if err := m.manageCodeSigningBitrise(m.appleAuthCredentials, opts); err != nil {
+			if err := m.prepareCodeSigningWithBitrise(m.appleAuthCredentials); err != nil {
 				return Result{}, err
 			}
 
@@ -176,6 +170,7 @@ func (m *Manager) PrepareCodesigning(opts Opts) (Result, error) {
 	return Result{}, nil
 }
 
+// SelectConnectionCredentials ...
 func SelectConnectionCredentials(authType AuthType, conn *devportalservice.AppleDeveloperConnection, logger log.Logger) (appleauth.Credentials, error) {
 	var authSource appleauth.Source
 
@@ -221,37 +216,37 @@ func SelectConnectionCredentials(authType AuthType, conn *devportalservice.Apple
 	return authConfig, nil
 }
 
-func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials, IsXcodeCodeSigningEnabled bool, XcodeMajorVersion int) (codeSigningStrategy, string, error) {
-	const manualProfilesReason = "Using Bitrise-managed code-signing, as Xcode-managed code-signing requires automatically managed provisioning profiles"
+func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials) (codeSigningStrategy, string, error) {
+	const manualProfilesReason = "Using Bitrise-managed code-signing via API key, as Automatically managed signing is disabled in Xcode for the project."
 
 	if credentials.AppleID != nil {
-		return codeSigningBitriseAppleID, "Using Bitrise-managed code-signing, as Apple ID is not supported by Xcode-managed code-signing.", nil
-	}
-
-	if !IsXcodeCodeSigningEnabled {
-		return codeSigningBitriseAPIKey, "", nil
+		return codeSigningBitriseAppleID, "Using Bitrise-managed code-signing via Apple ID, as Apple ID is not supported by Xcode-managed code-signing.", nil
 	}
 
 	if credentials.APIKey == nil {
 		panic("No Apple authentication credentials found.")
 	}
 
-	if XcodeMajorVersion < 13 {
-		return codeSigningBitriseAPIKey, "Using Bitrise-managed code-signing, as Xcode-managed code-signing requires at least Xcode 13.", nil
+	if !m.opts.ShouldConsiderXcodeSigning {
+		return codeSigningBitriseAPIKey, "", nil
+	}
+
+	if m.opts.XcodeMajorVersion < 13 {
+		return codeSigningBitriseAPIKey, "Using Bitrise-managed code-signing via API key, as Xcode-managed code-signing requires at least Xcode 13.", nil
 	}
 
 	project, err := m.getProject()
 	if err != nil {
-		return codeSigningXcode, "Using Xcode-managed code-signing, as failed to parse project.", err
+		return codeSigningXcode, "Using Xcode-managed code-signing, as project parsing failed.", err
 	}
 
-	automaticProfiles, err := project.IsSigningManagedAutomatically()
+	isManaged, err := project.IsSigningManagedAutomatically()
 	if err != nil {
 		return codeSigningBitriseAPIKey, manualProfilesReason, err
 	}
 
-	if automaticProfiles {
-		return codeSigningXcode, "Using Xcode-managed code-signing, as project uses automatically managed provisioning profiles.", nil
+	if isManaged {
+		return codeSigningXcode, "Using Xcode-managed code-signing, as Automatically managed signing is enabled in Xcode for the project", nil
 	}
 
 	return codeSigningBitriseAPIKey, manualProfilesReason, nil
@@ -299,7 +294,7 @@ func (m *Manager) registerTestDevices(credentials appleauth.Credentials, devices
 	return nil
 }
 
-func (m *Manager) manageCodeSigningBitrise(credentials appleauth.Credentials, opts Opts) error {
+func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credentials) error {
 	// Analyze project
 	fmt.Println()
 	m.logger.Infof("Analyzing project")
@@ -308,7 +303,7 @@ func (m *Manager) manageCodeSigningBitrise(credentials appleauth.Credentials, op
 		return err
 	}
 
-	appLayout, err := project.GetAppLayout(opts.SignUITests)
+	appLayout, err := project.GetAppLayout(m.opts.SignUITests)
 	if err != nil {
 		return err
 	}
@@ -321,22 +316,21 @@ func (m *Manager) manageCodeSigningBitrise(credentials appleauth.Credentials, op
 	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.certDownloader, m.assetWriter)
 
 	// Fetch and apply codesigning assets
-	distribution := autocodesign.DistributionType(opts.ExportMethod)
-	testDevices := []devportalservice.TestDevice{}
-	if opts.RegisterTestDevices && m.bitriseConnection != nil {
+	var testDevices []devportalservice.TestDevice
+	if m.opts.RegisterTestDevices && m.bitriseConnection != nil {
 		testDevices = m.bitriseConnection.TestDevices
 	}
 	codesignAssetsByDistributionType, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
-		DistributionType:       distribution,
+		DistributionType:       m.opts.ExportMethod,
 		BitriseTestDevices:     testDevices,
-		MinProfileValidityDays: opts.MinProfileValidity,
-		VerboseLog:             opts.IsVerboseLog,
+		MinProfileValidityDays: m.opts.MinProfileValidity,
+		VerboseLog:             m.opts.IsVerboseLog,
 	})
 	if err != nil {
 		return err
 	}
 
-	if err := project.ForceCodesignAssets(distribution, codesignAssetsByDistributionType); err != nil {
+	if err := project.ForceCodesignAssets(m.opts.ExportMethod, codesignAssetsByDistributionType); err != nil {
 		return fmt.Errorf("failed to force codesign settings: %s", err)
 	}
 

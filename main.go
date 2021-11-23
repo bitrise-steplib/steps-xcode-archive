@@ -20,12 +20,11 @@ import (
 	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
-	"github.com/bitrise-io/go-xcode/autocodesign"
 	"github.com/bitrise-io/go-xcode/autocodesign/certdownloader"
-	"github.com/bitrise-io/go-xcode/autocodesign/codesign"
 	"github.com/bitrise-io/go-xcode/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
 	"github.com/bitrise-io/go-xcode/autocodesign/projectmanager"
+	"github.com/bitrise-io/go-xcode/codesign"
 	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/exportoptionsgenerator"
@@ -106,7 +105,6 @@ type Inputs struct {
 type Config struct {
 	Inputs
 	XcodeMajorVersion int
-	AuthType          codesign.AuthType
 	CodesignManager   codesign.Manager
 }
 
@@ -318,13 +316,14 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		config.ArtifactName = productName
 	}
 
+	var authType codesign.AuthType
 	switch inputs.CodeSigningAuthSource {
 	case codeSignSourceOff:
-		config.AuthType = codesign.NoAuth
+		authType = codesign.NoAuth
 	case codeSignSourceAppleID:
-		config.AuthType = codesign.AppleIDAuth
+		authType = codesign.AppleIDAuth
 	case codeSignSourceAPIKey:
-		config.AuthType = codesign.APIKeyAuth
+		authType = codesign.APIKeyAuth
 	}
 
 	repository := env.NewRepository()
@@ -337,7 +336,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		CommandFactory:            command.NewFactory(repository),
 	}
 
-	codesignConfig, err := codesignInputs.Parse(config.AuthType)
+	codesignConfig, err := codesignInputs.Parse(authType)
 	if err != nil {
 		return Config{}, fmt.Errorf("issue with input: %s", err)
 	}
@@ -350,12 +349,23 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 	}
 
-	appleAuthCredentials, err := codesign.SelectConnectionCredentials(config.AuthType, serviceConnection, logger)
+	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, logger)
 	if err != nil {
 		return Config{}, err
 	}
 
-	config.CodesignManager = codesign.New(logger,
+	config.CodesignManager = codesign.NewManager(
+		codesign.Opts{
+			AuthType:                   authType,
+			ShouldConsiderXcodeSigning: true,
+			ExportMethod:               codesignConfig.DistributionMethod,
+			XcodeMajorVersion:          config.XcodeMajorVersion,
+			RegisterTestDevices:        config.RegisterTestDevices,
+			SignUITests:                false,
+			MinProfileValidity:         30,
+			IsVerboseLog:               true,
+		},
+		logger,
 		appleAuthCredentials,
 		serviceConnection,
 		devportalclient.NewFactory(logger),
@@ -771,10 +781,8 @@ type RunOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
-	// Authentication
-	AuthType            codesign.AuthType
-	CodesignManager     codesign.Manager
-	RegisterTestDevices bool
+	// Code signing
+	CodesignManager codesign.Manager
 
 	// Archive
 	PerformCleanAction bool
@@ -805,25 +813,17 @@ type RunOut struct {
 
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
-	logger.Infof("Setting up code signing assets (certificates, profiles) before Archive action")
+	logger.Println()
+	logger.Infof("Preparing code-signing assets (certificates, profiles) before Archive action")
 
-	codesignResult, err := opts.CodesignManager.PrepareCodesigning(codesign.Opts{
-		AuthType:                  codesign.AuthType(opts.AuthType),
-		IsXcodeCodeSigningEnabled: true,
-		ExportMethod:              autocodesign.DistributionType(opts.ExportMethod), // ToDo
-		XcodeMajorVersion:         opts.XcodeMajorVersion,
-		RegisterTestDevices:       opts.RegisterTestDevices,
-		SignUITests:               false,
-		MinProfileValidity:        30,
-		IsVerboseLog:              true,
-	})
+	prepareCodesignResult, err := opts.CodesignManager.PrepareCodesigning()
 	if err != nil {
 		return RunOut{}, fmt.Errorf("failed to manage Code Signing: %s", err)
 	}
 
 	var authOptions *xcodebuild.AuthenticationParams = nil
-	if codesignResult.XcodebuildAuthParams != nil {
-		privateKey, err := codesignResult.XcodebuildAuthParams.WritePrivateKeyToFile()
+	if prepareCodesignResult.XcodebuildAuthParams != nil {
+		privateKey, err := prepareCodesignResult.XcodebuildAuthParams.WritePrivateKeyToFile()
 		if err != nil {
 			return RunOut{}, err
 		}
@@ -835,8 +835,8 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		}()
 
 		authOptions = &xcodebuild.AuthenticationParams{
-			KeyID:     codesignResult.XcodebuildAuthParams.KeyID,
-			IsssuerID: codesignResult.XcodebuildAuthParams.IssuerID,
+			KeyID:     prepareCodesignResult.XcodebuildAuthParams.KeyID,
+			IsssuerID: prepareCodesignResult.XcodebuildAuthParams.IssuerID,
 			KeyPath:   privateKey,
 		}
 	}
@@ -1137,9 +1137,7 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
-		AuthType:            config.AuthType,
-		CodesignManager:     config.CodesignManager,
-		RegisterTestDevices: config.RegisterTestDevices,
+		CodesignManager: config.CodesignManager,
 
 		PerformCleanAction: config.PerformCleanAction,
 		XcconfigContent:    config.XcconfigContent,

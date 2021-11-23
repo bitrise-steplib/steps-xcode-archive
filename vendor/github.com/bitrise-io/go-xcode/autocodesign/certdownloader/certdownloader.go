@@ -20,14 +20,14 @@ type CertificateAndPassphrase struct {
 }
 
 type downloader struct {
-	urls   []CertificateAndPassphrase
+	certs  []CertificateAndPassphrase
 	client *http.Client
 }
 
 // NewDownloader ...
-func NewDownloader(urls []CertificateAndPassphrase, client *http.Client) autocodesign.CertificateProvider {
+func NewDownloader(certs []CertificateAndPassphrase, client *http.Client) autocodesign.CertificateProvider {
 	return downloader{
-		urls:   urls,
+		certs:  certs,
 		client: client,
 	}
 }
@@ -35,7 +35,7 @@ func NewDownloader(urls []CertificateAndPassphrase, client *http.Client) autocod
 func (d downloader) GetCertificates() ([]certificateutil.CertificateInfoModel, error) {
 	var certInfos []certificateutil.CertificateInfoModel
 
-	for i, p12 := range d.urls {
+	for i, p12 := range d.certs {
 		log.Debugf("Downloading p12 file number %d from %s", i, p12.URL)
 
 		certInfo, err := downloadAndParsePKCS12(d.client, p12.URL, p12.Passphrase)
