@@ -12,7 +12,7 @@ type CommandModel interface {
 	Command(opts *command.Opts) command.Command
 }
 
-// AuthenticationParams ...
+// AuthenticationParams are used to authenticate to App Store Connect API and let xcodebuild download missing provisioning profiles.
 type AuthenticationParams struct {
 	KeyID     string
 	IsssuerID string

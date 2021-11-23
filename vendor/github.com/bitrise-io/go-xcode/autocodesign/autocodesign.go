@@ -141,7 +141,7 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 	}
 	log.Printf("%d certificates downloaded:", len(certs))
 	for _, cert := range certs {
-		log.Printf("- %s", cert.CommonName)
+		log.Printf("- %s", cert)
 	}
 
 	signUITestTargets := len(appLayout.UITestTargetBundleIDs) > 0

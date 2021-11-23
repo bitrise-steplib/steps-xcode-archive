@@ -17,10 +17,15 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-xcode/autocodesign"
 	"github.com/bitrise-io/go-xcode/autocodesign/certdownloader"
+	"github.com/bitrise-io/go-xcode/autocodesign/codesign"
+	"github.com/bitrise-io/go-xcode/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
+	"github.com/bitrise-io/go-xcode/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/exportoptionsgenerator"
@@ -100,9 +105,9 @@ type Inputs struct {
 // Config ...
 type Config struct {
 	Inputs
-	XcodeMajorVersion      int
-	AuthType               AuthType
-	AppleServiceConnection devportalservice.AppleDeveloperConnection
+	XcodeMajorVersion int
+	AuthType          codesign.AuthType
+	CodesignManager   codesign.Manager
 }
 
 var envRepository = env.NewRepository()
@@ -276,8 +281,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
 
-	fmt.Println()
-
 	absProjectPath, err := filepath.Abs(config.ProjectPath)
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to get absolute project path, error: %s", err)
@@ -315,11 +318,36 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		config.ArtifactName = productName
 	}
 
+	switch inputs.CodeSigningAuthSource {
+	case codeSignSourceOff:
+		config.AuthType = codesign.NoAuth
+	case codeSignSourceAppleID:
+		config.AuthType = codesign.AppleIDAuth
+	case codeSignSourceAPIKey:
+		config.AuthType = codesign.APIKeyAuth
+	}
+
+	repository := env.NewRepository()
+	codesignInputs := codesign.StepInputParser{
+		DistributionMethod:        config.ExportMethod,
+		CertificateURLList:        config.CertificateURLList,
+		CertificatePassphraseList: config.CertificatePassphraseList,
+		KeychainPath:              config.KeychainPath,
+		KeychainPassword:          config.KeychainPassword,
+		CommandFactory:            command.NewFactory(repository),
+	}
+
+	codesignConfig, err := codesignInputs.Parse(config.AuthType)
+	if err != nil {
+		return Config{}, fmt.Errorf("issue with input: %s", err)
+	}
+
+	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
 	if inputs.CodeSigningAuthSource == codeSignSourceAPIKey || inputs.CodeSigningAuthSource == codeSignSourceAppleID {
 		isRunningOnBitrise := inputs.BuildURL != "" && string(inputs.BuildAPIToken) != ""
 		if isRunningOnBitrise {
-			f := devportalclient.NewClientFactory()
-			if config.AppleServiceConnection, err = f.CreateBitriseConnection(inputs.BuildURL, string(inputs.BuildAPIToken)); err != nil {
+			f := devportalclient.NewFactory(logger)
+			if serviceConnection, err = f.CreateBitriseConnection(inputs.BuildURL, string(inputs.BuildAPIToken)); err != nil {
 				return Config{}, err
 			}
 		} else {
@@ -328,14 +356,18 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 	}
 
-	switch inputs.CodeSigningAuthSource {
-	case codeSignSourceOff:
-		config.AuthType = NoAuth
-	case codeSignSourceAppleID:
-		config.AuthType = AppleIDAuth
-	case codeSignSourceAPIKey:
-		config.AuthType = APIKeyAuth
-	}
+	config.CodesignManager = codesign.New(logger,
+		serviceConnection,
+		devportalclient.NewFactory(logger),
+		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
+		codesignConfig.Keychain,
+		codesignasset.NewWriter(codesignConfig.Keychain),
+		projectmanager.NewFactory(projectmanager.InitParams{
+			ProjectOrWorkspacePath: config.ProjectPath,
+			SchemeName:             config.Scheme,
+			ConfigurationName:      config.Configuration,
+		}),
+	)
 
 	return config, nil
 }
@@ -437,6 +469,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	}
 
 	// Create the Archive with Xcode Command Line tools
+	logger.Println()
 	logger.Infof("Creating the Archive ...")
 
 	isWorkspace := false
@@ -739,14 +772,9 @@ type RunOpts struct {
 	ArtifactName      string
 
 	// Authentication
-	AuthType                  AuthType
-	AppleServiceConnection    devportalservice.AppleDeveloperConnection
-	RegisterTestDevices       bool
-	KeychainPath              string
-	KeychainPassword          stepconf.Secret
-	CertificateURLList        string
-	CertificatePassphraseList stepconf.Secret
-	Certificates              []certdownloader.CertificateAndPassphrase
+	AuthType            codesign.AuthType
+	CodesignManager     codesign.Manager
+	RegisterTestDevices bool
 
 	// Archive
 	PerformCleanAction bool
@@ -779,27 +807,23 @@ type RunOut struct {
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	logger.Infof("Setting up code signing assets (certificates, profiles) before Archive action")
 
-	XcodeAPIConnection, err := manageCodeSigning(CodeSignOpts{
-		AuthType:                  opts.AuthType,
-		ProjectPath:               opts.ProjectPath,
-		Scheme:                    opts.Scheme,
-		Configuration:             opts.Configuration,
-		ExportMethod:              opts.ExportMethod,
+	codesignResult, err := opts.CodesignManager.PrepareCodesigning(codesign.Opts{
+		AuthType:                  codesign.AuthType(opts.AuthType),
+		IsXcodeCodeSigningEnabled: true,
+		ExportMethod:              autocodesign.DistributionType(opts.ExportMethod), // ToDo
 		XcodeMajorVersion:         opts.XcodeMajorVersion,
-		AppleServiceConnection:    opts.AppleServiceConnection,
 		RegisterTestDevices:       opts.RegisterTestDevices,
-		CertificateURLList:        opts.CertificateURLList,
-		CertificatePassphraseList: opts.CertificatePassphraseList,
-		KeychainPath:              opts.KeychainPath,
-		KeychainPassword:          opts.KeychainPassword,
+		SignUITests:               false,
+		MinProfileValidity:        30,
+		IsVerboseLog:              true,
 	})
 	if err != nil {
 		return RunOut{}, fmt.Errorf("failed to manage Code Signing: %s", err)
 	}
 
 	var authOptions *xcodebuild.AuthenticationParams = nil
-	if XcodeAPIConnection != nil {
-		privateKey, err := writePrivateKey([]byte(XcodeAPIConnection.PrivateKey))
+	if codesignResult.XcodebuildAuthParams != nil {
+		privateKey, err := codesignResult.XcodebuildAuthParams.WritePrivateKeyToFile()
 		if err != nil {
 			return RunOut{}, err
 		}
@@ -811,8 +835,8 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		}()
 
 		authOptions = &xcodebuild.AuthenticationParams{
-			KeyID:     XcodeAPIConnection.KeyID,
-			IsssuerID: XcodeAPIConnection.IssuerID,
+			KeyID:     codesignResult.XcodebuildAuthParams.KeyID,
+			IsssuerID: codesignResult.XcodebuildAuthParams.IssuerID,
 			KeyPath:   privateKey,
 		}
 	}
@@ -1113,13 +1137,9 @@ func RunStep() error {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
-		AuthType:                  config.AuthType,
-		AppleServiceConnection:    config.AppleServiceConnection,
-		RegisterTestDevices:       config.RegisterTestDevices,
-		KeychainPath:              config.KeychainPath,
-		KeychainPassword:          config.KeychainPassword,
-		CertificateURLList:        config.CertificateURLList,
-		CertificatePassphraseList: config.CertificatePassphraseList,
+		AuthType:            config.AuthType,
+		CodesignManager:     config.CodesignManager,
+		RegisterTestDevices: config.RegisterTestDevices,
 
 		PerformCleanAction: config.PerformCleanAction,
 		XcconfigContent:    config.XcconfigContent,

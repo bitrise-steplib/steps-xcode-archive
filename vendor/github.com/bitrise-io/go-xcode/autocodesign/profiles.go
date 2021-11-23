@@ -286,6 +286,7 @@ func hasSignInWithAppleEntitlement(entitlements Entitlements) bool {
 	return false
 }
 
+// DistributionTypeRequiresDeviceList returns true if the provided distribution method requires a provisioning profile with a device list.
 func DistributionTypeRequiresDeviceList(distrTypes []DistributionType) bool {
 	for _, distrType := range distrTypes {
 		if distrType == Development || distrType == AdHoc {
