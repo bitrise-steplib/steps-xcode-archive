@@ -114,36 +114,20 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
-      #  test_apple_id_signing_managed_app_store:
-      #    description: Test Apple ID based code signing and app store export on a project where signing is managed automatically
-      #    envs:
-      #    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
-      #    - TEST_APP_BRANCH: automatic
-      #    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-      #    - BITRISE_SCHEME: code-sign-test
-      #    - IPA_DISTRIBUTION_METHOD: app-store
-      #    steps:
-      #    - script:
-      #        inputs:
-      #        - content: |-
-      #            #!/bin/env bash
-      #            set -ex
-      #            rm -rf ./_tmp
-      #    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
-      #        inputs:
-      #        - repository_url: $TEST_APP_URL
-      #        - branch: $TEST_APP_BRANCH
-      #        - clone_into_dir: ./_tmp
-      #    - path::./:
-      #        inputs:
-      #        - automatic_code_signing: apple-id
-      #        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
-      #        - scheme: $BITRISE_SCHEME
-      #        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
-      #        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
-      #        - distribution_method: $IPA_DISTRIBUTION_METHOD
-      #        - log_formatter: xcpretty
-      #        - verbose_log: "yes"
+  test_apple_id_signing_managed_app_store:
+    description: Test Apple ID based code signing and app store export on a project where signing is managed automatically
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: automatic
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - CODE_SIGNING_METHOD: apple-id
+    - IPA_EXPORT_METHOD: app-store
+    - LOG_FORMATTER: xcpretty
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
 
       # TODO: fix Catalyst entitlements bug, then re-enable
       #  test_catalyst:
@@ -163,42 +147,42 @@ workflows:
       #    after_run:
       #    - _run
       #    - _check_outputs
-      #    - _check_exported_artifacts
-
-      #  test_cloudkit:
-      #    envs:
-      #    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-      #    - TEST_APP_BRANCH: cloudkit
-      #    - TEST_APP_COMMIT: ""
-      #    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-      #    - BITRISE_SCHEME: code-sign-test-Prod
-      #    - CODE_SIGNING_METHOD: api-key
-      #    - TEAM_ID: 72SA8V3WYL
-      #    - IPA_EXPORT_METHOD: development
-      #    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
-      #    - LOG_FORMATTER: xcodebuild
-      #    after_run:
-      #    - _run
-    #    - _check_outputs
     #    - _check_exported_artifacts
 
-  #  test_no_app_dsym:
-  #    envs:
-  #    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-  #    - TEST_APP_BRANCH: with-pods
-  #    - TEST_APP_COMMIT: ""
-  #    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
-  #    - BITRISE_SCHEME: ios-simple-objc
-  #    - CODE_SIGNING_METHOD: api-key
-  #    - TEAM_ID: 72SA8V3WYL
-  #    - IPA_EXPORT_METHOD: development
-  #    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #    - LOG_FORMATTER: xcodebuild
-  #    - DSYM_EXPECTED_COUNT: 1  # Only 1 framework dSYM
-  #    after_run:
-  #    - _run
-  #    - _check_outputs
-  #    - _check_exported_artifacts
+  test_cloudkit:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: cloudkit
+    - TEST_APP_COMMIT: ""
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test-Prod
+    - CODE_SIGNING_METHOD: api-key
+    - TEAM_ID: 72SA8V3WYL
+    - IPA_EXPORT_METHOD: development
+    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
+  test_no_app_dsym:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: with-pods
+    - TEST_APP_COMMIT: ""
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
+    - BITRISE_SCHEME: ios-simple-objc
+    - CODE_SIGNING_METHOD: api-key
+    - TEAM_ID: 72SA8V3WYL
+    - IPA_EXPORT_METHOD: development
+    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    - LOG_FORMATTER: xcodebuild
+    - DSYM_EXPECTED_COUNT: 1  # Only 1 framework dSYM
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
 
   test_objc_artifact_name:
     envs:
@@ -219,39 +203,39 @@ workflows:
     - _check_exported_artifacts
     - _check_archive_zip
 
-  #  test_multi_target:
-  #    envs:
-  #    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-  #    - TEST_APP_BRANCH: ""
-  #    - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
-  #    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-  #    - BITRISE_SCHEME: code-sign-test
-  #    - CODE_SIGNING_METHOD: api-key
-  #    - TEAM_ID: 72SA8V3WYL
-  #    - IPA_EXPORT_METHOD: development
-  #    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #    - LOG_FORMATTER: xcodebuild
-  #    after_run:
-  #    - _run
-  #    - _check_outputs
-  #    - _check_exported_artifacts
+  test_multi_target:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: ""
+    - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - CODE_SIGNING_METHOD: api-key
+    - TEAM_ID: 72SA8V3WYL
+    - IPA_EXPORT_METHOD: development
+    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
 
-  #  test_workspace:
-  #    envs:
-  #    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-  #    - TEST_APP_BRANCH: ""
-  #    - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
-  #    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
-  #    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
-  #    - CODE_SIGNING_METHOD: api-key
-  #    - TEAM_ID: 72SA8V3WYL
-  #    - IPA_EXPORT_METHOD: development
-  #    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-  #    - LOG_FORMATTER: xcodebuild
-  #    after_run:
-  #    - _run
-  #    - _check_outputs
-  #    - _check_exported_artifacts
+  test_workspace:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
+    - TEST_APP_BRANCH: ""
+    - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
+    - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
+    - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - CODE_SIGNING_METHOD: api-key
+    - TEAM_ID: 72SA8V3WYL
+    - IPA_EXPORT_METHOD: development
+    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
 
   _run:
     steps:
