@@ -284,7 +284,7 @@ workflows:
   test_objc_artifact_name:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - TEST_APP_BRANCH: new-certificates
+    - TEST_APP_BRANCH: UI_test
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
