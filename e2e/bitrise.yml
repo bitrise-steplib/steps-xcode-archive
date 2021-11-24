@@ -18,6 +18,62 @@ app:
   # - BITRISE_APPLE_TEAM_ID : $BITRISE_APPLE_TEAM_ID
 
 workflows:
+  test_manual_signing:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: new-certificates
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    - BITRISE_SCHEME: ios-simple-objc
+    - CODE_SIGNING_METHOD: off
+    - IPA_EXPORT_METHOD: development
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _check_outputs
+    - _check_exported_artifacts
+    steps:
+    - script:
+        title: Remove temp folder
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf "./_tmp"
+            mkdir -p "./_tmp"
+    - script:
+        title: Remove provisioning profiles from previous runs
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf ~/Library/MobileDevice/Provisioning Profiles
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - branch: $TEST_APP_BRANCH
+        - commit: $TEST_APP_COMMIT
+        - clone_into_dir: ./_tmp
+    - certificate-and-profile-installer:
+        inputs:
+        - certificate_url: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        - certificate_passphrase: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+        - provisioning_profile_url: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
+        - install_defaults: "no"
+        - keychain_path: $BITRISE_KEYCHAIN_PATH
+        - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+    - path::./:
+        title: Execute step
+        inputs:
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+        - scheme: $BITRISE_SCHEME
+        - automatic_code_signing: $CODE_SIGNING_METHOD
+        #        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        #        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+        - distribution_method: $IPA_EXPORT_METHOD
+        - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
+        - export_development_team: $TEAM_ID
+        - log_formatter: $LOG_FORMATTER
+        - verbose_log: "yes"
+
   test_api_key_signing_managed:
     description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
     steps:
@@ -146,7 +202,7 @@ workflows:
       #    - LOG_FORMATTER: xcodebuild
       #    after_run:
       #    - _run
-      #    - _check_outputs
+    #    - _check_outputs
     #    - _check_exported_artifacts
 
   test_cloudkit:
