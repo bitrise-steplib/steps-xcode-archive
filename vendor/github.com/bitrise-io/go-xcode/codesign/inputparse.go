@@ -30,7 +30,7 @@ type ParsedConfig struct {
 	DistributionMethod         autocodesign.DistributionType
 }
 
-// Parse ...
+// Parse validates and parses step inputs related to code signing, and returns with a ParsedConfig
 func (p StepInputParser) Parse(authType AuthType) (ParsedConfig, error) {
 	var (
 		certificatesAndPassphrases []certdownloader.CertificateAndPassphrase

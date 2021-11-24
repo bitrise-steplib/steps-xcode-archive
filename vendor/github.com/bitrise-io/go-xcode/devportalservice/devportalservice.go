@@ -256,7 +256,7 @@ func validateTestDevice(deviceList []TestDevice) (validDevices, duplicatedDevice
 	return validDevices, duplicatedDevices
 }
 
-// WritePrivateKeyToFile ...
+// WritePrivateKeyToFile writes the contents of the private key to a temporary file and returns its path
 func (c *APIKeyConnection) WritePrivateKeyToFile() (string, error) {
 	privatekeyFile, err := os.CreateTemp("", "apiKey*.p8")
 	if err != nil {

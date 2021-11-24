@@ -326,14 +326,13 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		authType = codesign.APIKeyAuth
 	}
 
-	repository := env.NewRepository()
 	codesignInputs := codesign.StepInputParser{
 		DistributionMethod:        config.ExportMethod,
 		CertificateURLList:        config.CertificateURLList,
 		CertificatePassphraseList: config.CertificatePassphraseList,
 		KeychainPath:              config.KeychainPath,
 		KeychainPassword:          config.KeychainPassword,
-		CommandFactory:            command.NewFactory(repository),
+		CommandFactory:            cmdFactory,
 	}
 
 	codesignConfig, err := codesignInputs.Parse(authType)
