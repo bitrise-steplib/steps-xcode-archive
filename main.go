@@ -824,7 +824,7 @@ type RunOut struct {
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	logger.Println()
-	logger.Infof("Preparing code-signing assets (certificates, profiles) before Archive action")
+	logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
 
 	prepareCodesignResult, err := opts.CodesignManager.PrepareCodesigning()
 	if err != nil {
