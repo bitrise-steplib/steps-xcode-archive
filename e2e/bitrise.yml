@@ -24,7 +24,7 @@ workflows:
     - TEST_APP_BRANCH: new-certificates
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - CODE_SIGNING_METHOD: off
+    - CODE_SIGNING_METHOD: "off"
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
     after_run:
