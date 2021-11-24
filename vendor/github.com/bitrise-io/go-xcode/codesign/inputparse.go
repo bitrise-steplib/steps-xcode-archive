@@ -33,41 +33,31 @@ type ParsedConfig struct {
 
 // Parse validates and parses step inputs related to code signing, and returns with a ParsedConfig
 func (p StepInputParser) Parse() (ParsedConfig, error) {
-	var (
-		certificatesAndPassphrases []certdownloader.CertificateAndPassphrase
-		keychainWriter             keychain.Keychain
-	)
+	if strings.TrimSpace(p.CertificateURLList) == "" {
+		return ParsedConfig{}, fmt.Errorf("Code signing certificate URL: required variable is not present")
+	}
+	if strings.TrimSpace(p.KeychainPath) == "" {
+		return ParsedConfig{}, fmt.Errorf("Keychain path: required variable is not present")
+	}
+	if strings.TrimSpace(string(p.KeychainPassword)) == "" {
+		return ParsedConfig{}, fmt.Errorf("Keychain password: required variable is not present")
+	}
 
-	if p.AuthType != NoAuth {
-		if strings.TrimSpace(p.CertificateURLList) == "" {
-			return ParsedConfig{}, fmt.Errorf("Code signing certificate URL: required variable is not present")
-		}
-		if strings.TrimSpace(p.KeychainPath) == "" {
-			return ParsedConfig{}, fmt.Errorf("Keychain path: required variable is not present")
-		}
-		if strings.TrimSpace(string(p.KeychainPassword)) == "" {
-			return ParsedConfig{}, fmt.Errorf("Keychain password: required variable is not present")
-		}
+	certificatesAndPassphrases, err := p.ParseCertificates()
+	if err != nil {
+		return ParsedConfig{}, fmt.Errorf("failed to parse certificate URL and passphrase inputs: %s", err)
+	}
 
-		var err error
-		certificatesAndPassphrases, err = p.ParseCertificates()
-		if err != nil {
-			return ParsedConfig{}, fmt.Errorf("failed to parse certificate URL and passphrase inputs: %s", err)
-		}
-
-		keychainP, err := keychain.New(p.KeychainPath, p.KeychainPassword, p.CommandFactory)
-		if err != nil {
-			return ParsedConfig{}, fmt.Errorf("failed to open keychain: %s", err)
-		}
-		keychainWriter = *keychainP
+	keychainWriter, err := keychain.New(p.KeychainPath, p.KeychainPassword, p.CommandFactory)
+	if err != nil {
+		return ParsedConfig{}, fmt.Errorf("failed to open keychain: %s", err)
 	}
 
 	return ParsedConfig{
 		CertificatesAndPassphrases: certificatesAndPassphrases,
-		Keychain:                   keychainWriter,
+		Keychain:                   *keychainWriter,
 		DistributionMethod:         p.ParseDistributionMethod(),
 	}, nil
-
 }
 
 // ParseDistributionMethod ...

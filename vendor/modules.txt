@@ -26,7 +26,7 @@ github.com/bitrise-io/go-utils/retry
 github.com/bitrise-io/go-utils/sliceutil
 github.com/bitrise-io/go-utils/stringutil
 github.com/bitrise-io/go-utils/ziputil
-# github.com/bitrise-io/go-xcode v0.0.0-20211124104407-4e16ce31b4d6
+# github.com/bitrise-io/go-xcode v0.0.0-20211124152140-304705150829
 ## explicit
 github.com/bitrise-io/go-xcode/appleauth
 github.com/bitrise-io/go-xcode/autocodesign

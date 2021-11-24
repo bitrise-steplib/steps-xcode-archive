@@ -330,12 +330,12 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager, error) {
 	var authType codesign.AuthType
 	switch config.CodeSigningAuthSource {
-	case codeSignSourceOff:
-		authType = codesign.NoAuth
 	case codeSignSourceAppleID:
 		authType = codesign.AppleIDAuth
 	case codeSignSourceAPIKey:
 		authType = codesign.APIKeyAuth
+	case codeSignSourceOff:
+		return codesign.Manager{}, fmt.Errorf("automatic code signing is disabled")
 	}
 
 	codesignInputs := codesign.StepInputParser{
