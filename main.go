@@ -61,7 +61,7 @@ const (
 	bitriseXCArchivePthEnvKey = "BITRISE_XCARCHIVE_PATH"
 
 	// Code Signing Authentication Source
-	codeSignSourceOff     = "off" //nolint:deadcode,varcheck
+	codeSignSourceOff     = "off"
 	codeSignSourceAPIKey  = "api-key"
 	codeSignSourceAppleID = "apple-id"
 )
@@ -316,8 +316,18 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		config.ArtifactName = productName
 	}
 
+	codesignManager, err := s.createCodesignManager(config)
+	if err != nil {
+		return Config{}, err
+	}
+	config.CodesignManager = codesignManager
+
+	return config, nil
+}
+
+func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager, error) {
 	var authType codesign.AuthType
-	switch inputs.CodeSigningAuthSource {
+	switch config.CodeSigningAuthSource {
 	case codeSignSourceOff:
 		authType = codesign.NoAuth
 	case codeSignSourceAppleID:
@@ -327,6 +337,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 
 	codesignInputs := codesign.StepInputParser{
+		AuthType:                  authType,
 		DistributionMethod:        config.ExportMethod,
 		CertificateURLList:        config.CertificateURLList,
 		CertificatePassphraseList: config.CertificatePassphraseList,
@@ -335,39 +346,41 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		CommandFactory:            cmdFactory,
 	}
 
-	codesignConfig, err := codesignInputs.Parse(authType)
+	codesignConfig, err := codesignInputs.Parse()
 	if err != nil {
-		return Config{}, fmt.Errorf("issue with input: %s", err)
+		return codesign.Manager{}, fmt.Errorf("issue with input: %s", err)
 	}
 
 	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
-	if inputs.CodeSigningAuthSource == codeSignSourceAPIKey || inputs.CodeSigningAuthSource == codeSignSourceAppleID {
-		f := devportalclient.NewFactory(logger)
-		if serviceConnection, err = f.CreateBitriseConnection(inputs.BuildURL, string(inputs.BuildAPIToken)); err != nil {
-			return Config{}, err
+	devPortalClientFactory := devportalclient.NewFactory(logger)
+	if authType == codesign.APIKeyAuth || authType == codesign.AppleIDAuth {
+		if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
+			return codesign.Manager{}, err
 		}
 	}
 
 	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, logger)
 	if err != nil {
-		return Config{}, err
+		return codesign.Manager{}, err
 	}
 
-	config.CodesignManager = codesign.NewManager(
-		codesign.Opts{
-			AuthType:                   authType,
-			ShouldConsiderXcodeSigning: true,
-			ExportMethod:               codesignConfig.DistributionMethod,
-			XcodeMajorVersion:          config.XcodeMajorVersion,
-			RegisterTestDevices:        config.RegisterTestDevices,
-			SignUITests:                false,
-			MinProfileValidity:         30,
-			IsVerboseLog:               true,
-		},
+	opts := codesign.Opts{
+		AuthType:                   authType,
+		ShouldConsiderXcodeSigning: true,
+		ExportMethod:               codesignConfig.DistributionMethod,
+		XcodeMajorVersion:          config.XcodeMajorVersion,
+		RegisterTestDevices:        config.RegisterTestDevices,
+		SignUITests:                false,
+		MinProfileValidity:         30,
+		IsVerboseLog:               config.VerboseLog,
+	}
+
+	return codesign.NewManager(
+		opts,
 		logger,
 		appleAuthCredentials,
 		serviceConnection,
-		devportalclient.NewFactory(logger),
+		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
 		codesignConfig.Keychain,
 		codesignasset.NewWriter(codesignConfig.Keychain),
@@ -376,9 +389,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 			SchemeName:             config.Scheme,
 			ConfigurationName:      config.Configuration,
 		}),
-	)
-
-	return config, nil
+	), nil
 }
 
 // EnsureDependenciesOpts ...

@@ -14,6 +14,7 @@ import (
 
 // StepInputParser ...
 type StepInputParser struct {
+	AuthType                  AuthType
 	DistributionMethod        string
 	CertificateURLList        string
 	CertificatePassphraseList stepconf.Secret
@@ -31,13 +32,13 @@ type ParsedConfig struct {
 }
 
 // Parse validates and parses step inputs related to code signing, and returns with a ParsedConfig
-func (p StepInputParser) Parse(authType AuthType) (ParsedConfig, error) {
+func (p StepInputParser) Parse() (ParsedConfig, error) {
 	var (
 		certificatesAndPassphrases []certdownloader.CertificateAndPassphrase
 		keychainWriter             keychain.Keychain
 	)
 
-	if authType != NoAuth {
+	if p.AuthType != NoAuth {
 		if strings.TrimSpace(p.CertificateURLList) == "" {
 			return ParsedConfig{}, fmt.Errorf("Code signing certificate URL: required variable is not present")
 		}

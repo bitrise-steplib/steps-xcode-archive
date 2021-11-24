@@ -11,6 +11,8 @@ github.com/bitrise-io/go-xcode v0.0.0-20211123160117-4d852a965240 h1:MHMoskrHZzG
 github.com/bitrise-io/go-xcode v0.0.0-20211123160117-4d852a965240/go.mod h1:s41EQA9NOMK148ewA6ppM1ClEdv0YomaZq9h5k32ZWo=
 github.com/bitrise-io/go-xcode v0.0.0-20211124103117-d0322c82f4d8 h1:CXzKowAOVUv6hMX79d81uWnutiOFo2vfFyGghOvGi9s=
 github.com/bitrise-io/go-xcode v0.0.0-20211124103117-d0322c82f4d8/go.mod h1:s41EQA9NOMK148ewA6ppM1ClEdv0YomaZq9h5k32ZWo=
+github.com/bitrise-io/go-xcode v0.0.0-20211124104407-4e16ce31b4d6 h1:bVjK9MokR/LON+LZ2S7zgUxhJdmJEqNKf1lfTo4yi/0=
+github.com/bitrise-io/go-xcode v0.0.0-20211124104407-4e16ce31b4d6/go.mod h1:s41EQA9NOMK148ewA6ppM1ClEdv0YomaZq9h5k32ZWo=
 github.com/bitrise-io/pkcs12 v0.0.0-20210430063833-0da06eb56630 h1:V+xoYqGSkN8aUxCc806zDKjGGpBVUtV0Vytf5OsB3gc=
 github.com/bitrise-io/pkcs12 v0.0.0-20210430063833-0da06eb56630/go.mod h1:UiXKNs0essbC14a2TvGlnUKo9isP9m4guPrp8KJHJpU=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
