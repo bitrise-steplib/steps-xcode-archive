@@ -41,6 +41,7 @@ workflows:
             mkdir -p "./_tmp"
     - script:
         title: Remove provisioning profiles from previous runs
+        run_if: .IsCI
         inputs:
         - content: |-
             #!/bin/bash
@@ -308,6 +309,7 @@ workflows:
             mkdir -p "./_tmp"
     - script:
         title: Remove provisioning profiles from previous runs
+        run_if: .IsCI
         inputs:
         - content: |-
             #!/bin/bash
