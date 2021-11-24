@@ -105,7 +105,7 @@ type Inputs struct {
 type Config struct {
 	Inputs
 	XcodeMajorVersion int
-	CodesignManager   codesign.Manager
+	CodesignManager   *codesign.Manager // nil if automatic code signing is "off"
 }
 
 var envRepository = env.NewRepository()
@@ -316,11 +316,13 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		config.ArtifactName = productName
 	}
 
-	codesignManager, err := s.createCodesignManager(config)
-	if err != nil {
-		return Config{}, err
+	if config.CodeSigningAuthSource != codeSignSourceOff {
+		codesignManager, err := s.createCodesignManager(config)
+		if err != nil {
+			return Config{}, err
+		}
+		config.CodesignManager = &codesignManager
 	}
-	config.CodesignManager = codesignManager
 
 	return config, nil
 }
@@ -791,8 +793,8 @@ type RunOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
-	// Code signing
-	CodesignManager codesign.Manager
+	// Code signing, nil if automatic code signing is "off"
+	CodesignManager *codesign.Manager
 
 	// Archive
 	PerformCleanAction bool
@@ -823,33 +825,37 @@ type RunOut struct {
 
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
-	logger.Println()
-	logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
-
-	prepareCodesignResult, err := opts.CodesignManager.PrepareCodesigning()
-	if err != nil {
-		return RunOut{}, fmt.Errorf("failed to manage Code Signing: %s", err)
-	}
-
 	var authOptions *xcodebuild.AuthenticationParams = nil
-	if prepareCodesignResult.XcodebuildAuthParams != nil {
-		privateKey, err := prepareCodesignResult.XcodebuildAuthParams.WritePrivateKeyToFile()
+	if opts.CodesignManager != nil {
+		logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
+
+		prepareCodesignResult, err := opts.CodesignManager.PrepareCodesigning()
 		if err != nil {
-			return RunOut{}, err
+			return RunOut{}, fmt.Errorf("failed to manage code signing: %s", err)
 		}
 
-		defer func() {
-			if err := os.Remove(privateKey); err != nil {
-				logger.Warnf("failed to remove private key file: %s", err)
+		if prepareCodesignResult.XcodebuildAuthParams != nil {
+			privateKey, err := prepareCodesignResult.XcodebuildAuthParams.WritePrivateKeyToFile()
+			if err != nil {
+				return RunOut{}, err
 			}
-		}()
 
-		authOptions = &xcodebuild.AuthenticationParams{
-			KeyID:     prepareCodesignResult.XcodebuildAuthParams.KeyID,
-			IsssuerID: prepareCodesignResult.XcodebuildAuthParams.IssuerID,
-			KeyPath:   privateKey,
+			defer func() {
+				if err := os.Remove(privateKey); err != nil {
+					logger.Warnf("failed to remove private key file: %s", err)
+				}
+			}()
+
+			authOptions = &xcodebuild.AuthenticationParams{
+				KeyID:     prepareCodesignResult.XcodebuildAuthParams.KeyID,
+				IsssuerID: prepareCodesignResult.XcodebuildAuthParams.IssuerID,
+				KeyPath:   privateKey,
+			}
 		}
+	} else {
+		logger.Infof("Automatic code signing is disabled, skipped downloading code sign assets")
 	}
+	logger.Println()
 
 	out := RunOut{}
 
