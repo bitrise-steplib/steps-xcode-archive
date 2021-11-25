@@ -17,7 +17,7 @@ import (
 
 const (
 	// NotConnectedWarning ...
-	NotConnectedWarning = `Bitrise Apple service connection not found.
+	NotConnectedWarning = `Bitrise Apple Service connection not found.
 Most likely because there is no configured Bitrise Apple service connection.
 Read more: https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/`
 	// NotConnectedLocalTestingInfo ...

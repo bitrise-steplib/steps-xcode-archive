@@ -338,17 +338,16 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 		return codesign.Manager{}, fmt.Errorf("automatic code signing is disabled")
 	}
 
-	codesignInputs := codesign.StepInputParser{
+	codesignInputs := codesign.Input{
 		AuthType:                  authType,
 		DistributionMethod:        config.ExportMethod,
 		CertificateURLList:        config.CertificateURLList,
 		CertificatePassphraseList: config.CertificatePassphraseList,
 		KeychainPath:              config.KeychainPath,
 		KeychainPassword:          config.KeychainPassword,
-		CommandFactory:            cmdFactory,
 	}
 
-	codesignConfig, err := codesignInputs.Parse()
+	codesignConfig, err := codesign.ParseConfig(codesignInputs, cmdFactory)
 	if err != nil {
 		return codesign.Manager{}, fmt.Errorf("issue with input: %s", err)
 	}
@@ -829,13 +828,13 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	if opts.CodesignManager != nil {
 		logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
 
-		prepareCodesignResult, err := opts.CodesignManager.PrepareCodesigning()
+		xcodebuildAuthParams, err := opts.CodesignManager.PrepareCodesigning()
 		if err != nil {
 			return RunOut{}, fmt.Errorf("failed to manage code signing: %s", err)
 		}
 
-		if prepareCodesignResult.XcodebuildAuthParams != nil {
-			privateKey, err := prepareCodesignResult.XcodebuildAuthParams.WritePrivateKeyToFile()
+		if xcodebuildAuthParams != nil {
+			privateKey, err := xcodebuildAuthParams.WritePrivateKeyToFile()
 			if err != nil {
 				return RunOut{}, err
 			}
@@ -847,8 +846,8 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 			}()
 
 			authOptions = &xcodebuild.AuthenticationParams{
-				KeyID:     prepareCodesignResult.XcodebuildAuthParams.KeyID,
-				IsssuerID: prepareCodesignResult.XcodebuildAuthParams.IssuerID,
+				KeyID:     xcodebuildAuthParams.KeyID,
+				IsssuerID: xcodebuildAuthParams.IssuerID,
 				KeyPath:   privateKey,
 			}
 		}

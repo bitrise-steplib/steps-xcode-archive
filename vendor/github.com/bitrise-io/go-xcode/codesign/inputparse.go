@@ -12,74 +12,54 @@ import (
 	"github.com/bitrise-io/go-xcode/autocodesign/keychain"
 )
 
-// StepInputParser ...
-type StepInputParser struct {
+// Input ...
+type Input struct {
 	AuthType                  AuthType
 	DistributionMethod        string
 	CertificateURLList        string
 	CertificatePassphraseList stepconf.Secret
 	KeychainPath              string
 	KeychainPassword          stepconf.Secret
-
-	CommandFactory command.Factory
 }
 
-// ParsedConfig ...
-type ParsedConfig struct {
+// Config ...
+type Config struct {
 	CertificatesAndPassphrases []certdownloader.CertificateAndPassphrase
 	Keychain                   keychain.Keychain
 	DistributionMethod         autocodesign.DistributionType
 }
 
-// Parse validates and parses step inputs related to code signing, and returns with a ParsedConfig
-func (p StepInputParser) Parse() (ParsedConfig, error) {
-	if strings.TrimSpace(p.CertificateURLList) == "" {
-		return ParsedConfig{}, fmt.Errorf("Code signing certificate URL: required variable is not present")
+// ParseConfig validates and parses step inputs related to code signing and returns with a Config
+func ParseConfig(input Input, cmdFactory command.Factory) (Config, error) {
+	if strings.TrimSpace(input.CertificateURLList) == "" {
+		return Config{}, fmt.Errorf("code signing certificate URL: required variable is not present")
 	}
-	if strings.TrimSpace(p.KeychainPath) == "" {
-		return ParsedConfig{}, fmt.Errorf("Keychain path: required variable is not present")
+	if strings.TrimSpace(input.KeychainPath) == "" {
+		return Config{}, fmt.Errorf("keychain path: required variable is not present")
 	}
-	if strings.TrimSpace(string(p.KeychainPassword)) == "" {
-		return ParsedConfig{}, fmt.Errorf("Keychain password: required variable is not present")
+	if strings.TrimSpace(string(input.KeychainPassword)) == "" {
+		return Config{}, fmt.Errorf("keychain password: required variable is not present")
 	}
-
-	certificatesAndPassphrases, err := p.ParseCertificates()
+	certificatesAndPassphrases, err := parseCertificates(input)
 	if err != nil {
-		return ParsedConfig{}, fmt.Errorf("failed to parse certificate URL and passphrase inputs: %s", err)
+		return Config{}, fmt.Errorf("failed to parse certificate URL and passphrase inputs: %s", err)
 	}
 
-	keychainWriter, err := keychain.New(p.KeychainPath, p.KeychainPassword, p.CommandFactory)
+	keychainWriter, err := keychain.New(input.KeychainPath, input.KeychainPassword, cmdFactory)
 	if err != nil {
-		return ParsedConfig{}, fmt.Errorf("failed to open keychain: %s", err)
+		return Config{}, fmt.Errorf("failed to open keychain: %s", err)
 	}
 
-	return ParsedConfig{
+	return Config{
 		CertificatesAndPassphrases: certificatesAndPassphrases,
 		Keychain:                   *keychainWriter,
-		DistributionMethod:         p.ParseDistributionMethod(),
+		DistributionMethod:         autocodesign.DistributionType(input.DistributionMethod),
 	}, nil
 }
 
-// ParseDistributionMethod ...
-func (p StepInputParser) ParseDistributionMethod() autocodesign.DistributionType {
-	return autocodesign.DistributionType(p.DistributionMethod)
-}
-
-// validateCertificates validates if the number of certificate URLs matches those of passphrases
-func (p StepInputParser) validateCertificates() ([]string, []string, error) {
-	pfxURLs := splitAndClean(p.CertificateURLList, "|", true)
-	passphrases := splitAndClean(string(p.CertificatePassphraseList), "|", false)
-
-	if len(pfxURLs) != len(passphrases) {
-		return nil, nil, fmt.Errorf("certificates count (%d) and passphrases count (%d) should match", len(pfxURLs), len(passphrases))
-	}
-
-	return pfxURLs, passphrases, nil
-}
-
-// ParseCertificates returns an array of p12 file URLs and passphrases
-func (p StepInputParser) ParseCertificates() ([]certdownloader.CertificateAndPassphrase, error) {
-	pfxURLs, passphrases, err := p.validateCertificates()
+// parseCertificates returns an array of p12 file URLs and passphrases
+func parseCertificates(input Input) ([]certdownloader.CertificateAndPassphrase, error) {
+	pfxURLs, passphrases, err := validateCertificates(input.CertificateURLList, string(input.CertificatePassphraseList))
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +73,18 @@ func (p StepInputParser) ParseCertificates() ([]certdownloader.CertificateAndPas
 	}
 
 	return files, nil
+}
+
+// validateCertificates validates if the number of certificate URLs matches those of passphrases
+func validateCertificates(certURLList string, certPassphraseList string) ([]string, []string, error) {
+	pfxURLs := splitAndClean(certURLList, "|", true)
+	passphrases := splitAndClean(certPassphraseList, "|", false)
+
+	if len(pfxURLs) != len(passphrases) {
+		return nil, nil, fmt.Errorf("certificates count (%d) and passphrases count (%d) should match", len(pfxURLs), len(passphrases))
+	}
+
+	return pfxURLs, passphrases, nil
 }
 
 // SplitAndClean ...
