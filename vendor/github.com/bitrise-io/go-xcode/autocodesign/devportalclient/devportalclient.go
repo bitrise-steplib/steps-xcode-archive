@@ -18,10 +18,8 @@ import (
 const (
 	// NotConnectedWarning ...
 	NotConnectedWarning = `Bitrise Apple Service connection not found.
-Most likely because there is no configured Bitrise Apple service connection.
+Most likely because there is no configured Bitrise Apple Service connection.
 Read more: https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/`
-	// NotConnectedLocalTestingInfo ...
-	NotConnectedLocalTestingInfo = `For testing purposes please provide BITRISE_BUILD_URL as json file (file://path-to-json) while setting BITRISE_BUILD_API_TOKEN to any non-empty string.`
 )
 
 // Factory ...
@@ -39,18 +37,18 @@ func NewFactory(logger log.Logger) Factory {
 // CreateBitriseConnection ...
 func (f Factory) CreateBitriseConnection(buildURL, buildAPIToken string) (*devportalservice.AppleDeveloperConnection, error) {
 	f.logger.Println()
-	f.logger.Infof("Fetching Apple service connection")
+	f.logger.Infof("Fetching Apple Service connection")
 	connectionProvider := devportalservice.NewBitriseClient(retry.NewHTTPClient().StandardClient(), buildURL, buildAPIToken)
 	conn, err := connectionProvider.GetAppleDeveloperConnection()
 	if err != nil {
 		if networkErr, ok := err.(devportalservice.NetworkError); ok && networkErr.Status == http.StatusUnauthorized {
 			f.logger.Println()
-			f.logger.Warnf("Unauthorized to query Bitrise Apple service connection. This happens by design, with a public app's PR build, to protect secrets.")
+			f.logger.Warnf("Unauthorized to query Bitrise Apple Service connection. This happens by design, with a public app's PR build, to protect secrets.")
 			return nil, err
 		}
 
 		f.logger.Println()
-		f.logger.Errorf("Failed to activate Bitrise Apple service connection")
+		f.logger.Errorf("Failed to activate Bitrise Apple Service connection")
 		f.logger.Warnf("Read more: https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/")
 
 		return nil, err

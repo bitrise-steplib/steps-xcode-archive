@@ -87,6 +87,7 @@ type DevPortalClient interface {
 // AssetWriter ...
 type AssetWriter interface {
 	Write(codesignAssetsByDistributionType map[DistributionType]AppCodesignAssets) error
+	InstallCertificate(certificate certificateutil.CertificateInfoModel) error
 }
 
 // AppLayout contains codesigning related settings that are needed to ensure codesigning files

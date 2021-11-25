@@ -7,10 +7,8 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/appleauth"
 	"github.com/bitrise-io/go-xcode/autocodesign"
-	"github.com/bitrise-io/go-xcode/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
 	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnect"
-	"github.com/bitrise-io/go-xcode/autocodesign/keychain"
 	"github.com/bitrise-io/go-xcode/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/devportalservice"
 )
@@ -47,11 +45,6 @@ type Opts struct {
 	IsVerboseLog        bool
 }
 
-// Result ...
-type Result struct {
-	XcodebuildAuthParams *devportalservice.APIKeyConnection
-}
-
 // Manager ...
 type Manager struct {
 	opts Opts
@@ -60,8 +53,7 @@ type Manager struct {
 	bitriseConnection      *devportalservice.AppleDeveloperConnection
 	devPortalClientFactory devportalclient.Factory
 	certDownloader         autocodesign.CertificateProvider
-	keychain               keychain.Keychain
-	assetWriter            codesignasset.Writer
+	assetWriter            autocodesign.AssetWriter
 
 	projectFactory projectmanager.Factory
 	project        Project
@@ -77,8 +69,7 @@ func NewManager(
 	connection *devportalservice.AppleDeveloperConnection,
 	clientFactory devportalclient.Factory,
 	certDownloader autocodesign.CertificateProvider,
-	keychain keychain.Keychain,
-	assetWriter codesignasset.Writer,
+	assetWriter autocodesign.AssetWriter,
 	projectFactory projectmanager.Factory,
 ) Manager {
 	return Manager{
@@ -87,7 +78,6 @@ func NewManager(
 		bitriseConnection:      connection,
 		devPortalClientFactory: clientFactory,
 		certDownloader:         certDownloader,
-		keychain:               keychain,
 		assetWriter:            assetWriter,
 		projectFactory:         projectFactory,
 		logger:                 logger,
@@ -181,10 +171,10 @@ func SelectConnectionCredentials(authType AuthType, conn *devportalservice.Apple
 
 		if errors.Is(err, &appleauth.MissingAuthConfigError{}) {
 			if authType == AppleIDAuth {
-				return appleauth.Credentials{}, fmt.Errorf("Apple ID authentication is selected in Step inputs, but Bitrise Apple service connection is unset")
+				return appleauth.Credentials{}, fmt.Errorf("Apple ID authentication is selected in Step inputs, but Bitrise Apple Service connection is unset")
 			}
 
-			return appleauth.Credentials{}, fmt.Errorf("API key authentication is selected in Step inputs, but Bitrise Apple service connection is unset")
+			return appleauth.Credentials{}, fmt.Errorf("API key authentication is selected in Step inputs, but Bitrise Apple Service connection is unset")
 		}
 
 		return appleauth.Credentials{}, fmt.Errorf("could not select Apple authentication credentials: %w", err)
@@ -192,10 +182,10 @@ func SelectConnectionCredentials(authType AuthType, conn *devportalservice.Apple
 
 	if authConfig.APIKey != nil {
 		authConfig.AppleID = nil
-		logger.Donef("Using Apple service connection with API key.")
+		logger.Donef("Using Apple Service connection with API key.")
 	} else if authConfig.AppleID != nil {
 		authConfig.APIKey = nil
-		logger.Donef("Using Apple service connection with Apple ID.")
+		logger.Donef("Using Apple Service connection with Apple ID.")
 	} else {
 		panic("No Apple authentication credentials found.")
 	}
@@ -259,16 +249,15 @@ func (m *Manager) downloadAndInstallCertificates() error {
 	if len(typeToLocalCerts[certificateType]) == 0 {
 		if certificateType == appstoreconnect.IOSDevelopment {
 			return fmt.Errorf("no valid development type certificate uploaded")
-		} else {
-			log.Warnf("no valid %s type certificate uploaded", certificateType)
 		}
+		log.Warnf("no valid %s type certificate uploaded", certificateType)
 	}
 
 	m.logger.Infof("Installing downloaded certificates:")
 	for _, cert := range certificates {
 		m.logger.Printf("- %s", cert)
 		// Empty passphrase provided, as already parsed certificate + private key
-		if err := m.keychain.InstallCertificate(cert, ""); err != nil {
+		if err := m.assetWriter.InstallCertificate(cert); err != nil {
 			return err
 		}
 	}

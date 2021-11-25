@@ -1,6 +1,7 @@
 package projectmanager
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -317,6 +318,12 @@ func (p *ProjectHelper) IsSigningManagedAutomatically() (bool, error) {
 	}
 	codeSignStyle, err := settings.String("CODE_SIGN_STYLE")
 	if err != nil {
+		if errors.As(err, &serialized.KeyNotFoundError{}) {
+			log.Debugf("setting CODE_SIGN_STYLE unspecified for target (%s), defaulting to `Manual`", targetName)
+
+			return false, nil
+		}
+
 		return false, fmt.Errorf("failed to fetch code signing info from target (%s) settings: %s", targetName, err)
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/bitrise-io/go-xcode/autocodesign"
 	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnect"
 	"github.com/bitrise-io/go-xcode/autocodesign/keychain"
+	"github.com/bitrise-io/go-xcode/certificateutil"
 )
 
 // Writer ...
@@ -60,6 +61,12 @@ func (w Writer) Write(codesignAssetsByDistributionType map[autocodesign.Distribu
 	}
 
 	return nil
+}
+
+// InstallCertificate installs the certificate to the Keychain
+func (w Writer) InstallCertificate(certificate certificateutil.CertificateInfoModel) error {
+	// Empty passphrase provided, as already parsed certificate + private key
+	return w.keychain.InstallCertificate(certificate, "")
 }
 
 // writeProfile writes the provided profile under the `$HOME/Library/MobileDevice/Provisioning Profiles` directory.

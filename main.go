@@ -383,7 +383,6 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 		serviceConnection,
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
-		codesignConfig.Keychain,
 		codesignasset.NewWriter(codesignConfig.Keychain),
 		projectmanager.NewFactory(projectmanager.InitParams{
 			ProjectOrWorkspacePath: config.ProjectPath,
