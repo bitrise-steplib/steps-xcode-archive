@@ -41,12 +41,13 @@ type Action string
 type CommandBuilder struct {
 	commandFactory command.Factory
 
-	projectPath   string
-	isWorkspace   bool
-	scheme        string
-	configuration string
-	destination   string
-	xcconfigPath  string
+	projectPath    string
+	isWorkspace    bool
+	scheme         string
+	configuration  string
+	destination    string
+	xcconfigPath   string
+	authentication *AuthenticationParams
 
 	// buildsetting
 	disableCodesign bool
@@ -95,6 +96,12 @@ func (c *CommandBuilder) SetDestination(destination string) *CommandBuilder {
 // SetXCConfigPath ...
 func (c *CommandBuilder) SetXCConfigPath(xcconfigPath string) *CommandBuilder {
 	c.xcconfigPath = xcconfigPath
+	return c
+}
+
+// SetAuthentication ...
+func (c *CommandBuilder) SetAuthentication(authenticationParams AuthenticationParams) *CommandBuilder {
+	c.authentication = &authenticationParams
 	return c
 }
 
@@ -187,6 +194,10 @@ func (c *CommandBuilder) args() []string {
 
 	if c.resultBundlePath != "" {
 		slice = append(slice, "-resultBundlePath", c.resultBundlePath)
+	}
+
+	if c.authentication != nil {
+		slice = append(slice, c.authentication.args()...)
 	}
 
 	slice = append(slice, c.customOptions...)

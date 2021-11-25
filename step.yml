@@ -160,6 +160,83 @@ inputs:
     - xcodebuild
     is_required: true
 
+# Automatic code signing
+
+- automatic_code_signing: "off"
+  opts:
+    category: Automatic code signing
+    title: Automatic code signing method
+    summary: This input determines which Bitrise Apple service connection should be used for automatic code signing.
+    description: |-
+      This input determines which Bitrise Apple service connection should be used for automatic code signing.
+
+      Available values:
+      - `off`: Do not do any auto code signing.
+      - `api-key`: [Bitrise Apple Service connection with API Key](https://devcenter.bitrise.io/getting-started/connecting-to-services/setting-up-connection-to-an-apple-service-with-api-key/).
+      - `apple-id`: [Bitrise Apple Service connection with Apple ID](https://devcenter.bitrise.io/getting-started/connecting-to-services/connecting-to-an-apple-service-with-apple-id/).
+    value_options:
+    - "off"
+    - api-key
+    - apple-id
+    is_required: true
+
+- register_test_devices: "no"
+  opts:
+    category: Automatic code signing
+    title: Register test devices on the Apple Developer Portal
+    summary: If this input is set, the Step will register the known test devices on Bitrise from team members with the Apple Developer Portal.
+    description: |-
+      If this input is set, the Step will register the known test devices on Bitrise from team members with the Apple Developer Portal.
+
+      Note that setting this to yes may cause devices to be registered against your limited quantity of test devices in the Apple Developer Portal, which can only be removed once annually during your renewal window.
+    is_required: true
+    value_options:
+    - "yes"
+    - "no"
+
+- certificate_url_list: $BITRISE_CERTIFICATE_URL
+  opts:
+    category: Automatic code signing
+    title: Code signing certificate URL
+    summary: URL of the code signing certificate to download.
+    description: |-
+      URL of the code signing certificate to download.
+
+      Multiple URLs can be specified, separated by a pipe (`|`) character.
+
+      Local file path can be specified, using the `file://` URL scheme.
+    is_required: true
+    is_sensitive: true
+
+- passphrase_list: $BITRISE_CERTIFICATE_PASSPHRASE
+  opts:
+    category: Automatic code signing
+    title: Code signing certificate passphrase
+    summary: Passphrases for the provided code signing certificates.
+    description: |-
+      Passphrases for the provided code signing certificates.
+
+      Specify as many passphrases as many Code signing certificate URL provided, separated by a pipe (`|`) character.
+    is_required: true
+    is_sensitive: true
+
+- keychain_path: $HOME/Library/Keychains/login.keychain
+  opts:
+    category: Automatic code signing
+    title: Keychain path
+    summary: Path to the Keychain where the code signing certificates will be installed.
+    is_required: true
+    is_dont_change_value: true
+
+- keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+  opts:
+    category: Automatic code signing
+    title: Keychain password
+    summary: Password for the provided Keychain.
+    is_required: true
+    is_sensitive: true
+    is_dont_change_value: true
+
 # IPA export configuration
 
 - export_development_team:
@@ -276,10 +353,12 @@ inputs:
 outputs:
 - BITRISE_IPA_PATH:
   opts:
-    title: The created .ipa file's path
+    title: .ipa file path
+    summary: Local path of the created .ipa file
 - BITRISE_APP_DIR_PATH:
   opts:
-    title: The generated .app directory
+    title: .app directory path
+    summary: Local path of the generated `.app` directory
 - BITRISE_DSYM_DIR_PATH:
   opts:
     title: The created .dSYM dir's path
@@ -294,12 +373,12 @@ outputs:
       If `export_all_dsyms` is set to `yes`, the Step will also collect framework dSYMs in addition to app dSYMs.
 - BITRISE_XCARCHIVE_PATH:
   opts:
-    title: The created .xcarchive file's path
+    title: .xcarchive file path
+    summary: The created .xcarchive file's path
 - BITRISE_XCARCHIVE_ZIP_PATH:
   opts:
-    title: The created .xcarchive.zip file's path
-    description: |-
-      The created .xcarchive.zip file's path.
+    title: .xcarchive.zip path
+    summary: The created .xcarchive.zip file's path.
 
 - BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH:
   opts:

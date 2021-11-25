@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"text/template"
@@ -253,4 +254,22 @@ func validateTestDevice(deviceList []TestDevice) (validDevices, duplicatedDevice
 	}
 
 	return validDevices, duplicatedDevices
+}
+
+// WritePrivateKeyToFile writes the contents of the private key to a temporary file and returns its path
+func (c *APIKeyConnection) WritePrivateKeyToFile() (string, error) {
+	privatekeyFile, err := os.CreateTemp("", fmt.Sprintf("AuthKey_%s_*.p8", c.KeyID))
+	if err != nil {
+		return "", fmt.Errorf("failed to create private key file: %s", err)
+	}
+
+	if _, err := privatekeyFile.Write([]byte(c.PrivateKey)); err != nil {
+		return "", fmt.Errorf("failed to write private key: %s", err)
+	}
+
+	if err := privatekeyFile.Close(); err != nil {
+		return "", fmt.Errorf("failed to close private key file: %s", err)
+	}
+
+	return privatekeyFile.Name(), nil
 }

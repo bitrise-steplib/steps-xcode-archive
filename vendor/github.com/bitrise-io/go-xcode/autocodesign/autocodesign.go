@@ -87,6 +87,7 @@ type DevPortalClient interface {
 // AssetWriter ...
 type AssetWriter interface {
 	Write(codesignAssetsByDistributionType map[DistributionType]AppCodesignAssets) error
+	InstallCertificate(certificate certificateutil.CertificateInfoModel) error
 }
 
 // AppLayout contains codesigning related settings that are needed to ensure codesigning files
@@ -141,7 +142,7 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 	}
 	log.Printf("%d certificates downloaded:", len(certs))
 	for _, cert := range certs {
-		log.Printf("- %s", cert.CommonName)
+		log.Printf("- %s", cert.String())
 	}
 
 	signUITestTargets := len(appLayout.UITestTargetBundleIDs) > 0
@@ -158,9 +159,9 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 	}
 
 	var devPortalDeviceIDs []string
-	if distributionTypeRequiresDeviceList(distrTypes) {
+	if DistributionTypeRequiresDeviceList(distrTypes) {
 		var err error
-		devPortalDeviceIDs, err = ensureTestDevices(m.devPortalClient, opts.BitriseTestDevices, appLayout.Platform)
+		devPortalDeviceIDs, err = EnsureTestDevices(m.devPortalClient, opts.BitriseTestDevices, appLayout.Platform)
 		if err != nil {
 			return nil, fmt.Errorf("failed to ensure test devices: %w", err)
 		}

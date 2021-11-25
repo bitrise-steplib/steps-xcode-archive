@@ -51,7 +51,7 @@ func selectCertificatesAndDistributionTypes(certificateSource DevPortalClient, c
 }
 
 func getValidCertificates(localCertificates []certificateutil.CertificateInfoModel, client DevPortalClient, requiredCertificateTypes map[appstoreconnect.CertificateType]bool, teamID string, isDebugLog bool) (map[appstoreconnect.CertificateType][]Certificate, error) {
-	typeToLocalCerts, err := getValidLocalCertificates(localCertificates, teamID)
+	typeToLocalCerts, err := GetValidLocalCertificates(localCertificates, teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +97,8 @@ func getValidCertificates(localCertificates []certificateutil.CertificateInfoMod
 	return validAPICertificates, nil
 }
 
-// getValidLocalCertificates returns validated and deduplicated local certificates
-func getValidLocalCertificates(certificates []certificateutil.CertificateInfoModel, teamID string) (map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel, error) {
+// GetValidLocalCertificates returns validated and deduplicated local certificates
+func GetValidLocalCertificates(certificates []certificateutil.CertificateInfoModel, teamID string) (map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel, error) {
 	preFilteredCerts := certificateutil.FilterValidCertificateInfos(certificates)
 
 	if len(preFilteredCerts.InvalidCertificates) != 0 {

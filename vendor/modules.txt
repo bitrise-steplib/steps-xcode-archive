@@ -3,6 +3,7 @@ github.com/bitrise-io/go-plist
 # github.com/bitrise-io/go-steputils v0.0.0-20210929162140-866a65a1e14a
 ## explicit
 github.com/bitrise-io/go-steputils/cache
+github.com/bitrise-io/go-steputils/input
 github.com/bitrise-io/go-steputils/ruby
 github.com/bitrise-io/go-steputils/stepconf
 github.com/bitrise-io/go-steputils/tools
@@ -12,6 +13,7 @@ github.com/bitrise-io/go-utils/colorstring
 github.com/bitrise-io/go-utils/command
 github.com/bitrise-io/go-utils/env
 github.com/bitrise-io/go-utils/errorutil
+github.com/bitrise-io/go-utils/filedownloader
 github.com/bitrise-io/go-utils/fileutil
 github.com/bitrise-io/go-utils/httputil
 github.com/bitrise-io/go-utils/log
@@ -24,11 +26,20 @@ github.com/bitrise-io/go-utils/retry
 github.com/bitrise-io/go-utils/sliceutil
 github.com/bitrise-io/go-utils/stringutil
 github.com/bitrise-io/go-utils/ziputil
-# github.com/bitrise-io/go-xcode v0.0.0-20211115145024-51a128646c7e
+# github.com/bitrise-io/go-xcode v0.0.0-20211125140650-26a04aa27c0f
 ## explicit
+github.com/bitrise-io/go-xcode/appleauth
 github.com/bitrise-io/go-xcode/autocodesign
+github.com/bitrise-io/go-xcode/autocodesign/certdownloader
+github.com/bitrise-io/go-xcode/autocodesign/codesignasset
+github.com/bitrise-io/go-xcode/autocodesign/devportalclient
 github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnect
+github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnectclient
+github.com/bitrise-io/go-xcode/autocodesign/devportalclient/spaceship
+github.com/bitrise-io/go-xcode/autocodesign/keychain
+github.com/bitrise-io/go-xcode/autocodesign/projectmanager
 github.com/bitrise-io/go-xcode/certificateutil
+github.com/bitrise-io/go-xcode/codesign
 github.com/bitrise-io/go-xcode/devportalservice
 github.com/bitrise-io/go-xcode/export
 github.com/bitrise-io/go-xcode/exportoptions

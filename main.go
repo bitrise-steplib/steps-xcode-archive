@@ -17,8 +17,15 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-xcode/autocodesign/certdownloader"
+	"github.com/bitrise-io/go-xcode/autocodesign/codesignasset"
+	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
+	"github.com/bitrise-io/go-xcode/autocodesign/projectmanager"
+	"github.com/bitrise-io/go-xcode/codesign"
+	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/exportoptionsgenerator"
 	"github.com/bitrise-io/go-xcode/models"
@@ -52,6 +59,11 @@ const (
 	bitriseAppDirPthEnvKey    = "BITRISE_APP_DIR_PATH"
 	bitriseDSYMDirPthEnvKey   = "BITRISE_DSYM_DIR_PATH"
 	bitriseXCArchivePthEnvKey = "BITRISE_XCARCHIVE_PATH"
+
+	// Code Signing Authentication Source
+	codeSignSourceOff     = "off"
+	codeSignSourceAPIKey  = "api-key"
+	codeSignSourceAppleID = "apple-id"
 )
 
 // Inputs ...
@@ -78,12 +90,22 @@ type Inputs struct {
 	VerboseLog     bool   `env:"verbose_log,opt[yes,no]"`
 
 	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
+
+	CodeSigningAuthSource     string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
+	CertificateURLList        string          `env:"certificate_url_list"`
+	CertificatePassphraseList stepconf.Secret `env:"passphrase_list"`
+	KeychainPath              string          `env:"keychain_path"`
+	KeychainPassword          stepconf.Secret `env:"keychain_password"`
+	RegisterTestDevices       bool            `env:"register_test_devices,opt[yes,no]"`
+	BuildURL                  string          `env:"BITRISE_BUILD_URL"`
+	BuildAPIToken             stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
 
 // Config ...
 type Config struct {
 	Inputs
 	XcodeMajorVersion int
+	CodesignManager   *codesign.Manager // nil if automatic code signing is "off"
 }
 
 var envRepository = env.NewRepository()
@@ -257,8 +279,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
 
-	fmt.Println()
-
 	absProjectPath, err := filepath.Abs(config.ProjectPath)
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to get absolute project path, error: %s", err)
@@ -296,7 +316,80 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		config.ArtifactName = productName
 	}
 
+	if config.CodeSigningAuthSource != codeSignSourceOff {
+		codesignManager, err := s.createCodesignManager(config)
+		if err != nil {
+			return Config{}, err
+		}
+		config.CodesignManager = &codesignManager
+	}
+
 	return config, nil
+}
+
+func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager, error) {
+	var authType codesign.AuthType
+	switch config.CodeSigningAuthSource {
+	case codeSignSourceAppleID:
+		authType = codesign.AppleIDAuth
+	case codeSignSourceAPIKey:
+		authType = codesign.APIKeyAuth
+	case codeSignSourceOff:
+		return codesign.Manager{}, fmt.Errorf("automatic code signing is disabled")
+	}
+
+	codesignInputs := codesign.Input{
+		AuthType:                  authType,
+		DistributionMethod:        config.ExportMethod,
+		CertificateURLList:        config.CertificateURLList,
+		CertificatePassphraseList: config.CertificatePassphraseList,
+		KeychainPath:              config.KeychainPath,
+		KeychainPassword:          config.KeychainPassword,
+	}
+
+	codesignConfig, err := codesign.ParseConfig(codesignInputs, cmdFactory)
+	if err != nil {
+		return codesign.Manager{}, fmt.Errorf("issue with input: %s", err)
+	}
+
+	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
+	devPortalClientFactory := devportalclient.NewFactory(logger)
+	if authType == codesign.APIKeyAuth || authType == codesign.AppleIDAuth {
+		if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
+			return codesign.Manager{}, err
+		}
+	}
+
+	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, logger)
+	if err != nil {
+		return codesign.Manager{}, err
+	}
+
+	opts := codesign.Opts{
+		AuthType:                   authType,
+		ShouldConsiderXcodeSigning: true,
+		ExportMethod:               codesignConfig.DistributionMethod,
+		XcodeMajorVersion:          config.XcodeMajorVersion,
+		RegisterTestDevices:        config.RegisterTestDevices,
+		SignUITests:                false,
+		MinProfileValidity:         30,
+		IsVerboseLog:               config.VerboseLog,
+	}
+
+	return codesign.NewManager(
+		opts,
+		logger,
+		appleAuthCredentials,
+		serviceConnection,
+		devPortalClientFactory,
+		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
+		codesignasset.NewWriter(codesignConfig.Keychain),
+		projectmanager.NewFactory(projectmanager.InitParams{
+			ProjectOrWorkspacePath: config.ProjectPath,
+			SchemeName:             config.Scheme,
+			ConfigurationName:      config.Configuration,
+		}),
+	), nil
 }
 
 // EnsureDependenciesOpts ...
@@ -311,7 +404,7 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 	}
 
 	fmt.Println()
-	logger.Infof("Checking if output tool (xcpretty) is installed")
+	logger.Infof("Checking if log formatter (xcpretty) is installed")
 
 	var xcpretty = xcpretty.NewXcpretty()
 
@@ -355,6 +448,7 @@ type xcodeArchiveOpts struct {
 	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
+	XcodeAuthOptions  *xcodebuild.AuthenticationParams
 
 	PerformCleanAction bool
 	XcconfigContent    string
@@ -395,6 +489,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	}
 
 	// Create the Archive with Xcode Command Line tools
+	logger.Println()
 	logger.Infof("Creating the Archive ...")
 
 	isWorkspace := false
@@ -429,21 +524,29 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	archivePth := filepath.Join(tmpDir, opts.ArtifactName+".xcarchive")
 
 	archiveCmd.SetArchivePath(archivePth)
+	if opts.XcodeAuthOptions != nil {
+		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	}
 
 	destination := "generic/platform=" + string(platform)
-	options := []string{"-destination", destination}
+	destinationOptions := []string{"-destination", destination}
+
+	options := []string{}
 	if opts.XcodebuildOptions != "" {
 		userOptions, err := shellquote.Split(opts.XcodebuildOptions)
 		if err != nil {
 			return out, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", opts.XcodebuildOptions, err)
 		}
 
-		if sliceutil.IsStringInSlice("-destination", userOptions) {
-			options = userOptions
-		} else {
-			options = append(options, userOptions...)
+		if !sliceutil.IsStringInSlice("-destination", userOptions) {
+			options = append(options, destinationOptions...)
 		}
+
+		options = append(options, userOptions...)
+	} else {
+		options = append(options, destinationOptions...)
 	}
+
 	archiveCmd.SetCustomOptions(options)
 
 	var swiftPackagesPath string
@@ -510,6 +613,7 @@ type xcodeIPAExportOpts struct {
 	Configuration     string
 	LogFormatter      string
 	XcodeMajorVersion int
+	XcodeAuthOptions  *xcodebuild.AuthenticationParams
 
 	Archive                         xcarchive.IosArchive
 	CustomExportOptionsPlistContent string
@@ -605,6 +709,9 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	exportCmd.SetArchivePath(opts.Archive.Path)
 	exportCmd.SetExportDir(ipaExportDir)
 	exportCmd.SetExportOptionsPlist(exportOptionsPath)
+	if opts.XcodeAuthOptions != nil {
+		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	}
 
 	if opts.LogFormatter == "xcpretty" {
 		xcprettyCmd := xcpretty.New(exportCmd)
@@ -684,6 +791,9 @@ type RunOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
+	// Code signing, nil if automatic code signing is "off"
+	CodesignManager *codesign.Manager
+
 	// Archive
 	PerformCleanAction bool
 	XcconfigContent    string
@@ -713,6 +823,38 @@ type RunOut struct {
 
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
+	var authOptions *xcodebuild.AuthenticationParams = nil
+	if opts.CodesignManager != nil {
+		logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
+
+		xcodebuildAuthParams, err := opts.CodesignManager.PrepareCodesigning()
+		if err != nil {
+			return RunOut{}, fmt.Errorf("failed to manage code signing: %s", err)
+		}
+
+		if xcodebuildAuthParams != nil {
+			privateKey, err := xcodebuildAuthParams.WritePrivateKeyToFile()
+			if err != nil {
+				return RunOut{}, err
+			}
+
+			defer func() {
+				if err := os.Remove(privateKey); err != nil {
+					logger.Warnf("failed to remove private key file: %s", err)
+				}
+			}()
+
+			authOptions = &xcodebuild.AuthenticationParams{
+				KeyID:     xcodebuildAuthParams.KeyID,
+				IsssuerID: xcodebuildAuthParams.IssuerID,
+				KeyPath:   privateKey,
+			}
+		}
+	} else {
+		logger.Infof("Automatic code signing is disabled, skipped downloading code sign assets")
+	}
+	logger.Println()
+
 	out := RunOut{}
 
 	archiveOpts := xcodeArchiveOpts{
@@ -722,6 +864,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		ArtifactName:      opts.ArtifactName,
+		XcodeAuthOptions:  authOptions,
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
@@ -742,6 +885,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		Configuration:     opts.Configuration,
 		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
+		XcodeAuthOptions:  authOptions,
 
 		Archive:                         *archiveOut.Archive,
 		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
@@ -1006,6 +1150,8 @@ func RunStep() error {
 		LogFormatter:      config.LogFormatter,
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
+
+		CodesignManager: config.CodesignManager,
 
 		PerformCleanAction: config.PerformCleanAction,
 		XcconfigContent:    config.XcconfigContent,

@@ -13,39 +13,175 @@ app:
   - BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST: $BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
   - BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
 
-workflows:
+  - BITFALL_APPSTORECONNECT_API_KEY_URL: $BITFALL_APPSTORECONNECT_API_KEY_URL
+  - BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID: $BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID
 
-  test_app_clip:
+workflows:
+  test_manual_signing:
+    description: Tests the case when automatic code signing is disabled and the certificate installer step is used to set up code signing assets
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: new-certificates
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    - BITRISE_SCHEME: ios-simple-objc
+    - CODE_SIGNING_METHOD: "off"
+    - IPA_EXPORT_METHOD: development
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _check_outputs
+    - _check_exported_artifacts
+    steps:
+    - script:
+        title: Remove temp folder
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf "./_tmp"
+            mkdir -p "./_tmp"
+    - script:
+        title: Remove provisioning profiles from previous runs
+        run_if: .IsCI
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf ~/Library/MobileDevice/Provisioning Profiles
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - branch: $TEST_APP_BRANCH
+        - commit: $TEST_APP_COMMIT
+        - clone_into_dir: ./_tmp
+    - certificate-and-profile-installer:
+        inputs:
+        - certificate_url: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        - certificate_passphrase: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
+        - provisioning_profile_url: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
+        - install_defaults: "no"
+        - keychain_path: $BITRISE_KEYCHAIN_PATH
+        - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+    - path::./:
+        title: Execute step
+        inputs:
+        - project_path: ./_tmp/$BITRISE_PROJECT_PATH
+        - scheme: $BITRISE_SCHEME
+        - automatic_code_signing: $CODE_SIGNING_METHOD
+        - xcconfig_content: |
+            COMPILER_INDEX_STORE_ENABLE = NO
+            CODE_SIGN_IDENTITY = iPhone Developer: Dev Portal Bot Bitrise
+        - distribution_method: $IPA_EXPORT_METHOD
+        - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
+        - export_development_team: $TEAM_ID
+        - log_formatter: $LOG_FORMATTER
+        - verbose_log: "yes"
+
+  test_api_key_signing_managed:
+    description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
+    steps:
+    - bitrise-run:
+        run_if: |-
+          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+        inputs:
+        - workflow_id: utility_test_api_key_signing_managed
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_api_key_signing_managed:
+    description: |
+      Tests API key based code signing on a project with automatically managed signing.
+      This should use the Xcode mechanism on Xcode13+.
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta
-    - TEST_APP_BRANCH: xcode-12-gm
-    - TEST_APP_COMMIT: ""
+    - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - CODE_SIGNING_METHOD: api-key
     - IPA_EXPORT_METHOD: development
-    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
     - _check_outputs
     - _check_exported_artifacts
 
-  test_catalyst:
+  test_api_key_signing_manual:
+    description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
+    steps:
+    - bitrise-run:
+        run_if: |-
+          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+        inputs:
+        - workflow_id: utility_test_api_key_signing_manual
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_api_key_signing_manual:
+    description: Test API key based signing on a project where code signing is not managed automatically
     envs:
-    - TEST_APP_URL: https://github.com/bitrise-io/CatalystSample.git
-    - TEST_APP_BRANCH: master
-    - TEST_APP_COMMIT: ""
-    - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
-    - BITRISE_SCHEME: Catalyst Sample
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
-    - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
+    - TEST_APP_URL: https://github.com/bitrise-io/Fruta
+    - TEST_APP_BRANCH: manual-signing
+    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
+    - BITRISE_SCHEME: Fruta iOS
+    - CODE_SIGNING_METHOD: api-key
     - IPA_EXPORT_METHOD: development
-    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
+  test_apple_id:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: new-certificates
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    - BITRISE_SCHEME: ios-simple-objc
+    - CODE_SIGNING_METHOD: apple-id
+    - IPA_EXPORT_METHOD: development
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
+  test_api_key_signing_manual_entitlements:
+    description: Test API key based code signing on a project where code signing is not managed automatically and has special entitlements.
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: entitlements
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - CODE_SIGNING_METHOD: api-key
+    - IPA_EXPORT_METHOD: app-store
+    - LOG_FORMATTER: xcpretty
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
+  test_api_key_signing_managed_app_store:
+    description: Test API key based code signing and app store export on a project where signing is managed automatically
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: automatic
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - CODE_SIGNING_METHOD: api-key
+    - IPA_EXPORT_METHOD: app-store
+    - LOG_FORMATTER: xcpretty
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
+  test_apple_id_signing_managed_app_store:
+    description: Test Apple ID based code signing and app store export on a project where signing is managed automatically
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+    - TEST_APP_BRANCH: automatic
+    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+    - BITRISE_SCHEME: code-sign-test
+    - CODE_SIGNING_METHOD: apple-id
+    - IPA_EXPORT_METHOD: app-store
+    - LOG_FORMATTER: xcpretty
     after_run:
     - _run
     - _check_outputs
@@ -58,9 +194,8 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
-    - FORCE_CODE_SIGN_IDENTITY: ""
+    - CODE_SIGNING_METHOD: api-key
     - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
     - LOG_FORMATTER: xcodebuild
@@ -76,9 +211,8 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    - CODE_SIGNING_METHOD: api-key
     - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
@@ -91,13 +225,12 @@ workflows:
   test_objc_artifact_name:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - TEST_APP_BRANCH: ""
-    - TEST_APP_COMMIT: 65cd120bf4459c2881cfe2b731395b4efc53855d
+    - TEST_APP_BRANCH: new-certificates
+    - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    - CODE_SIGNING_METHOD: api-key
     - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
@@ -108,24 +241,6 @@ workflows:
     - _check_exported_artifacts
     - _check_archive_zip
 
-  test_xcode_8:
-    envs:
-    - TEST_APP_URL: https://github.com/bitrise-samples/ios-xcode-8.0.git
-    - TEST_APP_BRANCH: swift_version
-    - TEST_APP_COMMIT: ""
-    - BITRISE_PROJECT_PATH: ios-xcode-8.0/ios-xcode-8.0.xcodeproj
-    - BITRISE_SCHEME: ios-xcode-8.0
-    - FORCE_CODE_SIGN_IDENTITY: ""
-    - TEAM_ID: ""
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
-    - IPA_EXPORT_METHOD: development
-    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
-    - LOG_FORMATTER: xcpretty
-    after_run:
-    - _run
-    - _check_outputs
-    - _check_exported_artifacts
-
   test_multi_target:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
@@ -133,9 +248,8 @@ workflows:
     - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    - CODE_SIGNING_METHOD: api-key
     - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
@@ -151,9 +265,27 @@ workflows:
     - TEST_APP_COMMIT: 1360413258cc7f6a8676c17f060ff39899fc28b1
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - CODE_SIGNING_METHOD: api-key
+    - TEAM_ID: 72SA8V3WYL
+    - IPA_EXPORT_METHOD: development
+    - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
+  test_catalyst:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/CatalystSample.git
+    - TEST_APP_BRANCH: master
+    - TEST_APP_COMMIT: ""
+    - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
+    - BITRISE_SCHEME: Catalyst Sample
+    - CODE_SIGNING_METHOD: api-key
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
-    - FORCE_PROV_PROFILE_SPECIFIER: BitriseBot-Wildcard
+    - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
@@ -165,52 +297,35 @@ workflows:
   _run:
     steps:
     - script:
+        title: Remove temp folder
         inputs:
         - content: |-
             #!/bin/bash
             set -ex
             rm -rf "./_tmp"
             mkdir -p "./_tmp"
+    - script:
+        title: Remove provisioning profiles from previous runs
+        run_if: .IsCI
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf ~/Library/MobileDevice/Provisioning Profiles
     - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
         inputs:
         - repository_url: $TEST_APP_URL
         - branch: $TEST_APP_BRANCH
         - commit: $TEST_APP_COMMIT
         - clone_into_dir: ./_tmp
-    - certificate-and-profile-installer:
-        inputs:
-        - certificate_url: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
-        - certificate_passphrase: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
-        - provisioning_profile_url: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
-        - install_defaults: "no"
-        - keychain_path: $BITRISE_KEYCHAIN_PATH
-        - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
-    - script:
-        title: Construct xcconfig contents
-        inputs:
-        - content: |
-            CONFIG="COMPILER_INDEX_STORE_ENABLE = NO"
-
-            if [ "$FORCE_CODE_SIGN_IDENTITY" != "" ]; then
-              CONFIG="$CONFIG
-            CODE_SIGN_IDENTITY = $FORCE_CODE_SIGN_IDENTITY"
-            fi
-
-            if [ "$FORCE_PROV_PROFILE_SPECIFIER" != "" ]; then
-              CONFIG="$CONFIG
-            PROVISIONING_PROFILE_SPECIFIER = $FORCE_PROV_PROFILE_SPECIFIER"
-            fi
-
-            printf "xcconfig contents:\n"
-            printf "$CONFIG"
-
-            envman add --key XCCONFIG_CONTENT --value "$CONFIG"
     - path::./:
         title: Execute step
         inputs:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
-        - xcconfig_content: $XCCONFIG_CONTENT
+        - automatic_code_signing: $CODE_SIGNING_METHOD
+        - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
+        - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
         - distribution_method: $IPA_EXPORT_METHOD
         - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
         - export_development_team: $TEAM_ID
