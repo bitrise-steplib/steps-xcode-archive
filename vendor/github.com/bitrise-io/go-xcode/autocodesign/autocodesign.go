@@ -140,9 +140,13 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 	if err != nil {
 		return nil, fmt.Errorf("failed to download certificates: %w", err)
 	}
-	log.Printf("%d certificates downloaded:", len(certs))
-	for _, cert := range certs {
-		log.Printf("- %s", cert.String())
+	if len(certs) > 0 {
+		log.Printf("%d certificates downloaded:", len(certs))
+		for _, cert := range certs {
+			log.Printf("- %s", cert.String())
+		}
+	} else {
+		log.Warnf("No certificates found")
 	}
 
 	signUITestTargets := len(appLayout.UITestTargetBundleIDs) > 0
