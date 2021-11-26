@@ -96,6 +96,7 @@ workflows:
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
     after_run:
@@ -121,6 +122,7 @@ workflows:
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
     after_run:
@@ -135,6 +137,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - CODE_SIGNING_METHOD: apple-id
+    - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
     after_run:
@@ -150,6 +153,7 @@ workflows:
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
     - LOG_FORMATTER: xcpretty
     after_run:
@@ -165,6 +169,7 @@ workflows:
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
     - LOG_FORMATTER: xcpretty
     after_run:
@@ -180,6 +185,7 @@ workflows:
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - CODE_SIGNING_METHOD: apple-id
+    - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
     - LOG_FORMATTER: xcpretty
     after_run:
@@ -195,6 +201,7 @@ workflows:
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: Production
@@ -212,6 +219,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
@@ -230,6 +238,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
@@ -242,6 +251,9 @@ workflows:
     - _check_archive_zip
 
   test_multi_target:
+    description: |-
+      Test app with multiple targets. Also tests api-key signing with a custom min profile days valid.
+      (Should use Bitrise-managed code signing assets).
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
     - TEST_APP_BRANCH: ""
@@ -249,6 +261,7 @@ workflows:
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 112
     - TEAM_ID: 72SA8V3WYL
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
@@ -266,6 +279,7 @@ workflows:
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
@@ -283,6 +297,7 @@ workflows:
     - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
     - BITRISE_SCHEME: Catalyst Sample
     - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
     - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
@@ -324,6 +339,7 @@ workflows:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         - automatic_code_signing: $CODE_SIGNING_METHOD
+        - min_profile_validity: $MIN_DAYS_PROFILE_VALID
         - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
         - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
         - distribution_method: $IPA_EXPORT_METHOD

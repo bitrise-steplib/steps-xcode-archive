@@ -196,14 +196,14 @@ inputs:
 
 - min_profile_validity: "0"
   opts:
-    category: Options
+    category: Automatic code signing
     title: The minimum days the Provisioning Profile should be valid
     summary: If this input is set to >0, the managed Provisioning Profile will be renewed if it expires within the configured number of days.
     description: |-
       If this input is set to >0, the managed Provisioning Profile will be renewed if it expires within the configured number of days.
 
       Otherwise the Step renews the managed Provisioning Profile if it is expired.
-  is_required: true
+    is_required: true
 
 - certificate_url_list: $BITRISE_CERTIFICATE_URL
   opts:
