@@ -3,6 +3,7 @@ package spaceship
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -194,6 +195,10 @@ func (c *ProfileClient) CreateProfile(name string, profileType appstoreconnect.P
 	}
 	if err := json.Unmarshal([]byte(output), &profileResponse); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %v (%s)", err, output)
+	}
+
+	if profileResponse.Data.Name == "" {
+		return nil, autocodesign.NewProfilesInconsistentError(errors.New("empty profile generated"))
 	}
 
 	profile, err := newProfile(profileResponse.Data)

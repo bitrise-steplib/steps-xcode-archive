@@ -1,6 +1,7 @@
 package appstoreconnectclient
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -63,10 +64,12 @@ func (d *DeviceClient) RegisterDevice(testDevice devportalservice.TestDevice) (*
 
 	registeredDevice, err := d.client.Provisioning.RegisterNewDevice(req)
 	if err != nil {
-		rerr, ok := err.(*appstoreconnect.ErrorResponse)
-		if ok && rerr.Response != nil && rerr.Response.StatusCode == http.StatusConflict {
-			return nil, appstoreconnect.DeviceRegistrationError{
-				Reason: fmt.Sprintf("%v", err),
+		rerr := appstoreconnect.ErrorResponse{}
+		if ok := errors.As(err, &rerr); ok {
+			if rerr.Response != nil && rerr.Response.StatusCode == http.StatusConflict {
+				return nil, appstoreconnect.DeviceRegistrationError{
+					Reason: fmt.Sprintf("%v", err),
+				}
 			}
 		}
 

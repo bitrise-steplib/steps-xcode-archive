@@ -7,6 +7,7 @@ import (
 	"embed"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -111,12 +112,16 @@ func runSpaceshipCommand(cmd spaceshipCommand) (string, error) {
 	}
 
 	var response struct {
-		Error string `json:"error"`
+		Error       string `json:"error"`
+		ShouldRetry bool   `json:"retry"`
 	}
 	if err := json.Unmarshal([]byte(match), &response); err != nil {
 		return "", fmt.Errorf("failed to unmarshal response: %v (%s)", err, match)
 	}
 
+	if response.ShouldRetry {
+		return "", autocodesign.NewProfilesInconsistentError(errors.New(response.Error))
+	}
 	if response.Error != "" {
 		return "", fmt.Errorf("failed to query Developer Portal: %s", response.Error)
 	}

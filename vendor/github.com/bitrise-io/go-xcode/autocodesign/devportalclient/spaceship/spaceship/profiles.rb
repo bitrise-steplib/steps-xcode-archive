@@ -46,6 +46,10 @@ def list_profiles(profile_type, name)
   end
 
   profile_infos
+rescue => e
+  raise e unless e.to_s =~ /Couldn't download provisioning profile/i
+
+  raise RetryNeeded
 end
 
 def delete_profile(id)
@@ -81,7 +85,8 @@ def create_profile(profile_type, bundle_id, certificate_id, profile_name)
     bundle_id: profile.app.bundle_id
   }
 rescue => e
-  raise e unless e.to_s =~ /Multiple profiles found with the name/i
+  raise e unless e.to_s =~ /Multiple profiles found with the name/i ||
+    e.to_s =~ /Couldn't download provisioning profile/i
 
   raise RetryNeeded
 end

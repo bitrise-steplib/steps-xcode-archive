@@ -97,6 +97,7 @@ type Inputs struct {
 	KeychainPath              string          `env:"keychain_path"`
 	KeychainPassword          stepconf.Secret `env:"keychain_password"`
 	RegisterTestDevices       bool            `env:"register_test_devices,opt[yes,no]"`
+	MinDaysProfileValid       int             `env:"min_profile_validity,required"`
 	BuildURL                  string          `env:"BITRISE_BUILD_URL"`
 	BuildAPIToken             stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
@@ -368,11 +369,12 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	opts := codesign.Opts{
 		AuthType:                   authType,
 		ShouldConsiderXcodeSigning: true,
+		TeamID:                     config.ExportDevelopmentTeam,
 		ExportMethod:               codesignConfig.DistributionMethod,
 		XcodeMajorVersion:          config.XcodeMajorVersion,
 		RegisterTestDevices:        config.RegisterTestDevices,
 		SignUITests:                false,
-		MinProfileValidity:         30,
+		MinDaysProfileValidity:     config.MinDaysProfileValid,
 		IsVerboseLog:               config.VerboseLog,
 	}
 

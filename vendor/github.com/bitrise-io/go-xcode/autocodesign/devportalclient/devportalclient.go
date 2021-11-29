@@ -74,7 +74,7 @@ func (f Factory) Create(credentials appleauth.Credentials, teamID string) (autoc
 		client := appstoreconnect.NewClient(httpClient, credentials.APIKey.KeyID, credentials.APIKey.IssuerID, []byte(credentials.APIKey.PrivateKey))
 		client.EnableDebugLogs = false // Turn off client debug logs including HTTP call debug logs
 		devportalClient = appstoreconnectclient.NewAPIDevPortalClient(client)
-		f.logger.Donef("App Store Connect API client created with base URL: %s", client.BaseURL)
+		f.logger.Debugf("App Store Connect API client created with base URL: %s", client.BaseURL)
 	} else if credentials.AppleID != nil {
 		client, err := spaceship.NewClient(*credentials.AppleID, teamID)
 		if err != nil {
