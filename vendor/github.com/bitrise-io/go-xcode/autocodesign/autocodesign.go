@@ -90,6 +90,11 @@ type AssetWriter interface {
 	InstallCertificate(certificate certificateutil.CertificateInfoModel) error
 }
 
+// LocalCodeSignAssetManager ...
+type LocalCodeSignAssetManager interface {
+	FindCodesignAssets(appLayout AppLayout, distrTypes []DistributionType, certsByType map[appstoreconnect.CertificateType][]Certificate, deviceIDs []string, minProfileDaysValid int) (map[DistributionType]AppCodesignAssets, *AppLayout, error)
+}
+
 // AppLayout contains codesigning related settings that are needed to ensure codesigning files
 type AppLayout struct {
 	TeamID                                 string
@@ -117,17 +122,19 @@ type CodesignAssetManager interface {
 }
 
 type codesignAssetManager struct {
-	devPortalClient     DevPortalClient
-	certificateProvider CertificateProvider
-	assetWriter         AssetWriter
+	devPortalClient           DevPortalClient
+	certificateProvider       CertificateProvider
+	assetWriter               AssetWriter
+	localCodeSignAssetManager LocalCodeSignAssetManager
 }
 
 // NewCodesignAssetManager ...
-func NewCodesignAssetManager(devPortalClient DevPortalClient, certificateProvider CertificateProvider, assetWriter AssetWriter) CodesignAssetManager {
+func NewCodesignAssetManager(devPortalClient DevPortalClient, certificateProvider CertificateProvider, assetWriter AssetWriter, localCodeSignAssetManager LocalCodeSignAssetManager) CodesignAssetManager {
 	return codesignAssetManager{
-		devPortalClient:     devPortalClient,
-		certificateProvider: certificateProvider,
-		assetWriter:         assetWriter,
+		devPortalClient:           devPortalClient,
+		certificateProvider:       certificateProvider,
+		assetWriter:               assetWriter,
+		localCodeSignAssetManager: localCodeSignAssetManager,
 	}
 }
 
@@ -163,34 +170,55 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 	}
 
 	var devPortalDeviceIDs []string
+	var devPortalDeviceUDIDs []string
 	if DistributionTypeRequiresDeviceList(distrTypes) {
-		var err error
-		devPortalDeviceIDs, err = EnsureTestDevices(m.devPortalClient, opts.BitriseTestDevices, appLayout.Platform)
+		devPortalDevices, err := EnsureTestDevices(m.devPortalClient, opts.BitriseTestDevices, appLayout.Platform)
 		if err != nil {
 			return nil, fmt.Errorf("failed to ensure test devices: %w", err)
 		}
-	}
 
-	// Ensure Profiles
-	codesignAssetsByDistributionType, err := ensureProfiles(m.devPortalClient, distrTypes, certsByType, appLayout, devPortalDeviceIDs, opts.MinProfileValidityDays)
-	if err != nil {
-		switch {
-		case errors.As(err, &ErrAppClipAppID{}):
-			log.Warnf("Can't create Application Identifier for App Clip targets.")
-			log.Warnf("Please generate the Application Identifier manually on Apple Developer Portal, after that the Step will continue working.")
-		case errors.As(err, &ErrAppClipAppIDWithAppleSigning{}):
-			log.Warnf("Can't manage Application Identifier for App Clip target with 'Sign In With Apple' capability.")
-			log.Warnf("Please configure Capabilities on Apple Developer Portal for App Clip target manually, after that the Step will continue working.")
+		for _, devPortalDevice := range devPortalDevices {
+			devPortalDeviceIDs = append(devPortalDeviceIDs, devPortalDevice.ID)
+			devPortalDeviceUDIDs = append(devPortalDeviceUDIDs, devPortalDevice.Attributes.UDID)
 		}
 
-		return nil, fmt.Errorf("failed to ensure profiles: %w", err)
 	}
 
-	// Install certificates and profiles
-	fmt.Println()
-	log.Infof("Install certificates and profiles")
-	if err := m.assetWriter.Write(codesignAssetsByDistributionType); err != nil {
-		return nil, fmt.Errorf("failed to install codesigning files: %s", err)
+	localCodesignAssets, missingCodesignAssets, err := m.localCodeSignAssetManager.FindCodesignAssets(appLayout, distrTypes, certsByType, devPortalDeviceUDIDs, opts.MinProfileValidityDays)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect local code signing assets: %w", err)
+	}
+
+	printExistingCodesignAssets(localCodesignAssets)
+
+	codesignAssetsByDistributionType := localCodesignAssets
+	if missingCodesignAssets != nil {
+		printMissingCodeSignAssets(missingCodesignAssets)
+
+		// Ensure Profiles
+		newCodesignAssetsByDistributionType, err := ensureProfiles(m.devPortalClient, distrTypes, certsByType, *missingCodesignAssets, devPortalDeviceIDs, opts.MinProfileValidityDays)
+		if err != nil {
+			switch {
+			case errors.As(err, &ErrAppClipAppID{}):
+				log.Warnf("Can't create Application Identifier for App Clip targets.")
+				log.Warnf("Please generate the Application Identifier manually on Apple Developer Portal, after that the Step will continue working.")
+			case errors.As(err, &ErrAppClipAppIDWithAppleSigning{}):
+				log.Warnf("Can't manage Application Identifier for App Clip target with 'Sign In With Apple' capability.")
+				log.Warnf("Please configure Capabilities on Apple Developer Portal for App Clip target manually, after that the Step will continue working.")
+			}
+
+			return nil, fmt.Errorf("failed to ensure profiles: %w", err)
+		}
+
+		// Install new certificates and profiles
+		fmt.Println()
+		log.Infof("Install certificates and profiles")
+		if err := m.assetWriter.Write(newCodesignAssetsByDistributionType); err != nil {
+			return nil, fmt.Errorf("failed to install codesigning files: %w", err)
+		}
+
+		// Merge local and recently generated code signing assets
+		codesignAssetsByDistributionType = mergeCodeSignAssets(codesignAssetsByDistributionType, newCodesignAssetsByDistributionType)
 	}
 
 	return codesignAssetsByDistributionType, nil
