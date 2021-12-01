@@ -49,6 +49,8 @@ func isProfileMatching(profile profileutil.ProvisioningProfileInfoModel, platfor
 		return false
 	}
 
+	// Drop Xcode-managed profiles
+	// as Bitrise-managed automatic code signing enforces manually managed code signing on the given project.
 	if profile.IsXcodeManaged() {
 		return false
 	}
