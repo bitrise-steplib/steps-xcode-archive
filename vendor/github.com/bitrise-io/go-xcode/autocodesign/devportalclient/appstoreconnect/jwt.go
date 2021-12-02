@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // signToken signs the JWT token with the given .p8 private key content
