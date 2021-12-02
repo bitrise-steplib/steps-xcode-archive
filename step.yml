@@ -1,18 +1,20 @@
 title: Xcode Archive & Export for iOS
 summary: Automatically manages your code signing assets, archives and exports an .ipa in one Step.
 description: |-
+  The Step archives your Xcode project by running the `xcodebuild archive` command and then exports the archive into an .ipa file with the `xcodebuild -exportArchive` command.
+  This .ipa file can be shared, installed on test devices, or uploaded to the App Store Connect.
   With this Step, you can use automatic code signing in a [CI environment without having to use Xcode](https://developer.apple.com/documentation/xcode-release-notes/xcode-13-release-notes).
   In short, the Step:
   - Logs you into your Apple Developer account based on the [Apple service connection you provide on Bitrise](https://devcenter.bitrise.io/en/accounts/connecting-to-services/apple-services-connection.html).
-  - Registers any team devices on Bitrise.
   - Downloads any provisioning profiles needed for your project based on the **Distribution method**.
   - Runs your build. It archives your Xcode project by running the `xcodebuild archive` command and exports the archive into an .ipa file with the `xcodebuild -exportArchive` command.
-  This .ipa file can be shared and installed on test devices, or uploaded to the App Store Connect.
+  This .ipa file can be shared and installed on test devices, or uploaded to App Store Connect.
 
   ### Configuring the Step
   Before you start:
   - Make sure you have connected your [Apple Service account to Bitrise](https://devcenter.bitrise.io/en/accounts/connecting-to-services/apple-services-connection.html).
-  - Make sure certificates are uploaded to Bitrise's **Code Signing** tab. The right provisioning profiles are automatically downloaded as part of the automatic code signing process.
+  Alternatively, you can upload certificates and profiles to Bitrise manually, then use the Certificate and Profile installer step before Xcode Archive
+  - Make sure certificates are uploaded to Bitrise's **Code Signing** tab. The right provisioning profiles are automatically downloaded from Apple as part of the automatic code signing process.
 
   To configure the Step:
   1. **Project path**: Add the path where the Xcode Project or Workspace is located.
