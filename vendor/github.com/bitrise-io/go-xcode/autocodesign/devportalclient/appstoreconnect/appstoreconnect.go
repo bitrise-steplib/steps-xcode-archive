@@ -18,7 +18,7 @@ import (
 	"github.com/bitrise-io/go-utils/httputil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/retry"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/go-querystring/query"
 	"github.com/hashicorp/go-retryablehttp"
 )
