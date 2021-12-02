@@ -372,6 +372,19 @@ func (archive IosArchive) FindDSYMs() ([]string, []string, error) {
 	return findDSYMs(archive.Path)
 }
 
+// Platform ...
+func (archive IosArchive) Platform() (autocodesign.Platform, error) {
+	platformName := archive.Application.InfoPlist["DTPlatformName"]
+	switch platformName {
+	case "iphoneos":
+		return autocodesign.IOS, nil
+	case "appletvos":
+		return autocodesign.TVOS, nil
+	default:
+		return "", fmt.Errorf("unsupported platform found: %s", platformName)
+	}
+}
+
 // ReadCodesignParameters ...
 func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, error) {
 	var teamID string
