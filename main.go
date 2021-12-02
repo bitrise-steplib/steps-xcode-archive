@@ -23,6 +23,7 @@ import (
 	"github.com/bitrise-io/go-xcode/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
+	"github.com/bitrise-io/go-xcode/autocodesign/localcodesignasset"
 	"github.com/bitrise-io/go-xcode/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/codesign"
 	"github.com/bitrise-io/go-xcode/devportalservice"
@@ -186,26 +187,10 @@ func (p xcodebuildXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVers
 	return utility.GetXcodeVersion(cmdFactory)
 }
 
-type stepInputParser interface {
-	Parse(conf interface{}) error
-}
-
-type envStepInputParser struct {
-}
-
-func newEnvStepInputParser() envStepInputParser {
-	return envStepInputParser{}
-}
-
-// Parse ...
-func (p envStepInputParser) Parse(conf interface{}) error {
-	return stepconf.NewInputParser(envRepository).Parse(conf)
-}
-
 // XcodeArchiveStep ...
 type XcodeArchiveStep struct {
 	xcodeVersionProvider xcodeVersionProvider
-	stepInputParser      stepInputParser
+	stepInputParser      stepconf.InputParser
 	pathProvider         pathutil.PathProvider
 	fileManager          fileutil.FileManager
 }
@@ -214,7 +199,7 @@ type XcodeArchiveStep struct {
 func NewXcodeArchiveStep() XcodeArchiveStep {
 	return XcodeArchiveStep{
 		xcodeVersionProvider: newXcodebuildXcodeVersionProvider(),
-		stepInputParser:      newEnvStepInputParser(),
+		stepInputParser:      stepconf.NewInputParser(env.NewRepository()),
 		pathProvider:         pathutil.NewPathProvider(),
 		fileManager:          fileutil.NewFileManager(),
 	}
@@ -380,17 +365,18 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 
 	return codesign.NewManager(
 		opts,
-		logger,
 		appleAuthCredentials,
 		serviceConnection,
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
 		codesignasset.NewWriter(codesignConfig.Keychain),
+		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		projectmanager.NewFactory(projectmanager.InitParams{
 			ProjectOrWorkspacePath: config.ProjectPath,
 			SchemeName:             config.Scheme,
 			ConfigurationName:      config.Configuration,
 		}),
+		logger,
 	), nil
 }
 

@@ -1,13 +1,13 @@
 # github.com/bitrise-io/go-plist v0.0.0-20210301100253-4b1a112ccd10
 github.com/bitrise-io/go-plist
-# github.com/bitrise-io/go-steputils v0.0.0-20210929162140-866a65a1e14a
+# github.com/bitrise-io/go-steputils v0.0.0-20211126112149-94e32b191a27
 ## explicit
 github.com/bitrise-io/go-steputils/cache
 github.com/bitrise-io/go-steputils/input
 github.com/bitrise-io/go-steputils/ruby
 github.com/bitrise-io/go-steputils/stepconf
 github.com/bitrise-io/go-steputils/tools
-# github.com/bitrise-io/go-utils v0.0.0-20211008161027-fa11986847a0
+# github.com/bitrise-io/go-utils v0.0.0-20211126092127-3a566ee3f420
 ## explicit
 github.com/bitrise-io/go-utils/colorstring
 github.com/bitrise-io/go-utils/command
@@ -26,7 +26,7 @@ github.com/bitrise-io/go-utils/retry
 github.com/bitrise-io/go-utils/sliceutil
 github.com/bitrise-io/go-utils/stringutil
 github.com/bitrise-io/go-utils/ziputil
-# github.com/bitrise-io/go-xcode v0.0.0-20211126145828-45cb07d2198c
+# github.com/bitrise-io/go-xcode v0.0.0-20211201121300-61225fc48e12
 ## explicit
 github.com/bitrise-io/go-xcode/appleauth
 github.com/bitrise-io/go-xcode/autocodesign
@@ -37,6 +37,7 @@ github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnect
 github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnectclient
 github.com/bitrise-io/go-xcode/autocodesign/devportalclient/spaceship
 github.com/bitrise-io/go-xcode/autocodesign/keychain
+github.com/bitrise-io/go-xcode/autocodesign/localcodesignasset
 github.com/bitrise-io/go-xcode/autocodesign/projectmanager
 github.com/bitrise-io/go-xcode/certificateutil
 github.com/bitrise-io/go-xcode/codesign
@@ -58,7 +59,8 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-# github.com/bitrise-io/pkcs12 v0.0.0-20210430063833-0da06eb56630
+# github.com/bitrise-io/pkcs12 v0.0.0-20211108084543-e52728e011c8
+## explicit
 github.com/bitrise-io/pkcs12
 github.com/bitrise-io/pkcs12/internal/rc2
 # github.com/davecgh/go-spew v1.1.1
@@ -92,10 +94,10 @@ github.com/stretchr/objx
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
-# golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+# golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871
 ## explicit
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/sys v0.0.0-20211013075003-97ac67df715c
+# golang.org/x/sys v0.0.0-20211124211545-fe61309f8881
 ## explicit
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -110,6 +112,6 @@ golang.org/x/text/unicode/norm
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 ## explicit
 gopkg.in/yaml.v3
-# howett.net/plist v0.0.0-20201203080718-1454fab16a06
+# howett.net/plist v1.0.0
 ## explicit
 howett.net/plist

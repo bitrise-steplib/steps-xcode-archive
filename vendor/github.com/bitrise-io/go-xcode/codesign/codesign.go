@@ -50,11 +50,12 @@ type Opts struct {
 type Manager struct {
 	opts Opts
 
-	appleAuthCredentials   appleauth.Credentials
-	bitriseConnection      *devportalservice.AppleDeveloperConnection
-	devPortalClientFactory devportalclient.Factory
-	certDownloader         autocodesign.CertificateProvider
-	assetWriter            autocodesign.AssetWriter
+	appleAuthCredentials      appleauth.Credentials
+	bitriseConnection         *devportalservice.AppleDeveloperConnection
+	devPortalClientFactory    devportalclient.Factory
+	certDownloader            autocodesign.CertificateProvider
+	assetWriter               autocodesign.AssetWriter
+	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager
 
 	projectFactory projectmanager.Factory
 	project        Project
@@ -65,23 +66,25 @@ type Manager struct {
 // NewManager ...
 func NewManager(
 	opts Opts,
-	logger log.Logger,
 	appleAuth appleauth.Credentials,
 	connection *devportalservice.AppleDeveloperConnection,
 	clientFactory devportalclient.Factory,
 	certDownloader autocodesign.CertificateProvider,
 	assetWriter autocodesign.AssetWriter,
+	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
 	projectFactory projectmanager.Factory,
+	logger log.Logger,
 ) Manager {
 	return Manager{
-		opts:                   opts,
-		appleAuthCredentials:   appleAuth,
-		bitriseConnection:      connection,
-		devPortalClientFactory: clientFactory,
-		certDownloader:         certDownloader,
-		assetWriter:            assetWriter,
-		projectFactory:         projectFactory,
-		logger:                 logger,
+		opts:                      opts,
+		appleAuthCredentials:      appleAuth,
+		bitriseConnection:         connection,
+		devPortalClientFactory:    clientFactory,
+		certDownloader:            certDownloader,
+		assetWriter:               assetWriter,
+		localCodeSignAssetManager: localCodeSignAssetManager,
+		projectFactory:            projectFactory,
+		logger:                    logger,
 	}
 }
 
@@ -317,7 +320,7 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 		return err
 	}
 
-	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.certDownloader, m.assetWriter)
+	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.certDownloader, m.assetWriter, m.localCodeSignAssetManager)
 
 	// Fetch and apply codesigning assets
 	var testDevices []devportalservice.TestDevice

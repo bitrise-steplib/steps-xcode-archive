@@ -11,10 +11,10 @@ import (
 
 // EnsureTestDevices fetches devices from Apple, and register missing devices.
 // Leave testDevices empty, to skip device registration.
-func EnsureTestDevices(deviceClient DevPortalClient, testDevices []devportalservice.TestDevice, platform Platform) ([]string, error) {
-	var devPortalDeviceIDs []string
-
+func EnsureTestDevices(deviceClient DevPortalClient, testDevices []devportalservice.TestDevice, platform Platform) ([]appstoreconnect.Device, error) {
+	fmt.Println()
 	log.Infof("Fetching Apple Developer Portal devices")
+
 	// IOS device platform includes: APPLE_WATCH, IPAD, IPHONE, IPOD and APPLE_TV device classes.
 	devPortalDevices, err := deviceClient.ListDevices("", appstoreconnect.IOSDevice)
 	if err != nil {
@@ -41,12 +41,7 @@ func EnsureTestDevices(deviceClient DevPortalClient, testDevices []devportalserv
 	}
 
 	devPortalDevices = filterDevPortalDevices(devPortalDevices, platform)
-
-	for _, devPortalDevice := range devPortalDevices {
-		devPortalDeviceIDs = append(devPortalDeviceIDs, devPortalDevice.ID)
-	}
-
-	return devPortalDeviceIDs, nil
+	return devPortalDevices, nil
 }
 
 func registerMissingTestDevices(client DevPortalClient, testDevices []devportalservice.TestDevice, devPortalDevices []appstoreconnect.Device) ([]appstoreconnect.Device, error) {

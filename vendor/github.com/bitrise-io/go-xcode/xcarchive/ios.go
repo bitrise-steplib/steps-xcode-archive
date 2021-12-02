@@ -55,18 +55,10 @@ func newIosBaseApplication(path string) (iosBaseApplication, error) {
 		provisioningProfile = profile
 	}
 
-	entitlements := plistutil.PlistData{}
-	{
-		entitlementsPath := filepath.Join(path, "archived-expanded-entitlements.xcent")
-		if exist, err := pathutil.IsPathExists(entitlementsPath); err != nil {
-			return iosBaseApplication{}, fmt.Errorf("failed to check if entitlements exists at: %s, error: %s", entitlementsPath, err)
-		} else if exist {
-			plist, err := plistutil.NewPlistDataFromFile(entitlementsPath)
-			if err != nil {
-				return iosBaseApplication{}, err
-			}
-			entitlements = plist
-		}
+	executable := executableNameFromInfoPlist(infoPlist)
+	entitlements, err := getEntitlements(path, executable)
+	if err != nil {
+		return iosBaseApplication{}, err
 	}
 
 	return iosBaseApplication{
