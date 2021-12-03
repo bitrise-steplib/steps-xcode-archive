@@ -27,7 +27,7 @@ description: |-
   3. **Perform clean action**: If this input is set, a `clean` xcodebuild action will be performed besides the `archive` action.
 
   Under **Xcode build log formatting**:
-  1. **Log formatter**: Defines how `xcodebuild` command's log is formatted. Available options are `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log. 
+  1. **Log formatter**: Defines how `xcodebuild` command's log is formatted. Available options are `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
   The raw xcodebuild log is exported in both cases.
 
   Under **Automatic code signing**:
@@ -50,7 +50,7 @@ description: |-
 
   Under **Caching**:
   1. **Enable collecting cache content**: Defines what cache content should be automatically collected. Available options are `none`: Disable collecting cache content and `swift_packages`: Collect Swift PM packages added to the Xcode project
-  
+
   Under Debugging:
   1. **Verbose logging***: You can set this input to `yes` to produce more informative logs.
 website: https://github.com/bitrise-steplib/steps-xcode-archive
