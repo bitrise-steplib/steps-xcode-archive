@@ -1,45 +1,58 @@
 title: Xcode Archive & Export for iOS
-summary: Run the Xcode archive command and then export an .ipa from the archive.
+summary: Automatically manages your code signing assets, archives and exports an .ipa in one Step.
 description: |-
-
-  The Step archives your Xcode project by running the `xcodebuild archive` command and then exports the archive into an .ipa file with the `xcodebuild -exportArchive` command. This .ipa file can be shared, installed on test devices, or uploaded to the App Store Connect.
+  The Step archives your Xcode project by running the `xcodebuild archive` command and then exports the archive into an .ipa file with the `xcodebuild -exportArchive` command.
+  This .ipa file can be shared, installed on test devices, or uploaded to the App Store Connect.
+  With this Step, you can use automatic code signing in a [CI environment without having to use Xcode](https://developer.apple.com/documentation/xcode-release-notes/xcode-13-release-notes).
+  In short, the Step:
+  - Logs you into your Apple Developer account based on the [Apple service connection you provide on Bitrise](https://devcenter.bitrise.io/en/accounts/connecting-to-services/apple-services-connection.html).
+  - Downloads any provisioning profiles needed for your project based on the **Distribution method**.
+  - Runs your build. It archives your Xcode project by running the `xcodebuild archive` command and exports the archive into an .ipa file with the `xcodebuild -exportArchive` command.
+  This .ipa file can be shared and installed on test devices, or uploaded to App Store Connect.
 
   ### Configuring the Step
-
-  Before you can use the Step, you need code signing files. Certificates must be uploaded to Bitrise while provisioning profiles should be either uploaded or, if using the iOS Auto Provisioning Step, downloaded from the Apple Developer Portal or generated automatically.
+  Before you start:
+  - Make sure you have connected your [Apple Service account to Bitrise](https://devcenter.bitrise.io/en/accounts/connecting-to-services/apple-services-connection.html).
+  Alternatively, you can upload certificates and profiles to Bitrise manually, then use the Certificate and Profile installer step before Xcode Archive
+  - Make sure certificates are uploaded to Bitrise's **Code Signing** tab. The right provisioning profiles are automatically downloaded from Apple as part of the automatic code signing process.
 
   To configure the Step:
+  1. **Project path**: Add the path where the Xcode Project or Workspace is located.
+  2. **Scheme**: Add the scheme name you wish to archive your project later.
+  3. **Distribution method**: Select the method Xcode should sign your project: development, app-store, ad-hoc, or enterprise.
 
-  1. Make sure the **Project path** input points to the correct location.
+  Under **xcodebuild configuration**:
+  1. **Build configuration**: Specify Xcode Build Configuration. The Step uses the provided Build Configuration's Build Settings to understand your project's code signing configuration. If not provided, the Archive action's default Build Configuration will be used.
+  2. **Build settings (xconfig)**: Build settings to override the project's build settings. The build settings must be separated by a newline character (`\n`).
+  3. **Perform clean action**: If this input is set, a `clean` xcodebuild action will be performed besides the `archive` action.
 
-     By default, you do not have to change this.
-  2. Set the correct value to the **Distribution method** input. If you use the **iOS Auto Provision** Step, the value of this input should be the same as the **Distribution type** input of that Step.
-  3. Make sure the target scheme is a valid, existing Xcode scheme.
-  4. Optionally, you can define a configuration type to be used (such as Debug or Release) in the **Build configuration** input.
+  Under **Xcode build log formatting**:
+  1. **Log formatter**: Defines how `xcodebuild` command's log is formatted. Available options are `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
+  The raw xcodebuild log is exported in both cases.
 
-     By default, the selected Xcode scheme determines which configuration will be used. This option overwrites the configuration set in the scheme.
-  5. If you wish to use a different Developer portal team than the one set in your Xcode project, enter the ID in the **Developer Portal team** input.
+  Under **Automatic code signing**:
+  1. **Automatic code signing method**: Select the Apple service connection you want to use for code signing. Available options: `off` if you don't do automatic code signing, `api-key` [if you use API key authorization](https://devcenter.bitrise.io/en/accounts/connecting-to-services/connecting-to-an-apple-service-with-api-key.html), and `apple-id` [if you use Apple ID authorization](https://devcenter.bitrise.io/en/accounts/connecting-to-services/connecting-to-an-apple-service-with-apple-id.html).
+  2. **Register test devices on the Apple Developer Portal**: If this input is set, the Step will register the known test devices on Bitrise from team members with the Apple Developer Portal. Note that setting this to `yes` may cause devices to be registered against your limited quantity of test devices in the Apple Developer Portal, which can only be removed once annually during your renewal window.
+  3. **The minimum days the Provisioning Profile should be valid**: If this input is set to >0, the managed Provisioning Profile will be renewed if it expires within the configured number of days. Otherwise the Step renews the managed Provisioning Profile if it is expired.
+  4. The **Code signing certificate URL**, the **Code signing certificate passphrase**, the **Keychain path**, and the **Keychain password** inputs are automatically populated if certificates are uploaded to Bitrise's **Code Signing** tab. If you store your files in a private repo, you can manually edit these fields.
 
-  ### Troubleshooting
+  Under **IPA export configuration**:
+  1. **Developer Portal team**: Add the Developer Portal team's name to use for this export. This input defaults to the team used to build the archive.
+  2. **Rebuild from bitcode**: For non-App Store exports, should Xcode re-compile the app from bitcode?
+  3. **Include bitcode**: For App Store exports, should the package include bitcode?
+  4. **iCloud container environment**: If the app is using CloudKit, this input configures the `com.apple.developer.icloud-container-environment` entitlement. Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`.
+  5. **Export options plist content**: Specifies a `plist` file content that configures archive exporting. If not specified, the Step will auto-generate it.
 
-  If the Step fails, check your code signing files first. Make sure they are the right type for your export method. For example, an `app-store` distribution method requires an App Store type provisioning profile and a Distribution certificate.
+  Under **Step Output Export configuration**:
+  1. **Output directory path**: This directory will contain the generated artifacts.
+  2. **Export all dSYMs**: Export additional dSYM files besides the app dSYM file for Frameworks.
+  3. **Override generated artifact names**:  This name is used as basename for the generated Xcode archive, app, `.ipa` and dSYM files. If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used. If Product Name is not specified, the Scheme will be used.
 
-  Check **Debugging** for additional options to run the Step. The **Additional options for xcodebuild command** input allows you add any flags that the `xcodebuild` command supports.
+  Under **Caching**:
+  1. **Enable collecting cache content**: Defines what cache content should be automatically collected. Available options are `none`: Disable collecting cache content and `swift_packages`: Collect Swift PM packages added to the Xcode project
 
-  Make sure the **Scheme** and **Build configuration** inputs contain values that actually exist in your Xcode project.
-
-  ### Useful links
-
-  - https://devcenter.bitrise.io/code-signing/ios-code-signing/create-signed-ipa-for-xcode/
-  - https://devcenter.bitrise.io/code-signing/ios-code-signing/resigning-an-ipa/
-  - https://devcenter.bitrise.io/deploy/ios-deploy/ios-deploy-index/
-
-  ### Related Steps
-
-  - [Certificate and profile installer](https://www.bitrise.io/integrations/steps/certificate-and-profile-installer)
-  - [iOS Auto Provision](https://www.bitrise.io/integrations/steps/ios-auto-provision)
-  - [Deploy to iTunesConnect](https://www.bitrise.io/integrations/steps/deploy-to-itunesconnect-deliver)
-
+  Under Debugging:
+  1. **Verbose logging***: You can set this input to `yes` to produce more informative logs.
 website: https://github.com/bitrise-steplib/steps-xcode-archive
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive
 support_url: https://github.com/bitrise-steplib/steps-xcode-archive/issues
