@@ -17,11 +17,6 @@ func certificateSerials(certsByType map[appstoreconnect.CertificateType][]autoco
 	return serials
 }
 
-func remove(slice []string, i int) []string {
-	copy(slice[i:], slice[i+1:])
-	return slice[:len(slice)-1]
-}
-
 func contains(array []string, element string) bool {
 	for _, item := range array {
 		if item == element {

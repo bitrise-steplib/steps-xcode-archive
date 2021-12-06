@@ -145,7 +145,8 @@ func (c *ProfileClient) FindProfile(name string, profileType appstoreconnect.Pro
 // DeleteProfile ...
 func (c *ProfileClient) DeleteProfile(id string) error {
 	if err := c.client.Provisioning.DeleteProfile(id); err != nil {
-		if respErr, ok := err.(appstoreconnect.ErrorResponse); ok {
+		var respErr appstoreconnect.ErrorResponse
+		if ok := errors.As(err, &respErr); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return nil
 			}

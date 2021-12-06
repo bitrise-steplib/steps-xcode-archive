@@ -54,25 +54,25 @@ type Manager struct {
 	bitriseConnection         *devportalservice.AppleDeveloperConnection
 	devPortalClientFactory    devportalclient.Factory
 	certDownloader            autocodesign.CertificateProvider
-	assetWriter               autocodesign.AssetWriter
+	assetInstaller            autocodesign.AssetWriter
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager
 
-	projectFactory projectmanager.Factory
-	project        Project
+	detailsProvider DetailsProvider
+	assetWriter     AssetWriter
 
 	logger log.Logger
 }
 
-// NewManager ...
-func NewManager(
+// NewManagerWithArchive creates a codesign manager, which reads the code signing asset requirements from an XCArchive file.
+func NewManagerWithArchive(
 	opts Opts,
 	appleAuth appleauth.Credentials,
 	connection *devportalservice.AppleDeveloperConnection,
 	clientFactory devportalclient.Factory,
 	certDownloader autocodesign.CertificateProvider,
-	assetWriter autocodesign.AssetWriter,
+	assetInstaller autocodesign.AssetWriter,
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
-	projectFactory projectmanager.Factory,
+	archive Archive,
 	logger log.Logger,
 ) Manager {
 	return Manager{
@@ -81,31 +81,49 @@ func NewManager(
 		bitriseConnection:         connection,
 		devPortalClientFactory:    clientFactory,
 		certDownloader:            certDownloader,
-		assetWriter:               assetWriter,
+		assetInstaller:            assetInstaller,
 		localCodeSignAssetManager: localCodeSignAssetManager,
-		projectFactory:            projectFactory,
+		detailsProvider:           archive,
 		logger:                    logger,
 	}
 }
 
-// Project ...
-type Project interface {
+// NewManagerWithProject creates a codesign manager, which reads the code signing asset requirements from an Xcode Project.
+func NewManagerWithProject(
+	opts Opts,
+	appleAuth appleauth.Credentials,
+	connection *devportalservice.AppleDeveloperConnection,
+	clientFactory devportalclient.Factory,
+	certDownloader autocodesign.CertificateProvider,
+	assetInstaller autocodesign.AssetWriter,
+	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
+	project projectmanager.Project,
+	logger log.Logger,
+) Manager {
+	return Manager{
+		opts:                      opts,
+		appleAuthCredentials:      appleAuth,
+		bitriseConnection:         connection,
+		devPortalClientFactory:    clientFactory,
+		certDownloader:            certDownloader,
+		assetInstaller:            assetInstaller,
+		localCodeSignAssetManager: localCodeSignAssetManager,
+		detailsProvider:           project,
+		assetWriter:               project,
+		logger:                    logger,
+	}
+}
+
+// DetailsProvider ...
+type DetailsProvider interface {
 	IsSigningManagedAutomatically() (bool, error)
 	Platform() (autocodesign.Platform, error)
 	GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error)
-	ForceCodesignAssets(distribution autocodesign.DistributionType, codesignAssetsByDistributionType map[autocodesign.DistributionType]autocodesign.AppCodesignAssets) error
 }
 
-func (m *Manager) getProject() (Project, error) {
-	if m.project == nil {
-		var err error
-		m.project, err = m.projectFactory.Create()
-		if err != nil {
-			return nil, fmt.Errorf("failed to open project: %s", err)
-		}
-	}
-
-	return m.project, nil
+// AssetWriter ...
+type AssetWriter interface {
+	ForceCodesignAssets(distribution autocodesign.DistributionType, codesignAssetsByDistributionType map[autocodesign.DistributionType]autocodesign.AppCodesignAssets) error
 }
 
 // PrepareCodesigning selects a suitable code signing strategy based on the step and project configuration,
@@ -216,12 +234,7 @@ func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials) (
 		return codeSigningBitriseAPIKey, "Using Bitrise-managed code signing assets with API key because 'xcodebuild -allowProvisioningUpdates' with API authentication requires Xcode 13 or higher.", nil
 	}
 
-	project, err := m.getProject()
-	if err != nil {
-		return codeSigningXcode, "Parsing project failed.", err
-	}
-
-	isManaged, err := project.IsSigningManagedAutomatically()
+	isManaged, err := m.detailsProvider.IsSigningManagedAutomatically()
 	if err != nil {
 		return codeSigningBitriseAPIKey, manualProfilesReason, err
 	}
@@ -265,7 +278,7 @@ func (m *Manager) downloadAndInstallCertificates() error {
 	for _, cert := range certificates {
 		m.logger.Printf("- %s", cert)
 		// Empty passphrase provided, as already parsed certificate + private key
-		if err := m.assetWriter.InstallCertificate(cert); err != nil {
+		if err := m.assetInstaller.InstallCertificate(cert); err != nil {
 			return err
 		}
 	}
@@ -274,12 +287,7 @@ func (m *Manager) downloadAndInstallCertificates() error {
 }
 
 func (m *Manager) registerTestDevices(credentials appleauth.Credentials, devices []devportalservice.TestDevice) error {
-	project, err := m.getProject()
-	if err != nil {
-		return err
-	}
-
-	platform, err := project.Platform()
+	platform, err := m.detailsProvider.Platform()
 	if err != nil {
 		return fmt.Errorf("failed to read platform from project: %s", err)
 	}
@@ -301,12 +309,7 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 	// Analyze project
 	fmt.Println()
 	m.logger.Infof("Analyzing project")
-	project, err := m.getProject()
-	if err != nil {
-		return err
-	}
-
-	appLayout, err := project.GetAppLayout(m.opts.SignUITests)
+	appLayout, err := m.detailsProvider.GetAppLayout(m.opts.SignUITests)
 	if err != nil {
 		return err
 	}
@@ -320,7 +323,7 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 		return err
 	}
 
-	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.certDownloader, m.assetWriter, m.localCodeSignAssetManager)
+	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.certDownloader, m.assetInstaller, m.localCodeSignAssetManager)
 
 	// Fetch and apply codesigning assets
 	var testDevices []devportalservice.TestDevice
@@ -337,8 +340,10 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 		return err
 	}
 
-	if err := project.ForceCodesignAssets(m.opts.ExportMethod, codesignAssetsByDistributionType); err != nil {
-		return fmt.Errorf("failed to force codesign settings: %s", err)
+	if m.assetWriter != nil {
+		if err := m.assetWriter.ForceCodesignAssets(m.opts.ExportMethod, codesignAssetsByDistributionType); err != nil {
+			return fmt.Errorf("failed to force codesign settings: %s", err)
+		}
 	}
 
 	return nil
