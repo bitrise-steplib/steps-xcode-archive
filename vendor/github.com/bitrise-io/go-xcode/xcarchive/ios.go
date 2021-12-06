@@ -1,6 +1,7 @@
 package xcarchive
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -385,37 +386,38 @@ func (archive IosArchive) Platform() (autocodesign.Platform, error) {
 	}
 }
 
+// TeamID ...
+func (archive IosArchive) TeamID() (string, error) {
+	bundleIDProfileInfoMap := archive.BundleIDProfileInfoMap()
+	for _, profileInfo := range bundleIDProfileInfoMap {
+		return profileInfo.TeamID, nil
+	}
+	return "", errors.New("team id not found")
+}
+
 // ReadCodesignParameters ...
 func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, error) {
-	var teamID string
+	platform, err := archive.Platform()
+	if err != nil {
+		return nil, err
+	}
+
+	teamID, err := archive.TeamID()
+	if err != nil {
+		return nil, err
+	}
+
+	bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
+
 	entitlementsMap := map[string]autocodesign.Entitlements{}
-
-	bundleIDProfileInfoMap := archive.BundleIDProfileInfoMap()
-	for bundleIdentifier, provisioningProfile := range bundleIDProfileInfoMap {
-		if teamID == "" {
-			teamID = provisioningProfile.TeamID
-		}
-
-		entitlementsMap[bundleIdentifier] = autocodesign.Entitlements(provisioningProfile.Entitlements)
+	for bundleID, entitlements := range bundleIDEntitlementsMap {
+		entitlementsMap[bundleID] = autocodesign.Entitlements(entitlements)
 	}
 
-	var platform autocodesign.Platform
-
-	platformName := archive.Application.InfoPlist["DTPlatformName"]
-	switch platformName {
-	case "iphoneos":
-		platform = autocodesign.IOS
-	case "appletvos":
-		platform = autocodesign.TVOS
-	default:
-		return nil, fmt.Errorf("unsupported platform found: %s", platformName)
-	}
-
-	codesignParameters := autocodesign.AppLayout{
-		TeamID:                                 teamID,
+	return &autocodesign.AppLayout{
 		Platform:                               platform,
+		TeamID:                                 teamID,
 		EntitlementsByArchivableTargetBundleID: entitlementsMap,
 		UITestTargetBundleIDs:                  nil,
-	}
-	return &codesignParameters, nil
+	}, nil
 }

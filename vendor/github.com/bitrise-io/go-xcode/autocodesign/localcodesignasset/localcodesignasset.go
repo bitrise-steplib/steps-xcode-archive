@@ -65,7 +65,12 @@ func (m Manager) FindCodesignAssets(appLayout autocodesign.AppLayout, distrTypes
 		}
 
 		if distrType == autocodesign.Development {
-			for i, bundleID := range appLayout.UITestTargetBundleIDs {
+			bundleIDs := map[string]bool{}
+			for _, bundleID := range appLayout.UITestTargetBundleIDs {
+				bundleIDs[bundleID] = true // profile missing?
+			}
+
+			for bundleID := range bundleIDs {
 				wildcardBundleID, err := autocodesign.CreateWildcardBundleID(bundleID)
 				if err != nil {
 					return nil, nil, fmt.Errorf("could not create wildcard bundle id: %s", err)
@@ -98,8 +103,17 @@ func (m Manager) FindCodesignAssets(appLayout autocodesign.AppLayout, distrTypes
 					asset.UITestTargetProfilesByBundleID = profileByUITestTargetBundleID
 				}
 
-				appLayout.UITestTargetBundleIDs = remove(appLayout.UITestTargetBundleIDs, i)
+				bundleIDs[bundleID] = false
 			}
+
+			var uiTestTargetBundleIDs []string
+			for bundleID, missing := range bundleIDs {
+				if missing {
+					uiTestTargetBundleIDs = append(uiTestTargetBundleIDs, bundleID)
+				}
+			}
+
+			appLayout.UITestTargetBundleIDs = uiTestTargetBundleIDs
 		}
 
 		if asset != nil {
