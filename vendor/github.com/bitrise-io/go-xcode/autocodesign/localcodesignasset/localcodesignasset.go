@@ -22,20 +22,59 @@ func NewManager(provisioningProfileProvider ProvisioningProfileProvider, provisi
 }
 
 // FindCodesignAssets ...
-func (m Manager) FindCodesignAssets(appLayout autocodesign.AppLayout, distrTypes []autocodesign.DistributionType, certsByType map[appstoreconnect.CertificateType][]autocodesign.Certificate, deviceIDs []string, minProfileDaysValid int) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, *autocodesign.AppLayout, error) {
+func (m Manager) FindCodesignAssets(appLayout autocodesign.AppLayout, distrType autocodesign.DistributionType, certsByType map[appstoreconnect.CertificateType][]autocodesign.Certificate, deviceIDs []string, minProfileDaysValid int) (*autocodesign.AppCodesignAssets, *autocodesign.AppLayout, error) {
 	profiles, err := m.profileProvider.ListProvisioningProfiles()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	assetsByDistribution := map[autocodesign.DistributionType]autocodesign.AppCodesignAssets{}
+	certSerials := certificateSerials(certsByType, distrType)
 
-	for _, distrType := range distrTypes {
-		certSerials := certificateSerials(certsByType, distrType)
+	var asset *autocodesign.AppCodesignAssets
+	for bundleID, entitlements := range appLayout.EntitlementsByArchivableTargetBundleID {
+		profileInfo := findProfile(profiles, appLayout.Platform, distrType, bundleID, entitlements, minProfileDaysValid, certSerials, deviceIDs)
+		if profileInfo == nil {
+			continue
+		}
 
-		var asset *autocodesign.AppCodesignAssets
-		for bundleID, entitlements := range appLayout.EntitlementsByArchivableTargetBundleID {
-			profileInfo := findProfile(profiles, appLayout.Platform, distrType, bundleID, entitlements, minProfileDaysValid, certSerials, deviceIDs)
+		profile, err := m.profileConverter.ProfileInfoToProfile(*profileInfo)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if asset == nil {
+			asset = &autocodesign.AppCodesignAssets{
+				ArchivableTargetProfilesByBundleID: map[string]autocodesign.Profile{
+					bundleID: profile,
+				},
+			}
+		} else {
+			profileByArchivableTargetBundleID := asset.ArchivableTargetProfilesByBundleID
+			if profileByArchivableTargetBundleID == nil {
+				profileByArchivableTargetBundleID = map[string]autocodesign.Profile{}
+			}
+
+			profileByArchivableTargetBundleID[bundleID] = profile
+			asset.ArchivableTargetProfilesByBundleID = profileByArchivableTargetBundleID
+		}
+
+		delete(appLayout.EntitlementsByArchivableTargetBundleID, bundleID)
+	}
+
+	if distrType == autocodesign.Development {
+		bundleIDs := map[string]bool{}
+		for _, bundleID := range appLayout.UITestTargetBundleIDs {
+			bundleIDs[bundleID] = true // profile missing?
+		}
+
+		for bundleID := range bundleIDs {
+			wildcardBundleID, err := autocodesign.CreateWildcardBundleID(bundleID)
+			if err != nil {
+				return nil, nil, fmt.Errorf("could not create wildcard bundle id: %s", err)
+			}
+
+			// Capabilities are not supported for UITest targets.
+			profileInfo := findProfile(profiles, appLayout.Platform, distrType, wildcardBundleID, nil, minProfileDaysValid, certSerials, deviceIDs)
 			if profileInfo == nil {
 				continue
 			}
@@ -47,92 +86,47 @@ func (m Manager) FindCodesignAssets(appLayout autocodesign.AppLayout, distrTypes
 
 			if asset == nil {
 				asset = &autocodesign.AppCodesignAssets{
-					ArchivableTargetProfilesByBundleID: map[string]autocodesign.Profile{
+					UITestTargetProfilesByBundleID: map[string]autocodesign.Profile{
 						bundleID: profile,
 					},
 				}
 			} else {
-				profileByArchivableTargetBundleID := asset.ArchivableTargetProfilesByBundleID
-				if profileByArchivableTargetBundleID == nil {
-					profileByArchivableTargetBundleID = map[string]autocodesign.Profile{}
+				profileByUITestTargetBundleID := asset.UITestTargetProfilesByBundleID
+				if profileByUITestTargetBundleID == nil {
+					profileByUITestTargetBundleID = map[string]autocodesign.Profile{}
 				}
 
-				profileByArchivableTargetBundleID[bundleID] = profile
-				asset.ArchivableTargetProfilesByBundleID = profileByArchivableTargetBundleID
+				profileByUITestTargetBundleID[bundleID] = profile
+				asset.UITestTargetProfilesByBundleID = profileByUITestTargetBundleID
 			}
 
-			delete(appLayout.EntitlementsByArchivableTargetBundleID, bundleID)
+			bundleIDs[bundleID] = false
 		}
 
-		if distrType == autocodesign.Development {
-			bundleIDs := map[string]bool{}
-			for _, bundleID := range appLayout.UITestTargetBundleIDs {
-				bundleIDs[bundleID] = true // profile missing?
+		var uiTestTargetBundleIDs []string
+		for bundleID, missing := range bundleIDs {
+			if missing {
+				uiTestTargetBundleIDs = append(uiTestTargetBundleIDs, bundleID)
 			}
-
-			for bundleID := range bundleIDs {
-				wildcardBundleID, err := autocodesign.CreateWildcardBundleID(bundleID)
-				if err != nil {
-					return nil, nil, fmt.Errorf("could not create wildcard bundle id: %s", err)
-				}
-
-				// Capabilities are not supported for UITest targets.
-				profileInfo := findProfile(profiles, appLayout.Platform, distrType, wildcardBundleID, nil, minProfileDaysValid, certSerials, deviceIDs)
-				if profileInfo == nil {
-					continue
-				}
-
-				profile, err := m.profileConverter.ProfileInfoToProfile(*profileInfo)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				if asset == nil {
-					asset = &autocodesign.AppCodesignAssets{
-						UITestTargetProfilesByBundleID: map[string]autocodesign.Profile{
-							bundleID: profile,
-						},
-					}
-				} else {
-					profileByUITestTargetBundleID := asset.UITestTargetProfilesByBundleID
-					if profileByUITestTargetBundleID == nil {
-						profileByUITestTargetBundleID = map[string]autocodesign.Profile{}
-					}
-
-					profileByUITestTargetBundleID[bundleID] = profile
-					asset.UITestTargetProfilesByBundleID = profileByUITestTargetBundleID
-				}
-
-				bundleIDs[bundleID] = false
-			}
-
-			var uiTestTargetBundleIDs []string
-			for bundleID, missing := range bundleIDs {
-				if missing {
-					uiTestTargetBundleIDs = append(uiTestTargetBundleIDs, bundleID)
-				}
-			}
-
-			appLayout.UITestTargetBundleIDs = uiTestTargetBundleIDs
 		}
 
-		if asset != nil {
-			// We will always have a certificate at this point because if we do not have any then we also could not have
-			// found a profile as all of them requires at least one certificate.
-			certificate, err := autocodesign.SelectCertificate(certsByType, distrType)
-			if err != nil {
-				return nil, nil, err
-			}
+		appLayout.UITestTargetBundleIDs = uiTestTargetBundleIDs
+	}
 
-			asset.Certificate = certificate.CertificateInfo
-
-			assetsByDistribution[distrType] = *asset
+	if asset != nil {
+		// We will always have a certificate at this point because if we do not have any then we also could not have
+		// found a profile as all of them requires at least one certificate.
+		certificate, err := autocodesign.SelectCertificate(certsByType, distrType)
+		if err != nil {
+			return nil, nil, err
 		}
+
+		asset.Certificate = certificate.CertificateInfo
 	}
 
 	if len(appLayout.EntitlementsByArchivableTargetBundleID) == 0 && len(appLayout.UITestTargetBundleIDs) == 0 {
-		return assetsByDistribution, nil, nil
+		return asset, nil, nil
 	}
 
-	return assetsByDistribution, &appLayout, nil
+	return asset, &appLayout, nil
 }
