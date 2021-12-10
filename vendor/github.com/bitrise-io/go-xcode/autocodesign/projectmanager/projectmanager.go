@@ -83,13 +83,6 @@ func (p Project) MainTargetBundleID() (string, error) {
 func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error) {
 	log.Printf("Configuration: %s", p.projHelper.Configuration)
 
-	teamID, err := p.projHelper.ProjectTeamID(p.projHelper.Configuration)
-	if err != nil {
-		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project team ID: %s", err)
-	}
-
-	log.Printf("Project team ID: %s", teamID)
-
 	platform, err := p.projHelper.Platform(p.projHelper.Configuration)
 	if err != nil {
 		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project platform: %s", err)
@@ -126,7 +119,6 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 	}
 
 	return autocodesign.AppLayout{
-		TeamID:                                 teamID,
 		Platform:                               platform,
 		EntitlementsByArchivableTargetBundleID: archivableTargetBundleIDToEntitlements,
 		UITestTargetBundleIDs:                  uiTestTargetBundleIDs,

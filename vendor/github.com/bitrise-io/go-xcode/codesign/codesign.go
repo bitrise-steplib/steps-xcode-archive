@@ -261,7 +261,7 @@ func (m *Manager) downloadAndInstallCertificates() error {
 		panic(fmt.Sprintf("no valid certificate provided for distribution type: %s", m.opts.ExportMethod))
 	}
 
-	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certificates, m.opts.TeamID)
+	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certificates)
 	if err != nil {
 		return err
 	}
@@ -314,11 +314,7 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 		return err
 	}
 
-	if m.opts.TeamID != "" {
-		appLayout.TeamID = m.opts.TeamID
-	}
-
-	devPortalClient, err := m.devPortalClientFactory.Create(credentials, appLayout.TeamID)
+	devPortalClient, err := m.devPortalClientFactory.Create(credentials, m.opts.TeamID)
 	if err != nil {
 		return err
 	}
