@@ -402,11 +402,6 @@ func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, err
 		return nil, err
 	}
 
-	teamID, err := archive.TeamID()
-	if err != nil {
-		return nil, err
-	}
-
 	bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
 
 	entitlementsMap := map[string]autocodesign.Entitlements{}
@@ -416,7 +411,6 @@ func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, err
 
 	return &autocodesign.AppLayout{
 		Platform:                               platform,
-		TeamID:                                 teamID,
 		EntitlementsByArchivableTargetBundleID: entitlementsMap,
 		UITestTargetBundleIDs:                  nil,
 	}, nil

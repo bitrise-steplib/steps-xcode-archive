@@ -4,7 +4,6 @@ package autocodesign
 
 import (
 	appstoreconnect "github.com/bitrise-io/go-xcode/autocodesign/devportalclient/appstoreconnect"
-
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -13,24 +12,24 @@ type MockLocalCodeSignAssetManager struct {
 	mock.Mock
 }
 
-// FindCodesignAssets provides a mock function with given fields: appLayout, distrTypes, certsByType, deviceIDs, minProfileDaysValid
-func (_m *MockLocalCodeSignAssetManager) FindCodesignAssets(appLayout AppLayout, distrTypes []DistributionType, certsByType map[appstoreconnect.CertificateType][]Certificate, deviceIDs []string, minProfileDaysValid int) (map[DistributionType]AppCodesignAssets, *AppLayout, error) {
-	ret := _m.Called(appLayout, distrTypes, certsByType, deviceIDs, minProfileDaysValid)
+// FindCodesignAssets provides a mock function with given fields: appLayout, distrType, certsByType, deviceIDs, minProfileDaysValid
+func (_m *MockLocalCodeSignAssetManager) FindCodesignAssets(appLayout AppLayout, distrType DistributionType, certsByType map[appstoreconnect.CertificateType][]Certificate, deviceIDs []string, minProfileDaysValid int) (*AppCodesignAssets, *AppLayout, error) {
+	ret := _m.Called(appLayout, distrType, certsByType, deviceIDs, minProfileDaysValid)
 
-	var r0 map[DistributionType]AppCodesignAssets
-	if rf, ok := ret.Get(0).(func(AppLayout, []DistributionType, map[appstoreconnect.CertificateType][]Certificate, []string, int) map[DistributionType]AppCodesignAssets); ok {
-		r0 = rf(appLayout, distrTypes, certsByType, deviceIDs, minProfileDaysValid)
+	var r0 *AppCodesignAssets
+	if rf, ok := ret.Get(0).(func(AppLayout, DistributionType, map[appstoreconnect.CertificateType][]Certificate, []string, int) *AppCodesignAssets); ok {
+		r0 = rf(appLayout, distrType, certsByType, deviceIDs, minProfileDaysValid)
 	} else {
 		if ret.Get(0) != nil {
-			r0, ok = ret.Get(0).(map[DistributionType]AppCodesignAssets)
+			r0, ok = ret.Get(0).(*AppCodesignAssets)
 			if !ok {
 			}
 		}
 	}
 
 	var r1 *AppLayout
-	if rf, ok := ret.Get(1).(func(AppLayout, []DistributionType, map[appstoreconnect.CertificateType][]Certificate, []string, int) *AppLayout); ok {
-		r1 = rf(appLayout, distrTypes, certsByType, deviceIDs, minProfileDaysValid)
+	if rf, ok := ret.Get(1).(func(AppLayout, DistributionType, map[appstoreconnect.CertificateType][]Certificate, []string, int) *AppLayout); ok {
+		r1 = rf(appLayout, distrType, certsByType, deviceIDs, minProfileDaysValid)
 	} else {
 		if ret.Get(1) != nil {
 			r1, ok = ret.Get(1).(*AppLayout)
@@ -40,8 +39,8 @@ func (_m *MockLocalCodeSignAssetManager) FindCodesignAssets(appLayout AppLayout,
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(AppLayout, []DistributionType, map[appstoreconnect.CertificateType][]Certificate, []string, int) error); ok {
-		r2 = rf(appLayout, distrTypes, certsByType, deviceIDs, minProfileDaysValid)
+	if rf, ok := ret.Get(2).(func(AppLayout, DistributionType, map[appstoreconnect.CertificateType][]Certificate, []string, int) error); ok {
+		r2 = rf(appLayout, distrType, certsByType, deviceIDs, minProfileDaysValid)
 	} else {
 		r2 = ret.Error(2)
 	}

@@ -137,6 +137,7 @@ workflows:
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
     - CODE_SIGNING_METHOD: apple-id
+    - TEAM_ID: 72SA8V3WYL
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
@@ -185,6 +186,7 @@ workflows:
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - CODE_SIGNING_METHOD: apple-id
+    - TEAM_ID: 72SA8V3WYL
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
     - LOG_FORMATTER: xcpretty

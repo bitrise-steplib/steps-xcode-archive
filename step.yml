@@ -273,6 +273,8 @@ inputs:
 
       Defaults to the team used to build the archive.
 
+      Defining this is also required when Automatic Code Signing is set to `apple-id` and the connected account belongs to multiple teams.
+
 - compile_bitcode: "yes"
   opts:
     category: IPA export configuration

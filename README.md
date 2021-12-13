@@ -89,7 +89,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `passphrase_list` | Passphrases for the provided code signing certificates.  Specify as many passphrases as many Code signing certificate URL provided, separated by a pipe (`\|`) character. | required, sensitive | `$BITRISE_CERTIFICATE_PASSPHRASE` |
 | `keychain_path` | Path to the Keychain where the code signing certificates will be installed. | required | `$HOME/Library/Keychains/login.keychain` |
 | `keychain_password` | Password for the provided Keychain. | required, sensitive | `$BITRISE_KEYCHAIN_PASSWORD` |
-| `export_development_team` | The Developer Portal team to use for this export  Defaults to the team used to build the archive. |  |  |
+| `export_development_team` | The Developer Portal team to use for this export  Defaults to the team used to build the archive.  Defining this is also required when Automatic Code Signing is set to `apple-id` and the connected account belongs to multiple teams. |  |  |
 | `compile_bitcode` | For __non-App Store__ exports, should Xcode re-compile the app from bitcode? | required | `yes` |
 | `upload_bitcode` | For __App Store__ exports, should the package include bitcode? | required | `yes` |
 | `icloud_container_environment` | If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.  Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`. |  |  |
