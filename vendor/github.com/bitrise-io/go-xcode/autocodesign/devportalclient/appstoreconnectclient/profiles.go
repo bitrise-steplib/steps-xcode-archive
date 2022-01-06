@@ -100,7 +100,7 @@ func (p APIProfile) DeviceIDs() ([]string, error) {
 func (p APIProfile) BundleID() (appstoreconnect.BundleID, error) {
 	bundleIDresp, err := p.client.Provisioning.BundleID(p.profile.Relationships.BundleID.Links.Related)
 	if err != nil {
-		return appstoreconnect.BundleID{}, err
+		return appstoreconnect.BundleID{}, wrapInProfileError(err)
 	}
 
 	return bundleIDresp.Data, nil
@@ -145,7 +145,7 @@ func (c *ProfileClient) FindProfile(name string, profileType appstoreconnect.Pro
 // DeleteProfile ...
 func (c *ProfileClient) DeleteProfile(id string) error {
 	if err := c.client.Provisioning.DeleteProfile(id); err != nil {
-		var respErr appstoreconnect.ErrorResponse
+		var respErr *appstoreconnect.ErrorResponse
 		if ok := errors.As(err, &respErr); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return nil
@@ -344,7 +344,7 @@ func (c *ProfileClient) SyncBundleID(bundleID appstoreconnect.BundleID, appEntit
 }
 
 func wrapInProfileError(err error) error {
-	respErr := appstoreconnect.ErrorResponse{}
+	var respErr *appstoreconnect.ErrorResponse
 	if ok := errors.As(err, &respErr); ok {
 		if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 			return autocodesign.NewProfilesInconsistentError(err)

@@ -66,7 +66,8 @@ func registerMissingTestDevices(client DevPortalClient, testDevices []devportals
 			var registrationError appstoreconnect.DeviceRegistrationError
 			if errors.As(err, &registrationError) {
 				log.Warnf("Failed to register device (can be caused by invalid UDID or trying to register a Mac device): %s", registrationError.Reason)
-				return nil, nil
+
+				continue
 			}
 
 			return nil, err
