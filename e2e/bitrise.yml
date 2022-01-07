@@ -3,9 +3,8 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  # Shared test configs
-  - BITRISE_KEYCHAIN_PATH: $HOME/Library/Keychains/login.keychain
   # Shared test secrets
+  - BITRISE_KEYCHAIN_PATH: $BITRISE_KEYCHAIN_PATH
   - BITRISE_KEYCHAIN_PASSWORD: $BITRISE_KEYCHAIN_PASSWORD
   - BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST
   - BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST: $BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
@@ -75,6 +74,8 @@ workflows:
         - export_development_team: $TEAM_ID
         - log_formatter: $LOG_FORMATTER
         - verbose_log: "yes"
+        - keychain_path: $BITRISE_KEYCHAIN_PATH
+        - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
 
   test_api_key_signing_managed:
     description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
@@ -97,7 +98,7 @@ workflows:
     - BITRISE_SCHEME: Fruta iOS
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
-    - IPA_EXPORT_METHOD: development
+    - IPA_EXPORT_METHOD: ad-hoc
     - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
@@ -349,6 +350,8 @@ workflows:
         - export_development_team: $TEAM_ID
         - log_formatter: $LOG_FORMATTER
         - verbose_log: "yes"
+        - keychain_path: $BITRISE_KEYCHAIN_PATH
+        - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
 
   _check_outputs:
     steps:
