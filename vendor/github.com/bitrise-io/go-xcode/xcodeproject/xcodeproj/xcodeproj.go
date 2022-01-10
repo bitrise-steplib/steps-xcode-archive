@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	plist "github.com/bitrise-io/go-plist"
-	"github.com/bitrise-io/go-utils/command"
-	"github.com/bitrise-io/go-utils/env"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -28,9 +26,6 @@ const (
 	// XcodeProjExtension ...
 	XcodeProjExtension = ".xcodeproj"
 )
-
-// TODO remove
-var temporaryFactory = command.NewFactory(env.NewRepository())
 
 // XcodeProj ...
 type XcodeProj struct {
@@ -210,9 +205,9 @@ func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) 
 // Resolve returns the resolved bundleID. We need this, because the bundleID is not exposed in the .pbxproj file ( raw ).
 // If the raw BundleID contains an environment variable we have to replace it.
 //
-//**Example:**
-//BundleID in the .pbxproj: Bitrise.Test.$(PRODUCT_NAME:rfc1034identifier).Suffix
-//BundleID after the env is expanded: Bitrise.Test.Sample.Suffix
+// **Example:**
+// BundleID in the .pbxproj: Bitrise.Test.$(PRODUCT_NAME:rfc1034identifier).Suffix
+// BundleID after the env is expanded: Bitrise.Test.Sample.Suffix
 func Resolve(bundleID string, buildSettings serialized.Object) (string, error) {
 	resolvedBundleIDs := map[string]bool{}
 	resolved := bundleID
@@ -304,7 +299,7 @@ func envInBuildSettings(envKey string, buildSettings serialized.Object) (string,
 
 // TargetBuildSettings ...
 func (p XcodeProj) TargetBuildSettings(target, configuration string, customOptions ...string) (serialized.Object, error) {
-	commandModel := xcodebuild.NewShowBuildSettingsCommand(p.Path, temporaryFactory)
+	commandModel := xcodebuild.NewShowBuildSettingsCommand(p.Path)
 	commandModel.SetTarget(target)
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)

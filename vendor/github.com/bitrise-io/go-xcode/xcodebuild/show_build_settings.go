@@ -13,8 +13,7 @@ import (
 
 // ShowBuildSettingsCommandModel ...
 type ShowBuildSettingsCommandModel struct {
-	commandFactory command.Factory
-	projectPath    string
+	projectPath string
 
 	target        string
 	scheme        string
@@ -23,10 +22,9 @@ type ShowBuildSettingsCommandModel struct {
 }
 
 // NewShowBuildSettingsCommand ...
-func NewShowBuildSettingsCommand(projectPath string, commandFactory command.Factory) *ShowBuildSettingsCommandModel {
+func NewShowBuildSettingsCommand(projectPath string) *ShowBuildSettingsCommandModel {
 	return &ShowBuildSettingsCommandModel{
-		commandFactory: commandFactory,
-		projectPath:    projectPath,
+		projectPath: projectPath,
 	}
 }
 
@@ -36,26 +34,8 @@ func (c *ShowBuildSettingsCommandModel) SetTarget(target string) *ShowBuildSetti
 	return c
 }
 
-// SetScheme ...
-func (c *ShowBuildSettingsCommandModel) SetScheme(scheme string) *ShowBuildSettingsCommandModel {
-	c.scheme = scheme
-	return c
-}
-
-// SetConfiguration ...
-func (c *ShowBuildSettingsCommandModel) SetConfiguration(configuration string) *ShowBuildSettingsCommandModel {
-	c.configuration = configuration
-	return c
-}
-
-// SetCustomOptions ...
-func (c *ShowBuildSettingsCommandModel) SetCustomOptions(customOptions []string) *ShowBuildSettingsCommandModel {
-	c.customOptions = customOptions
-	return c
-}
-
-func (c *ShowBuildSettingsCommandModel) args() []string {
-	var slice []string
+func (c *ShowBuildSettingsCommandModel) cmdSlice() []string {
+	slice := []string{toolName}
 
 	if c.projectPath != "" {
 		if filepath.Ext(c.projectPath) == ".xcworkspace" {
@@ -83,14 +63,34 @@ func (c *ShowBuildSettingsCommandModel) args() []string {
 	return slice
 }
 
+// SetScheme ...
+func (c *ShowBuildSettingsCommandModel) SetScheme(scheme string) *ShowBuildSettingsCommandModel {
+	c.scheme = scheme
+	return c
+}
+
+// SetConfiguration ...
+func (c *ShowBuildSettingsCommandModel) SetConfiguration(configuration string) *ShowBuildSettingsCommandModel {
+	c.configuration = configuration
+	return c
+}
+
+// SetCustomOptions ...
+func (c *ShowBuildSettingsCommandModel) SetCustomOptions(customOptions []string) *ShowBuildSettingsCommandModel {
+	c.customOptions = customOptions
+	return c
+}
+
 // Command ...
-func (c ShowBuildSettingsCommandModel) Command(opts *command.Opts) command.Command {
-	return c.commandFactory.Create(toolName, c.args(), opts)
+func (c ShowBuildSettingsCommandModel) Command() *command.Model {
+	cmdSlice := c.cmdSlice()
+	return command.New(cmdSlice[0], cmdSlice[1:]...)
 }
 
 // PrintableCmd ...
 func (c ShowBuildSettingsCommandModel) PrintableCmd() string {
-	return c.Command(nil).PrintableCommandArgs()
+	cmdSlice := c.cmdSlice()
+	return command.PrintableCommandArgs(false, cmdSlice)
 }
 
 func parseBuildSettings(out string) (serialized.Object, error) {
@@ -117,7 +117,7 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 
 // RunAndReturnSettings ...
 func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object, error) {
-	cmd := c.Command(nil)
+	cmd := c.Command()
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		if errorutil.IsExitStatusError(err) {

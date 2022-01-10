@@ -2,7 +2,6 @@ package ziputil
 
 import (
 	"fmt"
-	"github.com/bitrise-io/go-utils/env"
 	"log"
 	"os"
 	"path/filepath"
@@ -63,14 +62,11 @@ func ZipDirs(sourceDirPths []string, destinationZipPth string) error {
 }
 
 func internalZipDir(destinationZipPth, zipTarget, workDir string) error {
-	opts := &command.Opts{Dir: workDir}
-	factory := command.NewFactory(env.NewRepository())
-
 	// -r - Travel the directory structure recursively
 	// -T - Test the integrity of the new zip file
 	// -y - Store symbolic links as such in the zip archive, instead of compressing and storing the file referred to by the link
-	cmd := factory.Create("/usr/bin/zip", []string{"-rTy", destinationZipPth, zipTarget}, opts)
-
+	cmd := command.New("/usr/bin/zip", "-rTy", destinationZipPth, zipTarget)
+	cmd.SetDir(workDir)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		return fmt.Errorf("command: (%s) failed, output: %s, error: %s", cmd.PrintableCommandArgs(), out, err)
 	}
@@ -93,15 +89,12 @@ func ZipFiles(sourceFilePths []string, destinationZipPth string) error {
 		}
 	}
 
-	factory := command.NewFactory(env.NewRepository())
-
 	// -T - Test the integrity of the new zip file
 	// -y - Store symbolic links as such in the zip archive, instead of compressing and storing the file referred to by the link
 	// -j - Do not recreate the directory structure inside the zip. Kind of equivalent of copying all the files in one folder and zipping it.
 	parameters := []string{"-Tyj", destinationZipPth}
 	parameters = append(parameters, sourceFilePths...)
-
-	cmd := factory.Create("/usr/bin/zip", parameters, nil)
+	cmd := command.New("/usr/bin/zip", parameters...)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		return fmt.Errorf("command: (%s) failed, output: %s, error: %s", cmd.PrintableCommandArgs(), out, err)
 	}
@@ -111,8 +104,7 @@ func ZipFiles(sourceFilePths []string, destinationZipPth string) error {
 
 // UnZip ...
 func UnZip(zip, intoDir string) error {
-	factory := command.NewFactory(env.NewRepository())
-	cmd := factory.Create("/usr/bin/unzip", []string{zip, "-d", intoDir}, nil)
+	cmd := command.New("/usr/bin/unzip", zip, "-d", intoDir)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		return fmt.Errorf("command: (%s) failed, output: %s, error: %s", cmd.PrintableCommandArgs(), out, err)
 	}
