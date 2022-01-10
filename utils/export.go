@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/command"
+	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/go-utils/v2/command"
 )
 
 func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error {
@@ -30,7 +31,7 @@ func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr st
 // ExportOutputDir ...
 func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string) error {
 	if sourceDirPth != destinationDirPth {
-		if err := command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
+		if err := v1command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
 		}
 	}
@@ -41,7 +42,7 @@ func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth
 // ExportOutputFile ...
 func ExportOutputFile(cmdFactory command.Factory, sourcePth, destinationPth, envKey string) error {
 	if sourcePth != destinationPth {
-		if err := command.CopyFile(sourcePth, destinationPth); err != nil {
+		if err := v1command.CopyFile(sourcePth, destinationPth); err != nil {
 			return err
 		}
 	}
