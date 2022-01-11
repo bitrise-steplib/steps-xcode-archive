@@ -10,26 +10,26 @@ const (
 	warnSeverity
 	normalSeverity
 	infoSeverity
-	doneSeverity
+	successSeverity
 	debugSeverity
 )
 
 type severityColorFunc colorstring.ColorfFunc
 
 var (
-	doneSeverityColorFunc   severityColorFunc = colorstring.Greenf
-	infoSeverityColorFunc   severityColorFunc = colorstring.Bluef
-	normalSeverityColorFunc severityColorFunc = colorstring.NoColorf
-	debugSeverityColorFunc  severityColorFunc = colorstring.Magentaf
-	warnSeverityColorFunc   severityColorFunc = colorstring.Yellowf
-	errorSeverityColorFunc  severityColorFunc = colorstring.Redf
+	successSeverityColorFunc severityColorFunc = colorstring.Greenf
+	infoSeverityColorFunc    severityColorFunc = colorstring.Bluef
+	normalSeverityColorFunc  severityColorFunc = colorstring.NoColorf
+	debugSeverityColorFunc   severityColorFunc = colorstring.Magentaf
+	warnSeverityColorFunc    severityColorFunc = colorstring.Yellowf
+	errorSeverityColorFunc   severityColorFunc = colorstring.Redf
 )
 
 var severityColorFuncMap = map[Severity]severityColorFunc{
-	doneSeverity:   doneSeverityColorFunc,
-	infoSeverity:   infoSeverityColorFunc,
-	normalSeverity: normalSeverityColorFunc,
-	debugSeverity:  debugSeverityColorFunc,
-	warnSeverity:   warnSeverityColorFunc,
-	errorSeverity:  errorSeverityColorFunc,
+	successSeverity: successSeverityColorFunc,
+	infoSeverity:    infoSeverityColorFunc,
+	normalSeverity:  normalSeverityColorFunc,
+	debugSeverity:   debugSeverityColorFunc,
+	warnSeverity:    warnSeverityColorFunc,
+	errorSeverity:   errorSeverityColorFunc,
 }

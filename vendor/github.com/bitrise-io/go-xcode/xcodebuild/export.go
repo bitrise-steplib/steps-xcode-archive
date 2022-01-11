@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"os/exec"
 
 	"github.com/bitrise-io/go-utils/command"
 )
@@ -17,8 +18,6 @@ xcodebuild -exportArchive \
 
 // ExportCommandModel ...
 type ExportCommandModel struct {
-	commandFactory command.Factory
-
 	archivePath        string
 	exportDir          string
 	exportOptionsPlist string
@@ -26,10 +25,8 @@ type ExportCommandModel struct {
 }
 
 // NewExportCommand ...
-func NewExportCommand(commandFactory command.Factory) *ExportCommandModel {
-	return &ExportCommandModel{
-		commandFactory: commandFactory,
-	}
+func NewExportCommand() *ExportCommandModel {
+	return &ExportCommandModel{}
 }
 
 // SetArchivePath ...
@@ -56,8 +53,8 @@ func (c *ExportCommandModel) SetAuthentication(authenticationParams Authenticati
 	return c
 }
 
-func (c ExportCommandModel) args() []string {
-	slice := []string{"-exportArchive"}
+func (c ExportCommandModel) cmdSlice() []string {
+	slice := []string{toolName, "-exportArchive"}
 	if c.archivePath != "" {
 		slice = append(slice, "-archivePath", c.archivePath)
 	}
@@ -77,35 +74,43 @@ func (c ExportCommandModel) args() []string {
 	return slice
 }
 
-// Command ...
-func (c ExportCommandModel) Command(opts *command.Opts) command.Command {
-	return c.commandFactory.Create(toolName, c.args(), opts)
-}
-
 // PrintableCmd ...
 func (c ExportCommandModel) PrintableCmd() string {
-	return c.Command(nil).PrintableCommandArgs()
+	cmdSlice := c.cmdSlice()
+	return command.PrintableCommandArgs(false, cmdSlice)
+}
+
+// Command ...
+func (c ExportCommandModel) Command() *command.Model {
+	cmdSlice := c.cmdSlice()
+	return command.New(cmdSlice[0], cmdSlice[1:]...)
+}
+
+// Cmd ...
+func (c ExportCommandModel) Cmd() *exec.Cmd {
+	command := c.Command()
+	return command.GetCmd()
 }
 
 // Run ...
 func (c ExportCommandModel) Run() error {
-	command := c.Command(&command.Opts{
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	})
+	command := c.Command()
+
+	command.SetStdout(os.Stdout)
+	command.SetStderr(os.Stderr)
 
 	return command.Run()
 }
 
 // RunAndReturnOutput ...
 func (c ExportCommandModel) RunAndReturnOutput() (string, error) {
+	command := c.Command()
+
 	var outBuffer bytes.Buffer
 	outWriter := io.MultiWriter(&outBuffer, os.Stdout)
 
-	command := c.Command(&command.Opts{
-		Stdout: outWriter,
-		Stderr: outWriter,
-	})
+	command.SetStdout(outWriter)
+	command.SetStderr(outWriter)
 
 	err := command.Run()
 	out := outBuffer.String()

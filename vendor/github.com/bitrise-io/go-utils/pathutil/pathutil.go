@@ -10,25 +10,6 @@ import (
 	"strings"
 )
 
-//
-// Path provider functions
-
-// PathProvider ...
-type PathProvider interface {
-	CreateTempDir(prefix string) (string, error)
-}
-
-type defaultPathProvider struct{}
-
-// NewPathProvider ...
-func NewPathProvider() PathProvider {
-	return defaultPathProvider{}
-}
-
-func (defaultPathProvider) CreateTempDir(prefix string) (string, error) {
-	return NormalizedOSTempDirPath(prefix)
-}
-
 // NormalizedOSTempDirPath ...
 // Creates a temp dir, and returns its path.
 // If tmpDirNamePrefix is provided it'll be used
@@ -66,25 +47,6 @@ func EnsureDirExist(dir string) error {
 		return os.MkdirAll(dir, 0777)
 	}
 	return nil
-}
-
-//
-// Path checker functions
-
-// PathChecker ...
-type PathChecker interface {
-	IsPathExists(pth string) (bool, error)
-}
-
-type defaultPathChecker struct{}
-
-// NewPathChecker ...
-func NewPathChecker() PathChecker {
-	return defaultPathChecker{}
-}
-
-func (c defaultPathChecker) IsPathExists(pth string) (bool, error) {
-	return IsPathExists(pth)
 }
 
 func genericIsPathExists(pth string) (os.FileInfo, bool, error) {

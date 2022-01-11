@@ -41,8 +41,8 @@ func getXcodeVersionFromXcodebuildOutput(outStr string) (models.XcodebuildVersio
 }
 
 // GetXcodeVersion ...
-func GetXcodeVersion(cmdFactory command.Factory) (models.XcodebuildVersionModel, error) {
-	cmd := cmdFactory.Create("xcodebuild", []string{"-version"}, nil)
+func GetXcodeVersion() (models.XcodebuildVersionModel, error) {
+	cmd := command.New("xcodebuild", "-version")
 	outStr, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		return models.XcodebuildVersionModel{}, fmt.Errorf("xcodebuild -version failed, err: %s, details: %s", err, outStr)

@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 
 	"github.com/bitrise-io/go-utils/command"
-	"github.com/bitrise-io/go-utils/env"
 	"github.com/bitrise-io/go-xcode/plistutil"
 )
 
@@ -29,8 +28,7 @@ func getEntitlements(basePath, executableRelativePath string) (plistutil.PlistDa
 }
 
 func entitlementsFromExecutable(basePath, executableRelativePath string) (*plistutil.PlistData, error) {
-	factory := command.NewFactory(env.NewRepository())
-	cmd := factory.Create("codesign", []string{"--display", "--entitlements", ":-", filepath.Join(basePath, executableRelativePath)}, nil)
+	cmd := command.New("codesign", "--display", "--entitlements", ":-", filepath.Join(basePath, executableRelativePath))
 	entitlementsString, err := cmd.RunAndReturnTrimmedOutput()
 	if err != nil {
 		return nil, err

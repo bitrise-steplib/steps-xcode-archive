@@ -9,7 +9,7 @@ const (
 // CommandModel ...
 type CommandModel interface {
 	PrintableCmd() string
-	Command(opts *command.Opts) command.Command
+	Command() *command.Model
 }
 
 // AuthenticationParams are used to authenticate to App Store Connect API and let xcodebuild download missing provisioning profiles.

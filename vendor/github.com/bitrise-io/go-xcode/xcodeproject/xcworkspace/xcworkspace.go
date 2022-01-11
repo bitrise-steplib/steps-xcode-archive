@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
@@ -50,8 +49,8 @@ func (w Workspace) Scheme(name string) (*xcscheme.Scheme, string, error) {
 }
 
 // SchemeBuildSettings ...
-func (w Workspace) SchemeBuildSettings(cmdFactory command.Factory, scheme, configuration string, customOptions ...string) (serialized.Object, error) {
-	commandModel := xcodebuild.NewShowBuildSettingsCommand(w.Path, cmdFactory)
+func (w Workspace) SchemeBuildSettings(scheme, configuration string, customOptions ...string) (serialized.Object, error) {
+	commandModel := xcodebuild.NewShowBuildSettingsCommand(w.Path)
 	commandModel.SetScheme(scheme)
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)

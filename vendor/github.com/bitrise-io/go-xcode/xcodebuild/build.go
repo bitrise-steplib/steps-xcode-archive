@@ -2,6 +2,7 @@ package xcodebuild
 
 import (
 	"os"
+	"os/exec"
 
 	"github.com/bitrise-io/go-utils/command"
 )
@@ -39,8 +40,6 @@ type Action string
 
 // CommandBuilder ...
 type CommandBuilder struct {
-	commandFactory command.Factory
-
 	projectPath    string
 	isWorkspace    bool
 	scheme         string
@@ -66,12 +65,11 @@ type CommandBuilder struct {
 }
 
 // NewCommandBuilder ...
-func NewCommandBuilder(projectPath string, isWorkspace bool, action Action, commandFactory command.Factory) *CommandBuilder {
+func NewCommandBuilder(projectPath string, isWorkspace bool, action Action) *CommandBuilder {
 	return &CommandBuilder{
-		commandFactory: commandFactory,
-		projectPath:    projectPath,
-		isWorkspace:    isWorkspace,
-		action:         action,
+		projectPath: projectPath,
+		isWorkspace: isWorkspace,
+		action:      action,
 	}
 }
 
@@ -141,8 +139,8 @@ func (c *CommandBuilder) SetDisableCodesign(disable bool) *CommandBuilder {
 	return c
 }
 
-func (c *CommandBuilder) args() []string {
-	var slice []string
+func (c *CommandBuilder) cmdSlice() []string {
+	slice := []string{toolName}
 
 	if c.projectPath != "" {
 		if c.isWorkspace {
@@ -205,21 +203,30 @@ func (c *CommandBuilder) args() []string {
 	return slice
 }
 
-// Command ...
-func (c CommandBuilder) Command(opts *command.Opts) command.Command {
-	return c.commandFactory.Create(toolName, c.args(), opts)
-}
-
 // PrintableCmd ...
 func (c CommandBuilder) PrintableCmd() string {
-	return c.Command(nil).PrintableCommandArgs()
+	cmdSlice := c.cmdSlice()
+	return command.PrintableCommandArgs(false, cmdSlice)
+}
+
+// Command ...
+func (c CommandBuilder) Command() *command.Model {
+	cmdSlice := c.cmdSlice()
+	return command.New(cmdSlice[0], cmdSlice[1:]...)
+}
+
+// ExecCommand ...
+func (c CommandBuilder) ExecCommand() *exec.Cmd {
+	command := c.Command()
+	return command.GetCmd()
 }
 
 // Run ...
 func (c CommandBuilder) Run() error {
-	command := c.Command(&command.Opts{
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	})
+	command := c.Command()
+
+	command.SetStdout(os.Stdout)
+	command.SetStderr(os.Stderr)
+
 	return command.Run()
 }

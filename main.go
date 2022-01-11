@@ -9,34 +9,39 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/go-steputils/stepconf"
+	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/colorstring"
-	"github.com/bitrise-io/go-utils/command"
-	"github.com/bitrise-io/go-utils/env"
+	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/errorutil"
-	"github.com/bitrise-io/go-utils/fileutil"
-	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/pathutil"
+	v1fileutil "github.com/bitrise-io/go-utils/fileutil"
+	v1log "github.com/bitrise-io/go-utils/log"
+	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
-	"github.com/bitrise-io/go-xcode/autocodesign/certdownloader"
-	"github.com/bitrise-io/go-xcode/autocodesign/codesignasset"
-	"github.com/bitrise-io/go-xcode/autocodesign/devportalclient"
-	"github.com/bitrise-io/go-xcode/autocodesign/localcodesignasset"
-	"github.com/bitrise-io/go-xcode/autocodesign/projectmanager"
-	"github.com/bitrise-io/go-xcode/codesign"
+	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/env"
+	"github.com/bitrise-io/go-utils/v2/fileutil"
+	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/exportoptionsgenerator"
 	"github.com/bitrise-io/go-xcode/models"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/utility"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/localcodesignasset"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
+	"github.com/bitrise-io/go-xcode/v2/codesign"
+	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
+	"github.com/bitrise-io/go-xcode/v2/xcconfig"
+	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
+	"github.com/bitrise-io/go-xcode/v2/xcpretty"
 	"github.com/bitrise-io/go-xcode/xcarchive"
-	"github.com/bitrise-io/go-xcode/xcconfig"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
-	cache "github.com/bitrise-io/go-xcode/xcodecache"
-	"github.com/bitrise-io/go-xcode/xcpretty"
+	v1xcpretty "github.com/bitrise-io/go-xcode/xcpretty"
 	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
 	"howett.net/plist"
@@ -164,7 +169,7 @@ func determineExportMethod(desiredExportMethod string, archiveExportMethod expor
 
 func exportDSYMs(dsymDir string, dsyms []string) error {
 	for _, dsym := range dsyms {
-		if err := command.CopyDir(dsym, dsymDir, false); err != nil {
+		if err := v1command.CopyDir(dsym, dsymDir, false); err != nil {
 			return fmt.Errorf("could not copy (%s) to directory (%s): %s", dsym, dsymDir, err)
 		}
 	}
@@ -184,7 +189,7 @@ func newXcodebuildXcodeVersionProvider() xcodebuildXcodeVersionProvider {
 
 // GetXcodeVersion ...
 func (p xcodebuildXcodeVersionProvider) GetXcodeVersion() (models.XcodebuildVersionModel, error) {
-	return utility.GetXcodeVersion(cmdFactory)
+	return utility.GetXcodeVersion()
 }
 
 // XcodeArchiveStep ...
@@ -217,7 +222,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 
 	config := Config{Inputs: inputs}
 	logger.EnableDebugLog(config.VerboseLog)
-	log.SetEnableDebugLog(config.VerboseLog) // For compatibility
+	v1log.SetEnableDebugLog(config.VerboseLog) // For compatibility
 
 	if config.ExportOptionsPlistContent != "" {
 		var options map[string]interface{}
@@ -272,13 +277,13 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	config.ProjectPath = absProjectPath
 
 	// abs out dir pth
-	absOutputDir, err := pathutil.AbsPath(config.OutputDir)
+	absOutputDir, err := v1pathutil.AbsPath(config.OutputDir)
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to expand OutputDir (%s), error: %s", config.OutputDir, err)
 	}
 	config.OutputDir = absOutputDir
 
-	if exist, err := pathutil.IsPathExists(config.OutputDir); err != nil {
+	if exist, err := v1pathutil.IsPathExists(config.OutputDir); err != nil {
 		return Config{}, fmt.Errorf("failed to check if OutputDir exist, error: %s", err)
 	} else if !exist {
 		if err := os.MkdirAll(config.OutputDir, 0777); err != nil {
@@ -287,7 +292,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	}
 
 	if config.ArtifactName == "" {
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(config.ProjectPath, cmdFactory)
+		cmdModel := xcodebuild.NewShowBuildSettingsCommand(config.ProjectPath)
 		cmdModel.SetScheme(config.Scheme)
 		cmdModel.SetConfiguration(config.Configuration)
 		settings, err := cmdModel.RunAndReturnSettings()
@@ -495,7 +500,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		return out, fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
 	}
 
-	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, isWorkspace, xcodebuild.ArchiveAction, cmdFactory)
+	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, isWorkspace, xcodebuild.ArchiveAction)
 	archiveCmd.SetScheme(opts.Scheme)
 	archiveCmd.SetConfiguration(opts.Configuration)
 
@@ -510,7 +515,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	}
 	archiveCmd.SetXCConfigPath(xcconfigPath)
 
-	tmpDir, err := pathutil.NormalizedOSTempDirPath("xcodeArchive")
+	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeArchive")
 	if err != nil {
 		return out, fmt.Errorf("failed to create temp dir, error: %s", err)
 	}
@@ -569,7 +574,7 @@ The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be av
 	}
 
 	// Ensure xcarchive exists
-	if exist, err := pathutil.IsPathExists(archivePth); err != nil {
+	if exist, err := v1pathutil.IsPathExists(archivePth); err != nil {
 		return out, fmt.Errorf("failed to check if archive exist, error: %s", err)
 	} else if !exist {
 		return out, fmt.Errorf("no archive generated at: %s", archivePth)
@@ -648,7 +653,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	fmt.Println()
 	logger.Infof("Exporting ipa from the archive...")
 
-	tmpDir, err := pathutil.NormalizedOSTempDirPath("xcodeIPAExport")
+	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeIPAExport")
 	if err != nil {
 		return out, fmt.Errorf("failed to create temp dir, error: %s", err)
 	}
@@ -659,7 +664,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		logger.Printf("Custom export options content provided, using it:")
 		fmt.Println(opts.CustomExportOptionsPlistContent)
 
-		if err := fileutil.WriteStringToFile(exportOptionsPath, opts.CustomExportOptionsPlistContent); err != nil {
+		if err := v1fileutil.WriteStringToFile(exportOptionsPath, opts.CustomExportOptionsPlistContent); err != nil {
 			return out, fmt.Errorf("failed to write export options to file, error: %s", err)
 		}
 	} else {
@@ -698,7 +703,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 
 	ipaExportDir := filepath.Join(tmpDir, "exported")
 
-	exportCmd := xcodebuild.NewExportCommand(cmdFactory)
+	exportCmd := xcodebuild.NewExportCommand()
 	exportCmd.SetArchivePath(opts.Archive.Path)
 	exportCmd.SetExportDir(ipaExportDir)
 	exportCmd.SetExportOptionsPlist(exportOptionsPath)
@@ -707,7 +712,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 	}
 
 	if opts.LogFormatter == "xcpretty" {
-		xcprettyCmd := xcpretty.New(exportCmd)
+		xcprettyCmd := v1xcpretty.New(exportCmd)
 
 		fmt.Println()
 		logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
@@ -728,7 +733,7 @@ is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
 
 				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
 				logger.Warnf("IDEDistribution.critical.log:")
-				if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
 					logger.Printf(criticalDistLog)
 				}
 
@@ -755,7 +760,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 
 				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
 				logger.Warnf("IDEDistribution.critical.log:")
-				if criticalDistLog, err := fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
 					logger.Printf(criticalDistLog)
 				}
 
@@ -923,7 +928,7 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 	logger.Infof("Exporting outputs...")
 
 	cleanup := func(pth string) error {
-		if exist, err := pathutil.IsPathExists(pth); err != nil {
+		if exist, err := v1pathutil.IsPathExists(pth); err != nil {
 			return fmt.Errorf("failed to check if path (%s) exist, error: %s", pth, err)
 		} else if exist {
 			if err := os.RemoveAll(pth); err != nil {
@@ -969,7 +974,7 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 
 		if len(appDSYMPaths) > 0 || len(frameworkDSYMPaths) > 0 {
 			fmt.Println()
-			dsymDir, err := pathutil.NormalizedOSTempDirPath("__dsyms__")
+			dsymDir, err := v1pathutil.NormalizedOSTempDirPath("__dsyms__")
 			if err != nil {
 				return fmt.Errorf("failed to create tmp dir, error: %s", err)
 			}
@@ -1012,7 +1017,7 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 			return err
 		}
 
-		if err := command.CopyFile(opts.ExportOptionsPath, exportOptionsPath); err != nil {
+		if err := v1command.CopyFile(opts.ExportOptionsPath, exportOptionsPath); err != nil {
 			return err
 		}
 	}
@@ -1069,7 +1074,7 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 				base := filepath.Base(pth)
 				deployPth := filepath.Join(opts.OutputDir, base)
 
-				if err := command.CopyFile(pth, deployPth); err != nil {
+				if err := v1command.CopyFile(pth, deployPth); err != nil {
 					return fmt.Errorf("failed to copy (%s) -> (%s), error: %s", pth, deployPth, err)
 				}
 			}

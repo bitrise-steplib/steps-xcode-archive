@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/bitrise-io/go-steputils/stepconf"
+	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-xcode/models"
 	"github.com/stretchr/testify/require"
