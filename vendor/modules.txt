@@ -1,11 +1,9 @@
 # github.com/bitrise-io/go-plist v0.0.0-20210301100253-4b1a112ccd10
 github.com/bitrise-io/go-plist
 # github.com/bitrise-io/go-steputils v1.0.1
-## explicit
 github.com/bitrise-io/go-steputils/cache
 github.com/bitrise-io/go-steputils/command/rubycommand
 github.com/bitrise-io/go-steputils/input
-github.com/bitrise-io/go-steputils/stepconf
 github.com/bitrise-io/go-steputils/tools
 # github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.1
 ## explicit
@@ -56,7 +54,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.4
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.5
 ## explicit
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
