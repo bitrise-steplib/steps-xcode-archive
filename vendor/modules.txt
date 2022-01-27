@@ -34,7 +34,7 @@ github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/fileutil
 github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/pathutil
-# github.com/bitrise-io/go-xcode v1.0.1
+# github.com/bitrise-io/go-xcode v1.0.2
 ## explicit
 github.com/bitrise-io/go-xcode/appleauth
 github.com/bitrise-io/go-xcode/certificateutil
@@ -54,7 +54,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.5
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.8
 ## explicit
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
