@@ -65,6 +65,10 @@ func (k Keychain) InstallCertificate(cert certificateutil.CertificateInfoModel, 
 		return err
 	}
 
+	if err := k.unlock(); err != nil {
+		return err
+	}
+
 	if err := k.importCertificate(pth, "bitrise"); err != nil {
 		return err
 	}
@@ -85,11 +89,7 @@ func (k Keychain) InstallCertificate(cert certificateutil.CertificateInfoModel, 
 		return err
 	}
 
-	if err := k.setAsDefault(); err != nil {
-		return err
-	}
-
-	return k.unlock()
+	return k.setAsDefault()
 }
 
 func runSecurityCmd(factory command.Factory, args ...interface{}) error {

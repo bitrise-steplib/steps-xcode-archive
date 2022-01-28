@@ -2,6 +2,7 @@ package xcarchive
 
 import (
 	"fmt"
+
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/xcarchive"
 )
@@ -9,6 +10,15 @@ import (
 // IosArchive ...
 type IosArchive struct {
 	xcarchive.IosArchive
+}
+
+// NewIosArchive ...
+func NewIosArchive(path string) (IosArchive, error) {
+	archive, err := xcarchive.NewIosArchive(path)
+
+	return IosArchive{
+		IosArchive: archive,
+	}, err
 }
 
 // Platform ...
