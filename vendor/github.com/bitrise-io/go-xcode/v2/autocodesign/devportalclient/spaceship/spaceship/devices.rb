@@ -24,7 +24,17 @@ end
 
 def register_device(udid, name)
   device = Spaceship::Portal.device.create!(name: name, udid: udid)
-  { device: device }
+  {
+    device: {
+        id: device.id,
+        udid: device.udid,
+        name: device.name,
+        model: device.model,
+        status: map_device_status_to_api_status(device.status),
+        platform: map_device_platform_to_api_platform(device.platform),
+        class: map_device_class_to_api_class(device.device_type)
+    }
+  }
 rescue Spaceship::UnexpectedResponse, Spaceship::BasicPreferredInfoError => e
   message = preferred_error_message(e)
   { warnings: ["Failed to register device with name: #{name} udid: #{udid} error: #{message}"] }
