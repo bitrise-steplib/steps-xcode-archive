@@ -8,6 +8,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/errorutil"
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
 
@@ -118,6 +119,7 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 // RunAndReturnSettings ...
 func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object, error) {
 	cmd := c.Command()
+	log.TDonef("%s", cmd.PrintableCommandArgs())
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		if errorutil.IsExitStatusError(err) {
@@ -125,6 +127,7 @@ func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object
 		}
 		return nil, fmt.Errorf("failed to run command %s: %s", cmd.PrintableCommandArgs(), err)
 	}
+	log.TPrintf("Finished reading target settings.")
 
 	return parseBuildSettings(out)
 }

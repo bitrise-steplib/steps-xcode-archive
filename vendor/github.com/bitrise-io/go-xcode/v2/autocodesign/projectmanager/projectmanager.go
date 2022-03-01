@@ -10,6 +10,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
+	"github.com/bitrise-io/go-xcode/xcodebuild"
 )
 
 // Project ...
@@ -81,8 +82,17 @@ func (p Project) MainTargetBundleID() (string, error) {
 
 // GetAppLayout ...
 func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error) {
-	log.Printf("Configuration: %s", p.projHelper.Configuration)
+	// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
+	resolvePackagesCmd := xcodebuild.NewResolvePackagesCommandModel(p.projHelper.XcProj.Path).Command()
+	log.Infof("Resolving package dependencies...")
+	log.TDonef("%s", resolvePackagesCmd.PrintableCommandArgs())
+	if err := resolvePackagesCmd.Run(); err != nil {
+		log.Warnf("failed to resolve package dependencies: %s", err)
+		return autocodesign.AppLayout{}, err
+	}
+	log.TPrintf("Finished resolving package dependencies.")
 
+	log.Printf("Configuration: %s", p.projHelper.Configuration)
 	platform, err := p.projHelper.Platform(p.projHelper.Configuration)
 	if err != nil {
 		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project platform: %s", err)
