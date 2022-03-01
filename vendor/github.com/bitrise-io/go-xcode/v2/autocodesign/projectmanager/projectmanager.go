@@ -82,6 +82,7 @@ func (p Project) MainTargetBundleID() (string, error) {
 // GetAppLayout ...
 func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error) {
 	log.Printf("Configuration: %s", p.projHelper.Configuration)
+
 	platform, err := p.projHelper.Platform(p.projHelper.Configuration)
 	if err != nil {
 		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project platform: %s", err)

@@ -42,5 +42,5 @@ func (m *ResolvePackagesCommandModel) cmdSlice() []string {
 
 func (m *ResolvePackagesCommandModel) Command() command.Model {
 	cmdSlice := m.cmdSlice()
-	return *command.New(cmdSlice[0], cmdSlice[1:]...)
+	return *command.NewWithStandardOuts(cmdSlice[0], cmdSlice[1:]...)
 }

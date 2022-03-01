@@ -119,7 +119,8 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 // RunAndReturnSettings ...
 func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object, error) {
 	cmd := c.Command()
-	log.TDonef("%s", cmd.PrintableCommandArgs())
+	log.TPrintf("Reading build settings:")
+	log.TDonef("$ %s", cmd.PrintableCommandArgs())
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		if errorutil.IsExitStatusError(err) {
