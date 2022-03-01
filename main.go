@@ -293,8 +293,9 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 
 	// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
 	resolvePackagesCmd := xcodebuild.NewResolvePackagesCommandModel(config.ProjectPath).Command()
-	logger.Infof("Resolving package dependencies...")
-	logger.TDonef("%s", resolvePackagesCmd.PrintableCommandArgs())
+	logger.Println()
+	logger.Infof("Resolving package dependencies")
+	logger.TDonef("$ %s", resolvePackagesCmd.PrintableCommandArgs())
 	if err := resolvePackagesCmd.Run(); err != nil {
 		logger.Warnf("failed to resolve package dependencies: %s", err)
 	}
