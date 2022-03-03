@@ -1,9 +1,13 @@
 package xcodebuild
 
 import (
+	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/errorutil"
+	"github.com/bitrise-io/go-utils/log"
 )
 
 // ResolvePackagesCommandModel is a command builder
@@ -48,4 +52,25 @@ func (m *ResolvePackagesCommandModel) cmdSlice() []string {
 func (m *ResolvePackagesCommandModel) Command() command.Model {
 	cmdSlice := m.cmdSlice()
 	return *command.NewWithStandardOuts(cmdSlice[0], cmdSlice[1:]...)
+}
+
+func (m *ResolvePackagesCommandModel) Run() error {
+	var (
+		cmd   = m.Command()
+		start = time.Now()
+	)
+
+	log.Printf("Resolving package dependencies...")
+
+	log.TDonef("$ %s", cmd.PrintableCommandArgs())
+	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+		if errorutil.IsExitStatusError(err) {
+			return fmt.Errorf("failed to resolve package dependencies, output: %s", out)
+		}
+		return fmt.Errorf("failed to run command: %s", err)
+	}
+
+	log.Printf("Resolved package dependencies in %s.", time.Since(start).Round(time.Second))
+
+	return nil
 }

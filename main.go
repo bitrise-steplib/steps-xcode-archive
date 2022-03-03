@@ -451,17 +451,12 @@ type xcodeArchiveOutput struct {
 func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
 	out := xcodeArchiveOutput{}
 
+	logger.Println()
 	if opts.XcodeMajorVersion >= 11 {
 		// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
-		resolvePackagesCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath).Command()
-		logger.Println()
-		logger.Infof("Resolving package dependencies")
-		start := time.Now()
-		logger.TDonef("$ %s", resolvePackagesCmd.PrintableCommandArgs())
-		if err := resolvePackagesCmd.Run(); err != nil {
-			logger.Warnf("failed to resolve package dependencies: %s", err)
+		if err := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath).Run(); err != nil {
+			logger.Warnf("%s", err)
 		}
-		logger.Printf("Resolved package dependencies in %s.", time.Since(start).Round(time.Second))
 	}
 
 	if opts.ArtifactName == "" {
