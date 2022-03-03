@@ -6,18 +6,22 @@ import (
 	"github.com/bitrise-io/go-utils/command"
 )
 
+// ResolvePackagesCommandModel is a command builder
+// used to create `xcodebuild -resolvePackageDependencies` command
 type ResolvePackagesCommandModel struct {
 	projectPath string
 
 	customOptions []string
 }
 
+// NewResolvePackagesCommandModel returns a new ResolvePackagesCommandModel
 func NewResolvePackagesCommandModel(projectPath string) *ResolvePackagesCommandModel {
 	return &ResolvePackagesCommandModel{
 		projectPath: projectPath,
 	}
 }
 
+// SetCustomOptions sets custom options
 func (m *ResolvePackagesCommandModel) SetCustomOptions(customOptions []string) *ResolvePackagesCommandModel {
 	m.customOptions = customOptions
 	return m
@@ -40,6 +44,7 @@ func (m *ResolvePackagesCommandModel) cmdSlice() []string {
 	return slice
 }
 
+// Command returns the executable command
 func (m *ResolvePackagesCommandModel) Command() command.Model {
 	cmdSlice := m.cmdSlice()
 	return *command.NewWithStandardOuts(cmdSlice[0], cmdSlice[1:]...)

@@ -15,7 +15,7 @@ type ProfileType string
 const ProfileTypeIos ProfileType = "ios"
 
 // ProfileTypeMacOs ...
-const ProfileTypeMacOs ProfileType = "macos"
+const ProfileTypeMacOs ProfileType = "osx"
 
 // ProfileTypeTvOs ...
 const ProfileTypeTvOs ProfileType = "tvos"
