@@ -444,37 +444,11 @@ type xcodeArchiveOpts struct {
 
 type xcodeArchiveOutput struct {
 	Archive              *xcarchive.IosArchive
-	ArtifactName         string
 	XcodebuildArchiveLog string
 }
 
 func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
 	out := xcodeArchiveOutput{}
-
-	logger.Println()
-	if opts.XcodeMajorVersion >= 11 {
-		// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
-		if err := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath).Run(); err != nil {
-			logger.Warnf("%s", err)
-		}
-	}
-
-	if opts.ArtifactName == "" {
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
-		cmdModel.SetScheme(opts.Scheme)
-		cmdModel.SetConfiguration(opts.Configuration)
-		settings, err := cmdModel.RunAndReturnSettings()
-		if err != nil {
-			return out, fmt.Errorf("failed to read build settings: %w", err)
-		}
-		productName, err := settings.String("PRODUCT_NAME")
-		if err != nil || productName == "" {
-			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
-			productName = opts.Scheme
-		}
-		opts.ArtifactName = productName
-	}
-	out.ArtifactName = opts.ArtifactName
 
 	// Open Xcode project
 	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
@@ -835,7 +809,36 @@ type RunOut struct {
 
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
-	var authOptions *xcodebuild.AuthenticationParams = nil
+	var (
+		out         = RunOut{}
+		authOptions *xcodebuild.AuthenticationParams
+	)
+
+	logger.Println()
+	if opts.XcodeMajorVersion >= 11 {
+		// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
+		if err := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath).Run(); err != nil {
+			logger.Warnf("%s", err)
+		}
+	}
+
+	if opts.ArtifactName == "" {
+		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
+		cmdModel.SetScheme(opts.Scheme)
+		cmdModel.SetConfiguration(opts.Configuration)
+		settings, err := cmdModel.RunAndReturnSettings()
+		if err != nil {
+			return out, fmt.Errorf("failed to read build settings: %w", err)
+		}
+		productName, err := settings.String("PRODUCT_NAME")
+		if err != nil || productName == "" {
+			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
+			productName = opts.Scheme
+		}
+		opts.ArtifactName = productName
+	}
+	out.ArtifactName = opts.ArtifactName
+
 	if opts.CodesignManager != nil {
 		logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
 
@@ -867,8 +870,6 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	}
 	logger.Println()
 
-	out := RunOut{}
-
 	archiveOpts := xcodeArchiveOpts{
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
@@ -890,7 +891,6 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	}
 
 	out.Archive = archiveOut.Archive
-	out.ArtifactName = archiveOut.ArtifactName
 
 	IPAExportOpts := xcodeIPAExportOpts{
 		ProjectPath:       opts.ProjectPath,
