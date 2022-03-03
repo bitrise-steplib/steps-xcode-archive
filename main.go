@@ -291,33 +291,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 	}
 
-	// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
-	resolvePackagesCmd := xcodebuild.NewResolvePackagesCommandModel(config.ProjectPath).Command()
-	logger.Println()
-	logger.Infof("Resolving package dependencies")
-	start := time.Now()
-	logger.TDonef("$ %s", resolvePackagesCmd.PrintableCommandArgs())
-	if err := resolvePackagesCmd.Run(); err != nil {
-		logger.Warnf("failed to resolve package dependencies: %s", err)
-	}
-	logger.Printf("Resolved package dependencies in %s.", time.Since(start).Round(time.Second))
-
-	if config.ArtifactName == "" {
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(config.ProjectPath)
-		cmdModel.SetScheme(config.Scheme)
-		cmdModel.SetConfiguration(config.Configuration)
-		settings, err := cmdModel.RunAndReturnSettings()
-		if err != nil {
-			return Config{}, fmt.Errorf("failed to read build settings: %w", err)
-		}
-		productName, err := settings.String("PRODUCT_NAME")
-		if err != nil || productName == "" {
-			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", config.Scheme)
-			productName = config.Scheme
-		}
-		config.ArtifactName = productName
-	}
-
 	if config.CodeSigningAuthSource != codeSignSourceOff {
 		codesignManager, err := s.createCodesignManager(config)
 		if err != nil {
@@ -403,7 +376,11 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 
 // EnsureDependenciesOpts ...
 type EnsureDependenciesOpts struct {
-	XCPretty bool
+	XCPretty      bool
+	ProjectPath   string
+	ArtifactName  string
+	Scheme        string
+	Configuration string
 }
 
 // EnsureDependencies ...
@@ -438,7 +415,6 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 				return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
 			}
 		}
-
 	}
 
 	xcprettyVersion, err := xcpretty.Version()
@@ -468,11 +444,42 @@ type xcodeArchiveOpts struct {
 
 type xcodeArchiveOutput struct {
 	Archive              *xcarchive.IosArchive
+	ArtifactName         string
 	XcodebuildArchiveLog string
 }
 
 func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
 	out := xcodeArchiveOutput{}
+
+	if opts.XcodeMajorVersion >= 11 {
+		// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
+		resolvePackagesCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath).Command()
+		logger.Println()
+		logger.Infof("Resolving package dependencies")
+		start := time.Now()
+		logger.TDonef("$ %s", resolvePackagesCmd.PrintableCommandArgs())
+		if err := resolvePackagesCmd.Run(); err != nil {
+			logger.Warnf("failed to resolve package dependencies: %s", err)
+		}
+		logger.Printf("Resolved package dependencies in %s.", time.Since(start).Round(time.Second))
+	}
+
+	if opts.ArtifactName == "" {
+		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
+		cmdModel.SetScheme(opts.Scheme)
+		cmdModel.SetConfiguration(opts.Configuration)
+		settings, err := cmdModel.RunAndReturnSettings()
+		if err != nil {
+			return out, fmt.Errorf("failed to read build settings: %w", err)
+		}
+		productName, err := settings.String("PRODUCT_NAME")
+		if err != nil || productName == "" {
+			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", config.Scheme)
+			productName = opts.Scheme
+		}
+		opts.ArtifactName = productName
+	}
+	out.ArtifactName = opts.ArtifactName
 
 	// Open Xcode project
 	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
@@ -820,7 +827,8 @@ type RunOpts struct {
 
 // RunOut ...
 type RunOut struct {
-	Archive *xcarchive.IosArchive
+	Archive      *xcarchive.IosArchive
+	ArtifactName string
 
 	ExportOptionsPath string
 	IPAExportDir      string
@@ -887,6 +895,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	}
 
 	out.Archive = archiveOut.Archive
+	out.ArtifactName = archiveOut.ArtifactName
 
 	IPAExportOpts := xcodeIPAExportOpts{
 		ProjectPath:       opts.ProjectPath,
@@ -1175,6 +1184,7 @@ func RunStep() error {
 		CompileBitcode:                  config.CompileBitcode,
 	}
 	out, runErr := step.Run(runOpts)
+	config.ArtifactName = out.ArtifactName
 
 	exportOpts := ExportOpts{
 		OutputDir:      config.OutputDir,
