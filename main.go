@@ -295,11 +295,12 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	resolvePackagesCmd := xcodebuild.NewResolvePackagesCommandModel(config.ProjectPath).Command()
 	logger.Println()
 	logger.Infof("Resolving package dependencies")
+	start := time.Now()
 	logger.TDonef("$ %s", resolvePackagesCmd.PrintableCommandArgs())
 	if err := resolvePackagesCmd.Run(); err != nil {
 		logger.Warnf("failed to resolve package dependencies: %s", err)
 	}
-	logger.TPrintf("Finished resolving package dependencies.")
+	logger.Printf("Resolved package dependencies in %s.", time.Since(start).Round(time.Second))
 
 	if config.ArtifactName == "" {
 		cmdModel := xcodebuild.NewShowBuildSettingsCommand(config.ProjectPath)
