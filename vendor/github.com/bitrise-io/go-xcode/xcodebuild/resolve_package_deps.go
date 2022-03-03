@@ -63,9 +63,9 @@ func (m *ResolvePackagesCommandModel) Run() error {
 	log.Printf("Resolving package dependencies...")
 
 	log.TDonef("$ %s", cmd.PrintableCommandArgs())
-	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+	if err := cmd.Run(); err != nil {
 		if errorutil.IsExitStatusError(err) {
-			return fmt.Errorf("failed to resolve package dependencies, output: %s", out)
+			return fmt.Errorf("failed to resolve package dependencies")
 		}
 		return fmt.Errorf("failed to run command: %s", err)
 	}
