@@ -469,7 +469,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		}
 		productName, err := settings.String("PRODUCT_NAME")
 		if err != nil || productName == "" {
-			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", config.Scheme)
+			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
 			productName = opts.Scheme
 		}
 		opts.ArtifactName = productName
