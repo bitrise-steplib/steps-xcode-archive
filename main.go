@@ -817,9 +817,9 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	logger.Println()
 	if opts.XcodeMajorVersion >= 11 {
 		// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
-		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, "", "") // No scheme and configuration needed to resolve packages per project/worksapce
 		resolveDepsCmd.SetCustomOptions(customOptions)
-		if err := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration).Run(); err != nil {
+		if err := resolveDepsCmd.Run(); err != nil {
 			logger.Warnf("%s", err)
 		}
 	}
