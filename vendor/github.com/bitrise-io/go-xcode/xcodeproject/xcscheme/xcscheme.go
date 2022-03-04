@@ -25,6 +25,10 @@ func (r BuildableReference) IsAppReference() bool {
 	return filepath.Ext(r.BuildableName) == ".app"
 }
 
+func (r BuildableReference) isTestProduct() bool {
+	return filepath.Ext(r.BuildableName) == ".xctest"
+}
+
 // ReferencedContainerAbsPath ...
 func (r BuildableReference) ReferencedContainerAbsPath(schemeContainerDir string) (string, error) {
 	s := strings.Split(r.ReferencedContainer, ":")
@@ -60,6 +64,10 @@ type BuildAction struct {
 type TestableReference struct {
 	Skipped            string `xml:"skipped,attr"`
 	BuildableReference BuildableReference
+}
+
+func (r TestableReference) isTestable() bool {
+	return r.Skipped == "NO" && r.BuildableReference.isTestProduct()
 }
 
 // MacroExpansion ...
@@ -229,4 +237,15 @@ func (s Scheme) AppBuildActionEntry() (BuildActionEntry, bool) {
 	}
 
 	return entry, (entry.BuildableReference.BlueprintIdentifier != "")
+}
+
+// IsTestable returns true if Test is a valid action
+func (s Scheme) IsTestable() bool {
+	for _, testEntry := range s.TestAction.Testables {
+		if testEntry.isTestable() {
+			return true
+		}
+	}
+
+	return false
 }

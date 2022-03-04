@@ -17,6 +17,8 @@ const (
 	LegacyTargetType    TargetType = "PBXLegacyTarget"
 )
 
+const appClipProductType = "com.apple.product-type.application.on-demand-install-capable"
+
 // Target ...
 type Target struct {
 	Type                   TargetType
@@ -103,6 +105,22 @@ func (t Target) IsTestProduct() bool {
 // IsUITestProduct ...
 func (t Target) IsUITestProduct() bool {
 	return filepath.Ext(t.ProductType) == ".ui-testing"
+}
+
+func (t Target) isAppClipProduct() bool {
+	return t.ProductType == appClipProductType
+}
+
+// CanExportAppClip ...
+func (t Target) CanExportAppClip() bool {
+	deps := t.DependentTargets()
+	for _, target := range deps {
+		if target.isAppClipProduct() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func parseTarget(id string, objects serialized.Object) (Target, error) {

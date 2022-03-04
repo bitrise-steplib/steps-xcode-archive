@@ -291,22 +291,6 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		}
 	}
 
-	if config.ArtifactName == "" {
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(config.ProjectPath)
-		cmdModel.SetScheme(config.Scheme)
-		cmdModel.SetConfiguration(config.Configuration)
-		settings, err := cmdModel.RunAndReturnSettings()
-		if err != nil {
-			return Config{}, fmt.Errorf("failed to read build settings: %w", err)
-		}
-		productName, err := settings.String("PRODUCT_NAME")
-		if err != nil || productName == "" {
-			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", config.Scheme)
-			productName = config.Scheme
-		}
-		config.ArtifactName = productName
-	}
-
 	if config.CodeSigningAuthSource != codeSignSourceOff {
 		codesignManager, err := s.createCodesignManager(config)
 		if err != nil {
@@ -427,7 +411,6 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 				return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
 			}
 		}
-
 	}
 
 	xcprettyVersion, err := xcpretty.Version()
@@ -450,7 +433,7 @@ type xcodeArchiveOpts struct {
 
 	PerformCleanAction bool
 	XcconfigContent    string
-	XcodebuildOptions  string
+	CustomOptions      []string
 
 	CacheLevel string
 }
@@ -530,17 +513,12 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	destinationOptions := []string{"-destination", destination}
 
 	options := []string{}
-	if opts.XcodebuildOptions != "" {
-		userOptions, err := shellquote.Split(opts.XcodebuildOptions)
-		if err != nil {
-			return out, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", opts.XcodebuildOptions, err)
-		}
-
-		if !sliceutil.IsStringInSlice("-destination", userOptions) {
+	if len(opts.CustomOptions) != 0 {
+		if !sliceutil.IsStringInSlice("-destination", opts.CustomOptions) {
 			options = append(options, destinationOptions...)
 		}
 
-		options = append(options, userOptions...)
+		options = append(options, opts.CustomOptions...)
 	} else {
 		options = append(options, destinationOptions...)
 	}
@@ -809,7 +787,8 @@ type RunOpts struct {
 
 // RunOut ...
 type RunOut struct {
-	Archive *xcarchive.IosArchive
+	Archive      *xcarchive.IosArchive
+	ArtifactName string
 
 	ExportOptionsPath string
 	IPAExportDir      string
@@ -821,7 +800,45 @@ type RunOut struct {
 
 // Run ...
 func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
-	var authOptions *xcodebuild.AuthenticationParams = nil
+	var (
+		out         = RunOut{}
+		authOptions *xcodebuild.AuthenticationParams
+	)
+
+	customOptions, err := shellquote.Split(opts.XcodebuildOptions)
+	if err != nil {
+		return out, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", opts.XcodebuildOptions, err)
+	}
+
+	logger.Println()
+	if opts.XcodeMajorVersion >= 11 {
+		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
+		// Specifying a scheme is required for workspaces
+		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		resolveDepsCmd.SetCustomOptions(customOptions)
+		if err := resolveDepsCmd.Run(); err != nil {
+			logger.Warnf("%s", err)
+		}
+	}
+
+	if opts.ArtifactName == "" {
+		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
+		cmdModel.SetScheme(opts.Scheme)
+		cmdModel.SetConfiguration(opts.Configuration)
+		settings, err := cmdModel.RunAndReturnSettings()
+		if err != nil {
+			return out, fmt.Errorf("failed to read build settings: %w", err)
+		}
+		productName, err := settings.String("PRODUCT_NAME")
+		if err != nil || productName == "" {
+			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
+			productName = opts.Scheme
+		}
+
+		opts.ArtifactName = productName
+	}
+	out.ArtifactName = opts.ArtifactName
+
 	if opts.CodesignManager != nil {
 		logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
 
@@ -853,8 +870,6 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	}
 	logger.Println()
 
-	out := RunOut{}
-
 	archiveOpts := xcodeArchiveOpts{
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
@@ -866,7 +881,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
-		XcodebuildOptions:  opts.XcodebuildOptions,
+		CustomOptions:      customOptions,
 		CacheLevel:         opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
@@ -1164,6 +1179,7 @@ func RunStep() error {
 		CompileBitcode:                  config.CompileBitcode,
 	}
 	out, runErr := step.Run(runOpts)
+	config.ArtifactName = out.ArtifactName
 
 	exportOpts := ExportOpts{
 		OutputDir:      config.OutputDir,
