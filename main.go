@@ -437,7 +437,7 @@ type xcodeArchiveOpts struct {
 
 	PerformCleanAction bool
 	XcconfigContent    string
-	XcodebuildOptions  string
+	CustomOptions      []string
 
 	CacheLevel string
 }
@@ -517,17 +517,12 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	destinationOptions := []string{"-destination", destination}
 
 	options := []string{}
-	if opts.XcodebuildOptions != "" {
-		userOptions, err := shellquote.Split(opts.XcodebuildOptions)
-		if err != nil {
-			return out, fmt.Errorf("failed to shell split XcodebuildOptions (%s), error: %s", opts.XcodebuildOptions, err)
-		}
-
-		if !sliceutil.IsStringInSlice("-destination", userOptions) {
+	if len(opts.CustomOptions) != 0 {
+		if !sliceutil.IsStringInSlice("-destination", opts.CustomOptions) {
 			options = append(options, destinationOptions...)
 		}
 
-		options = append(options, userOptions...)
+		options = append(options, opts.CustomOptions...)
 	} else {
 		options = append(options, destinationOptions...)
 	}
@@ -814,9 +809,16 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		authOptions *xcodebuild.AuthenticationParams
 	)
 
+	customOptions, err := shellquote.Split(opts.XcodebuildOptions)
+	if err != nil {
+		return out, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", opts.XcodebuildOptions, err)
+	}
+
 	logger.Println()
 	if opts.XcodeMajorVersion >= 11 {
 		// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
+		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		resolveDepsCmd.SetCustomOptions(customOptions)
 		if err := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration).Run(); err != nil {
 			logger.Warnf("%s", err)
 		}
@@ -881,7 +883,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
-		XcodebuildOptions:  opts.XcodebuildOptions,
+		CustomOptions:      customOptions,
 		CacheLevel:         opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
