@@ -13,15 +13,19 @@ import (
 // ResolvePackagesCommandModel is a command builder
 // used to create `xcodebuild -resolvePackageDependencies` command
 type ResolvePackagesCommandModel struct {
-	projectPath string
+	projectPath   string
+	scheme        string
+	configuration string
 
 	customOptions []string
 }
 
 // NewResolvePackagesCommandModel returns a new ResolvePackagesCommandModel
-func NewResolvePackagesCommandModel(projectPath string) *ResolvePackagesCommandModel {
+func NewResolvePackagesCommandModel(projectPath, scheme, configuration string) *ResolvePackagesCommandModel {
 	return &ResolvePackagesCommandModel{
-		projectPath: projectPath,
+		projectPath:   projectPath,
+		scheme:        scheme,
+		configuration: configuration,
 	}
 }
 
@@ -42,6 +46,14 @@ func (m *ResolvePackagesCommandModel) cmdSlice() []string {
 		}
 	}
 
+	if m.scheme != "" {
+		slice = append(slice, "-scheme", m.scheme)
+	}
+
+	if m.configuration != "" {
+		slice = append(slice, "-configuration", m.configuration)
+	}
+
 	slice = append(slice, "-resolvePackageDependencies")
 	slice = append(slice, m.customOptions...)
 
@@ -49,14 +61,14 @@ func (m *ResolvePackagesCommandModel) cmdSlice() []string {
 }
 
 // Command returns the executable command
-func (m *ResolvePackagesCommandModel) Command() command.Model {
+func (m *ResolvePackagesCommandModel) command() command.Model {
 	cmdSlice := m.cmdSlice()
 	return *command.NewWithStandardOuts(cmdSlice[0], cmdSlice[1:]...)
 }
 
 func (m *ResolvePackagesCommandModel) Run() error {
 	var (
-		cmd   = m.Command()
+		cmd   = m.command()
 		start = time.Now()
 	)
 
