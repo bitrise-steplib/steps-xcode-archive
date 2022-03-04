@@ -376,11 +376,7 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 
 // EnsureDependenciesOpts ...
 type EnsureDependenciesOpts struct {
-	XCPretty      bool
-	ProjectPath   string
-	ArtifactName  string
-	Scheme        string
-	Configuration string
+	XCPretty bool
 }
 
 // EnsureDependencies ...
