@@ -66,6 +66,7 @@ func (m *ResolvePackagesCommandModel) command() command.Model {
 	return *command.NewWithStandardOuts(cmdSlice[0], cmdSlice[1:]...)
 }
 
+// Run runs the command and logs elapsed time
 func (m *ResolvePackagesCommandModel) Run() error {
 	var (
 		cmd   = m.command()
