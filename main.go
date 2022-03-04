@@ -812,8 +812,9 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 	logger.Println()
 	if opts.XcodeMajorVersion >= 11 {
-		// Resolve Swift package dependencies now, so running -showBuildSettings later is faster
-		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, "", "") // No scheme and configuration needed to resolve packages per project/worksapce
+		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
+		// Specifying a scheme is required for workspaces
+		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
 		resolveDepsCmd.SetCustomOptions(customOptions)
 		if err := resolveDepsCmd.Run(); err != nil {
 			logger.Warnf("%s", err)
@@ -833,6 +834,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 			logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
 			productName = opts.Scheme
 		}
+
 		opts.ArtifactName = productName
 	}
 	out.ArtifactName = opts.ArtifactName
