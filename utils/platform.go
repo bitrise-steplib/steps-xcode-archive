@@ -9,6 +9,7 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
+	"github.com/bitrise-io/go-utils/v2/log"
 )
 
 // Platform ...
@@ -21,9 +22,16 @@ const (
 	watchOS Platform = "watchOS"
 )
 
+var logger = log.NewLogger()
+
 // OpenArchivableProject ...
 func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodeproj.XcodeProj, *xcscheme.Scheme, string, error) {
+	logger.Infof("[mattrob] OpenArchivableProject - start")
+
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
+
+	logger.Infof("[mattrob] OpenArchivableProject - 0")
+
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("could not get scheme (%s) from path (%s): %s", schemeName, pth, err)
 	}
@@ -31,24 +39,35 @@ func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodepro
 		configurationName = scheme.ArchiveAction.BuildConfiguration
 	}
 
+	logger.Infof("[mattrob] OpenArchivableProject - 1")
+
 	if configurationName == "" {
 		return nil, nil, "", fmt.Errorf("no configuration provided nor default defined for the scheme's (%s) archive action", schemeName)
 	}
+
+	logger.Infof("[mattrob] OpenArchivableProject - 2")
 
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
 		return nil, nil, "", fmt.Errorf("archivable entry not found")
 	}
 
+	logger.Infof("[mattrob] OpenArchivableProject - 3")
+
 	projectPth, err := archiveEntry.BuildableReference.ReferencedContainerAbsPath(filepath.Dir(schemeContainerDir))
 	if err != nil {
 		return nil, nil, "", err
 	}
 
+	logger.Infof("[mattrob] OpenArchivableProject - 4")
+
 	xcodeProj, err := xcodeproj.Open(projectPth)
 	if err != nil {
 		return nil, nil, "", err
 	}
+
+	logger.Infof("[mattrob] OpenArchivableProject - end")
+
 	return &xcodeProj, scheme, configurationName, nil
 }
 

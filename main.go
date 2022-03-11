@@ -446,16 +446,22 @@ type xcodeArchiveOutput struct {
 func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
 	out := xcodeArchiveOutput{}
 
+	logger.Infof("[mattrob] startin xcodeArchive")
+
 	// Open Xcode project
 	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 	if err != nil {
 		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 	}
 
+	logger.Infof("[mattrob] OpenArchivableProject")
+
 	platform, err := utils.BuildableTargetPlatform(xcodeProj, scheme, configuration, utils.XcodeBuild{})
 	if err != nil {
 		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
+
+	logger.Infof("[mattrob] BuildableTargetPlatform")
 
 	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
 	if err != nil {
@@ -468,6 +474,8 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		logger.Errorf("and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.")
 		os.Exit(1)
 	}
+
+	logger.Infof("[mattrob] ArchivableApplicationTarget")
 
 	// Create the Archive with Xcode Command Line tools
 	logger.Println()
