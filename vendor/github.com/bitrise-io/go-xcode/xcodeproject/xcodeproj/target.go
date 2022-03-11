@@ -160,8 +160,9 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 	if err != nil {
 		return Target{}, err
 	}
-
+	logger.Infof("[mattrob] xcodeproj - parseConfigurationList(buildConfigurationListID, objects) start")
 	buildConfigurationList, err := parseConfigurationList(buildConfigurationListID, objects)
+	logger.Infof("[mattrob] xcodeproj - parseConfigurationList(buildConfigurationListID, objects) end")
 	if err != nil {
 		return Target{}, err
 	}
@@ -172,8 +173,11 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 	}
 
 	var dependencies []TargetDependency
+	logger.Infof("[mattrob] xcodeproj - TargetDependency start")
 	for _, dependencyID := range dependencyIDs {
+		logger.Infof("[mattrob] xcodeproj - parseTargetDependency start")
 		dependency, err := parseTargetDependency(dependencyID, objects)
+		logger.Infof("[mattrob] xcodeproj - parseTargetDependency end")
 		if err != nil {
 			// KeyNotFoundError can be only raised if the 'target' property not found on the raw target dependency object
 			// we only care about target dependency, which points to a target
@@ -186,8 +190,10 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 
 		dependencies = append(dependencies, dependency)
 	}
+	logger.Infof("[mattrob] xcodeproj - TargetDependency end")
 
 	var productReference ProductReference
+	logger.Infof("[mattrob] xcodeproj - ProductReference start")
 	productReferenceID, err := rawTarget.String("productReference")
 	if err != nil {
 		if !serialized.IsKeyNotFoundError(err) {
@@ -199,6 +205,7 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 			return Target{}, err
 		}
 	}
+	logger.Infof("[mattrob] xcodeproj - ProductReference end")
 
 	buildPhaseIDs, err := rawTarget.StringSlice("buildPhases")
 	if err != nil {
