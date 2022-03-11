@@ -22,8 +22,10 @@ func Scheme(pth string, name string) (*xcscheme.Scheme, string, error) {
 	logger.Infof("[mattrob] Scheme - 1")
 
 	if xcodeproj.IsXcodeProj(pth) {
+		logger.Infof("[mattrob] Scheme - xcodeproj.Open(pth)")
 		p, err = xcodeproj.Open(pth)
 	} else {
+		logger.Infof("[mattrob] Scheme - xcworkspace.Open(pth)")
 		p, err = xcworkspace.Open(pth)
 	}
 

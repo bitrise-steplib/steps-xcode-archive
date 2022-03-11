@@ -20,7 +20,11 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 	"golang.org/x/text/unicode/norm"
+
+	v2log "github.com/bitrise-io/go-utils/v2/log"
 )
+
+var logger = v2log.NewLogger()
 
 const (
 	// XcodeProjExtension ...
@@ -330,6 +334,8 @@ func (p XcodeProj) Schemes() ([]xcscheme.Scheme, error) {
 
 // Open ...
 func Open(pth string) (XcodeProj, error) {
+	logger.Infof("[mattrob] xcodeproj - Open")
+
 	absPth, err := pathutil.AbsPath(pth)
 	if err != nil {
 		return XcodeProj{}, err
