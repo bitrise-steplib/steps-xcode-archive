@@ -45,7 +45,7 @@ func (l *logger) EnableDebugLog(enable bool) {
 
 // Infof ...
 func (l *logger) Infof(format string, v ...interface{}) {
-	l.printf(infoSeverity, false, format, v...)
+	l.printf(infoSeverity, true, format, v...)
 }
 
 // Warnf ...
