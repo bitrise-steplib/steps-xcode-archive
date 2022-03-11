@@ -368,9 +368,15 @@ func parsePBXProjContent(content []byte) (*XcodeProj, error) {
 		return nil, fmt.Errorf("failed to unmarshal project.pbxproj: %s", err)
 	}
 
+	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) start")
 	annotatedPbxProj := deepCopyObject(rawPbxProj) // Preserve annotations
+	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) finished")
+	logger.Infof("[mattrob] xcodeproj - removeCustomInfoObject(rawPbxProj) start")
 	rawPbxProj = removeCustomInfoObject(rawPbxProj)
+	logger.Infof("[mattrob] xcodeproj - removeCustomInfoObject(rawPbxProj) finished")
+	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) start")
 	originalPbxProj := deepCopyObject(rawPbxProj)
+	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) finished")
 
 	objects, err := rawPbxProj.Object("objects")
 	if err != nil {
@@ -401,7 +407,9 @@ func parsePBXProjContent(content []byte) (*XcodeProj, error) {
 		return nil, fmt.Errorf("failed to find PBXProject's id in project.pbxproj")
 	}
 
+	logger.Infof("[mattrob] xcodeproj - parseProj(projectID, objects) start")
 	proj, err := parseProj(projectID, objects)
+	logger.Infof("[mattrob] xcodeproj - parseProj(projectID, objects) finished")
 	if err != nil {
 		return nil, err
 	}
