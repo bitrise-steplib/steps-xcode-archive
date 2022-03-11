@@ -356,6 +356,8 @@ func Open(pth string) (XcodeProj, error) {
 	p.Path = absPth
 	p.Name = strings.TrimSuffix(filepath.Base(absPth), filepath.Ext(absPth))
 
+	logger.Infof("[mattrob] xcodeproj - Done")
+
 	return *p, nil
 }
 
