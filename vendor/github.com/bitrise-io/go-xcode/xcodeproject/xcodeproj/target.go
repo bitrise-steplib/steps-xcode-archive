@@ -167,10 +167,10 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 		return Target{}, err
 	}
 
-	dependencyIDs, err := rawTarget.StringSlice("dependencies")
-	if err != nil {
-		return Target{}, err
-	}
+	//dependencyIDs, err := rawTarget.StringSlice("dependencies")
+	//if err != nil {
+	//	return Target{}, err
+	//}
 
 	var dependencies []TargetDependency
 	logger.Infof("[mattrob] xcodeproj - TargetDependency start")
