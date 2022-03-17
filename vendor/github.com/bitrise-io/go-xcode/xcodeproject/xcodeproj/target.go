@@ -175,9 +175,9 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 	var dependencies []TargetDependency
 	logger.Infof("[mattrob] xcodeproj - TargetDependency start")
 	for _, dependencyID := range dependencyIDs {
-		logger.Infof("[mattrob] xcodeproj - parseTargetDependency start")
-		dependency, err := parseTargetDependency(dependencyID, objects)
-		logger.Infof("[mattrob] xcodeproj - parseTargetDependency end")
+		//logger.Infof("[mattrob] xcodeproj - parseTargetDependency start")
+		//dependency, err := parseTargetDependency(dependencyID, objects)
+		//logger.Infof("[mattrob] xcodeproj - parseTargetDependency end")
 		if err != nil {
 			// KeyNotFoundError can be only raised if the 'target' property not found on the raw target dependency object
 			// we only care about target dependency, which points to a target
