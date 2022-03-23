@@ -41,7 +41,7 @@ func (w Writer) Write(codesignAssetsByDistributionType map[autocodesign.Distribu
 		for _, profile := range codesignAssets.ArchivableTargetProfilesByBundleID {
 			log.Printf("- %s", profile.Attributes().Name)
 
-			if err := writeProfile(profile); err != nil {
+			if err := w.InstallProfile(profile); err != nil {
 				return fmt.Errorf("failed to write profile to file: %s", err)
 			}
 		}
@@ -49,7 +49,7 @@ func (w Writer) Write(codesignAssetsByDistributionType map[autocodesign.Distribu
 		for _, profile := range codesignAssets.UITestTargetProfilesByBundleID {
 			log.Printf("- %s", profile.Attributes().Name)
 
-			if err := writeProfile(profile); err != nil {
+			if err := w.InstallProfile(profile); err != nil {
 				return fmt.Errorf("failed to write profile to file: %s", err)
 			}
 		}
@@ -69,10 +69,10 @@ func (w Writer) InstallCertificate(certificate certificateutil.CertificateInfoMo
 	return w.keychain.InstallCertificate(certificate, "")
 }
 
-// writeProfile writes the provided profile under the `$HOME/Library/MobileDevice/Provisioning Profiles` directory.
+// InstallProfile writes the provided profile under the `$HOME/Library/MobileDevice/Provisioning Profiles` directory.
 // Xcode uses profiles located in that directory.
 // The file extension depends on the profile's platform `IOS` => `.mobileprovision`, `MAC_OS` => `.provisionprofile`
-func writeProfile(profile autocodesign.Profile) error {
+func (w Writer) InstallProfile(profile autocodesign.Profile) error {
 	homeDir := os.Getenv("HOME")
 	profilesDir := path.Join(homeDir, "Library/MobileDevice/Provisioning Profiles")
 	if exists, err := pathutil.IsDirExists(profilesDir); err != nil {
@@ -97,5 +97,6 @@ func writeProfile(profile autocodesign.Profile) error {
 	if err := ioutil.WriteFile(name, profile.Attributes().ProfileContent, 0600); err != nil {
 		return fmt.Errorf("failed to write profile to file: %s", err)
 	}
+
 	return nil
 }
