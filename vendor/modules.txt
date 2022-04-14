@@ -54,7 +54,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.10
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.11
 ## explicit
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
@@ -63,6 +63,7 @@ github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient
 github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect
 github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnectclient
 github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/spaceship
+github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/time
 github.com/bitrise-io/go-xcode/v2/autocodesign/keychain
 github.com/bitrise-io/go-xcode/v2/autocodesign/localcodesignasset
 github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager

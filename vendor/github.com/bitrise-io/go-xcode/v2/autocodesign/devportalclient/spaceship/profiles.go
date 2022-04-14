@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/time"
 )
 
 const (
@@ -105,7 +105,7 @@ func newProfile(p ProfileInfo) (autocodesign.Profile, error) {
 			ProfileState:   appstoreconnect.ProfileState(p.Status),
 			ProfileContent: contents,
 			Platform:       p.Platform,
-			ExpirationDate: appstoreconnect.Time(p.Expiry),
+			ExpirationDate: time.Time(p.Expiry),
 		},
 		id:             p.ID,
 		bundleID:       p.BundleID,
