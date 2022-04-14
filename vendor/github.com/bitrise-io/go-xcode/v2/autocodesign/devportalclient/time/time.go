@@ -1,4 +1,4 @@
-package appstoreconnect
+package time
 
 import (
 	"fmt"
@@ -29,6 +29,14 @@ func (t *Time) UnmarshalJSON(b []byte) error {
 }
 
 func timeFormats() []string {
+	formats := []string{time.RFC3339}
+	formats = append(formats, appleKeyAuthTimeFormats()...)
+	formats = append(formats, appleIDAuthTimeFormats()...)
+
+	return formats
+}
+
+func appleKeyAuthTimeFormats() []string {
 	// Apple is using an ISO 8601 time format (https://en.wikipedia.org/wiki/ISO_8601). In this format the offset from
 	// the UTC time can have the following equivalent and interchangeable formats:
 	// * [+/-]07:00
@@ -39,8 +47,15 @@ func timeFormats() []string {
 	// Go has built in support for ISO 8601 but only for the zero offset UTC and the [+/-]07:00 format under time.RFC3339.
 	// We still need to check for the other two.
 	return []string{
-		time.RFC3339,
 		"2006-01-02T15:04:05.000-0700",
 		"2006-01-02T15:04:05.000-07",
+	}
+}
+
+func appleIDAuthTimeFormats() []string {
+	// Spaceship returns this time format when setting SPACESHIP_AVOID_XCODE_API=true. This is needed because Apple's
+	// API started to return an error for the old spaceship implementation.
+	return []string{
+		"2006-01-02 15:04:05 UTC",
 	}
 }

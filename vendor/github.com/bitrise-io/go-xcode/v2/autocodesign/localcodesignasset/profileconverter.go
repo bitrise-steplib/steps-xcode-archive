@@ -6,6 +6,7 @@ import (
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/time"
 )
 
 // ProvisioningProfileConverter ...
@@ -38,7 +39,7 @@ func (c provisioningProfileConverter) ProfileInfoToProfile(info profileutil.Prov
 			UUID:           info.UUID,
 			ProfileContent: content,
 			Platform:       getBundleIDPlatform(info.Type),
-			ExpirationDate: appstoreconnect.Time(info.ExpirationDate),
+			ExpirationDate: time.Time(info.ExpirationDate),
 		},
 		id:             "", // only in case of Developer Portal Profiles
 		bundleID:       info.BundleID,
