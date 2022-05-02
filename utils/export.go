@@ -17,7 +17,7 @@ func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error 
 	cmd := cmdFactory.Create("/usr/bin/zip", []string{"-rTy", destinationZipPth, dirName}, &command.Opts{Dir: parentDir})
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Failed to zip dir: %s, output: %s, error: %s", sourceDir, out, err)
+		return fmt.Errorf("failed to zip dir: %s, output: %s, error: %s", sourceDir, out, err)
 	}
 
 	return nil

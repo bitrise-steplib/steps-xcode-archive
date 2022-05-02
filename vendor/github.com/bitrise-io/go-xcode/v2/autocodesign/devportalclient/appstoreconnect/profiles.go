@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/time"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
 
@@ -85,7 +86,7 @@ type ProfileAttributes struct {
 	CreatedDate    string           `json:"createdDate"`
 	ProfileState   ProfileState     `json:"profileState"`
 	ProfileType    ProfileType      `json:"profileType"`
-	ExpirationDate Time             `json:"expirationDate"`
+	ExpirationDate time.Time        `json:"expirationDate"`
 }
 
 // Profile ...

@@ -35,7 +35,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 			xcodeProj: &xcodeproj.XcodeProj{
 				Proj: xcodeproj.Proj{
 					Targets: []xcodeproj.Target{
-						xcodeproj.Target{
+						{
 							ID: "target_id",
 						},
 					},
@@ -44,7 +44,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 			scheme: &xcscheme.Scheme{
 				BuildAction: xcscheme.BuildAction{
 					BuildActionEntries: []xcscheme.BuildActionEntry{
-						xcscheme.BuildActionEntry{
+						{
 							BuildForArchiving: "YES",
 							BuildableReference: xcscheme.BuildableReference{
 								BuildableName:       "bitrise.app",
@@ -64,7 +64,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 			xcodeProj: &xcodeproj.XcodeProj{
 				Proj: xcodeproj.Proj{
 					Targets: []xcodeproj.Target{
-						xcodeproj.Target{
+						{
 							ID: "target_id",
 						},
 					},
@@ -73,7 +73,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 			scheme: &xcscheme.Scheme{
 				BuildAction: xcscheme.BuildAction{
 					BuildActionEntries: []xcscheme.BuildActionEntry{
-						xcscheme.BuildActionEntry{
+						{
 							BuildForArchiving: "YES",
 							BuildableReference: xcscheme.BuildableReference{
 								BuildableName:       "bitrise.app",

@@ -536,7 +536,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	var swiftPackagesPath string
 	if opts.XcodeMajorVersion >= 11 {
 		var err error
-		if swiftPackagesPath, err = cache.SwiftPackagesPath(opts.ProjectPath); err != nil {
+		if swiftPackagesPath, err = cache.NewSwiftPackageCache().SwiftPackagesPath(opts.ProjectPath); err != nil {
 			return out, fmt.Errorf("failed to get Swift Packages path, error: %s", err)
 		}
 	}
@@ -583,7 +583,7 @@ The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be av
 
 	// Cache swift PM
 	if opts.XcodeMajorVersion >= 11 && opts.CacheLevel == "swift_packages" {
-		if err := cache.CollectSwiftPackages(opts.ProjectPath); err != nil {
+		if err := cache.NewSwiftPackageCache().CollectSwiftPackages(opts.ProjectPath); err != nil {
 			logger.Warnf("Failed to mark swift packages for caching, error: %s", err)
 		}
 	}
@@ -658,7 +658,7 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 
 		archiveExportMethod := opts.Archive.Application.ProvisioningProfile.ExportType
 
-		exportMethod, err := determineExportMethod(opts.ExportMethod, exportoptions.Method(archiveExportMethod))
+		exportMethod, err := determineExportMethod(opts.ExportMethod, archiveExportMethod)
 		if err != nil {
 			return out, err
 		}

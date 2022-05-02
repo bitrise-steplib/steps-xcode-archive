@@ -9,6 +9,7 @@ app:
   - BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST
   - BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST: $BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
   - BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST
+  - BITFALL_APPLE_IOS_CERTIFICATE_NOPASSPHRASE_URL: $BITFALL_APPLE_IOS_CERTIFICATE_NOPASSPHRASE_URL
   - BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST: $BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
   - BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
 
@@ -16,6 +17,34 @@ app:
   - BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID: $BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID
 
 workflows:
+  test_single_certificate_no_passphrase:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf "./_tmp"
+            mkdir -p "./_tmp"
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git@master:
+        inputs:
+        - repository_url: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+        - branch: bundle_id
+        - clone_into_dir: ./_tmp
+    - path::./:
+        title: Execute step
+        inputs:
+        - project_path: ./_tmp/ios-simple-objc/ios-simple-objc.xcodeproj
+        - scheme: ios-simple-objc
+        - automatic_code_signing: api-key
+        - certificate_url_list: $BITFALL_APPLE_IOS_CERTIFICATE_NOPASSPHRASE_URL
+        - passphrase_list: ""
+        - distribution_method: development
+        - export_development_team: 72SA8V3WYL
+        - verbose_log: "yes"
+        - keychain_path: $BITRISE_KEYCHAIN_PATH
+        - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+
   test_manual_signing:
     description: Tests the case when automatic code signing is disabled and the certificate installer step is used to set up code signing assets
     envs:
