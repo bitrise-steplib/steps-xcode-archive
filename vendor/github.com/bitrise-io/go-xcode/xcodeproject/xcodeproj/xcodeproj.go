@@ -20,11 +20,7 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 	"golang.org/x/text/unicode/norm"
-
-	v2log "github.com/bitrise-io/go-utils/v2/log"
 )
-
-var logger = v2log.NewLogger()
 
 const (
 	// XcodeProjExtension ...
@@ -110,6 +106,24 @@ func (p XcodeProj) TargetInfoplistPath(target, configuration string) (string, er
 	return p.buildSettingsFilePath(target, configuration, "INFOPLIST_FILE")
 }
 
+// DependentTargetsOfTarget returns with all dependencies of a given target, including the transitive dependencies.
+// The returned list contains each target only once, using the target ID for uniqueness.
+func (p XcodeProj) DependentTargetsOfTarget(target Target) []Target {
+	var dependentTargets []Target
+	for _, dependency := range target.Dependencies {
+		childTarget, ok := p.Proj.Target(dependency.TargetID)
+		if !ok {
+			log.Warnf("couldn't find dependency %s of target %s (%s), skipping", dependency.TargetID, target.Name, target.ID)
+		}
+		dependentTargets = append(dependentTargets, childTarget)
+
+		childDependentTargets := p.DependentTargetsOfTarget(childTarget)
+		dependentTargets = append(dependentTargets, childDependentTargets...)
+	}
+
+	return deduplicateTargetList(dependentTargets)
+}
+
 // ReadTargetInfoplist ...
 func (p XcodeProj) ReadTargetInfoplist(target, configuration string) (serialized.Object, int, error) {
 	informationPropertyListPth, err := p.TargetInfoplistPath(target, configuration)
@@ -186,7 +200,7 @@ func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) 
 	}
 
 	if bundleID != "" {
-		return Resolve(bundleID, buildSettings)
+		return resolve(bundleID, buildSettings)
 	}
 
 	informationPropertyList, _, err := p.ReadTargetInfoplist(target, configuration)
@@ -203,16 +217,16 @@ func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) 
 		return "", errors.New("no PRODUCT_BUNDLE_IDENTIFIER build settings nor CFBundleIdentifier information property found")
 	}
 
-	return Resolve(bundleID, buildSettings)
+	return resolve(bundleID, buildSettings)
 }
 
-// Resolve returns the resolved bundleID. We need this, because the bundleID is not exposed in the .pbxproj file ( raw ).
+// resolve returns the resolved bundleID. We need this, because the bundleID is not exposed in the .pbxproj file ( raw ).
 // If the raw BundleID contains an environment variable we have to replace it.
 //
 // **Example:**
 // BundleID in the .pbxproj: Bitrise.Test.$(PRODUCT_NAME:rfc1034identifier).Suffix
 // BundleID after the env is expanded: Bitrise.Test.Sample.Suffix
-func Resolve(bundleID string, buildSettings serialized.Object) (string, error) {
+func resolve(bundleID string, buildSettings serialized.Object) (string, error) {
 	resolvedBundleIDs := map[string]bool{}
 	resolved := bundleID
 	for true {
@@ -334,8 +348,6 @@ func (p XcodeProj) Schemes() ([]xcscheme.Scheme, error) {
 
 // Open ...
 func Open(pth string) (XcodeProj, error) {
-	logger.Infof("[mattrob] xcodeproj - Open")
-
 	absPth, err := pathutil.AbsPath(pth)
 	if err != nil {
 		return XcodeProj{}, err
@@ -356,8 +368,6 @@ func Open(pth string) (XcodeProj, error) {
 	p.Path = absPth
 	p.Name = strings.TrimSuffix(filepath.Base(absPth), filepath.Ext(absPth))
 
-	logger.Infof("[mattrob] xcodeproj - Done")
-
 	return *p, nil
 }
 
@@ -368,15 +378,9 @@ func parsePBXProjContent(content []byte) (*XcodeProj, error) {
 		return nil, fmt.Errorf("failed to unmarshal project.pbxproj: %s", err)
 	}
 
-	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) start")
 	annotatedPbxProj := deepCopyObject(rawPbxProj) // Preserve annotations
-	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) finished")
-	logger.Infof("[mattrob] xcodeproj - removeCustomInfoObject(rawPbxProj) start")
 	rawPbxProj = removeCustomInfoObject(rawPbxProj)
-	logger.Infof("[mattrob] xcodeproj - removeCustomInfoObject(rawPbxProj) finished")
-	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) start")
 	originalPbxProj := deepCopyObject(rawPbxProj)
-	logger.Infof("[mattrob] xcodeproj - deepCopyObject(rawPbxProj) finished")
 
 	objects, err := rawPbxProj.Object("objects")
 	if err != nil {
@@ -407,9 +411,7 @@ func parsePBXProjContent(content []byte) (*XcodeProj, error) {
 		return nil, fmt.Errorf("failed to find PBXProject's id in project.pbxproj")
 	}
 
-	logger.Infof("[mattrob] xcodeproj - parseProj(projectID, objects) start")
 	proj, err := parseProj(projectID, objects)
-	logger.Infof("[mattrob] xcodeproj - parseProj(projectID, objects) finished")
 	if err != nil {
 		return nil, err
 	}
@@ -724,4 +726,16 @@ func (p XcodeProj) perObjectModify() ([]byte, error) {
 	}
 
 	return contentsMod, nil
+}
+
+func deduplicateTargetList(targets []Target) []Target {
+	lookupMap := map[string]Target{}
+	for _, target := range targets {
+		lookupMap[target.ID] = target
+	}
+	uniqueTargets := []Target{}
+	for _, target := range lookupMap {
+		uniqueTargets = append(uniqueTargets, target)
+	}
+	return uniqueTargets
 }

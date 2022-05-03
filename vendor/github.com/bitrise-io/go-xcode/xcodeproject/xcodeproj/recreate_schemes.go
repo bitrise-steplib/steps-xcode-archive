@@ -52,7 +52,7 @@ func (p XcodeProj) ReCreateSchemes() []xcscheme.Scheme {
 
 		var testTargets []Target
 		for _, testTarget := range p.Proj.Targets {
-			if testTarget.IsTest() && testTarget.DependesOn(buildTarget.ID) {
+			if testTarget.IsTest() && testTarget.DependsOn(buildTarget.ID) {
 				testTargets = append(testTargets, testTarget)
 			}
 		}

@@ -31,47 +31,14 @@ type Target struct {
 	buildPhaseIDs          []string
 }
 
-// DependentTargets ...
-func (t Target) DependentTargets() []Target {
-	var targets []Target
+// DependsOn ...
+func (t Target) DependsOn(targetID string) bool {
 	for _, targetDependency := range t.Dependencies {
-		childTarget := targetDependency.Target
-		targets = append(targets, childTarget)
-
-		childDependentTargets := childTarget.DependentTargets()
-		targets = append(targets, childDependentTargets...)
-	}
-
-	return targets
-}
-
-// DependesOn ...
-func (t Target) DependesOn(targetID string) bool {
-	for _, targetDependency := range t.Dependencies {
-		childTarget := targetDependency.Target
-		if childTarget.ID == targetID {
+		if targetDependency.TargetID == targetID {
 			return true
 		}
 	}
 	return false
-}
-
-// DependentExecutableProductTargets ...
-func (t Target) DependentExecutableProductTargets() []Target {
-	var targets []Target
-	for _, targetDependency := range t.Dependencies {
-		childTarget := targetDependency.Target
-		if !childTarget.IsExecutableProduct() {
-			continue
-		}
-
-		targets = append(targets, childTarget)
-
-		childDependentTargets := childTarget.DependentExecutableProductTargets()
-		targets = append(targets, childDependentTargets...)
-	}
-
-	return targets
 }
 
 // IsAppProduct ...
@@ -107,20 +74,9 @@ func (t Target) IsUITestProduct() bool {
 	return filepath.Ext(t.ProductType) == ".ui-testing"
 }
 
-func (t Target) isAppClipProduct() bool {
+// IsAppClipProduct ...
+func (t Target) IsAppClipProduct() bool {
 	return t.ProductType == appClipProductType
-}
-
-// CanExportAppClip ...
-func (t Target) CanExportAppClip() bool {
-	deps := t.DependentTargets()
-	for _, target := range deps {
-		if target.isAppClipProduct() {
-			return true
-		}
-	}
-
-	return false
 }
 
 func parseTarget(id string, objects serialized.Object) (Target, error) {
@@ -160,39 +116,34 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 	if err != nil {
 		return Target{}, err
 	}
-	logger.Infof("[mattrob] xcodeproj - parseConfigurationList(buildConfigurationListID, objects) start")
+
 	buildConfigurationList, err := parseConfigurationList(buildConfigurationListID, objects)
-	logger.Infof("[mattrob] xcodeproj - parseConfigurationList(buildConfigurationListID, objects) end")
 	if err != nil {
 		return Target{}, err
 	}
 
-	//dependencyIDs, err := rawTarget.StringSlice("dependencies")
-	//if err != nil {
-	//	return Target{}, err
-	//}
+	dependencyIDs, err := rawTarget.StringSlice("dependencies")
+	if err != nil {
+		return Target{}, err
+	}
 
 	var dependencies []TargetDependency
-	logger.Infof("[mattrob] xcodeproj - TargetDependency start")
-	//for _, dependencyID := range dependencyIDs {
-	//	logger.Infof("[mattrob] xcodeproj - parseTargetDependency start")
-	//	dependency, err := parseTargetDependency(dependencyID, objects)
-	//	logger.Infof("[mattrob] xcodeproj - parseTargetDependency end")
-	//	if err != nil {
-	//		// KeyNotFoundError can be only raised if the 'target' property not found on the raw target dependency object
-	//		// we only care about target dependency, which points to a target
-	//		if serialized.IsKeyNotFoundError(err) {
-	//			continue
-	//		} else {
-	//			return Target{}, err
-	//		}
-	//	}
-	//	dependencies = append(dependencies, dependency)
-	//}
-	logger.Infof("[mattrob] xcodeproj - TargetDependency end")
+	for _, dependencyID := range dependencyIDs {
+		dependency, err := parseTargetDependency(dependencyID, objects)
+		if err != nil {
+			// KeyNotFoundError can be only raised if the 'target' property not found on the raw target dependency object
+			// we only care about target dependency, which points to a target
+			if serialized.IsKeyNotFoundError(err) {
+				continue
+			} else {
+				return Target{}, err
+			}
+		}
+
+		dependencies = append(dependencies, dependency)
+	}
 
 	var productReference ProductReference
-	logger.Infof("[mattrob] xcodeproj - ProductReference start")
 	productReferenceID, err := rawTarget.String("productReference")
 	if err != nil {
 		if !serialized.IsKeyNotFoundError(err) {
@@ -204,7 +155,6 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 			return Target{}, err
 		}
 	}
-	logger.Infof("[mattrob] xcodeproj - ProductReference end")
 
 	buildPhaseIDs, err := rawTarget.StringSlice("buildPhases")
 	if err != nil {

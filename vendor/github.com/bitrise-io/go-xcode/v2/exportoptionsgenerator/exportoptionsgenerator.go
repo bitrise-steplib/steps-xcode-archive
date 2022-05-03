@@ -60,8 +60,10 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod ex
 		return nil, err
 	}
 
-	dependentTargets := dependentApplicationBundleTargetsOf(exportMethod, *mainTarget)
-
+	dependentTargets := filterApplicationBundleTargets(
+		g.xcodeProj.DependentTargetsOfTarget(*mainTarget),
+		exportMethod,
+	)
 	targets := append([]xcodeproj.Target{*mainTarget}, dependentTargets...)
 
 	var mainTargetBundleID string
@@ -124,8 +126,12 @@ func ArchivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcschem
 	return &mainTarget, nil
 }
 
-func dependentApplicationBundleTargetsOf(exportMethod exportoptions.Method, applicationtarget xcodeproj.Target) (dependentTargets []xcodeproj.Target) {
-	for _, target := range applicationtarget.DependentExecutableProductTargets() {
+func filterApplicationBundleTargets(targets []xcodeproj.Target, exportMethod exportoptions.Method) (filteredTargets []xcodeproj.Target) {
+	for _, target := range targets {
+		if !target.IsExecutableProduct() {
+			continue
+		}
+
 		// App store exports contain App Clip too. App Clip provisioning profile has to be included in export options:
 		// ..
 		// <key>provisioningProfiles</key>
@@ -136,12 +142,11 @@ func dependentApplicationBundleTargetsOf(exportMethod exportoptions.Method, appl
 		// 	<string>Development App Clip Profile</string>
 		// </dict>
 		// ..,
-		if exportMethod != exportoptions.MethodAppStore &&
-			target.ProductType == AppClipProductType {
+		if exportMethod != exportoptions.MethodAppStore && target.ProductType == AppClipProductType {
 			continue
 		}
 
-		dependentTargets = append(dependentTargets, target)
+		filteredTargets = append(filteredTargets, target)
 	}
 	return
 }

@@ -20,9 +20,7 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 		return Proj{}, fmt.Errorf("failed to access object with id %s: %s", id, err)
 	}
 
-	logger.Infof("[mattrob] xcodeproj - parseProjectAttributes(rawPBXProj) start")
 	projectAttributes, err := parseProjectAttributes(rawPBXProj)
-	logger.Infof("[mattrob] xcodeproj - parseProjectAttributes(rawPBXProj) finished")
 	if err != nil {
 		return Proj{}, fmt.Errorf("failed to parse project attributes: %s", err)
 	}
@@ -31,9 +29,8 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 	if err != nil {
 		return Proj{}, fmt.Errorf("failed to access build configuration list: %s", err)
 	}
-	logger.Infof("[mattrob] xcodeproj - parseConfigurationList(buildConfigurationListID, objects) start")
+
 	buildConfigurationList, err := parseConfigurationList(buildConfigurationListID, objects)
-	logger.Infof("[mattrob] xcodeproj - parseConfigurationList(buildConfigurationListID, objects) finished")
 	if err != nil {
 		return Proj{}, fmt.Errorf("failed to parse build configuration list: %s", err)
 	}
@@ -44,7 +41,6 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 	}
 
 	var targets []Target
-	logger.Infof("[mattrob] xcodeproj - rawTargets start")
 	for _, targetID := range rawTargets {
 		// rawTargets can contain more target IDs than the project configuration has
 		hasTargetNode, err := hasTargetNode(targetID, objects)
@@ -56,15 +52,12 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 			continue
 		}
 
-		logger.Infof("[mattrob] xcodeproj - parseTarget(targetID, objects) start")
 		target, err := parseTarget(targetID, objects)
-		logger.Infof("[mattrob] xcodeproj - parseTarget(targetID, objects) end")
 		if err != nil {
 			return Proj{}, fmt.Errorf("failed to parse target with id: %s: %s", targetID, err)
 		}
 		targets = append(targets, target)
 	}
-	logger.Infof("[mattrob] xcodeproj - rawTargets end")
 
 	return Proj{
 		ID:                     id,
