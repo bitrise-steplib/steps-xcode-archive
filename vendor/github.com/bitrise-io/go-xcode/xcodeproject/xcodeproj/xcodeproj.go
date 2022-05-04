@@ -114,6 +114,7 @@ func (p XcodeProj) DependentTargetsOfTarget(target Target) []Target {
 		childTarget, ok := p.Proj.Target(dependency.TargetID)
 		if !ok {
 			log.Warnf("couldn't find dependency %s of target %s (%s), skipping", dependency.TargetID, target.Name, target.ID)
+			continue
 		}
 		dependentTargets = append(dependentTargets, childTarget)
 
@@ -729,13 +730,15 @@ func (p XcodeProj) perObjectModify() ([]byte, error) {
 }
 
 func deduplicateTargetList(targets []Target) []Target {
-	lookupMap := map[string]Target{}
-	for _, target := range targets {
-		lookupMap[target.ID] = target
-	}
+	inResult := make(map[string]bool)
 	uniqueTargets := []Target{}
-	for _, target := range lookupMap {
-		uniqueTargets = append(uniqueTargets, target)
+
+	for _, target := range targets {
+		if _, ok := inResult[target.ID]; !ok {
+			inResult[target.ID] = true
+			uniqueTargets = append(uniqueTargets, target)
+		}
 	}
+
 	return uniqueTargets
 }
