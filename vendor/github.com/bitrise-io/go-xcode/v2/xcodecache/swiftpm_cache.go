@@ -3,6 +3,7 @@ package cache
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/bitrise-io/go-steputils/cache"
@@ -35,11 +36,13 @@ func (c swiftPackageCache) SwiftPackagesPath(xcodeProjectPath string) (string, e
 		return "", fmt.Errorf("project path not an absolute path: %s", xcodeProjectPath)
 	}
 
-	if !strings.HasSuffix(xcodeProjectPath, ".xcodeproj") && !strings.HasSuffix(xcodeProjectPath, ".xcworkspace") {
-		return "", fmt.Errorf("invalid Xcode project path %s, no .xcodeproj or .xcworkspace suffix found", xcodeProjectPath)
+	fileExtension := filepath.Ext(xcodeProjectPath)
+	if fileExtension != ".xcodeproj" && fileExtension != ".xcworkspace" && fileExtension != ".swift" {
+		return "", fmt.Errorf("invalid Xcode project path: %s, no .xcodeproj or .xcworkspace suffix, or Package.swift file found", xcodeProjectPath)
 	}
 
-	projectDerivedData, err := xcodeProjectDerivedDataPath(xcodeProjectPath)
+	trimmedXcodeProjectPath := strings.TrimSuffix(xcodeProjectPath, "/Package.swift")
+	projectDerivedData, err := xcodeProjectDerivedDataPath(trimmedXcodeProjectPath)
 	if err != nil {
 		return "", err
 	}

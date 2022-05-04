@@ -2,10 +2,10 @@ package xcodeproj
 
 import "github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 
-// TargetDependency ...
+// TargetDependency is a reference to another Target that is a dependency of a given Target
 type TargetDependency struct {
-	ID     string
-	Target Target
+	id       string
+	TargetID string
 }
 
 func parseTargetDependency(id string, objects serialized.Object) (TargetDependency, error) {
@@ -19,13 +19,8 @@ func parseTargetDependency(id string, objects serialized.Object) (TargetDependen
 		return TargetDependency{}, err
 	}
 
-	target, err := parseTarget(targetID, objects)
-	if err != nil {
-		return TargetDependency{}, err
-	}
-
 	return TargetDependency{
-		ID:     id,
-		Target: target,
+		id:       id,
+		TargetID: targetID,
 	}, nil
 }
