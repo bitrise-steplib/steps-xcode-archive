@@ -142,7 +142,7 @@ func filterApplicationBundleTargets(targets []xcodeproj.Target, exportMethod exp
 		// 	<string>Development App Clip Profile</string>
 		// </dict>
 		// ..,
-		if exportMethod != exportoptions.MethodAppStore && target.ProductType == AppClipProductType {
+		if exportMethod != exportoptions.MethodAppStore && target.IsAppClipProduct() {
 			continue
 		}
 
