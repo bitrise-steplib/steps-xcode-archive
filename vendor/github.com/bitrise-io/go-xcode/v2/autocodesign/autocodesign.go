@@ -107,12 +107,17 @@ type CertificateProvider interface {
 	GetCertificates() ([]certificateutil.CertificateInfoModel, error)
 }
 
-// CodesignAssetsOpts are codesigning related paramters that are not specified by the project (or archive)
+// LocalCertificates is a map from the certificate type (development, distribution) to an array of installed certs
+type LocalCertificates map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel
+
+// CodesignAssetsOpts are codesigning related parameters that are not specified by the project (or archive)
 type CodesignAssetsOpts struct {
-	DistributionType       DistributionType
-	BitriseTestDevices     []devportalservice.TestDevice
-	MinProfileValidityDays int
-	VerboseLog             bool
+	DistributionType                  DistributionType
+	TypeToBitriseCertificates         LocalCertificates
+	BitriseTestDevices                []devportalservice.TestDevice
+	MinProfileValidityDays            int
+	FallbackToLocalAssetsOnAPIFailure bool
+	VerboseLog                        bool
 }
 
 // CodesignAssetManager ...
@@ -122,16 +127,14 @@ type CodesignAssetManager interface {
 
 type codesignAssetManager struct {
 	devPortalClient           DevPortalClient
-	certificateProvider       CertificateProvider
 	assetWriter               AssetWriter
 	localCodeSignAssetManager LocalCodeSignAssetManager
 }
 
 // NewCodesignAssetManager ...
-func NewCodesignAssetManager(devPortalClient DevPortalClient, certificateProvider CertificateProvider, assetWriter AssetWriter, localCodeSignAssetManager LocalCodeSignAssetManager) CodesignAssetManager {
+func NewCodesignAssetManager(devPortalClient DevPortalClient, assetWriter AssetWriter, localCodeSignAssetManager LocalCodeSignAssetManager) CodesignAssetManager {
 	return codesignAssetManager{
 		devPortalClient:           devPortalClient,
-		certificateProvider:       certificateProvider,
 		assetWriter:               assetWriter,
 		localCodeSignAssetManager: localCodeSignAssetManager,
 	}
@@ -139,26 +142,10 @@ func NewCodesignAssetManager(devPortalClient DevPortalClient, certificateProvide
 
 // EnsureCodesignAssets is the main entry point of the codesigning logic
 func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts CodesignAssetsOpts) (map[DistributionType]AppCodesignAssets, error) {
-	fmt.Println()
-	log.Infof("Downloading certificates")
-
-	certs, err := m.certificateProvider.GetCertificates()
-	if err != nil {
-		return nil, fmt.Errorf("failed to download certificates: %w", err)
-	}
-	if len(certs) > 0 {
-		log.Printf("%d certificates downloaded:", len(certs))
-		for _, cert := range certs {
-			log.Printf("- %s", cert.String())
-		}
-	} else {
-		log.Warnf("No certificates found")
-	}
-
 	signUITestTargets := len(appLayout.UITestTargetBundleIDs) > 0
 	certsByType, distrTypes, err := selectCertificatesAndDistributionTypes(
 		m.devPortalClient,
-		certs,
+		opts.TypeToBitriseCertificates,
 		opts.DistributionType,
 		signUITestTargets,
 		opts.VerboseLog,
