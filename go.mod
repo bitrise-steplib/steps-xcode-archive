@@ -13,3 +13,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	howett.net/plist v1.0.0
 )
+
+replace github.com/bitrise-io/go-xcode/v2 => /Users/lpusok/Develop/go/src/github.com/bitrise-steplib/go-xcode

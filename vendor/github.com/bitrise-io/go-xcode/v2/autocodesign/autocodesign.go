@@ -12,6 +12,7 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/devportalservice"
+	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
@@ -88,6 +89,7 @@ type DevPortalClient interface {
 type AssetWriter interface {
 	Write(codesignAssetsByDistributionType map[DistributionType]AppCodesignAssets) error
 	InstallCertificate(certificate certificateutil.CertificateInfoModel) error
+	InstallProfile(profile Profile) error
 }
 
 // LocalCodeSignAssetManager ...
@@ -107,10 +109,25 @@ type CertificateProvider interface {
 	GetCertificates() ([]certificateutil.CertificateInfoModel, error)
 }
 
+// LocalCertificates is a map from the certificate type (development, distribution) to an array of installed certs
+type LocalCertificates map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel
+
+// LocalProfile ...
+type LocalProfile struct {
+	Profile Profile
+	Info    profileutil.ProvisioningProfileInfoModel
+}
+
+// ProfileProvider returns provisioning profiles
+type ProfileProvider interface {
+	IsAvailable() bool
+	GetProfiles() ([]LocalProfile, error)
+}
+
 // CodesignAssetsOpts are codesigning related parameters that are not specified by the project (or archive)
 type CodesignAssetsOpts struct {
 	DistributionType                  DistributionType
-	TypeToBitriseCertificates         map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel
+	TypeToLocalCertificates           LocalCertificates
 	BitriseTestDevices                []devportalservice.TestDevice
 	MinProfileValidityDays            int
 	FallbackToLocalAssetsOnAPIFailure bool
@@ -142,7 +159,7 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 	signUITestTargets := len(appLayout.UITestTargetBundleIDs) > 0
 	certsByType, distrTypes, err := selectCertificatesAndDistributionTypes(
 		m.devPortalClient,
-		opts.TypeToBitriseCertificates,
+		opts.TypeToLocalCertificates,
 		opts.DistributionType,
 		signUITestTargets,
 		opts.VerboseLog,

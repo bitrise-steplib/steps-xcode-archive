@@ -33,6 +33,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/localcodesignasset"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/profiledownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/v2/codesign"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
@@ -97,15 +98,17 @@ type Inputs struct {
 
 	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
 
-	CodeSigningAuthSource     string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
-	CertificateURLList        string          `env:"certificate_url_list"`
-	CertificatePassphraseList stepconf.Secret `env:"passphrase_list"`
-	KeychainPath              string          `env:"keychain_path"`
-	KeychainPassword          stepconf.Secret `env:"keychain_password"`
-	RegisterTestDevices       bool            `env:"register_test_devices,opt[yes,no]"`
-	MinDaysProfileValid       int             `env:"min_profile_validity,required"`
-	BuildURL                  string          `env:"BITRISE_BUILD_URL"`
-	BuildAPIToken             stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
+	CodeSigningAuthSource           string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
+	CertificateURLList              string          `env:"certificate_url_list"`
+	CertificatePassphraseList       stepconf.Secret `env:"passphrase_list"`
+	KeychainPath                    string          `env:"keychain_path"`
+	KeychainPassword                stepconf.Secret `env:"keychain_password"`
+	RegisterTestDevices             bool            `env:"register_test_devices,opt[yes,no]"`
+	MinDaysProfileValid             int             `env:"min_profile_validity,required"`
+	UseFallbackOnCodesigningError   bool            `env:"use_fallback_on_codesigning_failure,required"`
+	FallbackProvisioningProfileURLs []string        `env:"provisioning_profile_url_list"`
+	BuildURL                        string          `env:"BITRISE_BUILD_URL"`
+	BuildAPIToken                   stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
 
 // Config ...
@@ -341,15 +344,16 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	}
 
 	opts := codesign.Opts{
-		AuthType:                   authType,
-		ShouldConsiderXcodeSigning: true,
-		TeamID:                     config.ExportDevelopmentTeam,
-		ExportMethod:               codesignConfig.DistributionMethod,
-		XcodeMajorVersion:          config.XcodeMajorVersion,
-		RegisterTestDevices:        config.RegisterTestDevices,
-		SignUITests:                false,
-		MinDaysProfileValidity:     config.MinDaysProfileValid,
-		IsVerboseLog:               config.VerboseLog,
+		AuthType:                          authType,
+		FallbackToLocalAssetsOnAPIFailure: config.UseFallbackOnCodesigningError,
+		ShouldConsiderXcodeSigning:        true,
+		TeamID:                            config.ExportDevelopmentTeam,
+		ExportMethod:                      codesignConfig.DistributionMethod,
+		XcodeMajorVersion:                 config.XcodeMajorVersion,
+		RegisterTestDevices:               config.RegisterTestDevices,
+		SignUITests:                       false,
+		MinDaysProfileValidity:            config.MinDaysProfileValid,
+		IsVerboseLog:                      config.VerboseLog,
 	}
 
 	project, err := projectmanager.NewProject(projectmanager.InitParams{
@@ -367,6 +371,7 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 		serviceConnection,
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
+		profiledownloader.New(config.FallbackProvisioningProfileURLs, retry.NewHTTPClient().StandardClient()),
 		codesignasset.NewWriter(codesignConfig.Keychain),
 		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		project,

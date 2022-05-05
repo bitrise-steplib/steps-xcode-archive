@@ -15,6 +15,13 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/keychain"
 )
 
+const (
+	// ProfileIOSExtension is the iOS provisioning profile extension
+	ProfileIOSExtension = ".mobileprovision"
+	// ProfileMacExtension is the macOS provisioning profile extension
+	ProfileMacExtension = ".provisionprofile"
+)
+
 // Writer ...
 type Writer struct {
 	keychain keychain.Keychain
@@ -86,9 +93,9 @@ func (w Writer) InstallProfile(profile autocodesign.Profile) error {
 	var ext string
 	switch profile.Attributes().Platform {
 	case appstoreconnect.IOS:
-		ext = ".mobileprovision"
+		ext = ProfileIOSExtension
 	case appstoreconnect.MacOS:
-		ext = ".provisionprofile"
+		ext = ProfileMacExtension
 	default:
 		return fmt.Errorf("failed to write profile to file, unsupported platform: (%s). Supported platforms: %s, %s", profile.Attributes().Platform, appstoreconnect.IOS, appstoreconnect.MacOS)
 	}

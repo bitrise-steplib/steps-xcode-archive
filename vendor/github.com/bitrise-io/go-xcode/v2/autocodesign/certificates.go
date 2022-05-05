@@ -9,7 +9,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
 )
 
-func selectCertificatesAndDistributionTypes(certificateSource DevPortalClient, typeToLocalCerts map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel, distribution DistributionType, signUITestTargets bool, verboseLog bool) (map[appstoreconnect.CertificateType][]Certificate, []DistributionType, error) {
+func selectCertificatesAndDistributionTypes(certificateSource DevPortalClient, typeToLocalCerts LocalCertificates, distribution DistributionType, signUITestTargets bool, verboseLog bool) (map[appstoreconnect.CertificateType][]Certificate, []DistributionType, error) {
 	certType, ok := CertificateTypeByDistribution[distribution]
 	if !ok {
 		panic(fmt.Sprintf("no valid certificate provided for distribution type: %s", distribution))
@@ -50,7 +50,7 @@ func selectCertificatesAndDistributionTypes(certificateSource DevPortalClient, t
 	return certsByType, distrTypes, nil
 }
 
-func getValidCertificates(typeToLocalCerts map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel, client DevPortalClient, requiredCertificateTypes map[appstoreconnect.CertificateType]bool, isDebugLog bool) (map[appstoreconnect.CertificateType][]Certificate, error) {
+func getValidCertificates(typeToLocalCerts LocalCertificates, client DevPortalClient, requiredCertificateTypes map[appstoreconnect.CertificateType]bool, isDebugLog bool) (map[appstoreconnect.CertificateType][]Certificate, error) {
 	log.Debugf("Certificates required for Development: %t; Distribution: %t", requiredCertificateTypes[appstoreconnect.IOSDevelopment], requiredCertificateTypes[appstoreconnect.IOSDistribution])
 
 	for certificateType, required := range requiredCertificateTypes {
@@ -90,7 +90,7 @@ func getValidCertificates(typeToLocalCerts map[appstoreconnect.CertificateType][
 }
 
 // GetValidLocalCertificates returns validated and deduplicated local certificates
-func GetValidLocalCertificates(certificates []certificateutil.CertificateInfoModel) (map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel, error) {
+func GetValidLocalCertificates(certificates []certificateutil.CertificateInfoModel) (LocalCertificates, error) {
 	preFilteredCerts := certificateutil.FilterValidCertificateInfos(certificates)
 
 	if len(preFilteredCerts.InvalidCertificates) != 0 {
@@ -102,7 +102,7 @@ func GetValidLocalCertificates(certificates []certificateutil.CertificateInfoMod
 
 	log.Debugf("Valid and deduplicated certificates:\n%s", certsToString(preFilteredCerts.ValidCertificates))
 
-	localCertificates := map[appstoreconnect.CertificateType][]certificateutil.CertificateInfoModel{}
+	localCertificates := LocalCertificates{}
 	for _, certType := range []appstoreconnect.CertificateType{appstoreconnect.IOSDevelopment, appstoreconnect.IOSDistribution} {
 		localCertificates[certType] = filterCertificates(preFilteredCerts.ValidCertificates, certType)
 	}
