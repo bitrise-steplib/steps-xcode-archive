@@ -105,8 +105,7 @@ type Inputs struct {
 	KeychainPassword                stepconf.Secret `env:"keychain_password"`
 	RegisterTestDevices             bool            `env:"register_test_devices,opt[yes,no]"`
 	MinDaysProfileValid             int             `env:"min_profile_validity,required"`
-	UseFallbackOnCodesigningError   bool            `env:"use_fallback_on_codesigning_failure,required"`
-	FallbackProvisioningProfileURLs []string        `env:"provisioning_profile_url_list"`
+	FallbackProvisioningProfileURLs string          `env:"fallback_provisioning_profile_url_list"`
 	BuildURL                        string          `env:"BITRISE_BUILD_URL"`
 	BuildAPIToken                   stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
@@ -317,12 +316,13 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	}
 
 	codesignInputs := codesign.Input{
-		AuthType:                  authType,
-		DistributionMethod:        config.ExportMethod,
-		CertificateURLList:        config.CertificateURLList,
-		CertificatePassphraseList: config.CertificatePassphraseList,
-		KeychainPath:              config.KeychainPath,
-		KeychainPassword:          config.KeychainPassword,
+		AuthType:                     authType,
+		DistributionMethod:           config.ExportMethod,
+		CertificateURLList:           config.CertificateURLList,
+		CertificatePassphraseList:    config.CertificatePassphraseList,
+		KeychainPath:                 config.KeychainPath,
+		KeychainPassword:             config.KeychainPassword,
+		FallbackProvisioningProfiles: config.FallbackProvisioningProfileURLs,
 	}
 
 	codesignConfig, err := codesign.ParseConfig(codesignInputs, cmdFactory)
@@ -344,16 +344,15 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	}
 
 	opts := codesign.Opts{
-		AuthType:                          authType,
-		FallbackToLocalAssetsOnAPIFailure: config.UseFallbackOnCodesigningError,
-		ShouldConsiderXcodeSigning:        true,
-		TeamID:                            config.ExportDevelopmentTeam,
-		ExportMethod:                      codesignConfig.DistributionMethod,
-		XcodeMajorVersion:                 config.XcodeMajorVersion,
-		RegisterTestDevices:               config.RegisterTestDevices,
-		SignUITests:                       false,
-		MinDaysProfileValidity:            config.MinDaysProfileValid,
-		IsVerboseLog:                      config.VerboseLog,
+		AuthType:                   authType,
+		ShouldConsiderXcodeSigning: true,
+		TeamID:                     config.ExportDevelopmentTeam,
+		ExportMethod:               codesignConfig.DistributionMethod,
+		XcodeMajorVersion:          config.XcodeMajorVersion,
+		RegisterTestDevices:        config.RegisterTestDevices,
+		SignUITests:                false,
+		MinDaysProfileValidity:     config.MinDaysProfileValid,
+		IsVerboseLog:               config.VerboseLog,
 	}
 
 	project, err := projectmanager.NewProject(projectmanager.InitParams{
@@ -365,13 +364,14 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 		return codesign.Manager{}, err
 	}
 
+	client := retry.NewHTTPClient().StandardClient()
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
 		serviceConnection,
 		devPortalClientFactory,
-		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, retry.NewHTTPClient().StandardClient()),
-		profiledownloader.New(config.FallbackProvisioningProfileURLs, retry.NewHTTPClient().StandardClient()),
+		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
+		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
 		codesignasset.NewWriter(codesignConfig.Keychain),
 		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		project,

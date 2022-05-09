@@ -263,29 +263,20 @@ inputs:
     is_sensitive: true
     is_dont_change_value: true
 
-- use_fallback_on_codesigning_failure: "no"
+- fallback_provisioning_profile_url_list:
   opts:
-    category: Automatic code signing (advanced)
-    title: Enable fallback to local codesigning assets
-    summary: Fallback to local codesigning assets on Automatic code signing error
-    description: |-
-      If set to `yes`, will try to use local codesigning assets as a fallback option when there is an Automatic code signing error.
-    value_options:
-    - "no"
-    - "yes"
-    is_required: true
-
-- provisioning_profile_url_list: $BITRISE_PROVISION_URL
-  opts:
-    category: Automatic code signing (advanced)
+    category: Automatic code signing
     title: Fallback provisioning profile URLs
     description: |
-      Used if "Enable fallback to local codesigning assets" option is set to `yes`.
+      If set, provided provisioning profiles will be used on Automatic code signing error.
 
       URL of the provisioning profile to download. Multiple URLs can be specified, separated by a newline or pipe (`|`) character.
 
       You can specify a local path as well, using the `file://` scheme.
       For example: `file://./BuildAnything.mobileprovision`.
+
+      Can also provide a local directory that contains files with `.mobileprovision` extension.
+      For example: `file://./profilesDirectory/`
     is_sensitive: true
 
 # IPA export configuration
