@@ -418,7 +418,6 @@ func (m *Manager) prepareManualAssets(certificates []certificateutil.Certificate
 
 		if err := m.assetInstaller.InstallProfile(profile.Profile); err != nil {
 			return fmt.Errorf("failed to install profile: %w", err)
-			q
 		}
 	}
 
