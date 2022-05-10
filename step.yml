@@ -438,4 +438,3 @@ outputs:
     title: Path to the xcdistributionlogs
     description: |-
       Exported when `xcodebuild -exportArchive` command fails.
-
