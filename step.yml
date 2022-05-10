@@ -276,7 +276,7 @@ inputs:
       For example: `file://./BuildAnything.mobileprovision`.
 
       Can also provide a local directory that contains files with `.mobileprovision` extension.
-      For example: `file://./profilesDirectory/`
+      For example: `./profilesDirectory/`
     is_sensitive: true
 
 # IPA export configuration
@@ -438,8 +438,4 @@ outputs:
     title: Path to the xcdistributionlogs
     description: |-
       Exported when `xcodebuild -exportArchive` command fails.
-- BITRISE_AUTOMATIC_CODE_SIGNING_ERROR:
-  opts:
-    title: Automatic code signing error
-    description: |-
-      In case of fallback to manually provided code signing assets, the error message is provided.
+
