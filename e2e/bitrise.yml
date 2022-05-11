@@ -496,7 +496,7 @@ workflows:
         - content: |-
             #!/bin/env bash
             set -ex
-            INVALID_BUILD_URL=./_tmp/_invalid_authinfo
+            INVALID_BUILD_URL=./_invalid_authinfo
             echo '{"key_id": "x", "issuer_id": "x", "private_key": "x"}' > $INVALID_BUILD_URL
 
             BITRISE_BUILD_URL="file://$INVALID_BUILD_URL"
