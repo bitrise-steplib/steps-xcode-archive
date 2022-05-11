@@ -107,9 +107,13 @@ workflows:
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
 
   test_api_key_signing_manual_fallback_on_error:
-    description: Running in isolation as overwrites auth params
+    description: |-
+      Running in isolation as overwrites auth params.
+      Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore.
     steps:
     - bitrise-run:
+        run_if: |-
+          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
         inputs:
         - workflow_id: utility_test_api_key_signing_manual_fallback_on_error
         - bitrise_config_path: ./e2e/bitrise.yml
@@ -117,10 +121,10 @@ workflows:
   utility_test_api_key_signing_manual_fallback_on_error:
     description: Test fallback to manual signing on code signing error
     envs:
-    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
-    - TEST_APP_BRANCH: new-certificates
-    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
-    - BITRISE_SCHEME: ios-simple-objc
+    - TEST_APP_URL: https://github.com/bitrise-io/Fruta
+    - TEST_APP_BRANCH: manual-signing
+    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
+    - BITRISE_SCHEME: Fruta iOS
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
@@ -492,7 +496,7 @@ workflows:
         - content: |-
             #!/bin/env bash
             set -ex
-            INVALID_BUILD_URL=./_invalid_authinfo
+            INVALID_BUILD_URL=./_tmp/_invalid_authinfo
             echo '{"key_id": "x", "issuer_id": "x", "private_key": "x"}' > $INVALID_BUILD_URL
 
             BITRISE_BUILD_URL="file://$INVALID_BUILD_URL"
