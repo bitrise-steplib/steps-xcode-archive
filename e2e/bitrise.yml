@@ -106,6 +106,36 @@ workflows:
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
 
+  test_api_key_signing_manual_fallback_on_error:
+    description: |-
+      Running in isolation as overwrites auth params.
+    steps:
+    - bitrise-run:
+        inputs:
+        - workflow_id: utility_test_api_key_signing_manual_fallback_on_error
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_api_key_signing_manual_fallback_on_error:
+    description: Test fallback to manual signing on code signing error
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
+    - TEST_APP_BRANCH: new-certificates
+    - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
+    - BITRISE_SCHEME: ios-simple-objc
+    - CODE_SIGNING_METHOD: api-key
+    - XCCONFIG_CONTENT: |
+        COMPILER_INDEX_STORE_ENABLE = NO
+        CODE_SIGN_IDENTITY = iPhone Developer: Dev Portal Bot Bitrise
+    - MIN_DAYS_PROFILE_VALID: 0
+    - IPA_EXPORT_METHOD: development
+    - LOG_FORMATTER: xcodebuild
+    - FALLBACK_PROFILES: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
+    after_run:
+    - _invalid_login
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
   test_api_key_signing_managed:
     description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
     steps:
@@ -375,12 +405,14 @@ workflows:
         - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
         - passphrase_list: $BITFALL_APPLE_APPLE_CERTIFICATE_PASSPHRASE_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
         - distribution_method: $IPA_EXPORT_METHOD
+        - xcconfig_content: $XCCONFIG_CONTENT
         - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
         - export_development_team: $TEAM_ID
         - log_formatter: $LOG_FORMATTER
         - verbose_log: "yes"
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+        - fallback_provisioning_profile_url_list: $FALLBACK_PROFILES
 
   _check_outputs:
     steps:
@@ -456,3 +488,22 @@ workflows:
               echo "$infoplist_path does not exist."
               exit 1
             fi
+
+  _invalid_login:
+    steps:
+    - script:
+        title: Set invalid login
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+            INVALID_BUILD_URL=./_invalid_authinfo
+            echo '{"key_id": "x", "issuer_id": "x", "private_key": "x"}' > $INVALID_BUILD_URL
+
+            BITRISE_BUILD_URL="file://$INVALID_BUILD_URL"
+            BITRISE_BUILD_API_TOKEN="x"
+
+            export BITRISE_BUILD_API_TOKEN
+            export BITRISE_BUILD_API_TOKEN
+            envman add --key BITRISE_BUILD_URL --value $BITRISE_BUILD_URL
+            envman add --key BITRISE_BUILD_API_TOKEN --value $BITRISE_BUILD_API_TOKEN

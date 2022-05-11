@@ -6,6 +6,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/appleauth"
+	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
@@ -54,6 +55,7 @@ type Manager struct {
 	bitriseConnection         *devportalservice.AppleDeveloperConnection
 	devPortalClientFactory    devportalclient.Factory
 	certDownloader            autocodesign.CertificateProvider
+	fallbackProfileDownloader autocodesign.ProfileProvider
 	assetInstaller            autocodesign.AssetWriter
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager
 
@@ -70,6 +72,7 @@ func NewManagerWithArchive(
 	connection *devportalservice.AppleDeveloperConnection,
 	clientFactory devportalclient.Factory,
 	certDownloader autocodesign.CertificateProvider,
+	fallbackProfileDownloader autocodesign.ProfileProvider,
 	assetInstaller autocodesign.AssetWriter,
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
 	archive Archive,
@@ -81,6 +84,7 @@ func NewManagerWithArchive(
 		bitriseConnection:         connection,
 		devPortalClientFactory:    clientFactory,
 		certDownloader:            certDownloader,
+		fallbackProfileDownloader: fallbackProfileDownloader,
 		assetInstaller:            assetInstaller,
 		localCodeSignAssetManager: localCodeSignAssetManager,
 		detailsProvider:           archive,
@@ -95,6 +99,7 @@ func NewManagerWithProject(
 	connection *devportalservice.AppleDeveloperConnection,
 	clientFactory devportalclient.Factory,
 	certDownloader autocodesign.CertificateProvider,
+	fallbackProfileDownloader autocodesign.ProfileProvider,
 	assetInstaller autocodesign.AssetWriter,
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
 	project projectmanager.Project,
@@ -106,6 +111,7 @@ func NewManagerWithProject(
 		bitriseConnection:         connection,
 		devPortalClientFactory:    clientFactory,
 		certDownloader:            certDownloader,
+		fallbackProfileDownloader: fallbackProfileDownloader,
 		assetInstaller:            assetInstaller,
 		localCodeSignAssetManager: localCodeSignAssetManager,
 		detailsProvider:           project,
@@ -141,8 +147,19 @@ func (m *Manager) PrepareCodesigning() (*devportalservice.APIKeyConnection, erro
 			m.logger.Infof("Code signing asset management with xcodebuild")
 			m.logger.Printf("Reason: %s", reason)
 			m.logger.Println()
-			m.logger.Infof("Downloading certificates from Bitrise")
-			if err := m.downloadAndInstallCertificates(); err != nil {
+			m.logger.Infof("Downloading certificates...")
+			certificates, err := m.downloadCertificates()
+			if err != nil {
+				return nil, err
+			}
+
+			if err := m.validateCertificatesForXcodeManagedSigning(certificates); err != nil {
+				return nil, err
+			}
+
+			m.logger.Println()
+			m.logger.Infof("Installing certificates...")
+			if err := m.installCertificates(certificates); err != nil {
 				return nil, err
 			}
 
@@ -250,20 +267,46 @@ func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials) (
 	return codeSigningXcode, "Automatically managed signing is enabled in Xcode for the project.", nil
 }
 
-func (m *Manager) downloadAndInstallCertificates() error {
+func (m *Manager) downloadCertificates() ([]certificateutil.CertificateInfoModel, error) {
 	certificates, err := m.certDownloader.GetCertificates()
 	if err != nil {
-		return fmt.Errorf("failed to download certificates: %s", err)
+		return nil, fmt.Errorf("failed to download certificates: %s", err)
+	}
+
+	if len(certificates) == 0 {
+		m.logger.Warnf("No certificates are uploaded.")
+
+		return nil, nil
+	}
+
+	m.logger.Printf("%d certificates downloaded:", len(certificates))
+	for _, cert := range certificates {
+		m.logger.Printf("- %s", cert)
+	}
+
+	return certificates, nil
+}
+
+func (m *Manager) installCertificates(certificates []certificateutil.CertificateInfoModel) error {
+	for _, cert := range certificates {
+		// Empty passphrase provided, as already parsed certificate + private key
+		if err := m.assetInstaller.InstallCertificate(cert); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Manager) validateCertificatesForXcodeManagedSigning(certificates []certificateutil.CertificateInfoModel) error {
+	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certificates)
+	if err != nil {
+		return err
 	}
 
 	certificateType, ok := autocodesign.CertificateTypeByDistribution[m.opts.ExportMethod]
 	if !ok {
 		panic(fmt.Sprintf("no valid certificate provided for distribution type: %s", m.opts.ExportMethod))
-	}
-
-	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certificates)
-	if err != nil {
-		return err
 	}
 
 	if len(typeToLocalCerts[certificateType]) == 0 {
@@ -272,15 +315,6 @@ func (m *Manager) downloadAndInstallCertificates() error {
 		}
 
 		m.logger.Warnf("no valid %s type certificate uploaded", certificateType)
-	}
-
-	m.logger.Infof("Installing downloaded certificates:")
-	for _, cert := range certificates {
-		m.logger.Printf("- %s", cert)
-		// Empty passphrase provided, as already parsed certificate + private key
-		if err := m.assetInstaller.InstallCertificate(cert); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -319,26 +353,71 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 		return err
 	}
 
-	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.certDownloader, m.assetInstaller, m.localCodeSignAssetManager)
+	fmt.Println()
+	m.logger.Infof("Downloading certificates")
+	certs, err := m.downloadCertificates()
+	if err != nil {
+		return err
+	}
+
+	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certs)
+	if err != nil {
+		return err
+	}
+
+	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.assetInstaller, m.localCodeSignAssetManager)
 
 	// Fetch and apply codesigning assets
 	var testDevices []devportalservice.TestDevice
 	if m.opts.RegisterTestDevices && m.bitriseConnection != nil {
 		testDevices = m.bitriseConnection.TestDevices
 	}
+
 	codesignAssetsByDistributionType, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
-		DistributionType:       m.opts.ExportMethod,
-		BitriseTestDevices:     testDevices,
-		MinProfileValidityDays: m.opts.MinDaysProfileValidity,
-		VerboseLog:             m.opts.IsVerboseLog,
+		DistributionType:        m.opts.ExportMethod,
+		TypeToLocalCertificates: typeToLocalCerts,
+		BitriseTestDevices:      testDevices,
+		MinProfileValidityDays:  m.opts.MinDaysProfileValidity,
+		VerboseLog:              m.opts.IsVerboseLog,
 	})
 	if err != nil {
-		return err
+		if !m.fallbackProfileDownloader.IsAvailable() {
+			return err
+		}
+
+		m.logger.Println()
+		m.logger.Errorf("Automatic code signing failed: %s", err)
+		m.logger.Println()
+		m.logger.Infof("Falling back to manually managed codesigning assets.")
+
+		return m.prepareManualAssets(certs)
 	}
 
 	if m.assetWriter != nil {
 		if err := m.assetWriter.ForceCodesignAssets(m.opts.ExportMethod, codesignAssetsByDistributionType); err != nil {
 			return fmt.Errorf("failed to force codesign settings: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func (m *Manager) prepareManualAssets(certificates []certificateutil.CertificateInfoModel) error {
+	if err := m.installCertificates(certificates); err != nil {
+		return err
+	}
+
+	profiles, err := m.fallbackProfileDownloader.GetProfiles()
+	if err != nil {
+		return fmt.Errorf("failed to fetch profiles: %w", err)
+	}
+
+	m.logger.Printf("Installing manual profiles:")
+	for _, profile := range profiles {
+		m.logger.Printf("%s", profile.Info.String(certificates...))
+
+		if err := m.assetInstaller.InstallProfile(profile.Profile); err != nil {
+			return fmt.Errorf("failed to install profile: %w", err)
 		}
 	}
 
