@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
@@ -12,6 +13,10 @@ import (
 )
 
 func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error {
+	var start = time.Now()
+
+	fmt.Printf("Will zip directory path: %s", sourceDir)
+
 	parentDir := filepath.Dir(sourceDir)
 	dirName := filepath.Base(sourceDir)
 	cmd := cmdFactory.Create("/usr/bin/zip", []string{"-rTy", destinationZipPth, dirName}, &command.Opts{Dir: parentDir})
@@ -19,6 +24,8 @@ func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error 
 	if err != nil {
 		return fmt.Errorf("failed to zip dir: %s, output: %s, error: %s", sourceDir, out, err)
 	}
+
+	fmt.Printf("Directory zipped in %s.", time.Since(start).Round(time.Second))
 
 	return nil
 }
@@ -31,10 +38,14 @@ func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr st
 // ExportOutputDir ...
 func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string) error {
 	if sourceDirPth != destinationDirPth {
+		fmt.Printf("Coping export output")
+
 		if err := v1command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
 		}
 	}
+
+	fmt.Printf("Copied export output to %s", destinationDirPth)
 
 	return exportEnvironmentWithEnvman(cmdFactory, envKey, destinationDirPth)
 }
@@ -61,6 +72,10 @@ func ExportOutputFileContent(cmdFactory command.Factory, content, destinationPth
 
 // ExportOutputDirAsZip ...
 func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationPth, envKey string) error {
+	var start = time.Now()
+
+	fmt.Printf("Will zip directory path: %s", sourceDirPth)
+
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("__export_tmp_dir__")
 	if err != nil {
 		return err
@@ -72,6 +87,8 @@ func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationP
 	if err := zip(cmdFactory, sourceDirPth, tmpZipFilePth); err != nil {
 		return err
 	}
+
+	fmt.Printf("Directory zipped in %s.", time.Since(start).Round(time.Second))
 
 	return ExportOutputFile(cmdFactory, tmpZipFilePth, destinationPth, envKey)
 }

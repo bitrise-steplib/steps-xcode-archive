@@ -126,16 +126,22 @@ func findIDEDistrubutionLogsPath(output string) (string, error) {
 	pattern := `IDEDistribution: -\[IDEDistributionLogging _createLoggingBundleAtPath:\]: Created bundle at path '(?P<log_path>.*)'`
 	re := regexp.MustCompile(pattern)
 
+	logger.Printf("Locating IDE distrubution logs path")
+
 	scanner := bufio.NewScanner(strings.NewReader(output))
 	for scanner.Scan() {
 		line := scanner.Text()
 		if match := re.FindStringSubmatch(line); len(match) == 2 {
+			logger.Printf("Located IDE distrubution logs path")
+
 			return match[1], nil
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		return "", err
 	}
+
+	logger.Printf("IDE distrubution logs path not found")
 
 	return "", nil
 }
@@ -469,15 +475,21 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	out := xcodeArchiveOutput{}
 
 	// Open Xcode project
+	logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
+
 	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 	if err != nil {
 		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 	}
 
+	logger.TInfof("Reading xcode project")
+
 	platform, err := utils.BuildableTargetPlatform(xcodeProj, scheme, configuration, utils.XcodeBuild{})
 	if err != nil {
 		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
+
+	logger.TInfof("Reading main target")
 
 	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
 	if err != nil {
@@ -493,7 +505,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 
 	// Create the Archive with Xcode Command Line tools
 	logger.Println()
-	logger.Infof("Creating the Archive ...")
+	logger.TInfof("Creating the Archive ...")
 
 	isWorkspace := false
 	ext := filepath.Ext(opts.ProjectPath)
@@ -543,6 +555,8 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 			return out, fmt.Errorf("failed to get Swift Packages path, error: %s", err)
 		}
 	}
+
+	logger.Infof("Starting the Archive ...")
 
 	xcodebuildLog, err := runArchiveCommandWithRetry(archiveCmd, opts.LogFormatter == "xcpretty", swiftPackagesPath)
 	out.XcodebuildArchiveLog = xcodebuildLog
@@ -666,6 +680,8 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 			return out, err
 		}
 
+		logger.TPrintf("Opening Xcode project at path: %s.", opts.ProjectPath)
+
 		xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 		if err != nil {
 			return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
@@ -706,6 +722,8 @@ func (s XcodeArchiveStep) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExpor
 		fmt.Println()
 		logWithTimestamp(colorstring.Green, xcprettyCmd.PrintableCmd())
 
+		logger.Infof("Running export ipa from the archive command.")
+
 		xcodebuildLog, exportErr := xcprettyCmd.Run()
 		out.XcodebuildExportArchiveLog = xcodebuildLog
 		if exportErr != nil {
@@ -736,6 +754,8 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	} else {
 		fmt.Println()
 		logWithTimestamp(colorstring.Green, exportCmd.PrintableCmd())
+
+		logger.Infof("Running export ipa from the archive command.")
 
 		xcodebuildLog, exportErr := exportCmd.RunAndReturnOutput()
 		out.XcodebuildExportArchiveLog = xcodebuildLog
@@ -818,6 +838,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 	logger.Println()
 	if opts.XcodeMajorVersion >= 11 {
+		logger.Infof("Running resolve Swift package dependencies")
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
 		// Specifying a scheme is required for workspaces
 		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
@@ -828,6 +849,8 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 	}
 
 	if opts.ArtifactName == "" {
+		logger.Infof("Looking for artifact name as field is empty")
+
 		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
 		cmdModel.SetScheme(opts.Scheme)
 		cmdModel.SetConfiguration(opts.Configuration)
@@ -988,19 +1011,26 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 		}
 		logger.Donef("The app directory is now available in the Environment Variable: %s (value: %s)", bitriseAppDirPthEnvKey, appPath)
 
+		logger.Printf("Looking for app and framework dSYMs.")
+
 		appDSYMPaths, frameworkDSYMPaths, err := opts.Archive.FindDSYMs()
 		if err != nil {
 			return fmt.Errorf("failed to export dSYMs, error: %s", err)
 		}
 
-		if len(appDSYMPaths) > 0 || len(frameworkDSYMPaths) > 0 {
+		appDSYMPathsCount := len(appDSYMPaths)
+		frameworkDSYMPathsCount := len(frameworkDSYMPaths)
+
+		logger.Printf("Found %s app dSYMs and framework dSYMs %s.", appDSYMPathsCount, frameworkDSYMPathsCount)
+
+		if appDSYMPathsCount > 0 || frameworkDSYMPathsCount > 0 {
 			fmt.Println()
 			dsymDir, err := v1pathutil.NormalizedOSTempDirPath("__dsyms__")
 			if err != nil {
 				return fmt.Errorf("failed to create tmp dir, error: %s", err)
 			}
 
-			if len(appDSYMPaths) > 0 {
+			if appDSYMPathsCount > 0 {
 				if err := exportDSYMs(dsymDir, appDSYMPaths); err != nil {
 					return fmt.Errorf("failed to export dSYMs: %v", err)
 				}
@@ -1008,7 +1038,7 @@ func (s XcodeArchiveStep) ExportOutput(opts ExportOpts) error {
 				logger.Warnf("No app dSYMs found to export")
 			}
 
-			if opts.ExportAllDsyms && len(frameworkDSYMPaths) > 0 {
+			if opts.ExportAllDsyms && frameworkDSYMPathsCount > 0 {
 				if err := exportDSYMs(dsymDir, frameworkDSYMPaths); err != nil {
 					return fmt.Errorf("failed to export dSYMs: %v", err)
 				}
