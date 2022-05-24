@@ -238,7 +238,7 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	inputs.XcconfigContent = strings.TrimSpace(inputs.XcconfigContent)
 	if sliceutil.IsStringInSlice("-xcconfig", config.XcodebuildCustomOptions) &&
 		inputs.XcconfigContent != "" {
-		return Config{}, fmt.Errorf("`-xconfig` option found in XcodebuildOptions, please clear Build settings (xcconfig) input")
+		return Config{}, fmt.Errorf("`-xcconfig` option found in XcodebuildOptions, please clear Build settings (xcconfig) input")
 	}
 
 	if config.ExportOptionsPlistContent != "" {

@@ -23,7 +23,7 @@ description: |-
 
   Under **xcodebuild configuration**:
   1. **Build configuration**: Specify Xcode Build Configuration. The Step uses the provided Build Configuration's Build Settings to understand your project's code signing configuration. If not provided, the Archive action's default Build Configuration will be used.
-  2. **Build settings (xconfig)**: Build settings to override the project's build settings. The build settings must be separated by a newline character (`\n`).
+  2. **Build settings (xcconfig)**: Build settings to override the project's build settings. The build settings must be separated by a newline character (`\n`).
   3. **Perform clean action**: If this input is set, a `clean` xcodebuild action will be performed besides the `archive` action.
 
   Under **Xcode build log formatting**:
@@ -123,7 +123,7 @@ inputs:
     title: Build settings (xcconfig)
     summary: Build settings to override the project's build settings. Can be the contents, file path or unset.
     description: |-
-      Build settings to override the project's build settings, using xcodebuild's `-xconfig` option.
+      Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.
 
       If empty, no setting is changed. This is required when the `-xcconfig` additional option is used.
 
@@ -160,7 +160,7 @@ inputs:
     summary: |-
       Additional options to be added to the executed xcodebuild command.
 
-      When setting the `-xconfig` option, makes sure to clear the "Build settings (xcconfig)" input, as can not specify both.
+      When setting the `-xcconfig` option, makes sure to clear the "Build settings (xcconfig)" input, as can not specify both.
 
       `-destination` is set automatically, unless specified explicitely.
 
