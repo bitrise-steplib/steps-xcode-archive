@@ -235,7 +235,9 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
 	}
 
-	config.XcconfigContent = strings.TrimSpace(config.XcconfigContent)
+	if strings.TrimSpace(config.XcconfigContent) == "" {
+		config.XcconfigContent = ""
+	}
 	if sliceutil.IsStringInSlice("-xcconfig", config.XcodebuildAdditionalOptions) &&
 		config.XcconfigContent != "" {
 		return Config{}, fmt.Errorf("`-xcconfig` option found in XcodebuildOptions (`xcodebuild_options`), please clear Build settings (xcconfig) (`xcconfig_content`) input as only one can be set")
