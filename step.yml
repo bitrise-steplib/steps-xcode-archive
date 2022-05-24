@@ -121,20 +121,26 @@ inputs:
   opts:
     category: xcodebuild configuration
     title: Build settings (xcconfig)
-    summary: Build settings to override the project's build settings.
+    summary: Build settings to override the project's build settings. Can be the contents, file path or unset.
     description: |-
-      Build settings to override the project's build settings.
+      Build settings to override the project's build settings, using xcodebuild's `-xconfig` option.
 
-      Build settings must be separated by newline character (`\n`).
+      If empty, no setting is changed. This is required when the `-xcconfig` additional option is used.
 
-      Example:
+      When set it can be either:
+      1.  Existing `.xcconfig` file path.  
+          Example: `./App/Configurations/Build Settings/Dev.xcconfig`
 
-      ```
-      COMPILER_INDEX_STORE_ENABLE = NO
-      ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES
-      ```
+      2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.) 
+  
+          Build settings must be separated by newline character (`\n`).
 
-      The input value sets xcodebuild's `-xcconfig` option.
+          Example:
+
+          ```
+          COMPILER_INDEX_STORE_ENABLE = NO
+          ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES
+          ```
 
 - perform_clean_action: "no"
   opts:
@@ -150,7 +156,13 @@ inputs:
   opts:
     category: xcodebuild configuration
     title: Additional options for the xcodebuild command
-    summary: Additional options to be added to the executed xcodebuild command.
+    description: Additional options to be added to the executed xcodebuild command.
+    summary: |-
+      Additional options to be added to the executed xcodebuild command.
+
+      When setting the `-xconfig` option, makes sure to clear the "Build settings (xcconfig)" input, as can not specify both.
+
+      `-destination` is set automatically, unless specified explicitely.
 
 # xcodebuild log formatting
 
