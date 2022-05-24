@@ -128,15 +128,17 @@ inputs:
       If empty, no setting is changed. This is required when the `-xcconfig` additional option is used.
 
       When set it can be either:
-      1.  Existing `.xcconfig` file path.  
-          Example: `./App/Configurations/Build Settings/Dev.xcconfig`
-
-      2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.) 
+      1.  Existing `.xcconfig` file path.
   
+          Example:
+
+          `./App/Configurations/Build Settings/Dev.xcconfig`
+
+      2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.)
+
           Build settings must be separated by newline character (`\n`).
 
           Example:
-
           ```
           COMPILER_INDEX_STORE_ENABLE = NO
           ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES
