@@ -139,7 +139,7 @@ Build a development IPA with custom xcconfig file path:
 
 | Environment Variable | Description |
 | --- | --- |
-| `BITRISE_IPA_PATH` | descr |
+| `BITRISE_IPA_PATH` | Local path of the created .ipa file |
 | `BITRISE_APP_DIR_PATH` | Local path of the generated `.app` directory |
 | `BITRISE_DSYM_DIR_PATH` | This Environment Variable points to the path of the directory which contains the dSYMs files. If `export_all_dsyms` is set to `yes`, the Step will collect every dSYM (app dSYMs and framwork dSYMs). |
 | `BITRISE_DSYM_PATH` | This Environment Variable points to the path of the zip file which contains the dSYM files. If `export_all_dsyms` is set to `yes`, the Step will also collect framework dSYMs in addition to app dSYMs. |
