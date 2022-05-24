@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_xcodebuildCustomOptions(t *testing.T) {
+func Test_generateAdditionalOptions(t *testing.T) {
 	tests := []struct {
 		name          string
 		platform      string
@@ -33,7 +33,7 @@ func Test_xcodebuildCustomOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := xcodebuildCustomOptions(tt.platform, tt.customOptions)
+			got := generateAdditionalOptions(tt.platform, tt.customOptions)
 
 			require.Equal(t, tt.want, got)
 		})

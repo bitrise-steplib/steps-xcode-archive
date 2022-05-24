@@ -2,7 +2,7 @@ package main
 
 import "github.com/bitrise-io/go-utils/sliceutil"
 
-func xcodebuildCustomOptions(platform string, customOptions []string) []string {
+func generateAdditionalOptions(platform string, customOptions []string) []string {
 	destination := "generic/platform=" + platform
 	destinationOptions := []string{"-destination", destination}
 
