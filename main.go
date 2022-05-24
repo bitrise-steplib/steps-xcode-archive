@@ -17,6 +17,7 @@ import (
 	v1log "github.com/bitrise-io/go-utils/log"
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/retry"
+	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
@@ -112,8 +113,9 @@ type Inputs struct {
 // Config ...
 type Config struct {
 	Inputs
-	XcodeMajorVersion int
-	CodesignManager   *codesign.Manager // nil if automatic code signing is "off"
+	XcodeMajorVersion       int
+	XcodebuildCustomOptions []string
+	CodesignManager         *codesign.Manager // nil if automatic code signing is "off"
 }
 
 var envRepository = env.NewRepository()
@@ -226,6 +228,18 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	config := Config{Inputs: inputs}
 	logger.EnableDebugLog(config.VerboseLog)
 	v1log.SetEnableDebugLog(config.VerboseLog) // For compatibility
+
+	var err error
+	config.XcodebuildCustomOptions, err = shellquote.Split(inputs.XcodebuildOptions)
+	if err != nil {
+		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
+	}
+
+	inputs.XcconfigContent = strings.TrimSpace(inputs.XcconfigContent)
+	if sliceutil.IsStringInSlice("-xcconfig", config.XcodebuildCustomOptions) &&
+		inputs.XcconfigContent != "" {
+		return Config{}, fmt.Errorf("`-xconfig` option found in XcodebuildOptions, please clear Build settings (xcconfig) input")
+	}
 
 	if config.ExportOptionsPlistContent != "" {
 		var options map[string]interface{}
@@ -497,12 +511,14 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		archiveCmd.SetCustomBuildAction("clean")
 	}
 
-	xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker)
-	xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
-	if err != nil {
-		return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+	if opts.XcconfigContent != "" {
+		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker)
+		xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
+		if err != nil {
+			return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+		}
+		archiveCmd.SetXCConfigPath(xcconfigPath)
 	}
-	archiveCmd.SetXCConfigPath(xcconfigPath)
 
 	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeArchive")
 	if err != nil {
@@ -764,10 +780,10 @@ type RunOpts struct {
 	CodesignManager *codesign.Manager
 
 	// Archive
-	PerformCleanAction bool
-	XcconfigContent    string
-	XcodebuildOptions  string
-	CacheLevel         string
+	PerformCleanAction      bool
+	XcconfigContent         string
+	XcodebuildCustomOptions []string
+	CacheLevel              string
 
 	// IPA Export
 	CustomExportOptionsPlistContent string
@@ -798,17 +814,12 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		authOptions *xcodebuild.AuthenticationParams
 	)
 
-	customOptions, err := shellquote.Split(opts.XcodebuildOptions)
-	if err != nil {
-		return out, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", opts.XcodebuildOptions, err)
-	}
-
 	logger.Println()
 	if opts.XcodeMajorVersion >= 11 {
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
 		// Specifying a scheme is required for workspaces
 		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		resolveDepsCmd.SetCustomOptions(customOptions)
+		resolveDepsCmd.SetCustomOptions(opts.XcodebuildCustomOptions)
 		if err := resolveDepsCmd.Run(); err != nil {
 			logger.Warnf("%s", err)
 		}
@@ -874,7 +885,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
-		CustomOptions:      customOptions,
+		CustomOptions:      opts.XcodebuildCustomOptions,
 		CacheLevel:         opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
@@ -1159,10 +1170,10 @@ func RunStep() error {
 
 		CodesignManager: config.CodesignManager,
 
-		PerformCleanAction: config.PerformCleanAction,
-		XcconfigContent:    config.XcconfigContent,
-		XcodebuildOptions:  config.XcodebuildOptions,
-		CacheLevel:         config.CacheLevel,
+		PerformCleanAction:      config.PerformCleanAction,
+		XcconfigContent:         config.XcconfigContent,
+		XcodebuildCustomOptions: config.XcodebuildCustomOptions,
+		CacheLevel:              config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
 		ExportMethod:                    config.ExportMethod,
