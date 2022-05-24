@@ -17,7 +17,6 @@ import (
 	v1log "github.com/bitrise-io/go-utils/log"
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/retry"
-	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
@@ -516,21 +515,8 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
 	}
 
-	destination := "generic/platform=" + string(platform)
-	destinationOptions := []string{"-destination", destination}
-
-	options := []string{}
-	if len(opts.CustomOptions) != 0 {
-		if !sliceutil.IsStringInSlice("-destination", opts.CustomOptions) {
-			options = append(options, destinationOptions...)
-		}
-
-		options = append(options, opts.CustomOptions...)
-	} else {
-		options = append(options, destinationOptions...)
-	}
-
-	archiveCmd.SetCustomOptions(options)
+	customOptions := xcodebuildCustomOptions(string(platform), opts.CustomOptions)
+	archiveCmd.SetCustomOptions(customOptions)
 
 	var swiftPackagesPath string
 	if opts.XcodeMajorVersion >= 11 {
