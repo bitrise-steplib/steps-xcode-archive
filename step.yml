@@ -129,10 +129,10 @@ inputs:
 
       When set it can be either:
       1.  Existing `.xcconfig` file path.
-  
+
           Example:
 
-          `./App/Configurations/Build Settings/Dev.xcconfig`
+          `./ios-sample/ios-sample/Configurations/Dev.xcconfig`
 
       2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.)
 
