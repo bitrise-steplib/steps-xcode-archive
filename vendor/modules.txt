@@ -54,7 +54,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.14
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15
 ## explicit
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
