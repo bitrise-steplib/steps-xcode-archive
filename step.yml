@@ -412,7 +412,6 @@ outputs:
   opts:
     title: .ipa file path
     summary: Local path of the created .ipa file
-    description: Local path of the created .ipa file
 - BITRISE_APP_DIR_PATH:
   opts:
     title: .app directory path
