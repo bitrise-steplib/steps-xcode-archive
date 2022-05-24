@@ -69,12 +69,21 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 
 ### Examples
 
+Build a development IPA:
+```yaml
+- xcode-archive:
+    inputs:
+    - project_path: ./ios-sample/ios-sample.xcodeproj
+    - scheme: ios-sample
+    - distribution_method: development
+```
+
 Build a development IPA with custom xcconfig content:
 ```yaml
 - xcode-archive:
     inputs:
-    - project_path: ./_tmp/ios-simple-objc/ios-simple-objc.xcodeproj
-    - scheme: ios-simple-objc
+    - project_path: ./ios-sample/ios-sample.xcodeproj
+    - scheme: ios-sample
     - distribution_method: development
     - xcconfig_content: |
         CODE_SIGN_IDENTITY = Apple Development
@@ -87,7 +96,7 @@ Build a development IPA with custom xcconfig file path:
     - project_path: ./ios-sample/ios-sample.xcodeproj
     - scheme: ios-sample
     - distribution_method: development
-    - xcconfig_content: ./ios-sample/Configurations/development.xcconfig
+    - xcconfig_content: ./ios-sample/ios-sample/Configurations/Dev.xcconfig
 ```
 
 ## ⚙️ Configuration
@@ -101,7 +110,7 @@ Build a development IPA with custom xcconfig file path:
 | `scheme` | Xcode Scheme name.  The input value sets xcodebuild's `-scheme` option. | required | `$BITRISE_SCHEME` |
 | `distribution_method` | Describes how Xcode should export the archive. | required | `development` |
 | `configuration` | Xcode Build Configuration.  If not specified, the default Build Configuration will be used.  The input value sets xcodebuild's `-configuration` option. |  |  |
-| `xcconfig_content` | Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.  If empty, no setting is changed. This is required when the `-xcconfig` additional option is used.  When set it can be either: 1.  Existing `.xcconfig` file path.       Example: `./App/Configurations/Build Settings/Dev.xcconfig`  2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.)       Build settings must be separated by newline character (`\n`).      Example:      ```     COMPILER_INDEX_STORE_ENABLE = NO     ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES     ``` |  | `COMPILER_INDEX_STORE_ENABLE = NO` |
+| `xcconfig_content` | Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.  If empty, no setting is changed. This is required when the `-xcconfig` additional option is used.  When set it can be either: 1.  Existing `.xcconfig` file path.      Example:      `./ios-sample/ios-sample/Configurations/Dev.xcconfig`  2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.)      Build settings must be separated by newline character (`\n`).      Example:     ```     COMPILER_INDEX_STORE_ENABLE = NO     ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES     ``` |  | `COMPILER_INDEX_STORE_ENABLE = NO` |
 | `perform_clean_action` | If this input is set, `clean` xcodebuild action will be performed besides the `archive` action. | required | `no` |
 | `xcodebuild_options` | Additional options to be added to the executed xcodebuild command. |  |  |
 | `log_formatter` | Defines how `xcodebuild` command's log is formatted.  Available options:  - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.  The raw xcodebuild log will be exported in both cases. | required | `xcpretty` |
@@ -130,7 +139,7 @@ Build a development IPA with custom xcconfig file path:
 
 | Environment Variable | Description |
 | --- | --- |
-| `BITRISE_IPA_PATH` | Local path of the created .ipa file |
+| `BITRISE_IPA_PATH` | descr |
 | `BITRISE_APP_DIR_PATH` | Local path of the generated `.app` directory |
 | `BITRISE_DSYM_DIR_PATH` | This Environment Variable points to the path of the directory which contains the dSYMs files. If `export_all_dsyms` is set to `yes`, the Step will collect every dSYM (app dSYMs and framwork dSYMs). |
 | `BITRISE_DSYM_PATH` | This Environment Variable points to the path of the zip file which contains the dSYM files. If `export_all_dsyms` is set to `yes`, the Step will also collect framework dSYMs in addition to app dSYMs. |

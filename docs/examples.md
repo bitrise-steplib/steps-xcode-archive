@@ -1,11 +1,20 @@
 ### Examples
 
+Build a development IPA:
+```yaml
+- xcode-archive:
+    inputs:
+    - project_path: ./ios-sample/ios-sample.xcodeproj
+    - scheme: ios-sample
+    - distribution_method: development
+```
+
 Build a development IPA with custom xcconfig content:
 ```yaml
 - xcode-archive:
     inputs:
-    - project_path: ./_tmp/ios-simple-objc/ios-simple-objc.xcodeproj
-    - scheme: ios-simple-objc
+    - project_path: ./ios-sample/ios-sample.xcodeproj
+    - scheme: ios-sample
     - distribution_method: development
     - xcconfig_content: |
         CODE_SIGN_IDENTITY = Apple Development
@@ -18,5 +27,5 @@ Build a development IPA with custom xcconfig file path:
     - project_path: ./ios-sample/ios-sample.xcodeproj
     - scheme: ios-sample
     - distribution_method: development
-    - xcconfig_content: ./ios-sample/Configurations/development.xcconfig
+    - xcconfig_content: ./ios-sample/ios-sample/Configurations/Dev.xcconfig
 ```

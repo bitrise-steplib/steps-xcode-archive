@@ -62,7 +62,6 @@ project_type_tags:
 - flutter
 type_tags:
 - build
-is_requires_admin_user: false
 is_always_run: false
 is_skippable: false
 deps:
@@ -413,6 +412,7 @@ outputs:
   opts:
     title: .ipa file path
     summary: Local path of the created .ipa file
+    description: descr
 - BITRISE_APP_DIR_PATH:
   opts:
     title: .app directory path
