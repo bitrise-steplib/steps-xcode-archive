@@ -29,7 +29,7 @@ To configure the Step:
 
 Under **xcodebuild configuration**:
 1. **Build configuration**: Specify Xcode Build Configuration. The Step uses the provided Build Configuration's Build Settings to understand your project's code signing configuration. If not provided, the Archive action's default Build Configuration will be used.
-2. **Build settings (xconfig)**: Build settings to override the project's build settings. The build settings must be separated by a newline character (`\n`).
+2. **Build settings (xcconfig)**: Build settings to override the project's build settings. Can be the contents, file path or empty.
 3. **Perform clean action**: If this input is set, a `clean` xcodebuild action will be performed besides the `archive` action.
 
 Under **Xcode build log formatting**:
@@ -67,6 +67,38 @@ Add this step directly to your workflow in the [Bitrise Workflow Editor](https:/
 
 You can also run this step directly with [Bitrise CLI](https://github.com/bitrise-io/bitrise).
 
+### Examples
+
+Build a development IPA:
+```yaml
+- xcode-archive:
+    inputs:
+    - project_path: ./ios-sample/ios-sample.xcodeproj
+    - scheme: ios-sample
+    - distribution_method: development
+```
+
+Build a development IPA with custom xcconfig content:
+```yaml
+- xcode-archive:
+    inputs:
+    - project_path: ./ios-sample/ios-sample.xcodeproj
+    - scheme: ios-sample
+    - distribution_method: development
+    - xcconfig_content: |
+        CODE_SIGN_IDENTITY = Apple Development
+```
+
+Build a development IPA with custom xcconfig file path:
+```yaml
+- xcode-archive:
+    inputs:
+    - project_path: ./ios-sample/ios-sample.xcodeproj
+    - scheme: ios-sample
+    - distribution_method: development
+    - xcconfig_content: ./ios-sample/ios-sample/Configurations/Dev.xcconfig
+```
+
 ## ⚙️ Configuration
 
 <details>
@@ -78,7 +110,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `scheme` | Xcode Scheme name.  The input value sets xcodebuild's `-scheme` option. | required | `$BITRISE_SCHEME` |
 | `distribution_method` | Describes how Xcode should export the archive. | required | `development` |
 | `configuration` | Xcode Build Configuration.  If not specified, the default Build Configuration will be used.  The input value sets xcodebuild's `-configuration` option. |  |  |
-| `xcconfig_content` | Build settings to override the project's build settings.  Build settings must be separated by newline character (`\n`).  Example:  ``` COMPILER_INDEX_STORE_ENABLE = NO ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES ```  The input value sets xcodebuild's `-xcconfig` option. |  | `COMPILER_INDEX_STORE_ENABLE = NO` |
+| `xcconfig_content` | Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.  If empty, no setting is changed. This is required when the `-xcconfig` additional option is used.  When set it can be either: 1.  Existing `.xcconfig` file path.      Example:      `./ios-sample/ios-sample/Configurations/Dev.xcconfig`  2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.)      Build settings must be separated by newline character (`\n`).      Example:     ```     COMPILER_INDEX_STORE_ENABLE = NO     ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES     ``` |  | `COMPILER_INDEX_STORE_ENABLE = NO` |
 | `perform_clean_action` | If this input is set, `clean` xcodebuild action will be performed besides the `archive` action. | required | `no` |
 | `xcodebuild_options` | Additional options to be added to the executed xcodebuild command. |  |  |
 | `log_formatter` | Defines how `xcodebuild` command's log is formatted.  Available options:  - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.  The raw xcodebuild log will be exported in both cases. | required | `xcpretty` |
@@ -89,6 +121,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `passphrase_list` | Passphrases for the provided code signing certificates.  Specify as many passphrases as many Code signing certificate URL provided, separated by a pipe (`\|`) character.  Certificates without a passphrase: for using a single certificate, leave this step input empty. For multiple certificates, use the separator as if there was a passphrase (examples: `pass\|`, `\|pass\|`, `\|`) | sensitive | `$BITRISE_CERTIFICATE_PASSPHRASE` |
 | `keychain_path` | Path to the Keychain where the code signing certificates will be installed. | required | `$HOME/Library/Keychains/login.keychain` |
 | `keychain_password` | Password for the provided Keychain. | required, sensitive | `$BITRISE_KEYCHAIN_PASSWORD` |
+| `fallback_provisioning_profile_url_list` | If set, provided provisioning profiles will be used on Automatic code signing error.  URL of the provisioning profile to download. Multiple URLs can be specified, separated by a newline or pipe (`\|`) character.  You can specify a local path as well, using the `file://` scheme. For example: `file://./BuildAnything.mobileprovision`.  Can also provide a local directory that contains files with `.mobileprovision` extension. For example: `./profilesDirectory/`  | sensitive |  |
 | `export_development_team` | The Developer Portal team to use for this export  Defaults to the team used to build the archive.  Defining this is also required when Automatic Code Signing is set to `apple-id` and the connected account belongs to multiple teams. |  |  |
 | `compile_bitcode` | For __non-App Store__ exports, should Xcode re-compile the app from bitcode? | required | `yes` |
 | `upload_bitcode` | For __App Store__ exports, should the package include bitcode? | required | `yes` |

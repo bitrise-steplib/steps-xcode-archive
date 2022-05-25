@@ -113,8 +113,9 @@ type Inputs struct {
 // Config ...
 type Config struct {
 	Inputs
-	XcodeMajorVersion int
-	CodesignManager   *codesign.Manager // nil if automatic code signing is "off"
+	XcodeMajorVersion           int
+	XcodebuildAdditionalOptions []string
+	CodesignManager             *codesign.Manager // nil if automatic code signing is "off"
 }
 
 var envRepository = env.NewRepository()
@@ -199,6 +200,7 @@ type XcodeArchiveStep struct {
 	xcodeVersionProvider xcodeVersionProvider
 	stepInputParser      stepconf.InputParser
 	pathProvider         pathutil.PathProvider
+	pathChecker          pathutil.PathChecker
 	fileManager          fileutil.FileManager
 }
 
@@ -208,6 +210,7 @@ func NewXcodeArchiveStep() XcodeArchiveStep {
 		xcodeVersionProvider: newXcodebuildXcodeVersionProvider(),
 		stepInputParser:      stepconf.NewInputParser(env.NewRepository()),
 		pathProvider:         pathutil.NewPathProvider(),
+		pathChecker:          pathutil.NewPathChecker(),
 		fileManager:          fileutil.NewFileManager(),
 	}
 }
@@ -225,6 +228,20 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 	config := Config{Inputs: inputs}
 	logger.EnableDebugLog(config.VerboseLog)
 	v1log.SetEnableDebugLog(config.VerboseLog) // For compatibility
+
+	var err error
+	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)
+	if err != nil {
+		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
+	}
+
+	if strings.TrimSpace(config.XcconfigContent) == "" {
+		config.XcconfigContent = ""
+	}
+	if sliceutil.IsStringInSlice("-xcconfig", config.XcodebuildAdditionalOptions) &&
+		config.XcconfigContent != "" {
+		return Config{}, fmt.Errorf("`-xcconfig` option found in XcodebuildOptions (`xcodebuild_options`), please clear Build settings (xcconfig) (`xcconfig_content`) input as only one can be set")
+	}
 
 	if config.ExportOptionsPlistContent != "" {
 		var options map[string]interface{}
@@ -438,7 +455,7 @@ type xcodeArchiveOpts struct {
 
 	PerformCleanAction bool
 	XcconfigContent    string
-	CustomOptions      []string
+	AdditionalOptions  []string
 
 	CacheLevel string
 }
@@ -496,12 +513,14 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		archiveCmd.SetCustomBuildAction("clean")
 	}
 
-	xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager)
-	xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
-	if err != nil {
-		return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+	if opts.XcconfigContent != "" {
+		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker)
+		xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
+		if err != nil {
+			return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+		}
+		archiveCmd.SetXCConfigPath(xcconfigPath)
 	}
-	archiveCmd.SetXCConfigPath(xcconfigPath)
 
 	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeArchive")
 	if err != nil {
@@ -514,21 +533,8 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
 	}
 
-	destination := "generic/platform=" + string(platform)
-	destinationOptions := []string{"-destination", destination}
-
-	options := []string{}
-	if len(opts.CustomOptions) != 0 {
-		if !sliceutil.IsStringInSlice("-destination", opts.CustomOptions) {
-			options = append(options, destinationOptions...)
-		}
-
-		options = append(options, opts.CustomOptions...)
-	} else {
-		options = append(options, destinationOptions...)
-	}
-
-	archiveCmd.SetCustomOptions(options)
+	additionalOptions := generateAdditionalOptions(string(platform), opts.AdditionalOptions)
+	archiveCmd.SetCustomOptions(additionalOptions)
 
 	var swiftPackagesPath string
 	if opts.XcodeMajorVersion >= 11 {
@@ -776,10 +782,10 @@ type RunOpts struct {
 	CodesignManager *codesign.Manager
 
 	// Archive
-	PerformCleanAction bool
-	XcconfigContent    string
-	XcodebuildOptions  string
-	CacheLevel         string
+	PerformCleanAction          bool
+	XcconfigContent             string
+	XcodebuildAdditionalOptions []string
+	CacheLevel                  string
 
 	// IPA Export
 	CustomExportOptionsPlistContent string
@@ -810,17 +816,12 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 		authOptions *xcodebuild.AuthenticationParams
 	)
 
-	customOptions, err := shellquote.Split(opts.XcodebuildOptions)
-	if err != nil {
-		return out, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", opts.XcodebuildOptions, err)
-	}
-
 	logger.Println()
 	if opts.XcodeMajorVersion >= 11 {
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
 		// Specifying a scheme is required for workspaces
 		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		resolveDepsCmd.SetCustomOptions(customOptions)
+		resolveDepsCmd.SetCustomOptions(opts.XcodebuildAdditionalOptions)
 		if err := resolveDepsCmd.Run(); err != nil {
 			logger.Warnf("%s", err)
 		}
@@ -886,7 +887,7 @@ func (s XcodeArchiveStep) Run(opts RunOpts) (RunOut, error) {
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
-		CustomOptions:      customOptions,
+		AdditionalOptions:  opts.XcodebuildAdditionalOptions,
 		CacheLevel:         opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
@@ -1171,10 +1172,10 @@ func RunStep() error {
 
 		CodesignManager: config.CodesignManager,
 
-		PerformCleanAction: config.PerformCleanAction,
-		XcconfigContent:    config.XcconfigContent,
-		XcodebuildOptions:  config.XcodebuildOptions,
-		CacheLevel:         config.CacheLevel,
+		PerformCleanAction:          config.PerformCleanAction,
+		XcconfigContent:             config.XcconfigContent,
+		XcodebuildAdditionalOptions: config.XcodebuildAdditionalOptions,
+		CacheLevel:                  config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
 		ExportMethod:                    config.ExportMethod,
