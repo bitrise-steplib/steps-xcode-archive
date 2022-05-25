@@ -110,6 +110,9 @@ func (p XcodeProj) TargetInfoplistPath(target, configuration string) (string, er
 // The returned list contains each target only once, using the target ID for uniqueness.
 func (p XcodeProj) DependentTargetsOfTarget(target Target) []Target {
 	var dependentTargets []Target
+
+	log.TDebugf("Locating all dependencies of target: %s", target.Name)
+
 	for _, dependency := range target.Dependencies {
 		childTarget, ok := p.Proj.Target(dependency.TargetID)
 		if !ok {
@@ -121,6 +124,8 @@ func (p XcodeProj) DependentTargetsOfTarget(target Target) []Target {
 		childDependentTargets := p.DependentTargetsOfTarget(childTarget)
 		dependentTargets = append(dependentTargets, childDependentTargets...)
 	}
+
+	log.TDebugf("Located %s dependencies of target: %s", len(dependentTargets), target.Name)
 
 	return deduplicateTargetList(dependentTargets)
 }
@@ -344,11 +349,19 @@ func (p XcodeProj) Scheme(name string) (*xcscheme.Scheme, string, error) {
 
 // Schemes ...
 func (p XcodeProj) Schemes() ([]xcscheme.Scheme, error) {
-	return xcscheme.FindSchemesIn(p.Path)
+	log.TDebugf("Locating scheme for project path: %s", p.Path)
+
+	schemes, err := xcscheme.FindSchemesIn(p.Path)
+
+	log.TDebugf("Located %s schemes", len(schemes))
+
+	return schemes, err
 }
 
 // Open ...
 func Open(pth string) (XcodeProj, error) {
+	log.TDebugf("Opening xcode project at path: %s", pth)
+
 	absPth, err := pathutil.AbsPath(pth)
 	if err != nil {
 		return XcodeProj{}, err
@@ -368,6 +381,8 @@ func Open(pth string) (XcodeProj, error) {
 
 	p.Path = absPth
 	p.Name = strings.TrimSuffix(filepath.Base(absPth), filepath.Ext(absPth))
+
+	log.TDebugf("Opened xcode project")
 
 	return *p, nil
 }
@@ -540,7 +555,13 @@ func writeAttributeForAllSDKs(buildSettings serialized.Object, newKey string, ne
 //
 // Overrides the project.pbxproj file of the XcodeProj with the contents of `rawProj`
 func (p XcodeProj) Save() error {
-	return p.savePBXProj()
+	log.Debugf("Saving PBX file")
+
+	err := p.savePBXProj()
+
+	log.Debugf("Saved PBX file")
+
+	return err
 }
 
 // savePBXProj overrides the project.pbxproj file of  the XcodeProj with the contents of `rawProj`
@@ -639,6 +660,8 @@ type change struct {
 }
 
 func (p XcodeProj) perObjectModify() ([]byte, error) {
+	log.Debugf("modifying PBX project")
+
 	objectsMod, err := p.RawProj.Object("objects")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse project: %v", err)
@@ -739,6 +762,8 @@ func deduplicateTargetList(targets []Target) []Target {
 			uniqueTargets = append(uniqueTargets, target)
 		}
 	}
+
+	log.Debugf("Deduplicating targets result: %v/%v", len(targets), len(uniqueTargets))
 
 	return uniqueTargets
 }

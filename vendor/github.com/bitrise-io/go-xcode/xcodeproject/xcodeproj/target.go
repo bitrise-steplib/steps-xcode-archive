@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
 
@@ -117,10 +118,14 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 		return Target{}, err
 	}
 
+	log.TDebugf("Parsing build configuration list for target: %s", id)
+
 	buildConfigurationList, err := parseConfigurationList(buildConfigurationListID, objects)
 	if err != nil {
 		return Target{}, err
 	}
+
+	log.TDebugf("Parsed build configuration list")
 
 	dependencyIDs, err := rawTarget.StringSlice("dependencies")
 	if err != nil {
@@ -128,6 +133,9 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 	}
 
 	var dependencies []TargetDependency
+
+	log.TDebugf("Parsing all target dependencies for target: %s", id)
+
 	for _, dependencyID := range dependencyIDs {
 		dependency, err := parseTargetDependency(dependencyID, objects)
 		if err != nil {
@@ -142,6 +150,8 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 
 		dependencies = append(dependencies, dependency)
 	}
+
+	log.TDebugf("Parsed %s target dependencies", len(dependencies))
 
 	var productReference ProductReference
 	productReferenceID, err := rawTarget.String("productReference")

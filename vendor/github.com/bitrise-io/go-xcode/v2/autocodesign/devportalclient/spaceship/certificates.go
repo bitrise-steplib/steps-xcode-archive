@@ -64,10 +64,14 @@ func (s *CertificateSource) downloadAll() error {
 		return err
 	}
 
+	fmt.Printf("Fetching developer certificates")
+
 	devCerts, err := getCertificates(devCertsCmd)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("Fetching distribution certificates")
 
 	distCers, err := getCertificates(distCertsCommand)
 	if err != nil {

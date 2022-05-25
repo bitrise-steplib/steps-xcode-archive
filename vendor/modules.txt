@@ -1,15 +1,15 @@
 # github.com/bitrise-io/go-plist v0.0.0-20210301100253-4b1a112ccd10
 github.com/bitrise-io/go-plist
-# github.com/bitrise-io/go-steputils v1.0.1
+# github.com/bitrise-io/go-steputils v1.0.2
 github.com/bitrise-io/go-steputils/cache
 github.com/bitrise-io/go-steputils/command/rubycommand
 github.com/bitrise-io/go-steputils/input
 github.com/bitrise-io/go-steputils/tools
-# github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.1
+# github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.2
 ## explicit
 github.com/bitrise-io/go-steputils/v2/ruby
 github.com/bitrise-io/go-steputils/v2/stepconf
-# github.com/bitrise-io/go-utils v1.0.1
+# github.com/bitrise-io/go-utils v1.0.2
 ## explicit
 github.com/bitrise-io/go-utils/colorstring
 github.com/bitrise-io/go-utils/command
@@ -27,14 +27,14 @@ github.com/bitrise-io/go-utils/retry
 github.com/bitrise-io/go-utils/sliceutil
 github.com/bitrise-io/go-utils/stringutil
 github.com/bitrise-io/go-utils/ziputil
-# github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.2
+# github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.7
 ## explicit
 github.com/bitrise-io/go-utils/v2/command
 github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/fileutil
 github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/pathutil
-# github.com/bitrise-io/go-xcode v1.0.6
+# github.com/bitrise-io/go-xcode v1.0.6 => github.com/shams-ahmed/go-xcode v1.0.100
 ## explicit
 github.com/bitrise-io/go-xcode/appleauth
 github.com/bitrise-io/go-xcode/certificateutil
@@ -54,7 +54,11 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
+<<<<<<< HEAD
 # github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15
+=======
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15.0.20220525082156-b43525984dc3 => github.com/shams-ahmed/go-xcode/v2 v2.0.101
+>>>>>>> a2dc817 (vender update for example)
 ## explicit
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
@@ -82,15 +86,15 @@ github.com/bitrise-io/pkcs12/internal/rc2
 github.com/davecgh/go-spew/spew
 # github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
 github.com/fullsailor/pkcs7
-# github.com/golang-jwt/jwt/v4 v4.2.0
+# github.com/golang-jwt/jwt/v4 v4.4.1
 github.com/golang-jwt/jwt/v4
 # github.com/google/go-querystring v1.1.0
 github.com/google/go-querystring/query
 # github.com/hashicorp/go-cleanhttp v0.5.2
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-retryablehttp v0.7.0
+# github.com/hashicorp/go-retryablehttp v0.7.1
 github.com/hashicorp/go-retryablehttp
-# github.com/hashicorp/go-version v1.3.0
+# github.com/hashicorp/go-version v1.5.0
 github.com/hashicorp/go-version
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
@@ -101,26 +105,29 @@ github.com/pkg/errors
 github.com/pmezard/go-difflib/difflib
 # github.com/ryanuber/go-glob v1.0.0
 github.com/ryanuber/go-glob
-# github.com/stretchr/objx v0.3.0
+# github.com/stretchr/objx v0.4.0
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.7.0
+# github.com/stretchr/testify v1.7.1
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
-# golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
+# golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
+## explicit
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/sys v0.0.0-20211205182925-97ca703d548d
+# golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
+## explicit
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+# golang.org/x/term v0.0.0-20220411215600-e5f449aeb171
+## explicit
 golang.org/x/term
 # golang.org/x/text v0.3.7
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+# gopkg.in/yaml.v3 v3.0.0
 ## explicit
 gopkg.in/yaml.v3
 # howett.net/plist v1.0.0

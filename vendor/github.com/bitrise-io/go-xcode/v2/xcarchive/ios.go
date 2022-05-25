@@ -43,6 +43,8 @@ func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, err
 
 	bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
 
+	fmt.Printf("Reading %v code sign entitlements", len(bundleIDEntitlementsMap))
+
 	entitlementsMap := map[string]autocodesign.Entitlements{}
 	for bundleID, entitlements := range bundleIDEntitlementsMap {
 		entitlementsMap[bundleID] = autocodesign.Entitlements(entitlements)

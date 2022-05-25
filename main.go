@@ -416,7 +416,7 @@ func (s XcodeArchiveStep) EnsureDependencies(opts EnsureDependenciesOpts) error 
 	fmt.Println()
 	logger.Infof("Checking if log formatter (xcpretty) is installed")
 
-	var xcpretty = xcpretty.NewXcpretty()
+	var xcpretty = xcpretty.NewXcpretty(log.NewLogger())
 
 	installed, err := xcpretty.IsInstalled()
 	if err != nil {

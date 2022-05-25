@@ -3,9 +3,11 @@ package xcscheme
 import (
 	"encoding/xml"
 	"fmt"
+	"log"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -154,6 +156,8 @@ type Scheme struct {
 
 // Open ...
 func Open(pth string) (Scheme, error) {
+	var start = time.Now()
+
 	b, err := fileutil.ReadBytesFromFile(pth)
 	if err != nil {
 		return Scheme{}, err
@@ -166,6 +170,8 @@ func Open(pth string) (Scheme, error) {
 
 	scheme.Name = strings.TrimSuffix(filepath.Base(pth), filepath.Ext(pth))
 	scheme.Path = pth
+
+	log.Printf("Read %s scheme in %s.", scheme.Name, time.Since(start).Round(time.Second))
 
 	return scheme, nil
 }
