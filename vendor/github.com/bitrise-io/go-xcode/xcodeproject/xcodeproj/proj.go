@@ -62,7 +62,7 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 		targets = append(targets, target)
 	}
 
-	log.TDebugf("Parsed xcode project file with id: %s, found %s targets.", id, len(targets))
+	log.TDebugf("Parsed xcode project file with id: %s, found %v targets.", id, len(targets))
 
 	return Proj{
 		ID:                     id,

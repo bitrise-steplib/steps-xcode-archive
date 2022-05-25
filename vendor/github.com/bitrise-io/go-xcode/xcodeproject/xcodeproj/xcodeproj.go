@@ -125,7 +125,7 @@ func (p XcodeProj) DependentTargetsOfTarget(target Target) []Target {
 		dependentTargets = append(dependentTargets, childDependentTargets...)
 	}
 
-	log.TDebugf("Located %s dependencies of target: %s", len(dependentTargets), target.Name)
+	log.TDebugf("Located %v dependencies of target: %s", len(dependentTargets), target.Name)
 
 	return deduplicateTargetList(dependentTargets)
 }
@@ -353,15 +353,13 @@ func (p XcodeProj) Schemes() ([]xcscheme.Scheme, error) {
 
 	schemes, err := xcscheme.FindSchemesIn(p.Path)
 
-	log.TDebugf("Located %s schemes", len(schemes))
+	log.TDebugf("Located %v schemes", len(schemes))
 
 	return schemes, err
 }
 
 // Open ...
 func Open(pth string) (XcodeProj, error) {
-	log.TDebugf("Opening xcode project at path: %s", pth)
-
 	absPth, err := pathutil.AbsPath(pth)
 	if err != nil {
 		return XcodeProj{}, err
@@ -660,8 +658,6 @@ type change struct {
 }
 
 func (p XcodeProj) perObjectModify() ([]byte, error) {
-	log.Debugf("modifying PBX project")
-
 	objectsMod, err := p.RawProj.Object("objects")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse project: %v", err)

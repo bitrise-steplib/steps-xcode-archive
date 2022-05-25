@@ -34,7 +34,7 @@ github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/fileutil
 github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/pathutil
-# github.com/bitrise-io/go-xcode v1.0.6 => github.com/shams-ahmed/go-xcode v1.0.100
+# github.com/bitrise-io/go-xcode v1.0.6 => github.com/shams-ahmed/go-xcode v1.0.102
 ## explicit
 github.com/bitrise-io/go-xcode/appleauth
 github.com/bitrise-io/go-xcode/certificateutil
@@ -54,11 +54,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-<<<<<<< HEAD
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15
-=======
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15.0.20220525082156-b43525984dc3 => github.com/shams-ahmed/go-xcode/v2 v2.0.101
->>>>>>> a2dc817 (vender update for example)
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15.0.20220525082156-b43525984dc3 => github.com/shams-ahmed/go-xcode/v2 v2.0.102
 ## explicit
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader

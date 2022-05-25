@@ -419,7 +419,7 @@ func configuration(configurationName string, scheme xcscheme.Scheme, xcproj xcod
 
 // mainTargetOfScheme return the main target
 func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcodeproj.Target, error) {
-	log.Debugf("Searching %v for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
+	log.Debugf("Searching %d for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
 
 	var blueIdent string
 	for _, entry := range scheme.BuildAction.BuildActionEntries {
@@ -429,7 +429,7 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcode
 		}
 	}
 
-	log.Debugf("Searching %v targets for: %s", len(proj.Proj.Targets), blueIdent)
+	log.Debugf("Searching %d targets for: %s", len(proj.Proj.Targets), blueIdent)
 
 	// Search for the main target
 	for _, t := range proj.Proj.Targets {

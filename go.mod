@@ -18,6 +18,6 @@ require (
 )
 
 replace (
-	github.com/bitrise-io/go-xcode v1.0.6 => github.com/shams-ahmed/go-xcode v1.0.100
-	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15.0.20220525082156-b43525984dc3 => github.com/shams-ahmed/go-xcode/v2 v2.0.101
+	github.com/bitrise-io/go-xcode v1.0.6 => github.com/shams-ahmed/go-xcode v1.0.102
+	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15.0.20220525082156-b43525984dc3 => github.com/shams-ahmed/go-xcode/v2 v2.0.102
 )

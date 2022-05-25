@@ -151,7 +151,7 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 		dependencies = append(dependencies, dependency)
 	}
 
-	log.TDebugf("Parsed %s target dependencies", len(dependencies))
+	log.TDebugf("Parsed %v target dependencies", len(dependencies))
 
 	var productReference ProductReference
 	productReferenceID, err := rawTarget.String("productReference")
