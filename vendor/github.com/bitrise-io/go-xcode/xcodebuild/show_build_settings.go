@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/errorutil"
@@ -119,12 +118,9 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 
 // RunAndReturnSettings ...
 func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object, error) {
-	var (
-		cmd   = c.Command()
-		start = time.Now()
-	)
+	var cmd = c.Command()
 
-	log.Printf("Reading build settings...")
+	log.TPrintf("Reading build settings...")
 
 	log.TDonef("$ %s", cmd.PrintableCommandArgs())
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
@@ -135,7 +131,7 @@ func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object
 		return nil, fmt.Errorf("failed to run command %s: %s", cmd.PrintableCommandArgs(), err)
 	}
 
-	log.Printf("Read target settings in %s.", time.Since(start).Round(time.Second))
+	log.TPrintf("Read target settings.")
 
 	return parseBuildSettings(out)
 }
