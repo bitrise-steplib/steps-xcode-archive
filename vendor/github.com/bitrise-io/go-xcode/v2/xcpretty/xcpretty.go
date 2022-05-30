@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/bitrise-io/go-steputils/v2/ruby"
+	loggerV1 "github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -84,7 +85,7 @@ func (c CommandModel) Run() (string, error) {
 	// Always close xcpretty outputs
 	defer func() {
 		if err := pipeWriter.Close(); err != nil {
-			fmt.Printf("Failed to close xcodebuild-xcpretty pipe, error: %s", err)
+			loggerV1.Warnf("Failed to close xcodebuild-xcpretty pipe, error: %s", err)
 		}
 
 		if err := prettyCmd.Wait(); err != nil {

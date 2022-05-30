@@ -34,7 +34,7 @@ github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/fileutil
 github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/pathutil
-# github.com/bitrise-io/go-xcode v1.0.6 => github.com/shams-ahmed/go-xcode v1.0.102
+# github.com/bitrise-io/go-xcode v1.0.7
 ## explicit
 github.com/bitrise-io/go-xcode/appleauth
 github.com/bitrise-io/go-xcode/certificateutil
@@ -54,7 +54,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.15.0.20220525082156-b43525984dc3 => github.com/shams-ahmed/go-xcode/v2 v2.0.102
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.16
 ## explicit
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
@@ -108,7 +108,7 @@ github.com/stretchr/objx
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
-# golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
+# golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 ## explicit
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
@@ -117,13 +117,13 @@ golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.0.0-20220411215600-e5f449aeb171
+# golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 ## explicit
 golang.org/x/term
 # golang.org/x/text v0.3.7
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# gopkg.in/yaml.v3 v3.0.0
+# gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
 # howett.net/plist v1.0.0
