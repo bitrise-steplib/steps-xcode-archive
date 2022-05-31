@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/fileutil"
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
@@ -50,15 +51,24 @@ func (w Workspace) Scheme(name string) (*xcscheme.Scheme, string, error) {
 
 // SchemeBuildSettings ...
 func (w Workspace) SchemeBuildSettings(scheme, configuration string, customOptions ...string) (serialized.Object, error) {
+	log.TDebugf("Fetching %s scheme build settings", scheme)
+
 	commandModel := xcodebuild.NewShowBuildSettingsCommand(w.Path)
 	commandModel.SetScheme(scheme)
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)
-	return commandModel.RunAndReturnSettings()
+
+	object, err := commandModel.RunAndReturnSettings()
+
+	log.TDebugf("Fetched %s scheme build settings", scheme)
+
+	return object, err
 }
 
 // Schemes ...
 func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
+	log.TDebugf("Looking for schemes in workspace: %s", w.Name)
+
 	schemesByContainer := map[string][]xcscheme.Scheme{}
 
 	workspaceSchemes, err := xcscheme.FindSchemesIn(w.Path)
@@ -94,6 +104,8 @@ func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
 
 		schemesByContainer[project.Path] = projectSchemes
 	}
+
+	log.TDebugf("Found %v workspace schemes", len(schemesByContainer))
 
 	return schemesByContainer, nil
 }

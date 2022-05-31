@@ -7,11 +7,14 @@ import (
 
 	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 )
 
 func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error {
+	log.TPrintf("Will zip directory path: %s", sourceDir)
+
 	parentDir := filepath.Dir(sourceDir)
 	dirName := filepath.Base(sourceDir)
 	cmd := cmdFactory.Create("/usr/bin/zip", []string{"-rTy", destinationZipPth, dirName}, &command.Opts{Dir: parentDir})
@@ -19,6 +22,8 @@ func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error 
 	if err != nil {
 		return fmt.Errorf("failed to zip dir: %s, output: %s, error: %s", sourceDir, out, err)
 	}
+
+	log.TPrintf("Directory zipped.")
 
 	return nil
 }
@@ -31,10 +36,14 @@ func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr st
 // ExportOutputDir ...
 func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string) error {
 	if sourceDirPth != destinationDirPth {
+		fmt.Printf("Coping export output")
+
 		if err := v1command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
 		}
 	}
+
+	fmt.Printf("Copied export output to %s", destinationDirPth)
 
 	return exportEnvironmentWithEnvman(cmdFactory, envKey, destinationDirPth)
 }
@@ -61,6 +70,8 @@ func ExportOutputFileContent(cmdFactory command.Factory, content, destinationPth
 
 // ExportOutputDirAsZip ...
 func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationPth, envKey string) error {
+	log.TPrintf("Will zip directory path: %s", sourceDirPth)
+
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("__export_tmp_dir__")
 	if err != nil {
 		return err
@@ -72,6 +83,8 @@ func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationP
 	if err := zip(cmdFactory, sourceDirPth, tmpZipFilePth); err != nil {
 		return err
 	}
+
+	log.TPrintf("Directory zipped.")
 
 	return ExportOutputFile(cmdFactory, tmpZipFilePth, destinationPth, envKey)
 }

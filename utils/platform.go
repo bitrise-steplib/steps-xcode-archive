@@ -73,6 +73,8 @@ func BuildableTargetPlatform(
 	configurationName string,
 	provider TargetBuildSettingsProvider,
 ) (Platform, error) {
+	fmt.Printf("Finding platform type")
+
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
 		return "", fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
@@ -88,7 +90,11 @@ func BuildableTargetPlatform(
 		return "", fmt.Errorf("failed to get target (%s) build settings: %s", mainTarget.Name, err)
 	}
 
-	return getPlatform(settings)
+	platform, err := getPlatform(settings)
+
+	fmt.Printf("Platform type: %s", platform)
+
+	return platform, err
 }
 
 func getPlatform(buildSettings serialized.Object) (Platform, error) {

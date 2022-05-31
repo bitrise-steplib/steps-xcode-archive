@@ -64,7 +64,7 @@ func (p Project) Platform() (autocodesign.Platform, error) {
 		return "", fmt.Errorf("failed to read project platform: %s", err)
 	}
 
-	log.Printf("Platform: %s", platform)
+	log.Debugf("Platform: %s", platform)
 
 	return platform, nil
 }
@@ -88,7 +88,7 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project platform: %s", err)
 	}
 
-	log.Printf("Platform: %s", platform)
+	log.Debugf("Platform: %s", platform)
 
 	log.Printf("Application and App Extension targets:")
 	for _, target := range p.projHelper.ArchivableTargets() {
@@ -127,9 +127,13 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 
 // ForceCodesignAssets ...
 func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType, codesignAssetsByDistributionType map[autocodesign.DistributionType]autocodesign.AppCodesignAssets) error {
+	archivableTargets := p.projHelper.ArchivableTargets()
+	var archivableTargetsCounter = 0
+
 	fmt.Println()
-	log.Infof("Apply Bitrise managed codesigning on the executable targets")
-	for _, target := range p.projHelper.ArchivableTargets() {
+	log.TInfof("Apply Bitrise managed codesigning on the executable targets (up to: %d targets)", len(archivableTargets))
+
+	for _, target := range archivableTargets {
 		fmt.Println()
 		log.Infof("  Target: %s", target.Name)
 
@@ -160,12 +164,17 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 		if err := p.projHelper.XcProj.ForceCodeSign(p.projHelper.Configuration, target.Name, teamID, codesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
 			return fmt.Errorf("failed to apply code sign settings for target (%s): %s", target.Name, err)
 		}
+
+		archivableTargetsCounter++
 	}
+
+	log.TInfof("Applied Bitrise managed codesigning on up to %s targets", archivableTargetsCounter)
 
 	devCodesignAssets, isDevelopmentAvailable := codesignAssetsByDistributionType[autocodesign.Development]
 	if isDevelopmentAvailable && len(devCodesignAssets.UITestTargetProfilesByBundleID) != 0 {
 		fmt.Println()
-		log.Infof("Apply Bitrise managed codesigning on the UITest targets")
+		log.TInfof("Apply Bitrise managed codesigning on the UITest targets (%d)", len(p.projHelper.UITestTargets))
+
 		for _, uiTestTarget := range p.projHelper.UITestTargets {
 			fmt.Println()
 			log.Infof("  Target: %s", uiTestTarget.Name)
@@ -196,6 +205,8 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 	if err := p.projHelper.XcProj.Save(); err != nil {
 		return fmt.Errorf("failed to save project: %s", err)
 	}
+
+	log.Debugf("Xcode project saved.")
 
 	return nil
 }

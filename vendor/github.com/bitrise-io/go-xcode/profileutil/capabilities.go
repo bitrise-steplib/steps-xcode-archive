@@ -1,6 +1,7 @@
 package profileutil
 
 import (
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/plistutil"
 )
 
@@ -18,6 +19,8 @@ func MatchTargetAndProfileEntitlements(targetEntitlements plistutil.PlistData, p
 			missingEntitlements = append(missingEntitlements, key)
 		}
 	}
+
+	log.Debugf("Found %v entitlements from %v target", len(missingEntitlements), len(targetEntitlements))
 
 	return missingEntitlements
 }

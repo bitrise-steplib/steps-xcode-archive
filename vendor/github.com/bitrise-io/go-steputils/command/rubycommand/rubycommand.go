@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 )
 
@@ -269,7 +270,7 @@ func IsSpecifiedRbenvRubyInstalled(workdir string) (bool, string, error) {
 	cmd := command.New("rbenv", "version").SetDir(absWorkdir)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return false, "", fmt.Errorf("failed to check installed ruby version, %s error: %s", out, err)
+		log.Warnf("failed to check installed ruby version, %s error: %s", out, err)
 	}
 	return isSpecifiedRbenvRubyInstalled(out)
 }

@@ -3,6 +3,7 @@ package xcodeproj
 import (
 	"fmt"
 
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
 
@@ -15,6 +16,8 @@ type Proj struct {
 }
 
 func parseProj(id string, objects serialized.Object) (Proj, error) {
+	log.TDebugf("Parsing xcode project file with id: %s", id)
+
 	rawPBXProj, err := objects.Object(id)
 	if err != nil {
 		return Proj{}, fmt.Errorf("failed to access object with id %s: %s", id, err)
@@ -58,6 +61,8 @@ func parseProj(id string, objects serialized.Object) (Proj, error) {
 		}
 		targets = append(targets, target)
 	}
+
+	log.TDebugf("Parsed xcode project file with id: %s, found %v targets.", id, len(targets))
 
 	return Proj{
 		ID:                     id,

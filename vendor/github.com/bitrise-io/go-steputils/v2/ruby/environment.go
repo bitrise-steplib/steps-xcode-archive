@@ -10,6 +10,7 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
+	"github.com/bitrise-io/go-utils/v2/log"
 )
 
 const (
@@ -44,13 +45,15 @@ type Environment interface {
 type environment struct {
 	factory    CommandFactory
 	cmdLocator env.CommandLocator
+	logger     log.Logger
 }
 
 // NewEnvironment ...
-func NewEnvironment(factory CommandFactory, cmdLocator env.CommandLocator) Environment {
+func NewEnvironment(factory CommandFactory, cmdLocator env.CommandLocator, logger log.Logger) Environment {
 	return environment{
 		factory:    factory,
 		cmdLocator: cmdLocator,
+		logger:     logger,
 	}
 }
 
@@ -88,7 +91,7 @@ func (m environment) IsSpecifiedRbenvRubyInstalled(workdir string) (bool, string
 	cmd := m.factory.Create("rbenv", []string{"version"}, &command.Opts{Dir: absWorkdir})
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return false, "", fmt.Errorf("failed to check installed ruby version, %s error: %s", out, err)
+		m.logger.Warnf("failed to check installed ruby version, %s error: %s", out, err)
 	}
 	return isSpecifiedRbenvRubyInstalled(out)
 }

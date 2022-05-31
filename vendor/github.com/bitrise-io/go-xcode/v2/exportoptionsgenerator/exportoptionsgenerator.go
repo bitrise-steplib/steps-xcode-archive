@@ -55,6 +55,9 @@ func New(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration 
 // GenerateApplicationExportOptions generates exportOptions for an application export.
 func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	xcodeMajorVersion int64) (exportoptions.ExportOptions, error) {
+
+	g.logger.TDebugf("Generating application export options for: %s", exportMethod)
+
 	mainTarget, err := ArchivableApplicationTarget(g.xcodeProj, g.scheme)
 	if err != nil {
 		return nil, err
@@ -85,6 +88,8 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(exportMethod ex
 			mainTargetBundleID = bundleID
 		}
 	}
+
+	g.logger.TDebugf("Generated application export options plist for: %s", exportMethod)
 
 	return g.generateExportOptions(exportMethod, containerEnvironment, teamID, uploadBitcode, compileBitcode,
 		xcodeManaged, entitlementsByBundleID, xcodeMajorVersion, mainTargetBundleID)
@@ -127,6 +132,8 @@ func ArchivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcschem
 }
 
 func filterApplicationBundleTargets(targets []xcodeproj.Target, exportMethod exportoptions.Method) (filteredTargets []xcodeproj.Target) {
+	fmt.Printf("Filtering %v application bundle targets", len(targets))
+
 	for _, target := range targets {
 		if !target.IsExecutableProduct() {
 			continue
@@ -148,11 +155,16 @@ func filterApplicationBundleTargets(targets []xcodeproj.Target, exportMethod exp
 
 		filteredTargets = append(filteredTargets, target)
 	}
+
+	fmt.Printf("Found %v application bundle targets", len(filteredTargets))
+
 	return
 }
 
 // projectUsesCloudKit determines whether the project uses any CloudKit capability or not.
 func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData) bool {
+	fmt.Printf("Checking if project uses CloudKit")
+
 	for _, entitlements := range bundleIDEntitlementsMap {
 		if entitlements == nil {
 			continue
@@ -164,6 +176,8 @@ func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData)
 		}
 
 		if sliceutil.IsStringInSlice("CloudKit", services) || sliceutil.IsStringInSlice("CloudDocuments", services) {
+			fmt.Printf("Project uses CloudKit")
+
 			return true
 		}
 	}
@@ -421,10 +435,14 @@ func disableManagedBuildNumberFromXcode13(exportOpts exportoptions.ExportOptions
 // generateExportOptions generates an exportOptions based on the provided conditions.
 func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions.Method, containerEnvironment string, teamID string, uploadBitcode bool, compileBitcode bool, xcodeManaged bool,
 	bundleIDEntitlementsMap map[string]plistutil.PlistData, xcodeMajorVersion int64, distributionBundleIdentifier string) (exportoptions.ExportOptions, error) {
+	g.logger.TDebugf("Generating export options")
+
 	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, bundleIDEntitlementsMap, exportMethod, xcodeMajorVersion)
 	if err != nil {
 		return nil, err
 	}
+
+	g.logger.Printf("Adding bundle id")
 
 	exportOpts := generateBaseExportOptions(exportMethod, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
 	if xcodeMajorVersion >= 12 {
@@ -433,6 +451,8 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 	if xcodeMajorVersion >= 13 {
 		exportOpts = disableManagedBuildNumberFromXcode13(exportOpts)
 	}
+
+	g.logger.TDebugf("Determining code signing group")
 
 	codeSignGroup, err := g.determineCodesignGroup(bundleIDEntitlementsMap, exportMethod, teamID, xcodeManaged)
 	if err != nil {
@@ -444,6 +464,9 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 
 	exportCodeSignStyle := ""
 	exportProfileMapping := map[string]string{}
+
+	g.logger.TDebugf("Determining code signing style")
+
 	for bundleID, profileInfo := range codeSignGroup.BundleIDProfileMap() {
 		exportProfileMapping[bundleID] = profileInfo.Name
 
@@ -467,6 +490,8 @@ func (g ExportOptionsGenerator) generateExportOptions(exportMethod exportoptions
 		g.logger.Warnf("ipa export uses manual code signing.")
 		g.logger.Warnf(`Setting "signingStyle" to "manual".`)
 	}
+
+	g.logger.TDebugf("Determined code signing style")
 
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
