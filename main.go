@@ -207,6 +207,7 @@ type XcodeArchiveStep struct {
 	stepInputParser      stepconf.InputParser
 	pathProvider         pathutil.PathProvider
 	pathChecker          pathutil.PathChecker
+	pathModifier         pathutil.PathModifier
 	fileManager          fileutil.FileManager
 }
 
@@ -217,6 +218,7 @@ func NewXcodeArchiveStep() XcodeArchiveStep {
 		stepInputParser:      stepconf.NewInputParser(env.NewRepository()),
 		pathProvider:         pathutil.NewPathProvider(),
 		pathChecker:          pathutil.NewPathChecker(),
+		pathModifier:         pathutil.NewPathModifier(),
 		fileManager:          fileutil.NewFileManager(),
 	}
 }
@@ -526,7 +528,7 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	}
 
 	if opts.XcconfigContent != "" {
-		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker)
+		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker, s.pathModifier)
 		xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
 		if err != nil {
 			return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)

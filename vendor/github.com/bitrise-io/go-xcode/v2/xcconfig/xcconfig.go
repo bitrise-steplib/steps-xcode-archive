@@ -18,11 +18,12 @@ type writer struct {
 	pathProvider pathutil.PathProvider
 	fileManager  fileutil.FileManager
 	pathChecker  pathutil.PathChecker
+	pathModifier pathutil.PathModifier
 }
 
 // NewWriter ...
-func NewWriter(pathProvider pathutil.PathProvider, fileManager fileutil.FileManager, pathChecker pathutil.PathChecker) Writer {
-	return &writer{pathProvider: pathProvider, fileManager: fileManager, pathChecker: pathChecker}
+func NewWriter(pathProvider pathutil.PathProvider, fileManager fileutil.FileManager, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier) Writer {
+	return &writer{pathProvider: pathProvider, fileManager: fileManager, pathChecker: pathChecker, pathModifier: pathModifier}
 }
 
 // Write writes the contents of input into a xcconfig file if
@@ -32,14 +33,19 @@ func NewWriter(pathProvider pathutil.PathProvider, fileManager fileutil.FileMana
 // file and/or its path.
 func (w writer) Write(input string) (string, error) {
 	if w.isPath(input) {
-		pathExists, err := w.pathChecker.IsPathExists(input)
+		xcconfigPath, err := w.pathModifier.AbsPath(input)
+		if err != nil {
+			return "", fmt.Errorf("failed to convert xcconfig file path (%s) to absolute path: %w", input, err)
+		}
+
+		pathExists, err := w.pathChecker.IsPathExists(xcconfigPath)
 		if err != nil {
 			return "", fmt.Errorf(err.Error())
 		}
 		if !pathExists {
 			return "", fmt.Errorf("provided xcconfig file path doesn't exist: %s", input)
 		}
-		return input, nil
+		return xcconfigPath, nil
 	}
 
 	dir, err := w.pathProvider.CreateTempDir("")
