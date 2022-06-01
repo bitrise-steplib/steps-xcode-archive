@@ -157,8 +157,8 @@ inputs:
   opts:
     category: xcodebuild configuration
     title: Additional options for the xcodebuild command
-    description: Additional options to be added to the executed xcodebuild command.
-    summary: |-
+    summary: Additional options to be added to the executed xcodebuild command.
+    description: |-
       Additional options to be added to the executed xcodebuild command.
 
       When setting the `-xcconfig` option, makes sure to clear the "Build settings (xcconfig)" input, as can not specify both.
