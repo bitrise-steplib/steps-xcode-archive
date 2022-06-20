@@ -443,6 +443,11 @@ workflows:
         - content: |-
             #!/usr/bin/env bash
 
+            if [[ ${XCODE_MAJOR_VERSION} -ge 14 ]]; then
+              echo "Xcode 14 does not output dSYM files "
+              exit 0
+            fi
+
             cd $BITRISE_DSYM_DIR_PATH
 
             if [ $(find . -name '*.dSYM' -maxdepth 1| wc -l) -eq 0 ]; then
@@ -464,6 +469,11 @@ workflows:
         - content: |-
             #!/usr/bin/env bash
             set -ex
+
+            if [[ ${XCODE_MAJOR_VERSION} -ge 14 ]]; then
+              echo "Xcode 14 does not output dSYM files "
+              exit 0
+            fi
 
             cd $BITRISE_DSYM_DIR_PATH
 
