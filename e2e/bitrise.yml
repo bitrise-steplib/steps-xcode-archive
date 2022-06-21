@@ -446,7 +446,7 @@ workflows:
             #!/usr/bin/env bash
 
             if [[ ${XCODE_MAJOR_VERSION} -ge 14 ]]; then
-              echo "Xcode 14 does not output dSYM files "
+              echo "Xcode 14+ does not output dSYM files "
               exit 0
             fi
 
