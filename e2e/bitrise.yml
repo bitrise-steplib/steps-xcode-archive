@@ -435,6 +435,8 @@ workflows:
         - deployed_dirs:
 
   _check_exported_artifacts:
+    before_run:
+    - _expose_xcode_version
     steps:
     - script:
         title: Validate exported artifacts
@@ -442,6 +444,11 @@ workflows:
         inputs:
         - content: |-
             #!/usr/bin/env bash
+
+            if [[ ${XCODE_MAJOR_VERSION} -ge 14 ]]; then
+              echo "Xcode 14+ does not output dSYM files "
+              exit 0
+            fi
 
             cd $BITRISE_DSYM_DIR_PATH
 
@@ -464,6 +471,11 @@ workflows:
         - content: |-
             #!/usr/bin/env bash
             set -ex
+
+            if [[ ${XCODE_MAJOR_VERSION} -ge 14 ]]; then
+              echo "Xcode 14+ does not output dSYM files "
+              exit 0
+            fi
 
             cd $BITRISE_DSYM_DIR_PATH
 
@@ -507,3 +519,25 @@ workflows:
             export BITRISE_BUILD_API_TOKEN
             envman add --key BITRISE_BUILD_URL --value $BITRISE_BUILD_URL
             envman add --key BITRISE_BUILD_API_TOKEN --value $BITRISE_BUILD_API_TOKEN
+
+  _expose_xcode_version:
+    steps:
+    - script:
+        title: Expose Xcode major version
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -e
+            if [[ ! -z "$XCODE_MAJOR_VERSION" ]]; then
+              echo "Xcode major version already exposed: $XCODE_MAJOR_VERSION"
+              exit 0
+            fi
+            version=`xcodebuild -version`
+            regex="Xcode ([0-9]*)."
+            if [[ ! $version =~ $regex ]]; then
+              echo "Failed to determine Xcode major version"
+              exit 1
+            fi
+            xcode_major_version=${BASH_REMATCH[1]}
+            echo "Xcode major version: $xcode_major_version"
+            envman add --key XCODE_MAJOR_VERSION --value $xcode_major_version
