@@ -1,11 +1,18 @@
 package codesign
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/bitrise-io/go-xcode/devportalservice"
+
+	"github.com/bitrise-io/go-utils/retry"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -58,6 +65,40 @@ func ParseConfig(input Input, cmdFactory command.Factory) (Config, error) {
 		Keychain:                     *keychainWriter,
 		DistributionMethod:           autocodesign.DistributionType(input.DistributionMethod),
 		FallbackProvisioningProfiles: fallbackProfiles,
+	}, nil
+}
+
+func ParseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string) (*devportalservice.APIKeyConnection, error) {
+	var key []byte
+	if strings.HasPrefix(string(keyPathOrURL), "https://") {
+		resp, err := retry.NewHTTPClient().Get(string(keyPathOrURL))
+		if err != nil {
+			return nil, fmt.Errorf("API key download error: %s", err)
+		}
+
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("API key HTTP response %d: %s", resp.StatusCode, resp.Body)
+		}
+
+		key, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		key, err = os.ReadFile(string(keyPathOrURL))
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("private key does not exist at %s", keyPathOrURL)
+		} else if err != nil {
+			return nil, err
+		}
+	}
+
+	return &devportalservice.APIKeyConnection{
+		KeyID:      strings.TrimSpace(keyID),
+		IssuerID:   strings.TrimSpace(keyIssuerID),
+		PrivateKey: string(key),
 	}, nil
 }
 

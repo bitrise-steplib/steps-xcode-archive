@@ -14,9 +14,30 @@ app:
   - BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
 
   - BITFALL_APPSTORECONNECT_API_KEY_URL: $BITFALL_APPSTORECONNECT_API_KEY_URL
+  - BITFALL_APPSTORECONNECT_API_KEY_ID: $BITFALL_APPSTORECONNECT_API_KEY_ID
   - BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID: $BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID
 
 workflows:
+
+  test_override_api_key_signing:
+    description: Test API key based signing on a project where code signing is not managed automatically, by step inputs
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Fruta
+    - TEST_APP_BRANCH: manual-signing
+    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
+    - BITRISE_SCHEME: Fruta iOS
+    - CODE_SIGNING_METHOD: api-key
+    - API_KEY_PATH: $BITFALL_APPSTORECONNECT_API_KEY_URL
+    - API_KEY_ID: $BITFALL_APPSTORECONNECT_API_KEY_ID
+    - API_KEY_ISSUER_ID: $BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID
+    - MIN_DAYS_PROFILE_VALID: 0
+    - IPA_EXPORT_METHOD: development
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
   test_single_certificate_no_passphrase:
     steps:
     - script:
@@ -413,6 +434,9 @@ workflows:
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
         - fallback_provisioning_profile_url_list: $FALLBACK_PROFILES
+        - api_key_path: $API_KEY_PATH
+        - api_key_id: $API_KEY_ID
+        - api_key_issuer_id: $API_KEY_ISSUER_ID
 
   _check_outputs:
     steps:
