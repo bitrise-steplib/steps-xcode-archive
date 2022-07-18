@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bitrise-io/go-utils/log"
+
 	"github.com/bitrise-io/go-xcode/devportalservice"
 
 	"github.com/bitrise-io/go-utils/retry"
@@ -33,6 +35,14 @@ type Input struct {
 	KeychainPath                 string
 	KeychainPassword             stepconf.Secret
 	FallbackProvisioningProfiles string
+}
+
+// ConnectionOverrideInputs are used in steps to control the API key based auth credentials
+// This overrides the global API connection defined on Bitrise.io
+type ConnectionOverrideInputs struct {
+	APIKeyPath     stepconf.Secret
+	APIKeyID       string
+	APIKeyIssuerID string
 }
 
 // Config ...
@@ -68,7 +78,8 @@ func ParseConfig(input Input, cmdFactory command.Factory) (Config, error) {
 	}, nil
 }
 
-func ParseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string) (*devportalservice.APIKeyConnection, error) {
+// parseConnectionOverrideConfig validates and parses the step input-level connection parameters
+func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string) (*devportalservice.APIKeyConnection, error) {
 	var key []byte
 	if strings.HasPrefix(string(keyPathOrURL), "https://") {
 		resp, err := retry.NewHTTPClient().Get(string(keyPathOrURL))
@@ -76,7 +87,12 @@ func ParseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssue
 			return nil, fmt.Errorf("API key download error: %s", err)
 		}
 
-		defer resp.Body.Close()
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				log.Errorf(err.Error())
+			}
+		}(resp.Body)
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("API key HTTP response %d: %s", resp.StatusCode, resp.Body)
 		}

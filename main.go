@@ -361,29 +361,19 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	devPortalClientFactory := devportalclient.NewFactory(logger)
 
 	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
-	if config.Inputs.APIKeyPath != "" && config.Inputs.APIKeyID != "" && config.Inputs.APIKeyIssuerID != "" {
-		// Override connection by step inputs
-		logger.Infof("Overriding App Store Connect API connection with step-provided credentials (api_key_path, api_key_id, api_key_issuer_id)")
-		connection, err := codesign.ParseConnectionOverrideConfig(config.Inputs.APIKeyPath, config.Inputs.APIKeyID, config.Inputs.APIKeyIssuerID)
-		if err != nil {
+	if authType == codesign.APIKeyAuth || authType == codesign.AppleIDAuth {
+		if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
 			return codesign.Manager{}, err
-		}
-		serviceConnection = &devportalservice.AppleDeveloperConnection{
-			APIKeyConnection:      connection,
-			AppleIDConnection:     nil,
-			TestDevices:           nil,
-			DuplicatedTestDevices: nil,
-		}
-	} else {
-		// Use API connection set up on Bitrise.io
-		if authType == codesign.APIKeyAuth || authType == codesign.AppleIDAuth {
-			if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
-				return codesign.Manager{}, err
-			}
 		}
 	}
 
-	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, logger)
+	connectionInputs := codesign.ConnectionOverrideInputs{
+		APIKeyPath:     config.Inputs.APIKeyPath,
+		APIKeyID:       config.Inputs.APIKeyID,
+		APIKeyIssuerID: config.Inputs.APIKeyIssuerID,
+	}
+
+	appleAuthCredentials, err := codesign.SelectConnectionCredentials2(authType, serviceConnection, connectionInputs, logger)
 	if err != nil {
 		return codesign.Manager{}, err
 	}
@@ -413,7 +403,7 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
-		serviceConnection,
+		serviceConnection.TestDevices,
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
