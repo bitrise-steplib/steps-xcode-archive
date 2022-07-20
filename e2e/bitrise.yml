@@ -340,8 +340,7 @@ workflows:
       (Should use Bitrise-managed code signing assets).
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: ""
-    - TEST_APP_COMMIT: ab36ed563bbc3125118e9f27df91474822dc0d46
+    - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - CODE_SIGNING_METHOD: api-key
