@@ -64,9 +64,6 @@ type_tags:
 - build
 is_always_run: false
 is_skippable: false
-deps:
-  check_only:
-  - name: xcode
 toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-xcode-archive
