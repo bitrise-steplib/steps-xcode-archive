@@ -44,7 +44,7 @@ workflows:
             envman add --key BITRISE_BUILD_API_TOKEN_BACKUP --value $BITRISE_BUILD_API_TOKEN
             envman unset BITRISE_BUILD_URL
             envman unset BITRISE_BUILD_API_TOKEN
-            
+
     after_run:
     - _run
     - _check_outputs
@@ -577,7 +577,7 @@ workflows:
             xcode_major_version=${BASH_REMATCH[1]}
             echo "Xcode major version: $xcode_major_version"
             envman add --key XCODE_MAJOR_VERSION --value $xcode_major_version
-  
+
   _restore_api_envs:
     steps:
     - script:
