@@ -406,10 +406,14 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 
 	client := retry.NewHTTPClient().StandardClient()
 	logger.Debugf("HTTP client created")
+	var testDevices []devportalservice.TestDevice
+	if serviceConnection != nil {
+		testDevices = serviceConnection.TestDevices
+	}
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
-		serviceConnection.TestDevices,
+		testDevices,
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
