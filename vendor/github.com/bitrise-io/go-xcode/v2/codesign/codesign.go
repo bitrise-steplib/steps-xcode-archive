@@ -1,7 +1,6 @@
 package codesign
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -196,9 +195,9 @@ func SelectConnectionCredentials(
 	bitriseConnection *devportalservice.AppleDeveloperConnection,
 	inputs ConnectionOverrideInputs, logger log.Logger) (appleauth.Credentials, error) {
 	if authType == APIKeyAuth && inputs.APIKeyPath != "" && inputs.APIKeyIssuerID != "" && inputs.APIKeyID != "" {
-		logger.Infof("Overriding App Store Connect API connection with step-provided credentials (api_key_path, api_key_id, api_key_issuer_id)")
+		logger.Infof("Overriding Bitrise Apple Service connection with Step-provided credentials (api_key_path, api_key_id, api_key_issuer_id)")
 
-		config, err := parseConnectionOverrideConfig(inputs.APIKeyPath, inputs.APIKeyID, inputs.APIKeyIssuerID)
+		config, err := parseConnectionOverrideConfig(inputs.APIKeyPath, inputs.APIKeyID, inputs.APIKeyIssuerID, logger)
 		if err != nil {
 			return appleauth.Credentials{}, err
 		}
@@ -209,7 +208,8 @@ func SelectConnectionCredentials(
 	}
 
 	if authType == APIKeyAuth {
-		if bitriseConnection.APIKeyConnection == nil {
+		if bitriseConnection == nil || bitriseConnection.APIKeyConnection == nil {
+			logger.Errorf(devportalclient.NotConnectedWarning)
 			return appleauth.Credentials{}, fmt.Errorf("API key authentication is selected in Step inputs, but Bitrise Apple Service connection is unset")
 		}
 
@@ -221,7 +221,8 @@ func SelectConnectionCredentials(
 	}
 
 	if authType == AppleIDAuth {
-		if bitriseConnection.AppleIDConnection == nil {
+		if bitriseConnection == nil || bitriseConnection.AppleIDConnection == nil {
+			logger.Errorf(devportalclient.NotConnectedWarning)
 			return appleauth.Credentials{}, fmt.Errorf("Apple ID authentication is selected in Step inputs, but Bitrise Apple Service connection is unset")
 		}
 
@@ -242,7 +243,7 @@ func SelectConnectionCredentials(
 		}, nil
 	}
 
-	return appleauth.Credentials{}, errors.New(devportalclient.NotConnectedWarning)
+	panic("Unexpected AuthType")
 }
 
 func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials) (codeSigningStrategy, string, error) {

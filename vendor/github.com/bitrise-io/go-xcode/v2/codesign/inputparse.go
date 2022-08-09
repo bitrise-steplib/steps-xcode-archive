@@ -10,16 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/log"
-
-	"github.com/bitrise-io/go-xcode/devportalservice"
-
-	"github.com/bitrise-io/go-utils/retry"
-
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/retryhttp"
+	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
@@ -79,10 +76,10 @@ func ParseConfig(input Input, cmdFactory command.Factory) (Config, error) {
 }
 
 // parseConnectionOverrideConfig validates and parses the step input-level connection parameters
-func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string) (*devportalservice.APIKeyConnection, error) {
+func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string, logger log.Logger) (*devportalservice.APIKeyConnection, error) {
 	var key []byte
 	if strings.HasPrefix(string(keyPathOrURL), "https://") {
-		resp, err := retry.NewHTTPClient().Get(string(keyPathOrURL))
+		resp, err := retryhttp.NewClient(logger).Get(string(keyPathOrURL))
 		if err != nil {
 			return nil, fmt.Errorf("API key download error: %s", err)
 		}
@@ -90,7 +87,7 @@ func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssue
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
 			if err != nil {
-				log.Errorf(err.Error())
+				logger.Errorf(err.Error())
 			}
 		}(resp.Body)
 		if resp.StatusCode != http.StatusOK {
@@ -102,10 +99,14 @@ func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssue
 			return nil, err
 		}
 	} else {
+		trimmedPath := string(keyPathOrURL)
+		if strings.HasPrefix(string(keyPathOrURL), "file://") {
+			trimmedPath = strings.TrimPrefix(string(keyPathOrURL), "file://")
+		}
 		var err error
-		key, err = os.ReadFile(string(keyPathOrURL))
+		key, err = os.ReadFile(trimmedPath)
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("private key does not exist at %s", keyPathOrURL)
+			return nil, fmt.Errorf("private key does not exist at %s", trimmedPath)
 		} else if err != nil {
 			return nil, err
 		}
