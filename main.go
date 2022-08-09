@@ -405,6 +405,7 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	logger.Debugf("Project parsed")
 
 	client := retry.NewHTTPClient().StandardClient()
+	logger.Debugf("HTTP client created")
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
