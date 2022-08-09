@@ -39,11 +39,12 @@ workflows:
         title: Unset Bitrise API connection env vars
         inputs:
         - content: |-
+            #!/usr/bin/env bash
             set -ex
             envman add --key BITRISE_BUILD_URL_BACKUP --value $BITRISE_BUILD_URL
             envman add --key BITRISE_BUILD_API_TOKEN_BACKUP --value $BITRISE_BUILD_API_TOKEN
-            envman unset BITRISE_BUILD_URL
-            envman unset BITRISE_BUILD_API_TOKEN
+            envman unset --key BITRISE_BUILD_URL
+            envman unset --key BITRISE_BUILD_API_TOKEN
 
     after_run:
     - _run
