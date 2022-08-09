@@ -323,14 +323,11 @@ func (s XcodeArchiveStep) ProcessInputs() (Config, error) {
 
 	if config.CodeSigningAuthSource != codeSignSourceOff {
 		codesignManager, err := s.createCodesignManager(config)
-		logger.Debugf("Codesignmanager created")
 		if err != nil {
 			return Config{}, err
 		}
 		config.CodesignManager = &codesignManager
 	}
-
-	logger.Debugf("Returning config")
 
 	return config, nil
 }
@@ -402,10 +399,7 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 		return codesign.Manager{}, err
 	}
 
-	logger.Debugf("Project parsed")
-
 	client := retry.NewHTTPClient().StandardClient()
-	logger.Debugf("HTTP client created")
 	var testDevices []devportalservice.TestDevice
 	if serviceConnection != nil {
 		testDevices = serviceConnection.TestDevices

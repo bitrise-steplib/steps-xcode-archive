@@ -104,7 +104,6 @@ func NewManagerWithProject(
 	project projectmanager.Project,
 	logger log.Logger,
 ) Manager {
-	logger.Debugf("NewManagerWithProject()")
 	return Manager{
 		opts:                      opts,
 		appleAuthCredentials:      appleAuth,
