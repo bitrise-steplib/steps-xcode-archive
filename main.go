@@ -361,7 +361,7 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	devPortalClientFactory := devportalclient.NewFactory(logger)
 
 	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
-	if authType == codesign.APIKeyAuth || authType == codesign.AppleIDAuth {
+	if config.BuildURL != "" && config.BuildAPIToken != "" {
 		if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
 			return codesign.Manager{}, err
 		}
