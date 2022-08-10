@@ -42,6 +42,8 @@ Under **Automatic code signing**:
 3. **The minimum days the Provisioning Profile should be valid**: If this input is set to >0, the managed Provisioning Profile will be renewed if it expires within the configured number of days. Otherwise the Step renews the managed Provisioning Profile if it is expired.
 4. The **Code signing certificate URL**, the **Code signing certificate passphrase**, the **Keychain path**, and the **Keychain password** inputs are automatically populated if certificates are uploaded to Bitrise's **Code Signing** tab. If you store your files in a private repo, you can manually edit these fields.
 
+If you want to set the Apple service connection credentials on the step-level (instead of using the one configured in the App Settings), use the Step inputs in the **App Store Connect connection override** category. Note that this only works if **Automatic code signing method** is set to `api-key`.
+
 Under **IPA export configuration**:
 1. **Developer Portal team**: Add the Developer Portal team's name to use for this export. This input defaults to the team used to build the archive.
 2. **Rebuild from bitcode**: For non-App Store exports, should Xcode re-compile the app from bitcode?
@@ -131,6 +133,9 @@ Build a development IPA with custom xcconfig file path:
 | `export_all_dsyms` | Export additional dSYM files besides the app dSYM file for Frameworks. | required | `yes` |
 | `artifact_name` | This name will be used as basename for the generated Xcode Archive, App, IPA and dSYM files.  If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used. If Product Name is not specified, the Scheme will be used. |  |  |
 | `cache_level` | Defines what cache content should be automatically collected.  Available options:  - `none`: Disable collecting cache content - `swift_packages`: Collect Swift PM packages added to the Xcode project | required | `swift_packages` |
+| `api_key_path` | Local path or remote URL to the private key (p8 file) for App Store Connect API. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. The input value can be a file path (eg. `$TMPDIR/private_key.p8`) or an HTTPS URL. This input only takes effect if the other two connection override inputs are set too (`api_key_id`, `api_key_issuer_id`). |  |  |
+| `api_key_id` | Private key ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_issuer_id`). |  |  |
+| `api_key_issuer_id` | Private key issuer ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_id`). |  |  |
 | `verbose_log` | If this input is set, the Step will print additional logs for debugging. | required | `no` |
 </details>
 

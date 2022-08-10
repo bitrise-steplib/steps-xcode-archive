@@ -1,7 +1,10 @@
 package codesign
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -11,6 +14,9 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/retryhttp"
+	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
@@ -26,6 +32,14 @@ type Input struct {
 	KeychainPath                 string
 	KeychainPassword             stepconf.Secret
 	FallbackProvisioningProfiles string
+}
+
+// ConnectionOverrideInputs are used in steps to control the API key based auth credentials
+// This overrides the global API connection defined on Bitrise.io
+type ConnectionOverrideInputs struct {
+	APIKeyPath     stepconf.Secret
+	APIKeyID       string
+	APIKeyIssuerID string
 }
 
 // Config ...
@@ -58,6 +72,50 @@ func ParseConfig(input Input, cmdFactory command.Factory) (Config, error) {
 		Keychain:                     *keychainWriter,
 		DistributionMethod:           autocodesign.DistributionType(input.DistributionMethod),
 		FallbackProvisioningProfiles: fallbackProfiles,
+	}, nil
+}
+
+// parseConnectionOverrideConfig validates and parses the step input-level connection parameters
+func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string, logger log.Logger) (*devportalservice.APIKeyConnection, error) {
+	var key []byte
+	if strings.HasPrefix(string(keyPathOrURL), "https://") {
+		resp, err := retryhttp.NewClient(logger).Get(string(keyPathOrURL))
+		if err != nil {
+			return nil, fmt.Errorf("API key download error: %s", err)
+		}
+
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				logger.Errorf(err.Error())
+			}
+		}(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("API key HTTP response %d: %s", resp.StatusCode, resp.Body)
+		}
+
+		key, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		trimmedPath := string(keyPathOrURL)
+		if strings.HasPrefix(string(keyPathOrURL), "file://") {
+			trimmedPath = strings.TrimPrefix(string(keyPathOrURL), "file://")
+		}
+		var err error
+		key, err = os.ReadFile(trimmedPath)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("private key does not exist at %s", trimmedPath)
+		} else if err != nil {
+			return nil, err
+		}
+	}
+
+	return &devportalservice.APIKeyConnection{
+		KeyID:      strings.TrimSpace(keyID),
+		IssuerID:   strings.TrimSpace(keyIssuerID),
+		PrivateKey: string(key),
 	}, nil
 }
 

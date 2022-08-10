@@ -36,6 +36,8 @@ description: |-
   3. **The minimum days the Provisioning Profile should be valid**: If this input is set to >0, the managed Provisioning Profile will be renewed if it expires within the configured number of days. Otherwise the Step renews the managed Provisioning Profile if it is expired.
   4. The **Code signing certificate URL**, the **Code signing certificate passphrase**, the **Keychain path**, and the **Keychain password** inputs are automatically populated if certificates are uploaded to Bitrise's **Code Signing** tab. If you store your files in a private repo, you can manually edit these fields.
 
+  If you want to set the Apple service connection credentials on the step-level (instead of using the one configured in the App Settings), use the Step inputs in the **App Store Connect connection override** category. Note that this only works if **Automatic code signing method** is set to `api-key`.
+
   Under **IPA export configuration**:
   1. **Developer Portal team**: Add the Developer Portal team's name to use for this export. This input defaults to the team used to build the archive.
   2. **Rebuild from bitcode**: For non-App Store exports, should Xcode re-compile the app from bitcode?
@@ -391,6 +393,45 @@ inputs:
     - none
     - swift_packages
     is_required: true
+
+# App Store Connect connection override
+
+- api_key_path:
+  opts:
+    category: App Store Connect connection override
+    title: App Store Connect API private key
+    summary: Local path or remote URL to the private key (p8 file). This overrides the Bitrise-managed API connection.
+    description: |-
+      Local path or remote URL to the private key (p8 file) for App Store Connect API.
+      This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection
+      on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise.
+      The input value can be a file path (eg. `$TMPDIR/private_key.p8`) or an HTTPS URL.
+      This input only takes effect if the other two connection override inputs are set too (`api_key_id`, `api_key_issuer_id`).
+    is_required: false
+
+- api_key_id:
+  opts:
+    category: App Store Connect connection override
+    title: App Store Connect API key ID
+    summary: Private key ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection.
+    description: |-
+      Private key ID used for App Store Connect authentication.
+      This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection
+      on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise.
+      This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_issuer_id`).
+    is_required: false
+
+- api_key_issuer_id:
+  opts:
+    category: App Store Connect connection override
+    title: App Store Connect API issuer ID
+    summary: Private key issuer ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection.
+    description: |-
+      Private key issuer ID used for App Store Connect authentication.
+      This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection
+      on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise.
+      This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_id`).
+    is_required: false
 
 # Debugging
 

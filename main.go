@@ -106,6 +106,9 @@ type Inputs struct {
 	RegisterTestDevices             bool            `env:"register_test_devices,opt[yes,no]"`
 	MinDaysProfileValid             int             `env:"min_profile_validity,required"`
 	FallbackProvisioningProfileURLs string          `env:"fallback_provisioning_profile_url_list"`
+	APIKeyPath                      stepconf.Secret `env:"api_key_path"`
+	APIKeyID                        string          `env:"api_key_id"`
+	APIKeyIssuerID                  string          `env:"api_key_issuer_id"`
 	BuildURL                        string          `env:"BITRISE_BUILD_URL"`
 	BuildAPIToken                   stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
@@ -355,15 +358,22 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 		return codesign.Manager{}, fmt.Errorf("issue with input: %s", err)
 	}
 
-	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
 	devPortalClientFactory := devportalclient.NewFactory(logger)
-	if authType == codesign.APIKeyAuth || authType == codesign.AppleIDAuth {
+
+	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
+	if config.BuildURL != "" && config.BuildAPIToken != "" {
 		if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
 			return codesign.Manager{}, err
 		}
 	}
 
-	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, logger)
+	connectionInputs := codesign.ConnectionOverrideInputs{
+		APIKeyPath:     config.Inputs.APIKeyPath,
+		APIKeyID:       config.Inputs.APIKeyID,
+		APIKeyIssuerID: config.Inputs.APIKeyIssuerID,
+	}
+
+	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, connectionInputs, logger)
 	if err != nil {
 		return codesign.Manager{}, err
 	}
@@ -390,10 +400,14 @@ func (s XcodeArchiveStep) createCodesignManager(config Config) (codesign.Manager
 	}
 
 	client := retry.NewHTTPClient().StandardClient()
+	var testDevices []devportalservice.TestDevice
+	if serviceConnection != nil {
+		testDevices = serviceConnection.TestDevices
+	}
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
-		serviceConnection,
+		testDevices,
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
@@ -509,23 +523,16 @@ func (s XcodeArchiveStep) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutpu
 	logger.Println()
 	logger.TInfof("Creating the Archive ...")
 
-	isWorkspace := false
-	ext := filepath.Ext(opts.ProjectPath)
-	if ext == ".xcodeproj" {
-		isWorkspace = false
-	} else if ext == ".xcworkspace" {
-		isWorkspace = true
+	var actions []string
+	if opts.PerformCleanAction {
+		actions = []string{"clean", "archive"}
 	} else {
-		return out, fmt.Errorf("project file extension should be .xcodeproj or .xcworkspace, but got: %s", ext)
+		actions = []string{"archive"}
 	}
 
-	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, isWorkspace, xcodebuild.ArchiveAction)
+	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, actions...)
 	archiveCmd.SetScheme(opts.Scheme)
 	archiveCmd.SetConfiguration(opts.Configuration)
-
-	if opts.PerformCleanAction {
-		archiveCmd.SetCustomBuildAction("clean")
-	}
 
 	if opts.XcconfigContent != "" {
 		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker, s.pathModifier)
