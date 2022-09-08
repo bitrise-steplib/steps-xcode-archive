@@ -37,20 +37,22 @@ func run() int {
 		config.LogFormatter = "xcodebuild"
 	}
 
+	exitCode := 0
 	runOpts := createRunOptions(config)
-	out, runErr := archiver.Run(runOpts)
-
-	exportOpts := createExportOptions(config, out)
-	exportErr := archiver.ExportOutput(exportOpts)
-
-	if runErr != nil {
-		return 1
-	}
-	if exportErr != nil {
-		return 1
+	result, err := archiver.Run(runOpts)
+	if err != nil {
+		logger.Errorf("Run failed: %s", err)
+		exitCode = 1
+		// don't return as step outputs needs to be exported even in case of failure (for example the xcodebuild logs)
 	}
 
-	return 0
+	exportOpts := createExportOptions(config, result)
+	if err := archiver.ExportOutput(exportOpts); err != nil {
+		logger.Errorf("Export Outputs failed: %s", err)
+		exitCode = 1
+	}
+
+	return exitCode
 }
 
 func createXcodebuildArchiver(logger log.Logger) step.XcodebuildArchiver {
@@ -91,19 +93,19 @@ func createRunOptions(config step.Config) step.RunOpts {
 	}
 }
 
-func createExportOptions(config step.Config, out step.RunOut) step.ExportOpts {
+func createExportOptions(config step.Config, result step.RunResult) step.ExportOpts {
 	return step.ExportOpts{
 		OutputDir:      config.OutputDir,
-		ArtifactName:   out.ArtifactName,
+		ArtifactName:   result.ArtifactName,
 		ExportAllDsyms: config.ExportAllDsyms,
 
-		Archive: out.Archive,
+		Archive: result.Archive,
 
-		ExportOptionsPath: out.ExportOptionsPath,
-		IPAExportDir:      out.IPAExportDir,
+		ExportOptionsPath: result.ExportOptionsPath,
+		IPAExportDir:      result.IPAExportDir,
 
-		XcodebuildArchiveLog:       out.XcodebuildArchiveLog,
-		XcodebuildExportArchiveLog: out.XcodebuildExportArchiveLog,
-		IDEDistrubutionLogsDir:     out.IDEDistrubutionLogsDir,
+		XcodebuildArchiveLog:       result.XcodebuildArchiveLog,
+		XcodebuildExportArchiveLog: result.XcodebuildExportArchiveLog,
+		IDEDistrubutionLogsDir:     result.IDEDistrubutionLogsDir,
 	}
 }
