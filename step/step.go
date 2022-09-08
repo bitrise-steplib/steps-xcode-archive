@@ -740,8 +740,8 @@ type RunOpts struct {
 	CompileBitcode                  bool
 }
 
-// RunOut ...
-type RunOut struct {
+// RunResult ...
+type RunResult struct {
 	Archive      *xcarchive.IosArchive
 	ArtifactName string
 
@@ -754,9 +754,9 @@ type RunOut struct {
 }
 
 // Run ...
-func (s XcodebuildArchiver) Run(opts RunOpts) (RunOut, error) {
+func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	var (
-		out         = RunOut{}
+		out         = RunResult{}
 		authOptions *xcodebuild.AuthenticationParams
 	)
 
@@ -797,13 +797,13 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunOut, error) {
 
 		xcodebuildAuthParams, err := opts.CodesignManager.PrepareCodesigning()
 		if err != nil {
-			return RunOut{}, fmt.Errorf("failed to manage code signing: %s", err)
+			return RunResult{}, fmt.Errorf("failed to manage code signing: %s", err)
 		}
 
 		if xcodebuildAuthParams != nil {
 			privateKey, err := xcodebuildAuthParams.WritePrivateKeyToFile()
 			if err != nil {
-				return RunOut{}, err
+				return RunResult{}, err
 			}
 
 			defer func() {
