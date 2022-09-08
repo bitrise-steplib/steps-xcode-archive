@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/exportoptions"
@@ -66,4 +67,13 @@ func findIDEDistrubutionLogsPath(output string, logger log.Logger) (string, erro
 	logger.Printf("IDE distrubution logs path not found")
 
 	return "", nil
+}
+
+func exportDSYMs(dsymDir string, dsyms []string) error {
+	for _, dsym := range dsyms {
+		if err := v1command.CopyDir(dsym, dsymDir, false); err != nil {
+			return fmt.Errorf("could not copy (%s) to directory (%s): %s", dsym, dsymDir, err)
+		}
+	}
+	return nil
 }

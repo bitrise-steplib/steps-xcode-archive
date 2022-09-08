@@ -1,15 +1,16 @@
 package main
 
 import (
-	"errors"
 	"os"
 
-	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/v2/command"
-	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
-	"github.com/bitrise-io/go-utils/v2/log"
+
+	"github.com/bitrise-io/go-steputils/v2/stepconf"
+	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
+
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-steplib/steps-xcode-archive/step"
 )
 
@@ -23,7 +24,7 @@ func run() int {
 
 	config, err := archiver.ProcessInputs()
 	if err != nil {
-		logger.Errorf("Processing Step Inputs failed: %s", err)
+		logger.Errorf("Process Inputs failed: %s", err)
 		return 1
 	}
 
@@ -31,33 +32,25 @@ func run() int {
 		XCPretty: config.LogFormatter == "xcpretty",
 	}
 	if err := archiver.EnsureDependencies(dependenciesOpts); err != nil {
-		var xcprettyInstallErr step.XCPrettyInstallError
-		if errors.As(err, &xcprettyInstallErr) {
-			logger.Warnf("Installing xcpretty failed: %s", err)
-			logger.Warnf("Switching to xcodebuild for log formatter")
-			config.LogFormatter = "xcodebuild"
-		} else {
-			logger.Errorf("Installing Step Dependencies failed: %s", err)
-			return 1
-		}
+		logger.Warnf(err.Error())
+		logger.Warnf("Switching to xcodebuild for output tool")
+		config.LogFormatter = "xcodebuild"
 	}
 
-	exitCode := 0
 	runOpts := createRunOptions(config)
-	result, err := archiver.Run(runOpts)
-	if err != nil {
-		logger.Errorf("Step run failed: %s", err)
-		exitCode = 1
-		// don't return as step outputs needs to be exported even in case of failure (for example the xcodebuild logs)
-	}
+	out, runErr := archiver.Run(runOpts)
 
-	exportOpts := createExportOptions(config, result)
-	if err := archiver.ExportOutput(exportOpts); err != nil {
-		logger.Errorf("Exporting Step Outputs failed: %s", err)
+	exportOpts := createExportOptions(config, out)
+	exportErr := archiver.ExportOutput(exportOpts)
+
+	if runErr != nil {
+		return 1
+	}
+	if exportErr != nil {
 		return 1
 	}
 
-	return exitCode
+	return 0
 }
 
 func createXcodebuildArchiver(logger log.Logger) step.XcodebuildArchiver {
@@ -98,19 +91,19 @@ func createRunOptions(config step.Config) step.RunOpts {
 	}
 }
 
-func createExportOptions(config step.Config, result step.RunResult) step.ExportOpts {
+func createExportOptions(config step.Config, out step.RunOut) step.ExportOpts {
 	return step.ExportOpts{
 		OutputDir:      config.OutputDir,
-		ArtifactName:   result.ArtifactName,
+		ArtifactName:   out.ArtifactName,
 		ExportAllDsyms: config.ExportAllDsyms,
 
-		Archive: result.Archive,
+		Archive: out.Archive,
 
-		ExportOptionsPath: result.ExportOptionsPath,
-		IPAExportDir:      result.IPAExportDir,
+		ExportOptionsPath: out.ExportOptionsPath,
+		IPAExportDir:      out.IPAExportDir,
 
-		XcodebuildArchiveLog:       result.XcodebuildArchiveLog,
-		XcodebuildExportArchiveLog: result.XcodebuildExportArchiveLog,
-		IDEDistrubutionLogsDir:     result.IDEDistrubutionLogsDir,
+		XcodebuildArchiveLog:       out.XcodebuildArchiveLog,
+		XcodebuildExportArchiveLog: out.XcodebuildExportArchiveLog,
+		IDEDistrubutionLogsDir:     out.IDEDistrubutionLogsDir,
 	}
 }

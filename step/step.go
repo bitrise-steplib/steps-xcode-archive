@@ -35,6 +35,7 @@ import (
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	v1xcpretty "github.com/bitrise-io/go-xcode/xcpretty"
+	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
 	"howett.net/plist"
 )
@@ -145,10 +146,12 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	}
 
 	stepconf.Print(inputs)
-	s.logger.Println()
+	fmt.Println()
 
 	config := Config{Inputs: inputs}
 	s.logger.EnableDebugLog(config.VerboseLog)
+	// TODO: check if needed
+	//v1log.SetEnableDebugLog(config.VerboseLog) // For compatibility
 
 	var err error
 	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)
@@ -193,13 +196,13 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	// Validation ExportOptionsPlistContent
 	exportOptionsPlistContent := strings.TrimSpace(config.ExportOptionsPlistContent)
 	if exportOptionsPlistContent != config.ExportOptionsPlistContent {
-		s.logger.Println()
+		fmt.Println()
 		s.logger.Warnf("ExportOptionsPlistContent is stripped to remove spaces and new lines:")
 		s.logger.Printf(exportOptionsPlistContent)
 	}
 
 	if exportOptionsPlistContent != "" {
-		s.logger.Println()
+		fmt.Println()
 		s.logger.Warnf("Ignoring the following options because ExportOptionsPlistContent provided:")
 		s.logger.Printf("- DistributionMethod: %s", config.ExportMethod)
 		s.logger.Printf("- UploadBitcode: %s", config.UploadBitcode)
@@ -240,441 +243,6 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	}
 
 	return config, nil
-}
-
-// EnsureDependenciesOpts ...
-type EnsureDependenciesOpts struct {
-	XCPretty bool
-}
-
-// EnsureDependencies ...
-func (s XcodebuildArchiver) EnsureDependencies(opts EnsureDependenciesOpts) error {
-	if !opts.XCPretty {
-		return nil
-	}
-
-	s.logger.Println()
-	s.logger.Infof("Checking if log formatter (xcpretty) is installed")
-
-	var xcpretty = xcpretty.NewXcpretty(s.logger)
-
-	installed, err := xcpretty.IsInstalled()
-	if err != nil {
-		return XCPrettyInstallError{fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)}
-	}
-
-	if !installed {
-		s.logger.Warnf(`xcpretty is not installed`)
-		s.logger.Println()
-		s.logger.Printf("Installing xcpretty")
-
-		cmds, err := xcpretty.Install()
-		if err != nil {
-			return XCPrettyInstallError{fmt.Errorf("failed to create xcpretty install command: %s", err)}
-		}
-
-		for _, cmd := range cmds {
-			if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
-				if errorutil.IsExitStatusError(err) {
-					return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), out)
-				}
-				return XCPrettyInstallError{fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)}
-			}
-		}
-	}
-
-	xcprettyVersion, err := xcpretty.Version()
-	if err != nil {
-		return XCPrettyInstallError{fmt.Errorf("failed to determine xcpretty version, error: %s", err)}
-	}
-	s.logger.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
-
-	return nil
-}
-
-// RunOpts ...
-type RunOpts struct {
-	// Shared
-	ProjectPath       string
-	Scheme            string
-	Configuration     string
-	LogFormatter      string
-	XcodeMajorVersion int
-	ArtifactName      string
-
-	// Code signing, nil if automatic code signing is "off"
-	CodesignManager *codesign.Manager
-
-	// Archive
-	PerformCleanAction          bool
-	XcconfigContent             string
-	XcodebuildAdditionalOptions []string
-	CacheLevel                  string
-
-	// IPA Export
-	CustomExportOptionsPlistContent string
-	ExportMethod                    string
-	ICloudContainerEnvironment      string
-	ExportDevelopmentTeam           string
-	UploadBitcode                   bool
-	CompileBitcode                  bool
-}
-
-// RunResult ...
-type RunResult struct {
-	Archive      *xcarchive.IosArchive
-	ArtifactName string
-
-	ExportOptionsPath string
-	IPAExportDir      string
-
-	XcodebuildArchiveLog       string
-	XcodebuildExportArchiveLog string
-	IDEDistrubutionLogsDir     string
-}
-
-// Run ...
-func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
-	var (
-		out         = RunResult{}
-		authOptions *xcodebuild.AuthenticationParams
-	)
-
-	s.logger.Println()
-	if opts.XcodeMajorVersion >= 11 {
-		s.logger.Infof("Running resolve Swift package dependencies")
-		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
-		// Specifying a scheme is required for workspaces
-		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		resolveDepsCmd.SetCustomOptions(opts.XcodebuildAdditionalOptions)
-		if err := resolveDepsCmd.Run(); err != nil {
-			s.logger.Warnf("%s", err)
-		}
-	}
-
-	if opts.ArtifactName == "" {
-		s.logger.Infof("Looking for artifact name as field is empty")
-
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
-		cmdModel.SetScheme(opts.Scheme)
-		cmdModel.SetConfiguration(opts.Configuration)
-		settings, err := cmdModel.RunAndReturnSettings()
-		if err != nil {
-			return out, fmt.Errorf("failed to read build settings: %w", err)
-		}
-		productName, err := settings.String("PRODUCT_NAME")
-		if err != nil || productName == "" {
-			s.logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
-			productName = opts.Scheme
-		}
-
-		opts.ArtifactName = productName
-	}
-	out.ArtifactName = opts.ArtifactName
-
-	if opts.CodesignManager != nil {
-		s.logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
-
-		xcodebuildAuthParams, err := opts.CodesignManager.PrepareCodesigning()
-		if err != nil {
-			return RunResult{}, fmt.Errorf("failed to manage code signing: %s", err)
-		}
-
-		if xcodebuildAuthParams != nil {
-			privateKey, err := xcodebuildAuthParams.WritePrivateKeyToFile()
-			if err != nil {
-				return RunResult{}, err
-			}
-
-			defer func() {
-				if err := os.Remove(privateKey); err != nil {
-					s.logger.Warnf("failed to remove private key file: %s", err)
-				}
-			}()
-
-			authOptions = &xcodebuild.AuthenticationParams{
-				KeyID:     xcodebuildAuthParams.KeyID,
-				IsssuerID: xcodebuildAuthParams.IssuerID,
-				KeyPath:   privateKey,
-			}
-		}
-	} else {
-		s.logger.Infof("Automatic code signing is disabled, skipped downloading code sign assets")
-	}
-	s.logger.Println()
-
-	archiveOpts := xcodeArchiveOpts{
-		ProjectPath:       opts.ProjectPath,
-		Scheme:            opts.Scheme,
-		Configuration:     opts.Configuration,
-		LogFormatter:      opts.LogFormatter,
-		XcodeMajorVersion: opts.XcodeMajorVersion,
-		ArtifactName:      opts.ArtifactName,
-		XcodeAuthOptions:  authOptions,
-
-		PerformCleanAction: opts.PerformCleanAction,
-		XcconfigContent:    opts.XcconfigContent,
-		AdditionalOptions:  opts.XcodebuildAdditionalOptions,
-		CacheLevel:         opts.CacheLevel,
-	}
-	archiveOut, err := s.xcodeArchive(archiveOpts)
-	out.XcodebuildArchiveLog = archiveOut.XcodebuildArchiveLog
-	if err != nil {
-		return out, err
-	}
-
-	out.Archive = archiveOut.Archive
-
-	IPAExportOpts := xcodeIPAExportOpts{
-		ProjectPath:       opts.ProjectPath,
-		Scheme:            opts.Scheme,
-		Configuration:     opts.Configuration,
-		LogFormatter:      opts.LogFormatter,
-		XcodeMajorVersion: opts.XcodeMajorVersion,
-		XcodeAuthOptions:  authOptions,
-
-		Archive:                         *archiveOut.Archive,
-		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
-		ExportMethod:                    opts.ExportMethod,
-		ICloudContainerEnvironment:      opts.ICloudContainerEnvironment,
-		ExportDevelopmentTeam:           opts.ExportDevelopmentTeam,
-		UploadBitcode:                   opts.UploadBitcode,
-		CompileBitcode:                  opts.CompileBitcode,
-	}
-	exportOut, err := s.xcodeIPAExport(IPAExportOpts)
-	out.XcodebuildExportArchiveLog = exportOut.XcodebuildExportArchiveLog
-	if err != nil {
-		out.IDEDistrubutionLogsDir = exportOut.IDEDistrubutionLogsDir
-		return out, err
-	}
-
-	out.ExportOptionsPath = exportOut.ExportOptionsPath
-	out.IPAExportDir = exportOut.IPAExportDir
-
-	return out, nil
-}
-
-// ExportOpts ...
-type ExportOpts struct {
-	OutputDir      string
-	ArtifactName   string
-	ExportAllDsyms bool
-
-	Archive *xcarchive.IosArchive
-
-	ExportOptionsPath string
-	IPAExportDir      string
-
-	XcodebuildArchiveLog       string
-	XcodebuildExportArchiveLog string
-	IDEDistrubutionLogsDir     string
-}
-
-// ExportOutput ...
-func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
-	s.logger.Println()
-	s.logger.Infof("Exporting outputs...")
-
-	cleanup := func(pth string) error {
-		if exist, err := v1pathutil.IsPathExists(pth); err != nil {
-			return fmt.Errorf("failed to check if path (%s) exist, error: %s", pth, err)
-		} else if exist {
-			if err := os.RemoveAll(pth); err != nil {
-				return fmt.Errorf("failed to remove path (%s), error: %s", pth, err)
-			}
-		}
-		return nil
-	}
-
-	if opts.Archive != nil {
-		s.logger.Println()
-		archivePath := opts.Archive.Path
-		if err := ExportOutputDir(s.cmdFactory, archivePath, archivePath, bitriseXCArchivePthEnvKey, s.logger); err != nil {
-			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
-		}
-		s.logger.Donef("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, archivePath)
-
-		archiveZipPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".xcarchive.zip")
-		if err := cleanup(archiveZipPath); err != nil {
-			return err
-		}
-
-		if err := ExportOutputDirAsZip(s.cmdFactory, archivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey, s.logger); err != nil {
-			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
-		}
-		s.logger.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
-
-		s.logger.Println()
-		appPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".app")
-		if err := cleanup(appPath); err != nil {
-			return err
-		}
-
-		if err := ExportOutputDir(s.cmdFactory, opts.Archive.Application.Path, appPath, bitriseAppDirPthEnvKey, s.logger); err != nil {
-			return fmt.Errorf("failed to export %s, error: %s", bitriseAppDirPthEnvKey, err)
-		}
-		s.logger.Donef("The app directory is now available in the Environment Variable: %s (value: %s)", bitriseAppDirPthEnvKey, appPath)
-
-		s.logger.Printf("Looking for app and framework dSYMs.")
-
-		appDSYMPaths, frameworkDSYMPaths, err := opts.Archive.FindDSYMs()
-		if err != nil {
-			return fmt.Errorf("failed to export dSYMs, error: %s", err)
-		}
-
-		appDSYMPathsCount := len(appDSYMPaths)
-		frameworkDSYMPathsCount := len(frameworkDSYMPaths)
-
-		s.logger.Printf("Found %s app dSYMs and framework dSYMs %s.", appDSYMPathsCount, frameworkDSYMPathsCount)
-
-		if appDSYMPathsCount > 0 || frameworkDSYMPathsCount > 0 {
-			s.logger.Println()
-			dsymDir, err := v1pathutil.NormalizedOSTempDirPath("__dsyms__")
-			if err != nil {
-				return fmt.Errorf("failed to create tmp dir, error: %s", err)
-			}
-
-			if appDSYMPathsCount > 0 {
-				if err := ExportDSYMs(dsymDir, appDSYMPaths); err != nil {
-					return fmt.Errorf("failed to export dSYMs: %v", err)
-				}
-			} else {
-				s.logger.Warnf("No app dSYMs found to export")
-			}
-
-			if opts.ExportAllDsyms && frameworkDSYMPathsCount > 0 {
-				if err := ExportDSYMs(dsymDir, frameworkDSYMPaths); err != nil {
-					return fmt.Errorf("failed to export dSYMs: %v", err)
-				}
-			}
-
-			if err := ExportOutputDir(s.cmdFactory, dsymDir, dsymDir, bitriseDSYMDirPthEnvKey, s.logger); err != nil {
-				return fmt.Errorf("failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
-			}
-			s.logger.Donef("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
-
-			dsymZipPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".dSYM.zip")
-			if err := cleanup(dsymZipPath); err != nil {
-				return err
-			}
-
-			if err := ExportOutputDirAsZip(s.cmdFactory, dsymDir, dsymZipPath, bitriseDSYMPthEnvKey, s.logger); err != nil {
-				return fmt.Errorf("failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
-			}
-			s.logger.Donef("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
-		}
-	}
-
-	if opts.ExportOptionsPath != "" {
-		s.logger.Println()
-		exportOptionsPath := filepath.Join(opts.OutputDir, "export_options.plist")
-		if err := cleanup(exportOptionsPath); err != nil {
-			return err
-		}
-
-		if err := v1command.CopyFile(opts.ExportOptionsPath, exportOptionsPath); err != nil {
-			return err
-		}
-	}
-
-	if opts.IPAExportDir != "" {
-		fileList := []string{}
-		ipaFiles := []string{}
-		if walkErr := filepath.Walk(opts.IPAExportDir, func(pth string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			fileList = append(fileList, pth)
-
-			if filepath.Ext(pth) == ".ipa" {
-				ipaFiles = append(ipaFiles, pth)
-			}
-
-			return nil
-		}); walkErr != nil {
-			return fmt.Errorf("failed to search for .ipa file, error: %s", walkErr)
-		}
-
-		if len(ipaFiles) == 0 {
-			s.logger.Printf("File list in the export dir:")
-			for _, pth := range fileList {
-				s.logger.Printf("- %s", pth)
-			}
-			return fmt.Errorf("No .ipa file found at export dir: %s", opts.IPAExportDir)
-		}
-
-		s.logger.Println()
-
-		ipaPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".ipa")
-		if err := cleanup(ipaPath); err != nil {
-			return err
-		}
-
-		if err := ExportOutputFile(s.cmdFactory, ipaFiles[0], ipaPath, bitriseIPAPthEnvKey); err != nil {
-			return fmt.Errorf("failed to export %s, error: %s", bitriseIPAPthEnvKey, err)
-		}
-		s.logger.Donef("The ipa path is now available in the Environment Variable: %s (value: %s)", bitriseIPAPthEnvKey, ipaPath)
-
-		if len(ipaFiles) > 1 {
-			s.logger.Warnf("More than 1 .ipa file found, exporting first one: %s", ipaFiles[0])
-			s.logger.Warnf("Moving every ipa to the BITRISE_DEPLOY_DIR")
-
-			for i, pth := range ipaFiles {
-				if i == 0 {
-					continue
-				}
-
-				base := filepath.Base(pth)
-				deployPth := filepath.Join(opts.OutputDir, base)
-
-				if err := v1command.CopyFile(pth, deployPth); err != nil {
-					return fmt.Errorf("failed to copy (%s) -> (%s), error: %s", pth, deployPth, err)
-				}
-			}
-		}
-	}
-
-	if opts.IDEDistrubutionLogsDir != "" {
-		ideDistributionLogsZipPath := filepath.Join(opts.OutputDir, "xcodebuild.xcdistributionlogs.zip")
-		if err := cleanup(ideDistributionLogsZipPath); err != nil {
-			return err
-		}
-
-		if err := ExportOutputDirAsZip(s.cmdFactory, opts.IDEDistrubutionLogsDir, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey, s.logger); err != nil {
-			s.logger.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
-		} else {
-			s.logger.Donef("The xcdistributionlogs zip path is now available in the Environment Variable: %s (value: %s)", bitriseIDEDistributionLogsPthEnvKey, ideDistributionLogsZipPath)
-		}
-	}
-
-	if opts.XcodebuildArchiveLog != "" {
-		xcodebuildArchiveLogPath := filepath.Join(opts.OutputDir, "xcodebuild-archive.log")
-		if err := cleanup(xcodebuildArchiveLogPath); err != nil {
-			return err
-		}
-
-		if err := ExportOutputFileContent(s.cmdFactory, opts.XcodebuildArchiveLog, xcodebuildArchiveLogPath, xcodebuildArchiveLogPathEnvKey); err != nil {
-			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
-		} else {
-			s.logger.Donef("The xcodebuild archive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildArchiveLogPathEnvKey, xcodebuildArchiveLogPath)
-		}
-	}
-
-	if opts.XcodebuildExportArchiveLog != "" {
-		xcodebuildExportArchiveLogPath := filepath.Join(opts.OutputDir, "xcodebuild-export-archive.log")
-		if err := cleanup(xcodebuildExportArchiveLogPath); err != nil {
-			return err
-		}
-
-		if err := ExportOutputFileContent(s.cmdFactory, opts.XcodebuildExportArchiveLog, xcodebuildExportArchiveLogPath, xcodebuildExportArchiveLogPathEnvKey); err != nil {
-			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
-		} else {
-			s.logger.Donef("The xcodebuild -exportArchive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildExportArchiveLogPathEnvKey, xcodebuildExportArchiveLogPath)
-		}
-	}
-
-	return nil
 }
 
 func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manager, error) {
@@ -763,6 +331,54 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 	), nil
 }
 
+// EnsureDependenciesOpts ...
+type EnsureDependenciesOpts struct {
+	XCPretty bool
+}
+
+// EnsureDependencies ...
+func (s XcodebuildArchiver) EnsureDependencies(opts EnsureDependenciesOpts) error {
+	if !opts.XCPretty {
+		return nil
+	}
+
+	fmt.Println()
+	s.logger.Infof("Checking if log formatter (xcpretty) is installed")
+
+	var xcpretty = xcpretty.NewXcpretty(s.logger)
+
+	installed, err := xcpretty.IsInstalled()
+	if err != nil {
+		return fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)
+	} else if !installed {
+		s.logger.Warnf(`xcpretty is not installed`)
+		s.logger.Println()
+		s.logger.Printf("Installing xcpretty")
+
+		cmds, err := xcpretty.Install()
+		if err != nil {
+			return fmt.Errorf("failed to create xcpretty install command: %s", err)
+		}
+
+		for _, cmd := range cmds {
+			if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+				if errorutil.IsExitStatusError(err) {
+					return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), out)
+				}
+				return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
+			}
+		}
+	}
+
+	xcprettyVersion, err := xcpretty.Version()
+	if err != nil {
+		return fmt.Errorf("failed to determine xcpretty version, error: %s", err)
+	}
+	s.logger.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
+
+	return nil
+}
+
 type xcodeArchiveOpts struct {
 	ProjectPath       string
 	Scheme            string
@@ -779,25 +395,25 @@ type xcodeArchiveOpts struct {
 	CacheLevel string
 }
 
-type xcodeArchiveResult struct {
+type xcodeArchiveOutput struct {
 	Archive              *xcarchive.IosArchive
 	XcodebuildArchiveLog string
 }
 
-func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveResult, error) {
-	out := xcodeArchiveResult{}
+func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
+	out := xcodeArchiveOutput{}
 
 	// Open Xcode project
 	s.logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
 
-	xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
+	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 	if err != nil {
 		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 	}
 
 	s.logger.TInfof("Reading xcode project")
 
-	platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, XcodeBuild{}, s.logger)
+	platform, err := utils.BuildableTargetPlatform(xcodeProj, scheme, configuration, utils.XcodeBuild{})
 	if err != nil {
 		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
@@ -809,10 +425,12 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 		return out, fmt.Errorf("failed to read main application target: %s", err)
 	}
 	if mainTarget.ProductType == exportoptionsgenerator.AppClipProductType {
-		return out, fmt.Errorf(`Selected scheme: '%s' targets an App Clip target (%s),
-'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.
-Please select a scheme targeting an Application target to archive and export the main Application
-and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.Scheme, mainTarget.Name)
+		s.logger.Errorf("Selected scheme: '%s' targets an App Clip target (%s),", opts.Scheme, mainTarget.Name)
+		s.logger.Errorf("'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.")
+		s.logger.Errorf("Please select a scheme targeting an Application target to archive and export the main Application")
+		s.logger.Errorf("and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.")
+		// TODO: check all exits
+		os.Exit(1)
 	}
 
 	// Create the Archive with Xcode Command Line tools
@@ -872,7 +490,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 		} else {
 			s.logger.Infof(lastLinesMsg)
 		}
-		s.logger.Printf(stringutil.LastNLines(xcodebuildLog, 20))
+		fmt.Println(stringutil.LastNLines(xcodebuildLog, 20))
 
 		s.logger.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log will be also available in the raw-xcodebuild-output.log
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
@@ -896,7 +514,7 @@ The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be av
 
 	mainApplication := archive.Application
 
-	s.logger.Println()
+	fmt.Println()
 	s.logger.Infof("Archive info:")
 	s.logger.Printf("team: %s (%s)", mainApplication.ProvisioningProfile.TeamName, mainApplication.ProvisioningProfile.TeamID)
 	s.logger.Printf("profile: %s (%s)", mainApplication.ProvisioningProfile.Name, mainApplication.ProvisioningProfile.UUID)
@@ -930,15 +548,15 @@ type xcodeIPAExportOpts struct {
 	CompileBitcode                  bool
 }
 
-type xcodeIPAExportResult struct {
+type xcodeIPAExportOutput struct {
 	ExportOptionsPath          string
 	IPAExportDir               string
 	XcodebuildExportArchiveLog string
 	IDEDistrubutionLogsDir     string
 }
 
-func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExportResult, error) {
-	out := xcodeIPAExportResult{}
+func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExportOutput, error) {
+	out := xcodeIPAExportOutput{}
 
 	// Exporting the ipa with Xcode Command Line tools
 
@@ -958,7 +576,8 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		}
 	}
 
-	s.logger.Println()
+	// TODO: replace all fmt
+	fmt.Println()
 	s.logger.Infof("Exporting ipa from the archive...")
 
 	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeIPAExport")
@@ -970,7 +589,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 	if opts.CustomExportOptionsPlistContent != "" {
 		s.logger.Printf("Custom export options content provided, using it:")
-		s.logger.Printf(opts.CustomExportOptionsPlistContent)
+		fmt.Println(opts.CustomExportOptionsPlistContent)
 
 		if err := v1fileutil.WriteStringToFile(exportOptionsPath, opts.CustomExportOptionsPlistContent); err != nil {
 			return out, fmt.Errorf("failed to write export options to file, error: %s", err)
@@ -987,7 +606,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 		s.logger.TPrintf("Opening Xcode project at path: %s.", opts.ProjectPath)
 
-		xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 		if err != nil {
 			return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 		}
@@ -1001,10 +620,10 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 			return out, err
 		}
 
-		s.logger.Println()
+		fmt.Println()
 		s.logger.Printf("generated export options content:")
-		s.logger.Println()
-		s.logger.Printf(exportOptions.String())
+		fmt.Println()
+		fmt.Println(exportOptions.String())
 
 		if err := exportOptions.WriteToFile(exportOptionsPath); err != nil {
 			return out, err
@@ -1024,7 +643,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 	if opts.LogFormatter == "xcpretty" {
 		xcprettyCmd := v1xcpretty.New(exportCmd)
 
-		s.logger.Println()
+		fmt.Println()
 		s.logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
 
 		s.logger.Infof("Running export ipa from the archive command.")
@@ -1057,7 +676,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			return out, fmt.Errorf("export failed, error: %s", exportErr)
 		}
 	} else {
-		s.logger.Println()
+		fmt.Println()
 		s.logger.TDonef("$ %s", exportCmd.PrintableCmd())
 
 		s.logger.Infof("Running export ipa from the archive command.")
@@ -1091,4 +710,390 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	out.IPAExportDir = ipaExportDir
 
 	return out, nil
+}
+
+// RunOpts ...
+type RunOpts struct {
+	// Shared
+	ProjectPath       string
+	Scheme            string
+	Configuration     string
+	LogFormatter      string
+	XcodeMajorVersion int
+	ArtifactName      string
+
+	// Code signing, nil if automatic code signing is "off"
+	CodesignManager *codesign.Manager
+
+	// Archive
+	PerformCleanAction          bool
+	XcconfigContent             string
+	XcodebuildAdditionalOptions []string
+	CacheLevel                  string
+
+	// IPA Export
+	CustomExportOptionsPlistContent string
+	ExportMethod                    string
+	ICloudContainerEnvironment      string
+	ExportDevelopmentTeam           string
+	UploadBitcode                   bool
+	CompileBitcode                  bool
+}
+
+// RunOut ...
+type RunOut struct {
+	Archive      *xcarchive.IosArchive
+	ArtifactName string
+
+	ExportOptionsPath string
+	IPAExportDir      string
+
+	XcodebuildArchiveLog       string
+	XcodebuildExportArchiveLog string
+	IDEDistrubutionLogsDir     string
+}
+
+// Run ...
+func (s XcodebuildArchiver) Run(opts RunOpts) (RunOut, error) {
+	var (
+		out         = RunOut{}
+		authOptions *xcodebuild.AuthenticationParams
+	)
+
+	s.logger.Println()
+	if opts.XcodeMajorVersion >= 11 {
+		s.logger.Infof("Running resolve Swift package dependencies")
+		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
+		// Specifying a scheme is required for workspaces
+		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		resolveDepsCmd.SetCustomOptions(opts.XcodebuildAdditionalOptions)
+		if err := resolveDepsCmd.Run(); err != nil {
+			s.logger.Warnf("%s", err)
+		}
+	}
+
+	if opts.ArtifactName == "" {
+		s.logger.Infof("Looking for artifact name as field is empty")
+
+		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
+		cmdModel.SetScheme(opts.Scheme)
+		cmdModel.SetConfiguration(opts.Configuration)
+		settings, err := cmdModel.RunAndReturnSettings()
+		if err != nil {
+			return out, fmt.Errorf("failed to read build settings: %w", err)
+		}
+		productName, err := settings.String("PRODUCT_NAME")
+		if err != nil || productName == "" {
+			s.logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
+			productName = opts.Scheme
+		}
+
+		opts.ArtifactName = productName
+	}
+	out.ArtifactName = opts.ArtifactName
+
+	if opts.CodesignManager != nil {
+		s.logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
+
+		xcodebuildAuthParams, err := opts.CodesignManager.PrepareCodesigning()
+		if err != nil {
+			return RunOut{}, fmt.Errorf("failed to manage code signing: %s", err)
+		}
+
+		if xcodebuildAuthParams != nil {
+			privateKey, err := xcodebuildAuthParams.WritePrivateKeyToFile()
+			if err != nil {
+				return RunOut{}, err
+			}
+
+			defer func() {
+				if err := os.Remove(privateKey); err != nil {
+					s.logger.Warnf("failed to remove private key file: %s", err)
+				}
+			}()
+
+			authOptions = &xcodebuild.AuthenticationParams{
+				KeyID:     xcodebuildAuthParams.KeyID,
+				IsssuerID: xcodebuildAuthParams.IssuerID,
+				KeyPath:   privateKey,
+			}
+		}
+	} else {
+		s.logger.Infof("Automatic code signing is disabled, skipped downloading code sign assets")
+	}
+	s.logger.Println()
+
+	archiveOpts := xcodeArchiveOpts{
+		ProjectPath:       opts.ProjectPath,
+		Scheme:            opts.Scheme,
+		Configuration:     opts.Configuration,
+		LogFormatter:      opts.LogFormatter,
+		XcodeMajorVersion: opts.XcodeMajorVersion,
+		ArtifactName:      opts.ArtifactName,
+		XcodeAuthOptions:  authOptions,
+
+		PerformCleanAction: opts.PerformCleanAction,
+		XcconfigContent:    opts.XcconfigContent,
+		AdditionalOptions:  opts.XcodebuildAdditionalOptions,
+		CacheLevel:         opts.CacheLevel,
+	}
+	archiveOut, err := s.xcodeArchive(archiveOpts)
+	out.XcodebuildArchiveLog = archiveOut.XcodebuildArchiveLog
+	if err != nil {
+		return out, err
+	}
+
+	out.Archive = archiveOut.Archive
+
+	IPAExportOpts := xcodeIPAExportOpts{
+		ProjectPath:       opts.ProjectPath,
+		Scheme:            opts.Scheme,
+		Configuration:     opts.Configuration,
+		LogFormatter:      opts.LogFormatter,
+		XcodeMajorVersion: opts.XcodeMajorVersion,
+		XcodeAuthOptions:  authOptions,
+
+		Archive:                         *archiveOut.Archive,
+		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
+		ExportMethod:                    opts.ExportMethod,
+		ICloudContainerEnvironment:      opts.ICloudContainerEnvironment,
+		ExportDevelopmentTeam:           opts.ExportDevelopmentTeam,
+		UploadBitcode:                   opts.UploadBitcode,
+		CompileBitcode:                  opts.CompileBitcode,
+	}
+	exportOut, err := s.xcodeIPAExport(IPAExportOpts)
+	out.XcodebuildExportArchiveLog = exportOut.XcodebuildExportArchiveLog
+	if err != nil {
+		out.IDEDistrubutionLogsDir = exportOut.IDEDistrubutionLogsDir
+		return out, err
+	}
+
+	out.ExportOptionsPath = exportOut.ExportOptionsPath
+	out.IPAExportDir = exportOut.IPAExportDir
+
+	return out, nil
+}
+
+// ExportOpts ...
+type ExportOpts struct {
+	OutputDir      string
+	ArtifactName   string
+	ExportAllDsyms bool
+
+	Archive *xcarchive.IosArchive
+
+	ExportOptionsPath string
+	IPAExportDir      string
+
+	XcodebuildArchiveLog       string
+	XcodebuildExportArchiveLog string
+	IDEDistrubutionLogsDir     string
+}
+
+// ExportOutput ...
+func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
+	fmt.Println()
+	s.logger.Infof("Exporting outputs...")
+
+	cleanup := func(pth string) error {
+		if exist, err := v1pathutil.IsPathExists(pth); err != nil {
+			return fmt.Errorf("failed to check if path (%s) exist, error: %s", pth, err)
+		} else if exist {
+			if err := os.RemoveAll(pth); err != nil {
+				return fmt.Errorf("failed to remove path (%s), error: %s", pth, err)
+			}
+		}
+		return nil
+	}
+
+	if opts.Archive != nil {
+		fmt.Println()
+		archivePath := opts.Archive.Path
+		if err := utils.ExportOutputDir(s.cmdFactory, archivePath, archivePath, bitriseXCArchivePthEnvKey); err != nil {
+			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
+		}
+		s.logger.Donef("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, archivePath)
+
+		archiveZipPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".xcarchive.zip")
+		if err := cleanup(archiveZipPath); err != nil {
+			return err
+		}
+
+		if err := utils.ExportOutputDirAsZip(s.cmdFactory, archivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
+			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
+		}
+		s.logger.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
+
+		fmt.Println()
+		appPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".app")
+		if err := cleanup(appPath); err != nil {
+			return err
+		}
+
+		if err := utils.ExportOutputDir(s.cmdFactory, opts.Archive.Application.Path, appPath, bitriseAppDirPthEnvKey); err != nil {
+			return fmt.Errorf("failed to export %s, error: %s", bitriseAppDirPthEnvKey, err)
+		}
+		s.logger.Donef("The app directory is now available in the Environment Variable: %s (value: %s)", bitriseAppDirPthEnvKey, appPath)
+
+		s.logger.Printf("Looking for app and framework dSYMs.")
+
+		appDSYMPaths, frameworkDSYMPaths, err := opts.Archive.FindDSYMs()
+		if err != nil {
+			return fmt.Errorf("failed to export dSYMs, error: %s", err)
+		}
+
+		appDSYMPathsCount := len(appDSYMPaths)
+		frameworkDSYMPathsCount := len(frameworkDSYMPaths)
+
+		s.logger.Printf("Found %s app dSYMs and framework dSYMs %s.", appDSYMPathsCount, frameworkDSYMPathsCount)
+
+		if appDSYMPathsCount > 0 || frameworkDSYMPathsCount > 0 {
+			fmt.Println()
+			dsymDir, err := v1pathutil.NormalizedOSTempDirPath("__dsyms__")
+			if err != nil {
+				return fmt.Errorf("failed to create tmp dir, error: %s", err)
+			}
+
+			if appDSYMPathsCount > 0 {
+				if err := exportDSYMs(dsymDir, appDSYMPaths); err != nil {
+					return fmt.Errorf("failed to export dSYMs: %v", err)
+				}
+			} else {
+				s.logger.Warnf("No app dSYMs found to export")
+			}
+
+			if opts.ExportAllDsyms && frameworkDSYMPathsCount > 0 {
+				if err := exportDSYMs(dsymDir, frameworkDSYMPaths); err != nil {
+					return fmt.Errorf("failed to export dSYMs: %v", err)
+				}
+			}
+
+			if err := utils.ExportOutputDir(s.cmdFactory, dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
+				return fmt.Errorf("failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
+			}
+			s.logger.Donef("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
+
+			dsymZipPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".dSYM.zip")
+			if err := cleanup(dsymZipPath); err != nil {
+				return err
+			}
+
+			if err := utils.ExportOutputDirAsZip(s.cmdFactory, dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
+				return fmt.Errorf("failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
+			}
+			s.logger.Donef("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
+		}
+	}
+
+	if opts.ExportOptionsPath != "" {
+		fmt.Println()
+		exportOptionsPath := filepath.Join(opts.OutputDir, "export_options.plist")
+		if err := cleanup(exportOptionsPath); err != nil {
+			return err
+		}
+
+		if err := v1command.CopyFile(opts.ExportOptionsPath, exportOptionsPath); err != nil {
+			return err
+		}
+	}
+
+	if opts.IPAExportDir != "" {
+		fileList := []string{}
+		ipaFiles := []string{}
+		if walkErr := filepath.Walk(opts.IPAExportDir, func(pth string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			fileList = append(fileList, pth)
+
+			if filepath.Ext(pth) == ".ipa" {
+				ipaFiles = append(ipaFiles, pth)
+			}
+
+			return nil
+		}); walkErr != nil {
+			return fmt.Errorf("failed to search for .ipa file, error: %s", walkErr)
+		}
+
+		if len(ipaFiles) == 0 {
+			s.logger.Errorf("No .ipa file found at export dir: %s", opts.IPAExportDir)
+			s.logger.Printf("File list in the export dir:")
+			for _, pth := range fileList {
+				s.logger.Printf("- %s", pth)
+			}
+			return fmt.Errorf("")
+		}
+
+		fmt.Println()
+
+		ipaPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".ipa")
+		if err := cleanup(ipaPath); err != nil {
+			return err
+		}
+
+		if err := utils.ExportOutputFile(s.cmdFactory, ipaFiles[0], ipaPath, bitriseIPAPthEnvKey); err != nil {
+			return fmt.Errorf("failed to export %s, error: %s", bitriseIPAPthEnvKey, err)
+		}
+		s.logger.Donef("The ipa path is now available in the Environment Variable: %s (value: %s)", bitriseIPAPthEnvKey, ipaPath)
+
+		if len(ipaFiles) > 1 {
+			s.logger.Warnf("More than 1 .ipa file found, exporting first one: %s", ipaFiles[0])
+			s.logger.Warnf("Moving every ipa to the BITRISE_DEPLOY_DIR")
+
+			for i, pth := range ipaFiles {
+				if i == 0 {
+					continue
+				}
+
+				base := filepath.Base(pth)
+				deployPth := filepath.Join(opts.OutputDir, base)
+
+				if err := v1command.CopyFile(pth, deployPth); err != nil {
+					return fmt.Errorf("failed to copy (%s) -> (%s), error: %s", pth, deployPth, err)
+				}
+			}
+		}
+	}
+
+	if opts.IDEDistrubutionLogsDir != "" {
+		ideDistributionLogsZipPath := filepath.Join(opts.OutputDir, "xcodebuild.xcdistributionlogs.zip")
+		if err := cleanup(ideDistributionLogsZipPath); err != nil {
+			return err
+		}
+
+		if err := utils.ExportOutputDirAsZip(s.cmdFactory, opts.IDEDistrubutionLogsDir, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
+			s.logger.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
+		} else {
+			s.logger.Donef("The xcdistributionlogs zip path is now available in the Environment Variable: %s (value: %s)", bitriseIDEDistributionLogsPthEnvKey, ideDistributionLogsZipPath)
+		}
+	}
+
+	if opts.XcodebuildArchiveLog != "" {
+		xcodebuildArchiveLogPath := filepath.Join(opts.OutputDir, "xcodebuild-archive.log")
+		if err := cleanup(xcodebuildArchiveLogPath); err != nil {
+			return err
+		}
+
+		if err := utils.ExportOutputFileContent(s.cmdFactory, opts.XcodebuildArchiveLog, xcodebuildArchiveLogPath, xcodebuildArchiveLogPathEnvKey); err != nil {
+			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
+		} else {
+			s.logger.Donef("The xcodebuild archive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildArchiveLogPathEnvKey, xcodebuildArchiveLogPath)
+		}
+	}
+
+	if opts.XcodebuildExportArchiveLog != "" {
+		xcodebuildExportArchiveLogPath := filepath.Join(opts.OutputDir, "xcodebuild-export-archive.log")
+		if err := cleanup(xcodebuildExportArchiveLogPath); err != nil {
+			return err
+		}
+
+		if err := utils.ExportOutputFileContent(s.cmdFactory, opts.XcodebuildExportArchiveLog, xcodebuildExportArchiveLogPath, xcodebuildExportArchiveLogPathEnvKey); err != nil {
+			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
+		} else {
+			s.logger.Donef("The xcodebuild -exportArchive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildExportArchiveLogPathEnvKey, xcodebuildExportArchiveLogPath)
+		}
+	}
+
+	return nil
 }
