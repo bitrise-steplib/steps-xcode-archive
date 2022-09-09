@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
@@ -30,9 +31,15 @@ func run() int {
 		XCPretty: config.LogFormatter == "xcpretty",
 	}
 	if err := archiver.EnsureDependencies(dependenciesOpts); err != nil {
-		logger.Warnf(err.Error())
-		logger.Warnf("Switching to xcodebuild for output tool")
-		config.LogFormatter = "xcodebuild"
+		var xcprettyInstallErr step.XCPrettyInstallError
+		if errors.As(err, &xcprettyInstallErr) {
+			logger.Warnf("Installing xcpretty failed: %s", err)
+			logger.Warnf("Switching to xcodebuild for log formatter")
+			config.LogFormatter = "xcodebuild"
+		} else {
+			logger.Errorf("Install Dependencies failed: %s", err)
+			return 1
+		}
 	}
 
 	exitCode := 0
@@ -47,7 +54,7 @@ func run() int {
 	exportOpts := createExportOptions(config, result)
 	if err := archiver.ExportOutput(exportOpts); err != nil {
 		logger.Errorf("Export Outputs failed: %s", err)
-		exitCode = 1
+		return 1
 	}
 
 	return exitCode
