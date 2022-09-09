@@ -6,14 +6,12 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/bitrise-io/go-utils/v2/log"
-
-	"github.com/bitrise-io/go-utils/fileutil"
-	"gopkg.in/yaml.v3"
-
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
+	"github.com/bitrise-io/go-utils/fileutil"
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/models"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestXcodeArchiveStep_ProcessInputs(t *testing.T) {

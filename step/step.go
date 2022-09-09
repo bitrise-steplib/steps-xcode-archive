@@ -244,92 +244,6 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	return config, nil
 }
 
-func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manager, error) {
-	var authType codesign.AuthType
-	switch config.CodeSigningAuthSource {
-	case codeSignSourceAppleID:
-		authType = codesign.AppleIDAuth
-	case codeSignSourceAPIKey:
-		authType = codesign.APIKeyAuth
-	case codeSignSourceOff:
-		return codesign.Manager{}, fmt.Errorf("automatic code signing is disabled")
-	}
-
-	codesignInputs := codesign.Input{
-		AuthType:                     authType,
-		DistributionMethod:           config.ExportMethod,
-		CertificateURLList:           config.CertificateURLList,
-		CertificatePassphraseList:    config.CertificatePassphraseList,
-		KeychainPath:                 config.KeychainPath,
-		KeychainPassword:             config.KeychainPassword,
-		FallbackProvisioningProfiles: config.FallbackProvisioningProfileURLs,
-	}
-
-	codesignConfig, err := codesign.ParseConfig(codesignInputs, s.cmdFactory)
-	if err != nil {
-		return codesign.Manager{}, fmt.Errorf("issue with input: %s", err)
-	}
-
-	devPortalClientFactory := devportalclient.NewFactory(s.logger)
-
-	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
-	if config.BuildURL != "" && config.BuildAPIToken != "" {
-		if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
-			return codesign.Manager{}, err
-		}
-	}
-
-	connectionInputs := codesign.ConnectionOverrideInputs{
-		APIKeyPath:     config.Inputs.APIKeyPath,
-		APIKeyID:       config.Inputs.APIKeyID,
-		APIKeyIssuerID: config.Inputs.APIKeyIssuerID,
-	}
-
-	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, connectionInputs, s.logger)
-	if err != nil {
-		return codesign.Manager{}, err
-	}
-
-	opts := codesign.Opts{
-		AuthType:                   authType,
-		ShouldConsiderXcodeSigning: true,
-		TeamID:                     config.ExportDevelopmentTeam,
-		ExportMethod:               codesignConfig.DistributionMethod,
-		XcodeMajorVersion:          config.XcodeMajorVersion,
-		RegisterTestDevices:        config.RegisterTestDevices,
-		SignUITests:                false,
-		MinDaysProfileValidity:     config.MinDaysProfileValid,
-		IsVerboseLog:               config.VerboseLog,
-	}
-
-	project, err := projectmanager.NewProject(projectmanager.InitParams{
-		ProjectOrWorkspacePath: config.ProjectPath,
-		SchemeName:             config.Scheme,
-		ConfigurationName:      config.Configuration,
-	})
-	if err != nil {
-		return codesign.Manager{}, err
-	}
-
-	client := retry.NewHTTPClient().StandardClient()
-	var testDevices []devportalservice.TestDevice
-	if serviceConnection != nil {
-		testDevices = serviceConnection.TestDevices
-	}
-	return codesign.NewManagerWithProject(
-		opts,
-		appleAuthCredentials,
-		testDevices,
-		devPortalClientFactory,
-		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
-		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
-		codesignasset.NewWriter(codesignConfig.Keychain),
-		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
-		project,
-		s.logger,
-	), nil
-}
-
 // EnsureDependenciesOpts ...
 type EnsureDependenciesOpts struct {
 	XCPretty bool
@@ -376,339 +290,6 @@ func (s XcodebuildArchiver) EnsureDependencies(opts EnsureDependenciesOpts) erro
 	s.logger.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 
 	return nil
-}
-
-type xcodeArchiveOpts struct {
-	ProjectPath       string
-	Scheme            string
-	Configuration     string
-	LogFormatter      string
-	XcodeMajorVersion int
-	ArtifactName      string
-	XcodeAuthOptions  *xcodebuild.AuthenticationParams
-
-	PerformCleanAction bool
-	XcconfigContent    string
-	AdditionalOptions  []string
-
-	CacheLevel string
-}
-
-type xcodeArchiveOutput struct {
-	Archive              *xcarchive.IosArchive
-	XcodebuildArchiveLog string
-}
-
-func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOutput, error) {
-	out := xcodeArchiveOutput{}
-
-	// Open Xcode project
-	s.logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
-
-	xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
-	if err != nil {
-		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
-	}
-
-	s.logger.TInfof("Reading xcode project")
-
-	platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, XcodeBuild{})
-	if err != nil {
-		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
-	}
-
-	s.logger.TInfof("Reading main target")
-
-	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
-	if err != nil {
-		return out, fmt.Errorf("failed to read main application target: %s", err)
-	}
-	if mainTarget.ProductType == exportoptionsgenerator.AppClipProductType {
-		s.logger.Errorf("Selected scheme: '%s' targets an App Clip target (%s),", opts.Scheme, mainTarget.Name)
-		s.logger.Errorf("'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.")
-		s.logger.Errorf("Please select a scheme targeting an Application target to archive and export the main Application")
-		s.logger.Errorf("and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.")
-		// TODO: check all exits
-		os.Exit(1)
-	}
-
-	// Create the Archive with Xcode Command Line tools
-	s.logger.Println()
-	s.logger.TInfof("Creating the Archive ...")
-
-	var actions []string
-	if opts.PerformCleanAction {
-		actions = []string{"clean", "archive"}
-	} else {
-		actions = []string{"archive"}
-	}
-
-	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, actions...)
-	archiveCmd.SetScheme(opts.Scheme)
-	archiveCmd.SetConfiguration(opts.Configuration)
-
-	if opts.XcconfigContent != "" {
-		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker, s.pathModifier)
-		xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
-		if err != nil {
-			return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
-		}
-		archiveCmd.SetXCConfigPath(xcconfigPath)
-	}
-
-	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeArchive")
-	if err != nil {
-		return out, fmt.Errorf("failed to create temp dir, error: %s", err)
-	}
-	archivePth := filepath.Join(tmpDir, opts.ArtifactName+".xcarchive")
-
-	archiveCmd.SetArchivePath(archivePth)
-	if opts.XcodeAuthOptions != nil {
-		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
-	}
-
-	additionalOptions := generateAdditionalOptions(string(platform), opts.AdditionalOptions)
-	archiveCmd.SetCustomOptions(additionalOptions)
-
-	var swiftPackagesPath string
-	if opts.XcodeMajorVersion >= 11 {
-		var err error
-		if swiftPackagesPath, err = cache.NewSwiftPackageCache().SwiftPackagesPath(opts.ProjectPath); err != nil {
-			return out, fmt.Errorf("failed to get Swift Packages path, error: %s", err)
-		}
-	}
-
-	s.logger.Infof("Starting the Archive ...")
-
-	xcodebuildLog, err := runArchiveCommandWithRetry(archiveCmd, opts.LogFormatter == "xcpretty", swiftPackagesPath, s.logger)
-	out.XcodebuildArchiveLog = xcodebuildLog
-	if err != nil || opts.LogFormatter == "xcodebuild" {
-		const lastLinesMsg = "\nLast lines of the Xcode's build log:"
-		if err != nil {
-			s.logger.Infof(colorstring.Red(lastLinesMsg))
-		} else {
-			s.logger.Infof(lastLinesMsg)
-		}
-		fmt.Println(stringutil.LastNLines(xcodebuildLog, 20))
-
-		s.logger.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log will be also available in the raw-xcodebuild-output.log
-The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
-	}
-	if err != nil {
-		return out, fmt.Errorf("archive failed, error: %s", err)
-	}
-
-	// Ensure xcarchive exists
-	if exist, err := v1pathutil.IsPathExists(archivePth); err != nil {
-		return out, fmt.Errorf("failed to check if archive exist, error: %s", err)
-	} else if !exist {
-		return out, fmt.Errorf("no archive generated at: %s", archivePth)
-	}
-
-	archive, err := xcarchive.NewIosArchive(archivePth)
-	if err != nil {
-		return out, fmt.Errorf("failed to parse archive, error: %s", err)
-	}
-	out.Archive = &archive
-
-	mainApplication := archive.Application
-
-	fmt.Println()
-	s.logger.Infof("Archive info:")
-	s.logger.Printf("team: %s (%s)", mainApplication.ProvisioningProfile.TeamName, mainApplication.ProvisioningProfile.TeamID)
-	s.logger.Printf("profile: %s (%s)", mainApplication.ProvisioningProfile.Name, mainApplication.ProvisioningProfile.UUID)
-	s.logger.Printf("export: %s", mainApplication.ProvisioningProfile.ExportType)
-	s.logger.Printf("xcode managed profile: %v", profileutil.IsXcodeManaged(mainApplication.ProvisioningProfile.Name))
-
-	// Cache swift PM
-	if opts.XcodeMajorVersion >= 11 && opts.CacheLevel == "swift_packages" {
-		if err := cache.NewSwiftPackageCache().CollectSwiftPackages(opts.ProjectPath); err != nil {
-			s.logger.Warnf("Failed to mark swift packages for caching, error: %s", err)
-		}
-	}
-
-	return out, nil
-}
-
-type xcodeIPAExportOpts struct {
-	ProjectPath       string
-	Scheme            string
-	Configuration     string
-	LogFormatter      string
-	XcodeMajorVersion int
-	XcodeAuthOptions  *xcodebuild.AuthenticationParams
-
-	Archive                         xcarchive.IosArchive
-	CustomExportOptionsPlistContent string
-	ExportMethod                    string
-	ICloudContainerEnvironment      string
-	ExportDevelopmentTeam           string
-	UploadBitcode                   bool
-	CompileBitcode                  bool
-}
-
-type xcodeIPAExportOutput struct {
-	ExportOptionsPath          string
-	IPAExportDir               string
-	XcodebuildExportArchiveLog string
-	IDEDistrubutionLogsDir     string
-}
-
-func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExportOutput, error) {
-	out := xcodeIPAExportOutput{}
-
-	// Exporting the ipa with Xcode Command Line tools
-
-	/*
-		You'll get an "Error Domain=IDEDistributionErrorDomain Code=14 "No applicable devices found."" error
-		if $GEM_HOME is set and the project's directory includes a Gemfile - to fix this
-		we'll unset GEM_HOME as that's not required for xcodebuild anyway.
-		This probably fixes the RVM issue too, but that still should be tested.
-		See also:
-		- http://stackoverflow.com/questions/33041109/xcodebuild-no-applicable-devices-found-when-exporting-archive
-		- https://gist.github.com/claybridges/cea5d4afd24eda268164
-	*/
-	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
-	for _, key := range envsToUnset {
-		if err := os.Unsetenv(key); err != nil {
-			return out, fmt.Errorf("failed to unset (%s), error: %s", key, err)
-		}
-	}
-
-	// TODO: replace all fmt
-	fmt.Println()
-	s.logger.Infof("Exporting ipa from the archive...")
-
-	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeIPAExport")
-	if err != nil {
-		return out, fmt.Errorf("failed to create temp dir, error: %s", err)
-	}
-
-	exportOptionsPath := filepath.Join(tmpDir, "export_options.plist")
-
-	if opts.CustomExportOptionsPlistContent != "" {
-		s.logger.Printf("Custom export options content provided, using it:")
-		fmt.Println(opts.CustomExportOptionsPlistContent)
-
-		if err := v1fileutil.WriteStringToFile(exportOptionsPath, opts.CustomExportOptionsPlistContent); err != nil {
-			return out, fmt.Errorf("failed to write export options to file, error: %s", err)
-		}
-	} else {
-		s.logger.Printf("No custom export options content provided, generating export options...")
-
-		archiveExportMethod := opts.Archive.Application.ProvisioningProfile.ExportType
-
-		exportMethod, err := determineExportMethod(opts.ExportMethod, archiveExportMethod, s.logger)
-		if err != nil {
-			return out, err
-		}
-
-		s.logger.TPrintf("Opening Xcode project at path: %s.", opts.ProjectPath)
-
-		xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		if err != nil {
-			return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
-		}
-
-		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
-
-		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.logger)
-		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
-			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
-		if err != nil {
-			return out, err
-		}
-
-		fmt.Println()
-		s.logger.Printf("generated export options content:")
-		fmt.Println()
-		fmt.Println(exportOptions.String())
-
-		if err := exportOptions.WriteToFile(exportOptionsPath); err != nil {
-			return out, err
-		}
-	}
-
-	ipaExportDir := filepath.Join(tmpDir, "exported")
-
-	exportCmd := xcodebuild.NewExportCommand()
-	exportCmd.SetArchivePath(opts.Archive.Path)
-	exportCmd.SetExportDir(ipaExportDir)
-	exportCmd.SetExportOptionsPlist(exportOptionsPath)
-	if opts.XcodeAuthOptions != nil {
-		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
-	}
-
-	if opts.LogFormatter == "xcpretty" {
-		xcprettyCmd := v1xcpretty.New(exportCmd)
-
-		fmt.Println()
-		s.logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
-
-		s.logger.Infof("Running export ipa from the archive command.")
-
-		xcodebuildLog, exportErr := xcprettyCmd.Run()
-		out.XcodebuildExportArchiveLog = xcodebuildLog
-		if exportErr != nil {
-			s.logger.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
-The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
-is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
-
-			// xcdistributionlogs
-			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
-			if err != nil {
-				s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
-			} else {
-				out.IDEDistrubutionLogsDir = ideDistrubutionLogsDir
-
-				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
-				s.logger.Warnf("IDEDistribution.critical.log:")
-				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
-					s.logger.Printf(criticalDistLog)
-				}
-
-				s.logger.Warnf(`Also please check the xcdistributionlogs
-The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
-is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
-			}
-
-			return out, fmt.Errorf("export failed, error: %s", exportErr)
-		}
-	} else {
-		fmt.Println()
-		s.logger.TDonef("$ %s", exportCmd.PrintableCmd())
-
-		s.logger.Infof("Running export ipa from the archive command.")
-
-		xcodebuildLog, exportErr := exportCmd.RunAndReturnOutput()
-		out.XcodebuildExportArchiveLog = xcodebuildLog
-		if exportErr != nil {
-			// xcdistributionlogs
-			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
-			if err != nil {
-				s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
-			} else {
-				out.IDEDistrubutionLogsDir = ideDistrubutionLogsDir
-
-				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
-				s.logger.Warnf("IDEDistribution.critical.log:")
-				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
-					s.logger.Printf(criticalDistLog)
-				}
-
-				s.logger.Warnf(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
-The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
-is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
-			}
-
-			return out, fmt.Errorf("export failed, error: %s", exportErr)
-		}
-	}
-
-	out.ExportOptionsPath = exportOptionsPath
-	out.IPAExportDir = ipaExportDir
-
-	return out, nil
 }
 
 // RunOpts ...
@@ -1095,4 +676,423 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	}
 
 	return nil
+}
+
+func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manager, error) {
+	var authType codesign.AuthType
+	switch config.CodeSigningAuthSource {
+	case codeSignSourceAppleID:
+		authType = codesign.AppleIDAuth
+	case codeSignSourceAPIKey:
+		authType = codesign.APIKeyAuth
+	case codeSignSourceOff:
+		return codesign.Manager{}, fmt.Errorf("automatic code signing is disabled")
+	}
+
+	codesignInputs := codesign.Input{
+		AuthType:                     authType,
+		DistributionMethod:           config.ExportMethod,
+		CertificateURLList:           config.CertificateURLList,
+		CertificatePassphraseList:    config.CertificatePassphraseList,
+		KeychainPath:                 config.KeychainPath,
+		KeychainPassword:             config.KeychainPassword,
+		FallbackProvisioningProfiles: config.FallbackProvisioningProfileURLs,
+	}
+
+	codesignConfig, err := codesign.ParseConfig(codesignInputs, s.cmdFactory)
+	if err != nil {
+		return codesign.Manager{}, fmt.Errorf("issue with input: %s", err)
+	}
+
+	devPortalClientFactory := devportalclient.NewFactory(s.logger)
+
+	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
+	if config.BuildURL != "" && config.BuildAPIToken != "" {
+		if serviceConnection, err = devPortalClientFactory.CreateBitriseConnection(config.BuildURL, string(config.BuildAPIToken)); err != nil {
+			return codesign.Manager{}, err
+		}
+	}
+
+	connectionInputs := codesign.ConnectionOverrideInputs{
+		APIKeyPath:     config.Inputs.APIKeyPath,
+		APIKeyID:       config.Inputs.APIKeyID,
+		APIKeyIssuerID: config.Inputs.APIKeyIssuerID,
+	}
+
+	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, connectionInputs, s.logger)
+	if err != nil {
+		return codesign.Manager{}, err
+	}
+
+	opts := codesign.Opts{
+		AuthType:                   authType,
+		ShouldConsiderXcodeSigning: true,
+		TeamID:                     config.ExportDevelopmentTeam,
+		ExportMethod:               codesignConfig.DistributionMethod,
+		XcodeMajorVersion:          config.XcodeMajorVersion,
+		RegisterTestDevices:        config.RegisterTestDevices,
+		SignUITests:                false,
+		MinDaysProfileValidity:     config.MinDaysProfileValid,
+		IsVerboseLog:               config.VerboseLog,
+	}
+
+	project, err := projectmanager.NewProject(projectmanager.InitParams{
+		ProjectOrWorkspacePath: config.ProjectPath,
+		SchemeName:             config.Scheme,
+		ConfigurationName:      config.Configuration,
+	})
+	if err != nil {
+		return codesign.Manager{}, err
+	}
+
+	client := retry.NewHTTPClient().StandardClient()
+	var testDevices []devportalservice.TestDevice
+	if serviceConnection != nil {
+		testDevices = serviceConnection.TestDevices
+	}
+	return codesign.NewManagerWithProject(
+		opts,
+		appleAuthCredentials,
+		testDevices,
+		devPortalClientFactory,
+		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
+		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
+		codesignasset.NewWriter(codesignConfig.Keychain),
+		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
+		project,
+		s.logger,
+	), nil
+}
+
+type xcodeArchiveOpts struct {
+	ProjectPath       string
+	Scheme            string
+	Configuration     string
+	LogFormatter      string
+	XcodeMajorVersion int
+	ArtifactName      string
+	XcodeAuthOptions  *xcodebuild.AuthenticationParams
+
+	PerformCleanAction bool
+	XcconfigContent    string
+	AdditionalOptions  []string
+
+	CacheLevel string
+}
+
+type xcodeArchiveResult struct {
+	Archive              *xcarchive.IosArchive
+	XcodebuildArchiveLog string
+}
+
+func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveResult, error) {
+	out := xcodeArchiveResult{}
+
+	// Open Xcode project
+	s.logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
+
+	xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
+	if err != nil {
+		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
+	}
+
+	s.logger.TInfof("Reading xcode project")
+
+	platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, XcodeBuild{})
+	if err != nil {
+		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
+	}
+
+	s.logger.TInfof("Reading main target")
+
+	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
+	if err != nil {
+		return out, fmt.Errorf("failed to read main application target: %s", err)
+	}
+	if mainTarget.ProductType == exportoptionsgenerator.AppClipProductType {
+		s.logger.Errorf("Selected scheme: '%s' targets an App Clip target (%s),", opts.Scheme, mainTarget.Name)
+		s.logger.Errorf("'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.")
+		s.logger.Errorf("Please select a scheme targeting an Application target to archive and export the main Application")
+		s.logger.Errorf("and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.")
+		// TODO: check all exits
+		os.Exit(1)
+	}
+
+	// Create the Archive with Xcode Command Line tools
+	s.logger.Println()
+	s.logger.TInfof("Creating the Archive ...")
+
+	var actions []string
+	if opts.PerformCleanAction {
+		actions = []string{"clean", "archive"}
+	} else {
+		actions = []string{"archive"}
+	}
+
+	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, actions...)
+	archiveCmd.SetScheme(opts.Scheme)
+	archiveCmd.SetConfiguration(opts.Configuration)
+
+	if opts.XcconfigContent != "" {
+		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker, s.pathModifier)
+		xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
+		if err != nil {
+			return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
+		}
+		archiveCmd.SetXCConfigPath(xcconfigPath)
+	}
+
+	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeArchive")
+	if err != nil {
+		return out, fmt.Errorf("failed to create temp dir, error: %s", err)
+	}
+	archivePth := filepath.Join(tmpDir, opts.ArtifactName+".xcarchive")
+
+	archiveCmd.SetArchivePath(archivePth)
+	if opts.XcodeAuthOptions != nil {
+		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	}
+
+	additionalOptions := generateAdditionalOptions(string(platform), opts.AdditionalOptions)
+	archiveCmd.SetCustomOptions(additionalOptions)
+
+	var swiftPackagesPath string
+	if opts.XcodeMajorVersion >= 11 {
+		var err error
+		if swiftPackagesPath, err = cache.NewSwiftPackageCache().SwiftPackagesPath(opts.ProjectPath); err != nil {
+			return out, fmt.Errorf("failed to get Swift Packages path, error: %s", err)
+		}
+	}
+
+	s.logger.Infof("Starting the Archive ...")
+
+	xcodebuildLog, err := runArchiveCommandWithRetry(archiveCmd, opts.LogFormatter == "xcpretty", swiftPackagesPath, s.logger)
+	out.XcodebuildArchiveLog = xcodebuildLog
+	if err != nil || opts.LogFormatter == "xcodebuild" {
+		const lastLinesMsg = "\nLast lines of the Xcode's build log:"
+		if err != nil {
+			s.logger.Infof(colorstring.Red(lastLinesMsg))
+		} else {
+			s.logger.Infof(lastLinesMsg)
+		}
+		fmt.Println(stringutil.LastNLines(xcodebuildLog, 20))
+
+		s.logger.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log will be also available in the raw-xcodebuild-output.log
+The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
+	}
+	if err != nil {
+		return out, fmt.Errorf("archive failed, error: %s", err)
+	}
+
+	// Ensure xcarchive exists
+	if exist, err := v1pathutil.IsPathExists(archivePth); err != nil {
+		return out, fmt.Errorf("failed to check if archive exist, error: %s", err)
+	} else if !exist {
+		return out, fmt.Errorf("no archive generated at: %s", archivePth)
+	}
+
+	archive, err := xcarchive.NewIosArchive(archivePth)
+	if err != nil {
+		return out, fmt.Errorf("failed to parse archive, error: %s", err)
+	}
+	out.Archive = &archive
+
+	mainApplication := archive.Application
+
+	fmt.Println()
+	s.logger.Infof("Archive info:")
+	s.logger.Printf("team: %s (%s)", mainApplication.ProvisioningProfile.TeamName, mainApplication.ProvisioningProfile.TeamID)
+	s.logger.Printf("profile: %s (%s)", mainApplication.ProvisioningProfile.Name, mainApplication.ProvisioningProfile.UUID)
+	s.logger.Printf("export: %s", mainApplication.ProvisioningProfile.ExportType)
+	s.logger.Printf("xcode managed profile: %v", profileutil.IsXcodeManaged(mainApplication.ProvisioningProfile.Name))
+
+	// Cache swift PM
+	if opts.XcodeMajorVersion >= 11 && opts.CacheLevel == "swift_packages" {
+		if err := cache.NewSwiftPackageCache().CollectSwiftPackages(opts.ProjectPath); err != nil {
+			s.logger.Warnf("Failed to mark swift packages for caching, error: %s", err)
+		}
+	}
+
+	return out, nil
+}
+
+type xcodeIPAExportOpts struct {
+	ProjectPath       string
+	Scheme            string
+	Configuration     string
+	LogFormatter      string
+	XcodeMajorVersion int
+	XcodeAuthOptions  *xcodebuild.AuthenticationParams
+
+	Archive                         xcarchive.IosArchive
+	CustomExportOptionsPlistContent string
+	ExportMethod                    string
+	ICloudContainerEnvironment      string
+	ExportDevelopmentTeam           string
+	UploadBitcode                   bool
+	CompileBitcode                  bool
+}
+
+type xcodeIPAExportResult struct {
+	ExportOptionsPath          string
+	IPAExportDir               string
+	XcodebuildExportArchiveLog string
+	IDEDistrubutionLogsDir     string
+}
+
+func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExportResult, error) {
+	out := xcodeIPAExportResult{}
+
+	// Exporting the ipa with Xcode Command Line tools
+
+	/*
+		You'll get an "Error Domain=IDEDistributionErrorDomain Code=14 "No applicable devices found."" error
+		if $GEM_HOME is set and the project's directory includes a Gemfile - to fix this
+		we'll unset GEM_HOME as that's not required for xcodebuild anyway.
+		This probably fixes the RVM issue too, but that still should be tested.
+		See also:
+		- http://stackoverflow.com/questions/33041109/xcodebuild-no-applicable-devices-found-when-exporting-archive
+		- https://gist.github.com/claybridges/cea5d4afd24eda268164
+	*/
+	envsToUnset := []string{"GEM_HOME", "GEM_PATH", "RUBYLIB", "RUBYOPT", "BUNDLE_BIN_PATH", "_ORIGINAL_GEM_PATH", "BUNDLE_GEMFILE"}
+	for _, key := range envsToUnset {
+		if err := os.Unsetenv(key); err != nil {
+			return out, fmt.Errorf("failed to unset (%s), error: %s", key, err)
+		}
+	}
+
+	// TODO: replace all fmt
+	fmt.Println()
+	s.logger.Infof("Exporting ipa from the archive...")
+
+	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeIPAExport")
+	if err != nil {
+		return out, fmt.Errorf("failed to create temp dir, error: %s", err)
+	}
+
+	exportOptionsPath := filepath.Join(tmpDir, "export_options.plist")
+
+	if opts.CustomExportOptionsPlistContent != "" {
+		s.logger.Printf("Custom export options content provided, using it:")
+		fmt.Println(opts.CustomExportOptionsPlistContent)
+
+		if err := v1fileutil.WriteStringToFile(exportOptionsPath, opts.CustomExportOptionsPlistContent); err != nil {
+			return out, fmt.Errorf("failed to write export options to file, error: %s", err)
+		}
+	} else {
+		s.logger.Printf("No custom export options content provided, generating export options...")
+
+		archiveExportMethod := opts.Archive.Application.ProvisioningProfile.ExportType
+
+		exportMethod, err := determineExportMethod(opts.ExportMethod, archiveExportMethod, s.logger)
+		if err != nil {
+			return out, err
+		}
+
+		s.logger.TPrintf("Opening Xcode project at path: %s.", opts.ProjectPath)
+
+		xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		if err != nil {
+			return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
+		}
+
+		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
+
+		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.logger)
+		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
+			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
+		if err != nil {
+			return out, err
+		}
+
+		fmt.Println()
+		s.logger.Printf("generated export options content:")
+		fmt.Println()
+		fmt.Println(exportOptions.String())
+
+		if err := exportOptions.WriteToFile(exportOptionsPath); err != nil {
+			return out, err
+		}
+	}
+
+	ipaExportDir := filepath.Join(tmpDir, "exported")
+
+	exportCmd := xcodebuild.NewExportCommand()
+	exportCmd.SetArchivePath(opts.Archive.Path)
+	exportCmd.SetExportDir(ipaExportDir)
+	exportCmd.SetExportOptionsPlist(exportOptionsPath)
+	if opts.XcodeAuthOptions != nil {
+		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	}
+
+	if opts.LogFormatter == "xcpretty" {
+		xcprettyCmd := v1xcpretty.New(exportCmd)
+
+		fmt.Println()
+		s.logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
+
+		s.logger.Infof("Running export ipa from the archive command.")
+
+		xcodebuildLog, exportErr := xcprettyCmd.Run()
+		out.XcodebuildExportArchiveLog = xcodebuildLog
+		if exportErr != nil {
+			s.logger.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
+is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
+
+			// xcdistributionlogs
+			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
+			if err != nil {
+				s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
+			} else {
+				out.IDEDistrubutionLogsDir = ideDistrubutionLogsDir
+
+				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
+				s.logger.Warnf("IDEDistribution.critical.log:")
+				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+					s.logger.Printf(criticalDistLog)
+				}
+
+				s.logger.Warnf(`Also please check the xcdistributionlogs
+The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
+is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
+			}
+
+			return out, fmt.Errorf("export failed, error: %s", exportErr)
+		}
+	} else {
+		fmt.Println()
+		s.logger.TDonef("$ %s", exportCmd.PrintableCmd())
+
+		s.logger.Infof("Running export ipa from the archive command.")
+
+		xcodebuildLog, exportErr := exportCmd.RunAndReturnOutput()
+		out.XcodebuildExportArchiveLog = xcodebuildLog
+		if exportErr != nil {
+			// xcdistributionlogs
+			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
+			if err != nil {
+				s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
+			} else {
+				out.IDEDistrubutionLogsDir = ideDistrubutionLogsDir
+
+				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
+				s.logger.Warnf("IDEDistribution.critical.log:")
+				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+					s.logger.Printf(criticalDistLog)
+				}
+
+				s.logger.Warnf(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
+The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
+is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
+			}
+
+			return out, fmt.Errorf("export failed, error: %s", exportErr)
+		}
+	}
+
+	out.ExportOptionsPath = exportOptionsPath
+	out.IPAExportDir = ipaExportDir
+
+	return out, nil
 }
