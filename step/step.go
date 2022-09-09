@@ -149,8 +149,6 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 
 	config := Config{Inputs: inputs}
 	s.logger.EnableDebugLog(config.VerboseLog)
-	// TODO: check if needed
-	//v1log.SetEnableDebugLog(config.VerboseLog) // For compatibility
 
 	var err error
 	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)
