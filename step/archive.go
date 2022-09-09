@@ -33,13 +33,13 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool, 
 		xcprettyCmd := xcpretty.New(archiveCmd)
 
 		logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
-		fmt.Println()
+		logger.Println()
 
 		return xcprettyCmd.Run()
 	}
 	// Using xcodebuild
 	logger.TDonef("$ %s", archiveCmd.PrintableCmd())
-	fmt.Println()
+	logger.Println()
 
 	var output bytes.Buffer
 	archiveRootCmd := archiveCmd.Command()
