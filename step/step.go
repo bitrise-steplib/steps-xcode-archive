@@ -260,15 +260,17 @@ func (s XcodebuildArchiver) EnsureDependencies(opts EnsureDependenciesOpts) erro
 
 	installed, err := xcpretty.IsInstalled()
 	if err != nil {
-		return fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)
-	} else if !installed {
+		return XCPrettyInstallError{fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)}
+	}
+
+	if !installed {
 		s.logger.Warnf(`xcpretty is not installed`)
 		s.logger.Println()
 		s.logger.Printf("Installing xcpretty")
 
 		cmds, err := xcpretty.Install()
 		if err != nil {
-			return fmt.Errorf("failed to create xcpretty install command: %s", err)
+			return XCPrettyInstallError{fmt.Errorf("failed to create xcpretty install command: %s", err)}
 		}
 
 		for _, cmd := range cmds {
@@ -276,14 +278,14 @@ func (s XcodebuildArchiver) EnsureDependencies(opts EnsureDependenciesOpts) erro
 				if errorutil.IsExitStatusError(err) {
 					return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), out)
 				}
-				return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)
+				return XCPrettyInstallError{fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)}
 			}
 		}
 	}
 
 	xcprettyVersion, err := xcpretty.Version()
 	if err != nil {
-		return fmt.Errorf("failed to determine xcpretty version, error: %s", err)
+		return XCPrettyInstallError{fmt.Errorf("failed to determine xcpretty version, error: %s", err)}
 	}
 	s.logger.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
 
