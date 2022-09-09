@@ -35,7 +35,6 @@ import (
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	v1xcpretty "github.com/bitrise-io/go-xcode/xcpretty"
-	"github.com/bitrise-steplib/steps-xcode-archive/utils"
 	"github.com/kballard/go-shellquote"
 	"howett.net/plist"
 )
@@ -406,14 +405,14 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveOut
 	// Open Xcode project
 	s.logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
 
-	xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
+	xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 	if err != nil {
 		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 	}
 
 	s.logger.TInfof("Reading xcode project")
 
-	platform, err := utils.BuildableTargetPlatform(xcodeProj, scheme, configuration, utils.XcodeBuild{})
+	platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, XcodeBuild{})
 	if err != nil {
 		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
@@ -606,7 +605,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 		s.logger.TPrintf("Opening Xcode project at path: %s.", opts.ProjectPath)
 
-		xcodeProj, scheme, configuration, err := utils.OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 		if err != nil {
 			return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 		}
@@ -909,7 +908,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	if opts.Archive != nil {
 		fmt.Println()
 		archivePath := opts.Archive.Path
-		if err := utils.ExportOutputDir(s.cmdFactory, archivePath, archivePath, bitriseXCArchivePthEnvKey); err != nil {
+		if err := ExportOutputDir(s.cmdFactory, archivePath, archivePath, bitriseXCArchivePthEnvKey); err != nil {
 			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
 		}
 		s.logger.Donef("The xcarchive path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchivePthEnvKey, archivePath)
@@ -919,7 +918,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			return err
 		}
 
-		if err := utils.ExportOutputDirAsZip(s.cmdFactory, archivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
+		if err := ExportOutputDirAsZip(s.cmdFactory, archivePath, archiveZipPath, bitriseXCArchiveZipPthEnvKey); err != nil {
 			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchiveZipPthEnvKey, err)
 		}
 		s.logger.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
@@ -930,7 +929,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			return err
 		}
 
-		if err := utils.ExportOutputDir(s.cmdFactory, opts.Archive.Application.Path, appPath, bitriseAppDirPthEnvKey); err != nil {
+		if err := ExportOutputDir(s.cmdFactory, opts.Archive.Application.Path, appPath, bitriseAppDirPthEnvKey); err != nil {
 			return fmt.Errorf("failed to export %s, error: %s", bitriseAppDirPthEnvKey, err)
 		}
 		s.logger.Donef("The app directory is now available in the Environment Variable: %s (value: %s)", bitriseAppDirPthEnvKey, appPath)
@@ -955,7 +954,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			}
 
 			if appDSYMPathsCount > 0 {
-				if err := exportDSYMs(dsymDir, appDSYMPaths); err != nil {
+				if err := ExportDSYMs(dsymDir, appDSYMPaths); err != nil {
 					return fmt.Errorf("failed to export dSYMs: %v", err)
 				}
 			} else {
@@ -963,12 +962,12 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			}
 
 			if opts.ExportAllDsyms && frameworkDSYMPathsCount > 0 {
-				if err := exportDSYMs(dsymDir, frameworkDSYMPaths); err != nil {
+				if err := ExportDSYMs(dsymDir, frameworkDSYMPaths); err != nil {
 					return fmt.Errorf("failed to export dSYMs: %v", err)
 				}
 			}
 
-			if err := utils.ExportOutputDir(s.cmdFactory, dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
+			if err := ExportOutputDir(s.cmdFactory, dsymDir, dsymDir, bitriseDSYMDirPthEnvKey); err != nil {
 				return fmt.Errorf("failed to export %s, error: %s", bitriseDSYMDirPthEnvKey, err)
 			}
 			s.logger.Donef("The dSYM dir path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMDirPthEnvKey, dsymDir)
@@ -978,7 +977,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 				return err
 			}
 
-			if err := utils.ExportOutputDirAsZip(s.cmdFactory, dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
+			if err := ExportOutputDirAsZip(s.cmdFactory, dsymDir, dsymZipPath, bitriseDSYMPthEnvKey); err != nil {
 				return fmt.Errorf("failed to export %s, error: %s", bitriseDSYMPthEnvKey, err)
 			}
 			s.logger.Donef("The dSYM zip path is now available in the Environment Variable: %s (value: %s)", bitriseDSYMPthEnvKey, dsymZipPath)
@@ -1032,7 +1031,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			return err
 		}
 
-		if err := utils.ExportOutputFile(s.cmdFactory, ipaFiles[0], ipaPath, bitriseIPAPthEnvKey); err != nil {
+		if err := ExportOutputFile(s.cmdFactory, ipaFiles[0], ipaPath, bitriseIPAPthEnvKey); err != nil {
 			return fmt.Errorf("failed to export %s, error: %s", bitriseIPAPthEnvKey, err)
 		}
 		s.logger.Donef("The ipa path is now available in the Environment Variable: %s (value: %s)", bitriseIPAPthEnvKey, ipaPath)
@@ -1062,7 +1061,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			return err
 		}
 
-		if err := utils.ExportOutputDirAsZip(s.cmdFactory, opts.IDEDistrubutionLogsDir, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
+		if err := ExportOutputDirAsZip(s.cmdFactory, opts.IDEDistrubutionLogsDir, ideDistributionLogsZipPath, bitriseIDEDistributionLogsPthEnvKey); err != nil {
 			s.logger.Warnf("Failed to export %s, error: %s", bitriseIDEDistributionLogsPthEnvKey, err)
 		} else {
 			s.logger.Donef("The xcdistributionlogs zip path is now available in the Environment Variable: %s (value: %s)", bitriseIDEDistributionLogsPthEnvKey, ideDistributionLogsZipPath)
@@ -1075,7 +1074,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			return err
 		}
 
-		if err := utils.ExportOutputFileContent(s.cmdFactory, opts.XcodebuildArchiveLog, xcodebuildArchiveLogPath, xcodebuildArchiveLogPathEnvKey); err != nil {
+		if err := ExportOutputFileContent(s.cmdFactory, opts.XcodebuildArchiveLog, xcodebuildArchiveLogPath, xcodebuildArchiveLogPathEnvKey); err != nil {
 			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
 		} else {
 			s.logger.Donef("The xcodebuild archive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildArchiveLogPathEnvKey, xcodebuildArchiveLogPath)
@@ -1088,7 +1087,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			return err
 		}
 
-		if err := utils.ExportOutputFileContent(s.cmdFactory, opts.XcodebuildExportArchiveLog, xcodebuildExportArchiveLogPath, xcodebuildExportArchiveLogPathEnvKey); err != nil {
+		if err := ExportOutputFileContent(s.cmdFactory, opts.XcodebuildExportArchiveLog, xcodebuildExportArchiveLogPath, xcodebuildExportArchiveLogPathEnvKey); err != nil {
 			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
 		} else {
 			s.logger.Donef("The xcodebuild -exportArchive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildExportArchiveLogPathEnvKey, xcodebuildExportArchiveLogPath)

@@ -1,4 +1,4 @@
-package utils
+package step
 
 import (
 	"fmt"
@@ -87,4 +87,14 @@ func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationP
 	log.TPrintf("Directory zipped.")
 
 	return ExportOutputFile(cmdFactory, tmpZipFilePth, destinationPth, envKey)
+}
+
+// ExportDSYMs ...
+func ExportDSYMs(dsymDir string, dsyms []string) error {
+	for _, dsym := range dsyms {
+		if err := v1command.CopyDir(dsym, dsymDir, false); err != nil {
+			return fmt.Errorf("could not copy (%s) to directory (%s): %s", dsym, dsymDir, err)
+		}
+	}
+	return nil
 }
