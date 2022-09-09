@@ -597,12 +597,11 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 		}
 
 		if len(ipaFiles) == 0 {
-			s.logger.Errorf("No .ipa file found at export dir: %s", opts.IPAExportDir)
 			s.logger.Printf("File list in the export dir:")
 			for _, pth := range fileList {
 				s.logger.Printf("- %s", pth)
 			}
-			return fmt.Errorf("")
+			return fmt.Errorf("No .ipa file found at export dir: %s", opts.IPAExportDir)
 		}
 
 		s.logger.Println()
@@ -810,12 +809,10 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 		return out, fmt.Errorf("failed to read main application target: %s", err)
 	}
 	if mainTarget.ProductType == exportoptionsgenerator.AppClipProductType {
-		s.logger.Errorf("Selected scheme: '%s' targets an App Clip target (%s),", opts.Scheme, mainTarget.Name)
-		s.logger.Errorf("'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.")
-		s.logger.Errorf("Please select a scheme targeting an Application target to archive and export the main Application")
-		s.logger.Errorf("and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.")
-		// TODO: check all exits
-		os.Exit(1)
+		return out, fmt.Errorf(`Selected scheme: '%s' targets an App Clip target (%s),
+'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.
+Please select a scheme targeting an Application target to archive and export the main Application
+and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.Scheme, mainTarget.Name)
 	}
 
 	// Create the Archive with Xcode Command Line tools
@@ -961,7 +958,6 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		}
 	}
 
-	// TODO: replace all fmt
 	s.logger.Println()
 	s.logger.Infof("Exporting ipa from the archive...")
 
