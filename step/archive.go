@@ -38,6 +38,7 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool, 
 		out, err := xcprettyCmd.Run()
 		return out, wrapXcodebuildCommandError(xcprettyCmd, err)
 	}
+
 	// Using xcodebuild
 	logger.TDonef("$ %s", archiveCmd.PrintableCmd())
 	logger.Println()
@@ -55,7 +56,11 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool, 
 	return output.String(), wrapXcodebuildCommandError(archiveCmd, err)
 }
 
-func wrapXcodebuildCommandError(cmd xcodebuild.CommandModel, err error) error {
+type Printable interface {
+	PrintableCmd() string
+}
+
+func wrapXcodebuildCommandError(cmd Printable, err error) error {
 	if err == nil {
 		return nil
 	}
