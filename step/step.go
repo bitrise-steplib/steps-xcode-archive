@@ -878,7 +878,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
 	}
 	if err != nil {
-		return out, fmt.Errorf("archive failed, error: %s", err)
+		return out, fmt.Errorf("archiving the project failed: %w", err)
 	}
 
 	// Ensure xcarchive exists

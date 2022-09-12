@@ -2,8 +2,10 @@ package step
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -33,7 +35,8 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool, 
 		logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
 		logger.Println()
 
-		return xcprettyCmd.Run()
+		out, err := xcprettyCmd.Run()
+		return out, wrapXcodebuildCommandError(xcprettyCmd, err)
 	}
 	// Using xcodebuild
 	logger.TDonef("$ %s", archiveCmd.PrintableCmd())
@@ -49,5 +52,19 @@ func runArchiveCommand(archiveCmd *xcodebuild.CommandBuilder, useXcpretty bool, 
 		err = archiveRootCmd.Run()
 	})
 
-	return output.String(), err
+	return output.String(), wrapXcodebuildCommandError(archiveCmd, err)
+}
+
+func wrapXcodebuildCommandError(cmd xcodebuild.CommandModel, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		fmt.Printf("stderr lenght: %d", len(exitErr.Stderr))
+		return fmt.Errorf("command (%s) failed with exit status: %d", cmd.PrintableCmd(), exitErr.ExitCode())
+	}
+
+	return fmt.Errorf("executing command (%s) failed: %w", cmd.PrintableCmd(), err)
 }
