@@ -62,8 +62,7 @@ func wrapXcodebuildCommandError(cmd xcodebuild.CommandModel, err error) error {
 
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
-		fmt.Printf("stderr lenght: %d", len(exitErr.Stderr))
-		return fmt.Errorf("command (%s) failed with exit status: %d", cmd.PrintableCmd(), exitErr.ExitCode())
+		return fmt.Errorf("command (%s) failed with exit status %d", cmd.PrintableCmd(), exitErr.ExitCode())
 	}
 
 	return fmt.Errorf("executing command (%s) failed: %w", cmd.PrintableCmd(), err)
