@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/bitrise-steplib/steps-xcode-archive/nserror"
 )
 
 // XCPrettyInstallError is used to signal an error around xcpretty installation
@@ -39,19 +41,33 @@ func wrapXcodebuildCommandError(cmd Printable, out string, err error) error {
 }
 
 func findXcodebuildErrors(out string) []string {
-	var errors []string
+	var errorLines []string
+	var nserrors []nserror.Error
 
 	scanner := bufio.NewScanner(strings.NewReader(out))
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "error: ") {
-			errors = append(errors, line)
+			errorLines = append(errorLines, line)
+		} else if strings.HasPrefix(line, "Error ") {
+			e := nserror.New(line)
+			if e != nil {
+				nserrors = append(nserrors, *e)
+			}
 		}
+
 	}
 	if err := scanner.Err(); err != nil {
 		return nil
 	}
 
-	return errors
+	if len(nserrors) == len(errorLines) {
+		errorLines = []string{}
+		for _, nserror := range nserrors {
+			errorLines = append(errorLines, nserror.Error())
+		}
+	}
+
+	return errorLines
 }
