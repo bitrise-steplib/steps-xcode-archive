@@ -14,7 +14,7 @@ func runIPAExportCommand(exportCmd *xcodebuild.ExportCommandModel, useXcpretty b
 		logger.Println()
 
 		out, err := xcprettyCmd.Run()
-		return out, wrapXcodebuildCommandError(xcprettyCmd, err)
+		return out, wrapXcodebuildCommandError(xcprettyCmd, out, err)
 	}
 
 	// Using xcodebuild
@@ -22,5 +22,5 @@ func runIPAExportCommand(exportCmd *xcodebuild.ExportCommandModel, useXcpretty b
 	logger.Println()
 
 	out, err := exportCmd.RunAndReturnOutput()
-	return out, wrapXcodebuildCommandError(exportCmd, err)
+	return out, wrapXcodebuildCommandError(exportCmd, out, err)
 }

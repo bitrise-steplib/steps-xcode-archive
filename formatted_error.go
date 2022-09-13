@@ -29,11 +29,10 @@ func formattedError(err error) string {
 
 func appendError(errorMessage, reason string, i int, last bool) string {
 	if i == 0 {
-		errorMessage = reason
+		errorMessage = indentedReason(reason, i)
 	} else {
 		errorMessage += "\n"
-		errorMessage += strings.Repeat("  ", i)
-		errorMessage += reason
+		errorMessage += indentedReason(reason, i)
 	}
 
 	if !last {
@@ -41,4 +40,35 @@ func appendError(errorMessage, reason string, i int, last bool) string {
 	}
 
 	return errorMessage
+}
+
+func indentedReason(reason string, level int) string {
+	var lines []string
+	split := strings.Split(reason, "\n")
+	for _, line := range split {
+		line = strings.TrimLeft(line, " ")
+		line = strings.TrimRight(line, "\n")
+		line = strings.TrimRight(line, " ")
+		if line == "" {
+			continue
+		}
+		lines = append(lines, line)
+	}
+
+	var indented string
+	for i, line := range lines {
+		line = strings.TrimLeft(line, " ")
+		line = strings.TrimRight(line, "\n")
+		line = strings.TrimRight(line, " ")
+		if line == "" {
+			continue
+		}
+
+		indented += strings.Repeat("  ", level)
+		indented += line
+		if i != len(lines)-1 {
+			indented += "\n"
+		}
+	}
+	return indented
 }

@@ -42,6 +42,22 @@ func Test_logError(t *testing.T) {
 			err:      fmt.Errorf("error 1: %s", fmt.Errorf("error 2")),
 			expected: "error 1: error 2",
 		},
+		{
+			name: "Multi line error",
+			err: errors.New(`error: error 1
+error: error 2
+`),
+			expected: `error: error 1
+error: error 2`,
+		},
+		{
+			name: "Multi line wrapped error",
+			err: createWrappedError("step run failed", `error: error 1
+error: error 2`),
+			expected: `step run failed:
+  error: error 1
+  error: error 2`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
