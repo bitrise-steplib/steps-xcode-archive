@@ -57,13 +57,6 @@ func indentedReason(reason string, level int) string {
 
 	var indented string
 	for i, line := range lines {
-		line = strings.TrimLeft(line, " ")
-		line = strings.TrimRight(line, "\n")
-		line = strings.TrimRight(line, " ")
-		if line == "" {
-			continue
-		}
-
 		indented += strings.Repeat("  ", level)
 		indented += line
 		if i != len(lines)-1 {
