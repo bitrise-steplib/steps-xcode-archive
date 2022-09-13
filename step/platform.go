@@ -1,10 +1,11 @@
-package utils
+package step
 
 import (
 	"fmt"
 	"path/filepath"
 	"strings"
 
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/xcodeproject/schemeint"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
@@ -72,8 +73,9 @@ func BuildableTargetPlatform(
 	scheme *xcscheme.Scheme,
 	configurationName string,
 	provider TargetBuildSettingsProvider,
+	logger log.Logger,
 ) (Platform, error) {
-	fmt.Printf("Finding platform type")
+	logger.Printf("Finding platform type")
 
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
@@ -92,7 +94,7 @@ func BuildableTargetPlatform(
 
 	platform, err := getPlatform(settings)
 
-	fmt.Printf("Platform type: %s", platform)
+	logger.Printf("Platform type: %s", platform)
 
 	return platform, err
 }

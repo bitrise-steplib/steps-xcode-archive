@@ -1,4 +1,4 @@
-package utils
+package step
 
 import (
 	"fmt"
@@ -7,13 +7,13 @@ import (
 
 	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
-	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/log"
 )
 
-func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error {
-	log.TPrintf("Will zip directory path: %s", sourceDir)
+func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string, logger log.Logger) error {
+	logger.TPrintf("Will zip directory path: %s", sourceDir)
 
 	parentDir := filepath.Dir(sourceDir)
 	dirName := filepath.Base(sourceDir)
@@ -23,7 +23,7 @@ func zip(cmdFactory command.Factory, sourceDir, destinationZipPth string) error 
 		return fmt.Errorf("failed to zip dir: %s, output: %s, error: %s", sourceDir, out, err)
 	}
 
-	log.TPrintf("Directory zipped.")
+	logger.TPrintf("Directory zipped.")
 
 	return nil
 }
@@ -34,16 +34,16 @@ func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr st
 }
 
 // ExportOutputDir ...
-func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string) error {
+func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string, logger log.Logger) error {
 	if sourceDirPth != destinationDirPth {
-		fmt.Printf("Coping export output")
+		logger.Printf("Coping export output")
 
 		if err := v1command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
 		}
 	}
 
-	fmt.Printf("Copied export output to %s", destinationDirPth)
+	logger.Printf("Copied export output to %s", destinationDirPth)
 
 	return exportEnvironmentWithEnvman(cmdFactory, envKey, destinationDirPth)
 }
@@ -69,8 +69,8 @@ func ExportOutputFileContent(cmdFactory command.Factory, content, destinationPth
 }
 
 // ExportOutputDirAsZip ...
-func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationPth, envKey string) error {
-	log.TPrintf("Will zip directory path: %s", sourceDirPth)
+func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationPth, envKey string, logger log.Logger) error {
+	logger.TPrintf("Will zip directory path: %s", sourceDirPth)
 
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("__export_tmp_dir__")
 	if err != nil {
@@ -80,11 +80,21 @@ func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationP
 	base := filepath.Base(sourceDirPth)
 	tmpZipFilePth := filepath.Join(tmpDir, base+".zip")
 
-	if err := zip(cmdFactory, sourceDirPth, tmpZipFilePth); err != nil {
+	if err := zip(cmdFactory, sourceDirPth, tmpZipFilePth, logger); err != nil {
 		return err
 	}
 
-	log.TPrintf("Directory zipped.")
+	logger.TPrintf("Directory zipped.")
 
 	return ExportOutputFile(cmdFactory, tmpZipFilePth, destinationPth, envKey)
+}
+
+// ExportDSYMs ...
+func ExportDSYMs(dsymDir string, dsyms []string) error {
+	for _, dsym := range dsyms {
+		if err := v1command.CopyDir(dsym, dsymDir, false); err != nil {
+			return fmt.Errorf("could not copy (%s) to directory (%s): %s", dsym, dsymDir, err)
+		}
+	}
+	return nil
 }

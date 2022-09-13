@@ -1,7 +1,9 @@
-package utils
+package step
 
 import (
 	"testing"
+
+	"github.com/bitrise-io/go-utils/v2/log"
 
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
@@ -96,7 +98,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 				On("TargetBuildSettings", mock.AnythingOfType("*xcodeproj.XcodeProj"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 				Return(tt.settings, nil)
 
-			got, err := BuildableTargetPlatform(tt.xcodeProj, tt.scheme, tt.configurationName, provider)
+			got, err := BuildableTargetPlatform(tt.xcodeProj, tt.scheme, tt.configurationName, provider, log.NewLogger())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("BuildableTargetPlatform() error = %v, wantErr %v", err, tt.wantErr)
 				return
