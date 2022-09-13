@@ -36,7 +36,7 @@ func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr st
 // ExportOutputDir ...
 func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string, logger log.Logger) error {
 	if sourceDirPth != destinationDirPth {
-		logger.TPrintf("Coping export output")
+		logger.TPrintf("Copying export output")
 
 		if err := v1command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
