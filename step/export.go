@@ -36,14 +36,14 @@ func exportEnvironmentWithEnvman(cmdFactory command.Factory, keyStr, valueStr st
 // ExportOutputDir ...
 func ExportOutputDir(cmdFactory command.Factory, sourceDirPth, destinationDirPth, envKey string, logger log.Logger) error {
 	if sourceDirPth != destinationDirPth {
-		logger.Printf("Coping export output")
+		logger.TPrintf("Coping export output")
 
 		if err := v1command.CopyDir(sourceDirPth, destinationDirPth, true); err != nil {
 			return err
 		}
-	}
 
-	logger.Printf("Copied export output to %s", destinationDirPth)
+		logger.TPrintf("Copied export output to %s", destinationDirPth)
+	}
 
 	return exportEnvironmentWithEnvman(cmdFactory, envKey, destinationDirPth)
 }
@@ -70,8 +70,6 @@ func ExportOutputFileContent(cmdFactory command.Factory, content, destinationPth
 
 // ExportOutputDirAsZip ...
 func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationPth, envKey string, logger log.Logger) error {
-	logger.TPrintf("Will zip directory path: %s", sourceDirPth)
-
 	tmpDir, err := pathutil.NormalizedOSTempDirPath("__export_tmp_dir__")
 	if err != nil {
 		return err
@@ -83,8 +81,6 @@ func ExportOutputDirAsZip(cmdFactory command.Factory, sourceDirPth, destinationP
 	if err := zip(cmdFactory, sourceDirPth, tmpZipFilePth, logger); err != nil {
 		return err
 	}
-
-	logger.TPrintf("Directory zipped.")
 
 	return ExportOutputFile(cmdFactory, tmpZipFilePth, destinationPth, envKey)
 }

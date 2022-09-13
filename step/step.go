@@ -486,7 +486,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	}
 
 	if opts.Archive != nil {
-		s.logger.Println()
 		archivePath := opts.Archive.Path
 		if err := ExportOutputDir(s.cmdFactory, archivePath, archivePath, bitriseXCArchivePthEnvKey, s.logger); err != nil {
 			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
@@ -503,7 +502,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 		}
 		s.logger.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
 
-		s.logger.Println()
 		appPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".app")
 		if err := cleanup(appPath); err != nil {
 			return err
@@ -524,10 +522,9 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 		appDSYMPathsCount := len(appDSYMPaths)
 		frameworkDSYMPathsCount := len(frameworkDSYMPaths)
 
-		s.logger.Printf("Found %s app dSYMs and framework dSYMs %s.", appDSYMPathsCount, frameworkDSYMPathsCount)
+		s.logger.Printf("Found %d app dSYMs and %d framework dSYMs.", appDSYMPathsCount, frameworkDSYMPathsCount)
 
 		if appDSYMPathsCount > 0 || frameworkDSYMPathsCount > 0 {
-			s.logger.Println()
 			dsymDir, err := v1pathutil.NormalizedOSTempDirPath("__dsyms__")
 			if err != nil {
 				return fmt.Errorf("failed to create tmp dir, error: %s", err)
@@ -565,7 +562,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	}
 
 	if opts.ExportOptionsPath != "" {
-		s.logger.Println()
 		exportOptionsPath := filepath.Join(opts.OutputDir, "export_options.plist")
 		if err := cleanup(exportOptionsPath); err != nil {
 			return err
@@ -602,8 +598,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			}
 			return fmt.Errorf("No .ipa file found at export dir: %s", opts.IPAExportDir)
 		}
-
-		s.logger.Println()
 
 		ipaPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".ipa")
 		if err := cleanup(ipaPath); err != nil {
