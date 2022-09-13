@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
-
-	"github.com/bitrise-steplib/steps-xcode-archive/nserror"
 )
 
 // XCPrettyInstallError is used to signal an error around xcpretty installation
@@ -17,6 +16,54 @@ type XCPrettyInstallError struct {
 
 func (e XCPrettyInstallError) Error() string {
 	return e.err.Error()
+}
+
+type NSError struct {
+	Description string
+	Suggestion  string
+}
+
+func NewNSError(str string) *NSError {
+	nserrorPattern := `Error Domain=.* Code=.*UserInfo=.*`
+	exp := regexp.MustCompile(nserrorPattern)
+	if !exp.MatchString(str) {
+		return nil
+	}
+
+	descriptionPattern := `NSLocalizedDescription=(.+?),|NSLocalizedDescription=(.+?)}`
+	description := findFirstSubMatch(str, descriptionPattern)
+	if description == "" {
+		return nil
+	}
+
+	suggestionPattern := `NSLocalizedRecoverySuggestion=(.+?),|NSLocalizedRecoverySuggestion=(.+?)}`
+	suggestion := findFirstSubMatch(str, suggestionPattern)
+
+	return &NSError{
+		Description: description,
+		Suggestion:  suggestion,
+	}
+}
+
+func (e NSError) Error() string {
+	msg := e.Description
+	if e.Suggestion != "" {
+		msg += " " + e.Suggestion
+	}
+	return msg
+}
+
+func findFirstSubMatch(str, pattern string) string {
+	exp := regexp.MustCompile(pattern)
+	matches := exp.FindStringSubmatch(str)
+	if len(matches) > 1 {
+		for _, match := range matches[1:] {
+			if match != "" {
+				return match
+			}
+		}
+	}
+	return ""
 }
 
 type Printable interface {
@@ -42,7 +89,7 @@ func wrapXcodebuildCommandError(cmd Printable, out string, err error) error {
 
 func findXcodebuildErrors(out string) []string {
 	var errorLines []string
-	var nserrors []nserror.Error
+	var nserrors []NSError
 
 	scanner := bufio.NewScanner(strings.NewReader(out))
 	scanner.Split(bufio.ScanLines)
@@ -51,7 +98,7 @@ func findXcodebuildErrors(out string) []string {
 		if strings.HasPrefix(line, "error: ") {
 			errorLines = append(errorLines, line)
 		} else if strings.HasPrefix(line, "Error ") {
-			e := nserror.New(line)
+			e := NewNSError(line)
 			if e != nil {
 				nserrors = append(nserrors, *e)
 			}

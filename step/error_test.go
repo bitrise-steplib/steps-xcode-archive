@@ -1,4 +1,4 @@
-package nserror
+package step
 
 import (
 	"reflect"
@@ -9,12 +9,12 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name string
 		str  string
-		want *Error
+		want *NSError
 	}{
 		{
 			name: "Real NSError",
 			str:  `Error Domain=IDEProvisioningErrorDomain Code=9 ""ios-simple-objc.app" requires a provisioning profile." UserInfo={IDEDistributionIssueSeverity=3, NSLocalizedDescription="ios-simple-objc.app" requires a provisioning profile., NSLocalizedRecoverySuggestion=Add a profile to the "provisioningProfiles" dictionary in your Export Options property list.}`,
-			want: &Error{
+			want: &NSError{
 				Description: `"ios-simple-objc.app" requires a provisioning profile.`,
 				Suggestion:  `Add a profile to the "provisioningProfiles" dictionary in your Export Options property list.`,
 			},
@@ -22,7 +22,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "UserInfo properties order changed",
 			str:  `Error Domain=IDEProvisioningErrorDomain Code=9 UserInfo={NSLocalizedRecoverySuggestion=Add a profile to the "provisioningProfiles" dictionary in your Export Options property list., IDEDistributionIssueSeverity=3, NSLocalizedDescription="ios-simple-objc.app" requires a provisioning profile.}`,
-			want: &Error{
+			want: &NSError{
 				Description: `"ios-simple-objc.app" requires a provisioning profile.`,
 				Suggestion:  `Add a profile to the "provisioningProfiles" dictionary in your Export Options property list.`,
 			},
@@ -30,8 +30,8 @@ func TestNew(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := New(tt.str); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("New() = %v, want %v", got, tt.want)
+			if got := NewNSError(tt.str); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewNSError() = %v, want %v", got, tt.want)
 			}
 		})
 	}
