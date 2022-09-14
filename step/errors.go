@@ -95,11 +95,11 @@ func findXcodebuildErrors(out string) []string {
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		if strings.HasPrefix(line, "error: ") {
 			errorLines = append(errorLines, line)
 		} else if strings.HasPrefix(line, "Error ") {
-			e := NewNSError(line)
-			if e != nil {
+			if e := NewNSError(line); e != nil {
 				nserrors = append(nserrors, *e)
 			}
 		}
@@ -109,6 +109,9 @@ func findXcodebuildErrors(out string) []string {
 		return nil
 	}
 
+	// Prefer NSErrors if found for all errors,
+	// this is because an NSError has a suggestion in addition to the error reason,
+	// but we use regular expression for parsing NSErrors.
 	if len(nserrors) == len(errorLines) {
 		errorLines = []string{}
 		for _, nserror := range nserrors {
