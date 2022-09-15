@@ -34,7 +34,6 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcpretty"
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
-	v1xcpretty "github.com/bitrise-io/go-xcode/xcpretty"
 	"github.com/kballard/go-shellquote"
 	"howett.net/plist"
 )
@@ -487,7 +486,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	}
 
 	if opts.Archive != nil {
-		s.logger.Println()
 		archivePath := opts.Archive.Path
 		if err := ExportOutputDir(s.cmdFactory, archivePath, archivePath, bitriseXCArchivePthEnvKey, s.logger); err != nil {
 			return fmt.Errorf("failed to export %s, error: %s", bitriseXCArchivePthEnvKey, err)
@@ -504,7 +502,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 		}
 		s.logger.Donef("The xcarchive zip path is now available in the Environment Variable: %s (value: %s)", bitriseXCArchiveZipPthEnvKey, archiveZipPath)
 
-		s.logger.Println()
 		appPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".app")
 		if err := cleanup(appPath); err != nil {
 			return err
@@ -525,10 +522,9 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 		appDSYMPathsCount := len(appDSYMPaths)
 		frameworkDSYMPathsCount := len(frameworkDSYMPaths)
 
-		s.logger.Printf("Found %s app dSYMs and framework dSYMs %s.", appDSYMPathsCount, frameworkDSYMPathsCount)
+		s.logger.Printf("Found %d app dSYMs and %d framework dSYMs.", appDSYMPathsCount, frameworkDSYMPathsCount)
 
 		if appDSYMPathsCount > 0 || frameworkDSYMPathsCount > 0 {
-			s.logger.Println()
 			dsymDir, err := v1pathutil.NormalizedOSTempDirPath("__dsyms__")
 			if err != nil {
 				return fmt.Errorf("failed to create tmp dir, error: %s", err)
@@ -566,7 +562,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	}
 
 	if opts.ExportOptionsPath != "" {
-		s.logger.Println()
 		exportOptionsPath := filepath.Join(opts.OutputDir, "export_options.plist")
 		if err := cleanup(exportOptionsPath); err != nil {
 			return err
@@ -603,8 +598,6 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 			}
 			return fmt.Errorf("No .ipa file found at export dir: %s", opts.IPAExportDir)
 		}
-
-		s.logger.Println()
 
 		ipaPath := filepath.Join(opts.OutputDir, opts.ArtifactName+".ipa")
 		if err := cleanup(ipaPath); err != nil {
@@ -878,7 +871,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
 	}
 	if err != nil {
-		return out, fmt.Errorf("archive failed, error: %s", err)
+		return out, fmt.Errorf("failed to archive the project: %w", err)
 	}
 
 	// Ensure xcarchive exists
@@ -1021,70 +1014,41 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
 	}
 
-	if opts.LogFormatter == "xcpretty" {
-		xcprettyCmd := v1xcpretty.New(exportCmd)
-
-		s.logger.Println()
-		s.logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
-
-		s.logger.Infof("Running export ipa from the archive command.")
-
-		xcodebuildLog, exportErr := xcprettyCmd.Run()
-		out.XcodebuildExportArchiveLog = xcodebuildLog
-		if exportErr != nil {
+	useXCPretty := opts.LogFormatter == "xcpretty"
+	xcodebuildLog, exportErr := runIPAExportCommand(exportCmd, useXCPretty, s.logger)
+	out.XcodebuildExportArchiveLog = xcodebuildLog
+	if exportErr != nil {
+		if useXCPretty {
 			s.logger.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
+		}
 
-			// xcdistributionlogs
-			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
-			if err != nil {
-				s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
-			} else {
-				out.IDEDistrubutionLogsDir = ideDistrubutionLogsDir
+		// xcdistributionlogs
+		ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
+		if err != nil {
+			s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
+		} else {
+			out.IDEDistrubutionLogsDir = ideDistrubutionLogsDir
 
-				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
-				s.logger.Warnf("IDEDistribution.critical.log:")
-				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
-					s.logger.Printf(criticalDistLog)
-				}
+			criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
+			s.logger.Warnf("IDEDistribution.critical.log:")
+			if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
+				s.logger.Printf(criticalDistLog)
+			}
 
+			if useXCPretty {
 				s.logger.Warnf(`Also please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
-			}
-
-			return out, fmt.Errorf("export failed, error: %s", exportErr)
-		}
-	} else {
-		s.logger.Println()
-		s.logger.TDonef("$ %s", exportCmd.PrintableCmd())
-
-		s.logger.Infof("Running export ipa from the archive command.")
-
-		xcodebuildLog, exportErr := exportCmd.RunAndReturnOutput()
-		out.XcodebuildExportArchiveLog = xcodebuildLog
-		if exportErr != nil {
-			// xcdistributionlogs
-			ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
-			if err != nil {
-				s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
 			} else {
-				out.IDEDistrubutionLogsDir = ideDistrubutionLogsDir
-
-				criticalDistLogFilePth := filepath.Join(ideDistrubutionLogsDir, "IDEDistribution.critical.log")
-				s.logger.Warnf("IDEDistribution.critical.log:")
-				if criticalDistLog, err := v1fileutil.ReadStringFromFile(criticalDistLogFilePth); err == nil {
-					s.logger.Printf(criticalDistLog)
-				}
-
 				s.logger.Warnf(`If you can't find the reason of the error in the log, please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 			}
-
-			return out, fmt.Errorf("export failed, error: %s", exportErr)
 		}
+
+		return out, fmt.Errorf("failed to export IPA: %w", exportErr)
 	}
 
 	out.ExportOptionsPath = exportOptionsPath

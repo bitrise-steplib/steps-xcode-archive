@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
@@ -23,7 +24,7 @@ func run() int {
 
 	config, err := archiver.ProcessInputs()
 	if err != nil {
-		logger.Errorf("Processing Step Inputs failed: %s", err)
+		logger.Errorf(formattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
 		return 1
 	}
 
@@ -37,7 +38,7 @@ func run() int {
 			logger.Warnf("Switching to xcodebuild for log formatter")
 			config.LogFormatter = "xcodebuild"
 		} else {
-			logger.Errorf("Installing Step Dependencies failed: %s", err)
+			logger.Errorf(formattedError(fmt.Errorf("Failed to install Step dependencies: %w", err)))
 			return 1
 		}
 	}
@@ -46,14 +47,14 @@ func run() int {
 	runOpts := createRunOptions(config)
 	result, err := archiver.Run(runOpts)
 	if err != nil {
-		logger.Errorf("Step run failed: %s", err)
+		logger.Errorf(formattedError(fmt.Errorf("Failed to execute Step main logic: %w", err)))
 		exitCode = 1
 		// don't return as step outputs needs to be exported even in case of failure (for example the xcodebuild logs)
 	}
 
 	exportOpts := createExportOptions(config, result)
 	if err := archiver.ExportOutput(exportOpts); err != nil {
-		logger.Errorf("Exporting Step Outputs failed: %s", err)
+		logger.Errorf(formattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
 		return 1
 	}
 
