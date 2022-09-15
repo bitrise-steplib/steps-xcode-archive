@@ -233,7 +233,7 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	if config.CodeSigningAuthSource != codeSignSourceOff {
 		codesignManager, err := s.createCodesignManager(config)
 		if err != nil {
-			return Config{}, err
+			return Config{}, fmt.Errorf("failed to prepare automatic code signing: %w", err)
 		}
 		config.CodesignManager = &codesignManager
 	}
@@ -693,7 +693,7 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 
 	codesignConfig, err := codesign.ParseConfig(codesignInputs, s.cmdFactory)
 	if err != nil {
-		return codesign.Manager{}, fmt.Errorf("issue with input: %s", err)
+		return codesign.Manager{}, err
 	}
 
 	devPortalClientFactory := devportalclient.NewFactory(s.logger)
