@@ -24,7 +24,7 @@ func run() int {
 
 	config, err := archiver.ProcessInputs()
 	if err != nil {
-		logger.Errorf(formattedError(fmt.Errorf("processing Step Inputs failed: %w", err)))
+		logger.Errorf(formattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
 		return 1
 	}
 
@@ -38,7 +38,7 @@ func run() int {
 			logger.Warnf("Switching to xcodebuild for log formatter")
 			config.LogFormatter = "xcodebuild"
 		} else {
-			logger.Errorf(formattedError(fmt.Errorf("installing Step Dependencies failed: %w", err)))
+			logger.Errorf(formattedError(fmt.Errorf("Failed to install Step dependencies: %w", err)))
 			return 1
 		}
 	}
@@ -47,14 +47,14 @@ func run() int {
 	runOpts := createRunOptions(config)
 	result, err := archiver.Run(runOpts)
 	if err != nil {
-		logger.Errorf(formattedError(fmt.Errorf("step run failed: %w", err)))
+		logger.Errorf(formattedError(fmt.Errorf("Failed to execute Step main logic: %w", err)))
 		exitCode = 1
 		// don't return as step outputs needs to be exported even in case of failure (for example the xcodebuild logs)
 	}
 
 	exportOpts := createExportOptions(config, result)
 	if err := archiver.ExportOutput(exportOpts); err != nil {
-		logger.Errorf(formattedError(fmt.Errorf("exporting Step Outputs failed: %w", err)))
+		logger.Errorf(formattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
 		return 1
 	}
 
