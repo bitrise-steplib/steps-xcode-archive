@@ -79,12 +79,12 @@ func wrapXcodebuildCommandError(cmd Printable, out string, err error) error {
 	if errors.As(err, &exitErr) {
 		reasons := findXcodebuildErrors(out)
 		if len(reasons) > 0 {
-			return fmt.Errorf("command (%s) failed with exit status %d: %w", cmd.PrintableCmd(), exitErr.ExitCode(), errors.New(strings.Join(reasons, "\n")))
+			return fmt.Errorf("command failed with exit status %d (%s): %w", exitErr.ExitCode(), cmd.PrintableCmd(), errors.New(strings.Join(reasons, "\n")))
 		}
-		return fmt.Errorf("command (%s) failed with exit status %d", cmd.PrintableCmd(), exitErr.ExitCode())
+		return fmt.Errorf("command failed with exit status %d (%s)", exitErr.ExitCode(), cmd.PrintableCmd())
 	}
 
-	return fmt.Errorf("executing command (%s) failed: %w", cmd.PrintableCmd(), err)
+	return fmt.Errorf("executing command failed (%s): %w", cmd.PrintableCmd(), err)
 }
 
 func findXcodebuildErrors(out string) []string {
