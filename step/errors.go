@@ -24,9 +24,7 @@ type NSError struct {
 }
 
 func NewNSError(str string) *NSError {
-	nserrorPattern := `Error Domain=.* Code=.*UserInfo=.*`
-	exp := regexp.MustCompile(nserrorPattern)
-	if !exp.MatchString(str) {
+	if !isNSError(str) {
 		return nil
 	}
 
@@ -51,6 +49,16 @@ func (e NSError) Error() string {
 		msg += " " + e.Suggestion
 	}
 	return msg
+}
+
+func isNSError(str string) bool {
+	// example: Error Domain=IDEProvisioningErrorDomain Code=9 ""ios-simple-objc.app" requires a provisioning profile."
+	//   UserInfo={IDEDistributionIssueSeverity=3, NSLocalizedDescription="ios-simple-objc.app" requires a provisioning profile.,
+	//   NSLocalizedRecoverySuggestion=Add a profile to the "provisioningProfiles" dictionary in your Export Options property list.}
+	return strings.Contains(str, "Error ") &&
+		strings.Contains(str, "Domain=") &&
+		strings.Contains(str, "Code=") &&
+		strings.Contains(str, "UserInfo=")
 }
 
 func findFirstSubMatch(str, pattern string) string {
