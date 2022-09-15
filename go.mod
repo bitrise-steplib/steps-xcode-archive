@@ -7,7 +7,7 @@ require (
 	github.com/bitrise-io/go-utils v1.0.2
 	github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.11
 	github.com/bitrise-io/go-xcode v1.0.9
-	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.20
+	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.22
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect

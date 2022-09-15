@@ -210,7 +210,7 @@ func SelectConnectionCredentials(
 	if authType == APIKeyAuth {
 		if bitriseConnection == nil || bitriseConnection.APIKeyConnection == nil {
 			logger.Errorf(devportalclient.NotConnectedWarning)
-			return appleauth.Credentials{}, fmt.Errorf("API key authentication is selected in Step inputs, but Bitrise Apple Service connection is unset")
+			return appleauth.Credentials{}, fmt.Errorf("Apple Service connection via App Store Connect API key is not estabilished")
 		}
 
 		logger.Donef("Using Apple Service connection with API key.")
@@ -223,12 +223,12 @@ func SelectConnectionCredentials(
 	if authType == AppleIDAuth {
 		if bitriseConnection == nil || bitriseConnection.AppleIDConnection == nil {
 			logger.Errorf(devportalclient.NotConnectedWarning)
-			return appleauth.Credentials{}, fmt.Errorf("Apple ID authentication is selected in Step inputs, but Bitrise Apple Service connection is unset")
+			return appleauth.Credentials{}, fmt.Errorf("Apple Service connection through Apple ID is not estabilished")
 		}
 
 		session, err := bitriseConnection.AppleIDConnection.FastlaneLoginSession()
 		if err != nil {
-			return appleauth.Credentials{}, err
+			return appleauth.Credentials{}, fmt.Errorf("failed to restore Apple ID login session: %w", err)
 		}
 
 		logger.Donef("Using Apple Service connection with Apple ID.")
