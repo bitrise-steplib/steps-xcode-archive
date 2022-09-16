@@ -209,7 +209,7 @@ func SelectConnectionCredentials(
 
 	if authType == APIKeyAuth {
 		if bitriseConnection == nil || bitriseConnection.APIKeyConnection == nil {
-			logger.Errorf(devportalclient.NotConnectedWarning)
+			logger.Warnf(devportalclient.NotConnectedWarning)
 			return appleauth.Credentials{}, fmt.Errorf("Apple Service connection via App Store Connect API key is not estabilished")
 		}
 
@@ -222,7 +222,7 @@ func SelectConnectionCredentials(
 
 	if authType == AppleIDAuth {
 		if bitriseConnection == nil || bitriseConnection.AppleIDConnection == nil {
-			logger.Errorf(devportalclient.NotConnectedWarning)
+			logger.Warnf(devportalclient.NotConnectedWarning)
 			return appleauth.Credentials{}, fmt.Errorf("Apple Service connection through Apple ID is not estabilished")
 		}
 
@@ -400,7 +400,7 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 		}
 
 		m.logger.Println()
-		m.logger.Errorf("Automatic code signing failed: %s", err)
+		m.logger.Warnf("Automatic code signing failed: %s", err)
 		m.logger.Println()
 		m.logger.Infof("Falling back to manually managed codesigning assets.")
 

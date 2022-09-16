@@ -94,7 +94,7 @@ func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssue
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
 			if err != nil {
-				logger.Errorf(err.Error())
+				logger.Warnf(err.Error())
 			}
 		}(resp.Body)
 		if resp.StatusCode != http.StatusOK {
