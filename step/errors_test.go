@@ -49,11 +49,29 @@ func Test_findXcodebuildErrors(t *testing.T) {
 			want: []string{`error: exportArchive: "code-sign-test.app" requires a provisioning profile.`},
 		},
 		{
+			name: "Regular error with project path prefix",
+			out:  `./steps-xcode-archive/_tmp/code-sign-test.xcodeproj: error: No profile for team 'ASDF8V3WYL' matching 'BitriseBot-Wildcard' found: Xcode couldn't find any provisioning profiles matching 'ASDF8V3WYL/BitriseBot-Wildcard'. Install the profile (by dragging and dropping it onto Xcode's dock item) or select a different one in the Signing & Capabilities tab of the target editor. (in target 'code-sign-test' from project 'code-sign-test')`,
+			want: []string{`./steps-xcode-archive/_tmp/code-sign-test.xcodeproj: error: No profile for team 'ASDF8V3WYL' matching 'BitriseBot-Wildcard' found: Xcode couldn't find any provisioning profiles matching 'ASDF8V3WYL/BitriseBot-Wildcard'. Install the profile (by dragging and dropping it onto Xcode's dock item) or select a different one in the Signing & Capabilities tab of the target editor. (in target 'code-sign-test' from project 'code-sign-test')`},
+		},
+		{
 			name: "xcodebuild error",
 			out: `xcodebuild: error: Failed to build project code-sign-test with scheme code-sign-test.
         Reason: This scheme builds an embedded Apple Watch app. watchOS 9.0 must be installed in order to archive the scheme
         Recovery suggestion: watchOS 9.0 is not installed. To use with Xcode, first download and install the platform`,
 			want: []string{`xcodebuild: error: Failed to build project code-sign-test with scheme code-sign-test.
+Reason: This scheme builds an embedded Apple Watch app. watchOS 9.0 must be installed in order to archive the scheme
+Recovery suggestion: watchOS 9.0 is not installed. To use with Xcode, first download and install the platform`},
+		},
+		{
+			name: "xcodebuild error and regular error with project path prefix",
+			out: `./steps-xcode-archive/_tmp/code-sign-test.xcodeproj: error: No profile for team 'ASDF8V3WYL' matching 'BitriseBot-Wildcard' found: Xcode couldn't find any provisioning profiles matching 'ASDF8V3WYL/BitriseBot-Wildcard'. Install the profile (by dragging and dropping it onto Xcode's dock item) or select a different one in the Signing & Capabilities tab of the target editor. (in target 'code-sign-test' from project 'code-sign-test')
+
+xcodebuild: error: Failed to build project code-sign-test with scheme code-sign-test.
+        Reason: This scheme builds an embedded Apple Watch app. watchOS 9.0 must be installed in order to archive the scheme
+        Recovery suggestion: watchOS 9.0 is not installed. To use with Xcode, first download and install the platform`,
+			want: []string{
+				`./steps-xcode-archive/_tmp/code-sign-test.xcodeproj: error: No profile for team 'ASDF8V3WYL' matching 'BitriseBot-Wildcard' found: Xcode couldn't find any provisioning profiles matching 'ASDF8V3WYL/BitriseBot-Wildcard'. Install the profile (by dragging and dropping it onto Xcode's dock item) or select a different one in the Signing & Capabilities tab of the target editor. (in target 'code-sign-test' from project 'code-sign-test')`,
+				`xcodebuild: error: Failed to build project code-sign-test with scheme code-sign-test.
 Reason: This scheme builds an embedded Apple Watch app. watchOS 9.0 must be installed in order to archive the scheme
 Recovery suggestion: watchOS 9.0 is not installed. To use with Xcode, first download and install the platform`},
 		},

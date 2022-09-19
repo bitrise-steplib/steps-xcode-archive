@@ -120,11 +120,11 @@ func findXcodebuildErrors(out string) []string {
 		}
 
 		switch {
-		case strings.HasPrefix(line, "error: "):
-			errorLines = append(errorLines, line)
 		case strings.HasPrefix(line, "xcodebuild: error: "):
 			xcodebuildError = line
 			isXcodebuildError = true
+		case strings.HasPrefix(line, "error: ") || strings.Contains(line, " error: "):
+			errorLines = append(errorLines, line)
 		case strings.HasPrefix(line, "Error "):
 			if e := NewNSError(line); e != nil {
 				nserrors = append(nserrors, *e)
