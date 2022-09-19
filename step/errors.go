@@ -96,36 +96,73 @@ func wrapXcodebuildCommandError(cmd Printable, out string, err error) error {
 }
 
 func findXcodebuildErrors(out string) []string {
-	var errorLines []string
-	var nserrors []NSError
+	var errorLines []string       // single line errors with "error: " prefix
+	var xcodebuildErrors []string // multiline errors starting with "xcodebuild: error: " prefix
+	var nserrors []NSError        // single line NSErrors with schema: Error Domain=<domain> Code=<code> "<reason>" UserInfo=<user_info>
+
+	isXcodebuildError := false
+	var xcodebuildError string
 
 	scanner := bufio.NewScanner(strings.NewReader(out))
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if strings.HasPrefix(line, "error: ") {
+		if isXcodebuildError {
+			line = strings.TrimLeft(line, " ")
+			if strings.HasPrefix(line, "Reason: ") || strings.HasPrefix(line, "Recovery suggestion: ") {
+				xcodebuildError += "\n" + line
+				continue
+			} else {
+				xcodebuildErrors = append(xcodebuildErrors, xcodebuildError)
+				isXcodebuildError = false
+			}
+		}
+
+		switch {
+		case strings.HasPrefix(line, "error: "):
 			errorLines = append(errorLines, line)
-		} else if strings.HasPrefix(line, "Error ") {
+		case strings.HasPrefix(line, "xcodebuild: error: "):
+			xcodebuildError = line
+			isXcodebuildError = true
+		case strings.HasPrefix(line, "Error "):
 			if e := NewNSError(line); e != nil {
 				nserrors = append(nserrors, *e)
 			}
 		}
-
 	}
 	if err := scanner.Err(); err != nil {
 		return nil
 	}
 
-	// Prefer NSErrors if found for all errors,
-	// this is because an NSError has a suggestion in addition to the error reason,
-	// but we use regular expression for parsing NSErrors.
-	if len(nserrors) == len(errorLines) {
-		errorLines = []string{}
-		for _, nserror := range nserrors {
-			errorLines = append(errorLines, nserror.Error())
-		}
+	if xcodebuildError != "" {
+		xcodebuildErrors = append(xcodebuildErrors, xcodebuildError)
 	}
 
-	return errorLines
+	// Regular error lines (line with 'error: ' prefix) seems to have
+	// NSError line pairs (same description) in some cases.
+	errorLines = intersection(errorLines, nserrors)
+
+	return append(errorLines, xcodebuildErrors...)
+}
+
+func intersection(errorLines []string, nserrors []NSError) []string {
+	union := make([]string, len(errorLines))
+	copy(union, errorLines)
+
+	for _, nserror := range nserrors {
+		found := false
+		for i, errorLine := range errorLines {
+			// Checking suffix, as regular error lines have additional prefixes, like "error: exportArchive: "
+			if strings.HasSuffix(errorLine, nserror.Description) {
+				union[i] = nserror.Error()
+				found = true
+				break
+			}
+		}
+		if !found {
+			union = append(union, nserror.Error())
+		}
+	}
+	return union
 }
