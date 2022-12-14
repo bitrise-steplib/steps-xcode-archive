@@ -50,6 +50,7 @@ const (
 	xcodebuildArchiveLogPathEnvKey       = "BITRISE_XCODEBUILD_ARCHIVE_LOG_PATH"
 	xcodebuildExportArchiveLogPathEnvKey = "BITRISE_XCODEBUILD_EXPORT_ARCHIVE_LOG_PATH"
 	bitriseIDEDistributionLogsPthEnvKey  = "BITRISE_IDEDISTRIBUTION_LOGS_PATH"
+	xcodebuildArchiveLogFilename         = "xcodebuild-archive.log"
 
 	// Env Outputs
 	bitriseAppDirPthEnvKey    = "BITRISE_APP_DIR_PATH"
@@ -867,8 +868,8 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 		}
 		s.logger.Printf(stringutil.LastNLines(xcodebuildLog, 20))
 
-		s.logger.Warnf(`You can find the last couple of lines of Xcode's build log above, but the full log will be also available in the raw-xcodebuild-output.log
-The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable.`)
+		s.logger.Warnf(fmt.Sprintf(`You can find the last couple of lines of Xcode's build log above, but the full log will be also available in the %s
+The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $%s environment variable.`, xcodebuildArchiveLogFilename, xcodebuildArchiveLogPathEnvKey))
 	}
 	if err != nil {
 		return out, fmt.Errorf("failed to archive the project: %w", err)
@@ -1019,9 +1020,9 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 	out.XcodebuildExportArchiveLog = xcodebuildLog
 	if exportErr != nil {
 		if useXCPretty {
-			s.logger.Warnf(`If you can't find the reason of the error in the log, please check the raw-xcodebuild-output.log
+			s.logger.Warnf(fmt.Sprintf(`If you can't find the reason of the error in the log, please check the %s
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
-is available in the $BITRISE_XCODE_RAW_RESULT_TEXT_PATH environment variable`)
+is available in the $%s environment variable`, xcodebuildArchiveLogFilename, xcodebuildArchiveLogPathEnvKey))
 		}
 
 		// xcdistributionlogs
