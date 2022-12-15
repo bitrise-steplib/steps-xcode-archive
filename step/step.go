@@ -657,13 +657,13 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	}
 
 	if opts.XcodebuildExportArchiveLog != "" {
-		xcodebuildExportArchiveLogPath := filepath.Join(opts.OutputDir, xcodeBuildExportArchiveLogFileName)
+		xcodebuildExportArchiveLogPath := filepath.Join(opts.OutputDir, xcodebuildExportArchiveLogFilename)
 		if err := cleanup(xcodebuildExportArchiveLogPath); err != nil {
 			return err
 		}
 
 		if err := ExportOutputFileContent(s.cmdFactory, opts.XcodebuildExportArchiveLog, xcodebuildExportArchiveLogPath, xcodebuildExportArchiveLogPathEnvKey); err != nil {
-			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildArchiveLogPathEnvKey, err)
+			s.logger.Warnf("Failed to export %s, error: %s", xcodebuildExportArchiveLogPathEnvKey, err)
 		} else {
 			s.logger.Donef("The xcodebuild -exportArchive log path is now available in the Environment Variable: %s (value: %s)", xcodebuildExportArchiveLogPathEnvKey, xcodebuildExportArchiveLogPath)
 		}
@@ -1023,7 +1023,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		if useXCPretty {
 			s.logger.Warnf(fmt.Sprintf(`If you can't find the reason of the error in the log, please check the %s
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path
-will be available in the $%s environment variable`, xcodebuildExportArchiveLogFilename, xcodebuildArchiveLogPathEnvKey))
+will be available in the $%s environment variable`, xcodebuildExportArchiveLogFilename, xcodebuildExportArchiveLogPathEnvKey))
 		}
 
 		// xcdistributionlogs
