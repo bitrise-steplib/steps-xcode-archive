@@ -643,7 +643,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	}
 
 	if opts.XcodebuildArchiveLog != "" {
-		xcodebuildArchiveLogPath := filepath.Join(opts.OutputDir, "xcodebuild-archive.log")
+		xcodebuildArchiveLogPath := filepath.Join(opts.OutputDir, xcodebuildArchiveLogFilename)
 		if err := cleanup(xcodebuildArchiveLogPath); err != nil {
 			return err
 		}
