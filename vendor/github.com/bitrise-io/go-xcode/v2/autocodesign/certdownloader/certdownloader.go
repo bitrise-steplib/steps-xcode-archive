@@ -32,6 +32,7 @@ func NewDownloader(certs []CertificateAndPassphrase, client *http.Client) autoco
 	}
 }
 
+// GetCertificates ...
 func (d downloader) GetCertificates() ([]certificateutil.CertificateInfoModel, error) {
 	var certInfos []certificateutil.CertificateInfoModel
 
