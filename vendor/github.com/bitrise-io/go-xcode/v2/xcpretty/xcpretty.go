@@ -119,6 +119,7 @@ func NewXcpretty(logger log.Logger) Xcpretty {
 	}
 }
 
+// IsInstalled ...
 func (x xcpretty) IsInstalled() (bool, error) {
 	locator := env.NewCommandLocator()
 	factory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), locator)

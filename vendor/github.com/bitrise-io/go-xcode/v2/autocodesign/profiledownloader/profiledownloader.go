@@ -26,10 +26,12 @@ func New(profileURLs []string, client *http.Client) autocodesign.ProfileProvider
 	}
 }
 
+// IsAvailable returns true if there are available remote profiles to download
 func (d downloader) IsAvailable() bool {
 	return len(d.urls) != 0
 }
 
+// GetProfiles downloads remote profiles and returns their contents
 func (d downloader) GetProfiles() ([]autocodesign.LocalProfile, error) {
 	var profiles []autocodesign.LocalProfile
 

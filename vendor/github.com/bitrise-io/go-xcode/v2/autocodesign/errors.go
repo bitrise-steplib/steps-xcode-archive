@@ -14,7 +14,7 @@ type DetailedError struct {
 	Recommendation string
 }
 
-func (e *DetailedError) Error() string {
+func (e DetailedError) Error() string {
 	message := ""
 	if e.ErrorMessage != "" {
 		message += e.ErrorMessage + "\n"
