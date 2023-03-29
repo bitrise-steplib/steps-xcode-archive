@@ -340,7 +340,7 @@ workflows:
     - IPA_EXPORT_METHOD: development
     - IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT: ""
     - LOG_FORMATTER: xcodebuild
-    - DSYM_EXPECTED_COUNT: 1
+    - DSYM_EXPECTED_COUNT: 2
     after_run:
     - _run
     - _check_outputs
