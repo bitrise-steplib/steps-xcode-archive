@@ -370,7 +370,7 @@ workflows:
   test_workspace:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - TEST_APP_BRANCH: "master"
+    - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - CODE_SIGNING_METHOD: api-key
