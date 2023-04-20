@@ -132,7 +132,7 @@ workflows:
         - automatic_code_signing: $CODE_SIGNING_METHOD
         - xcconfig_content: |
             COMPILER_INDEX_STORE_ENABLE = NO
-            CODE_SIGN_IDENTITY = iPhone Developer: Dev Portal Bot Bitrise
+            CODE_SIGN_IDENTITY = iPhone Developer: Tooling Bot Bitrise
         - distribution_method: $IPA_EXPORT_METHOD
         - icloud_container_environment: $IPA_EXPORT_ICLOUD_CONTAINER_ENVIRONMENT
         - export_development_team: $TEAM_ID
@@ -160,7 +160,7 @@ workflows:
     - CODE_SIGNING_METHOD: api-key
     - XCCONFIG_CONTENT: |
         COMPILER_INDEX_STORE_ENABLE = NO
-        CODE_SIGN_IDENTITY = iPhone Developer: Dev Portal Bot Bitrise
+        CODE_SIGN_IDENTITY = iPhone Developer: Tooling Bot Bitrise
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
@@ -393,7 +393,7 @@ workflows:
     - BITRISE_SCHEME: Catalyst Sample
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
-    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Dev Portal Bot Bitrise"
+    - FORCE_CODE_SIGN_IDENTITY: "iPhone Developer: Tooling Bot Bitrise"
     - TEAM_ID: 72SA8V3WYL
     - FORCE_PROV_PROFILE_SPECIFIER: ""
     - IPA_EXPORT_METHOD: development
