@@ -33,6 +33,19 @@ type ProvisioningProfileInfoModel struct {
 	Type                  ProfileType
 }
 
+func collectCapabilitesPrintableInfo(entitlements plistutil.PlistData) map[string]interface{} {
+	capabilities := map[string]interface{}{}
+
+	for key, value := range entitlements {
+		if KnownProfileCapabilitiesMap[ProfileTypeIos][key] ||
+			KnownProfileCapabilitiesMap[ProfileTypeMacOs][key] {
+			capabilities[key] = value
+		}
+	}
+
+	return capabilities
+}
+
 // PrintableProvisioningProfileInfo ...
 func (info ProvisioningProfileInfoModel) String(installedCertificates ...certificateutil.CertificateInfoModel) string {
 	printable := map[string]interface{}{}
@@ -40,8 +53,11 @@ func (info ProvisioningProfileInfoModel) String(installedCertificates ...certifi
 	printable["export_type"] = string(info.ExportType)
 	printable["team"] = fmt.Sprintf("%s (%s)", info.TeamName, info.TeamID)
 	printable["bundle_id"] = info.BundleID
-	printable["expire"] = info.ExpirationDate.String()
+	printable["expiry"] = info.ExpirationDate.String()
 	printable["is_xcode_managed"] = info.IsXcodeManaged()
+
+	printable["capabilities"] = collectCapabilitesPrintableInfo(info.Entitlements)
+
 	if info.ProvisionedDevices != nil {
 		printable["devices"] = info.ProvisionedDevices
 	}
@@ -60,6 +76,7 @@ func (info ProvisioningProfileInfoModel) String(installedCertificates ...certifi
 	if installedCertificates != nil && !info.HasInstalledCertificate(installedCertificates) {
 		errors = append(errors, "none of the profile's certificates are installed")
 	}
+
 	if err := info.CheckValidity(); err != nil {
 		errors = append(errors, err.Error())
 	}

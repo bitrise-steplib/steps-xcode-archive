@@ -166,18 +166,6 @@ type APIKeyConnection struct {
 	PrivateKey string `json:"private_key"`
 }
 
-// TestDevice ...
-type TestDevice struct {
-	ID     int `json:"id"`
-	UserID int `json:"user_id"`
-	// DeviceID is the Apple device UDID
-	DeviceID   string    `json:"device_identifier"`
-	Title      string    `json:"title"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	DeviceType string    `json:"device_type"`
-}
-
 // IsEqualUDID compares two UDIDs (stored in the DeviceID field of TestDevice)
 func IsEqualUDID(UDID string, otherUDID string) bool {
 	return normalizeDeviceUDID(UDID) == normalizeDeviceUDID(otherUDID)
