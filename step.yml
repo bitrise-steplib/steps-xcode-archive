@@ -230,6 +230,8 @@ inputs:
       The format of the file is a comma separated list of the identifiers. For example:
       `00000000–0000000000000001,00000000–0000000000000002,00000000–0000000000000003`
 
+      And in the above example the registered devices appear with the name of `Device 1`, `Device 2` and `Device 3` in the Apple Developer Portal.
+
       Note that setting this will have a higher priority than the Bitrise provided devices list.
 
 - min_profile_validity: "0"

@@ -747,7 +747,7 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 	if config.TestDeviceListPath != "" {
 		testDevices, err = devportalservice.ParseTestDevicesFromFile(config.TestDeviceListPath, time.Now())
 		if err != nil {
-			s.logger.Warnf("Failed to process device list (%s): %s", config.TestDeviceListPath, err)
+			return codesign.Manager{}, fmt.Errorf("failed to process device list (%s): %s", config.TestDeviceListPath, err)
 		}
 	} else if serviceConnection != nil {
 		testDevices = serviceConnection.TestDevices
