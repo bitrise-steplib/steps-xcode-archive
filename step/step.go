@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/colorstring"
@@ -95,6 +96,7 @@ type Inputs struct {
 	KeychainPath                    string          `env:"keychain_path"`
 	KeychainPassword                stepconf.Secret `env:"keychain_password"`
 	RegisterTestDevices             bool            `env:"register_test_devices,opt[yes,no]"`
+	TestDeviceListPath              string          `env:"test_device_list_path"`
 	MinDaysProfileValid             int             `env:"min_profile_validity,required"`
 	FallbackProvisioningProfileURLs string          `env:"fallback_provisioning_profile_url_list"`
 	APIKeyPath                      stepconf.Secret `env:"api_key_path"`
@@ -740,10 +742,17 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 	}
 
 	client := retry.NewHTTPClient().StandardClient()
+
 	var testDevices []devportalservice.TestDevice
-	if serviceConnection != nil {
+	if config.TestDeviceListPath != "" {
+		testDevices, err = devportalservice.ParseTestDevicesFromFile(config.TestDeviceListPath, time.Now())
+		if err != nil {
+			return codesign.Manager{}, fmt.Errorf("failed to process device list (%s): %s", config.TestDeviceListPath, err)
+		}
+	} else if serviceConnection != nil {
 		testDevices = serviceConnection.TestDevices
 	}
+
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,

@@ -219,6 +219,21 @@ inputs:
     - "yes"
     - "no"
 
+- test_device_list_path:
+  opts:
+    category: Automatic code signing
+    title: Path of file containing the devices to be registered
+    summary: If this input is set, the Step will register the listed devices from this file with the Apple Developer Portal.
+    description: |-
+      If this input is set, the Step will register the listed devices from this file with the Apple Developer Portal.
+
+      The format of the file is a comma separated list of the identifiers. For example:
+      `00000000–0000000000000001,00000000–0000000000000002,00000000–0000000000000003`
+
+      And in the above example the registered devices appear with the name of `Device 1`, `Device 2` and `Device 3` in the Apple Developer Portal.
+
+      Note that setting this will have a higher priority than the Bitrise provided devices list.
+
 - min_profile_validity: "0"
   opts:
     category: Automatic code signing
