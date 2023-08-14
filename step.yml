@@ -162,7 +162,7 @@ inputs:
 
       Prefer using `Build settings (xcconfig)` input for specifying `-xcconfig` option. You can't use both.
 
-      `-destination` is set automatically, unless specified explicitely.
+      `-destination` is set automatically, unless specified explicitly.
 
 # xcodebuild log formatting
 
