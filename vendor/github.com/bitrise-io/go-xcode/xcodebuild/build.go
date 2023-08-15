@@ -11,6 +11,8 @@ import (
 const (
 	// XCWorkspaceExtension ...
 	XCWorkspaceExtension = ".xcworkspace"
+	// XCProjExtension ...
+	XCProjExtension = ".xcodeproj"
 )
 
 /*
