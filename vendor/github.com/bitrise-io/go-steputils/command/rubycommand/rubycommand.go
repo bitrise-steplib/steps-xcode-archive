@@ -33,6 +33,8 @@ const (
 	RVMRuby
 	// RbenvRuby ...
 	RbenvRuby
+	// ASDFRuby ...
+	ASDFRuby
 )
 
 func cmdExist(slice ...string) bool {
@@ -66,6 +68,13 @@ func RubyInstallType() InstallType {
 		installType = RVMRuby
 	} else if cmdExist("rbenv", "-v") {
 		installType = RbenvRuby
+	} else if cmdExist("asdf") {
+		// asdf doesn't store its installs in a definite location,
+		// but it does store its shims in a 'shims' directory, which
+		// is what we'll get from the `which ruby` call above.
+		if strings.Contains(whichRuby, "shims/ruby") {
+			installType = ASDFRuby
+		}
 	}
 
 	return installType
@@ -146,7 +155,12 @@ func GemUpdate(gem string) ([]*command.Model, error) {
 		if err != nil {
 			return []*command.Model{}, err
 		}
-
+		cmds = append(cmds, cmd)
+	} else if rubyInstallType == ASDFRuby {
+		cmd, err := New("asdf", "reshim", "ruby")
+		if err != nil {
+			return []*command.Model{}, err
+		}
 		cmds = append(cmds, cmd)
 	}
 
@@ -180,7 +194,12 @@ func GemInstall(gem, version string, enablePrerelease bool) ([]*command.Model, e
 		if err != nil {
 			return []*command.Model{}, err
 		}
-
+		cmds = append(cmds, cmd)
+	} else if rubyInstallType == ASDFRuby {
+		cmd, err := New("asdf", "reshim", "ruby")
+		if err != nil {
+			return []*command.Model{}, err
+		}
 		cmds = append(cmds, cmd)
 	}
 
@@ -273,4 +292,49 @@ func IsSpecifiedRbenvRubyInstalled(workdir string) (bool, string, error) {
 		log.Warnf("failed to check installed ruby version, %s error: %s", out, err)
 	}
 	return isSpecifiedRbenvRubyInstalled(out)
+}
+
+func isSpecifiedASDFRubyInstalled(message string) (isInstalled bool, versionInstalled string, error error) {
+	//
+	// Not installed
+	regexPattern := "Not installed. Run \"asdf install ruby .*\""
+	reg, err := regexp.Compile(regexPattern)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to parse regex ( %s ) on the error message, error: %s", regexPattern, err)
+	}
+
+	var version string
+	if reg.MatchString(message) {
+		//
+		// Not installed
+		version = strings.Split(strings.Split(message, "asdf install ruby ")[1], "\"")[0]
+		return false, version, nil
+	}
+
+	//
+	// Installed
+	patternTerminator := "/"
+	if strings.Contains(message, "ASDF_RUBY_VERSION") {
+		patternTerminator = "ASDF_RUBY_VERSION"
+	}
+
+	version = strings.Split(strings.Split(message, "ruby ")[1], patternTerminator)[0]
+	version = strings.TrimSpace(version)
+	return true, version, nil
+}
+
+// IsSpecifiedASDFRubyInstalled checks if the selected ruby version is installed via asdf
+func IsSpecifiedASDFRubyInstalled(workdir string) (isInstalled bool, versionInstalled string, error error) {
+	absWorkdir, err := pathutil.AbsPath(workdir)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to get absolute path for ( %s ), error: %s", workdir, err)
+	}
+
+	cmd := command.New("asdf", "current", "ruby").SetDir(absWorkdir)
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		log.Warnf("failed to check installed ruby version, %s error: %s", out, err)
+	}
+
+	return isSpecifiedASDFRubyInstalled(out)
 }

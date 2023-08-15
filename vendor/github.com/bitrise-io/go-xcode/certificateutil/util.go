@@ -10,7 +10,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
-	"github.com/bitrise-io/pkcs12"
+	"github.com/bitrise-io/go-pkcs12"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +21,7 @@ func commandError(printableCmd string, cmdOut string, cmdErr error) error {
 // CertificatesFromPKCS12Content returns an array of CertificateInfoModel
 // Used to parse p12 file containing multiple codesign identities (exported from macOS Keychain)
 func CertificatesFromPKCS12Content(content []byte, password string) ([]CertificateInfoModel, error) {
-	certificates, privateKeys, err := pkcs12.DecodeAll(content, password)
+	privateKeys, certificates, err := pkcs12.DecodeAll(content, password)
 	if err != nil {
 		return nil, err
 	}

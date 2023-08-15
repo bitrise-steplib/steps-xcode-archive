@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/parseutil"
 	"github.com/bitrise-io/go-utils/v2/env"
 )
 
@@ -86,11 +85,11 @@ func setField(field reflect.Value, value, constraint string) error {
 		field = field.Elem()
 	}
 
-	switch field.Kind() {
+	switch field.Kind() { //nolint:exhaustive
 	case reflect.String:
 		field.SetString(value)
 	case reflect.Bool:
-		b, err := parseutil.ParseBool(value)
+		b, err := parseBool(value)
 		if err != nil {
 			return errors.New("can't convert to bool")
 		}
@@ -447,4 +446,20 @@ func contains(s, opt string) bool {
 		}
 	}
 	return false
+}
+
+func parseBool(userInputStr string) (bool, error) {
+	if userInputStr == "" {
+		return false, errors.New("no string to parse")
+	}
+	userInputStr = strings.TrimSpace(userInputStr)
+
+	lowercased := strings.ToLower(userInputStr)
+	if lowercased == "yes" || lowercased == "y" {
+		return true, nil
+	}
+	if lowercased == "no" || lowercased == "n" {
+		return false, nil
+	}
+	return strconv.ParseBool(lowercased)
 }

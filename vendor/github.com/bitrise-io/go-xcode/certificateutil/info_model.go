@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/pkcs12"
+	"github.com/bitrise-io/go-pkcs12"
 )
 
 // CertificateInfoModel ...
