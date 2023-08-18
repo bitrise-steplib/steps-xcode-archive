@@ -11,15 +11,13 @@ import (
 	"sort"
 	"strings"
 
-	plist "github.com/bitrise-io/go-plist"
+	"github.com/bitrise-io/go-plist"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/pretty"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
-	"golang.org/x/text/unicode/norm"
 )
 
 const (
@@ -328,34 +326,6 @@ func (p XcodeProj) TargetBuildSettings(target, configuration string, customOptio
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)
 	return commandModel.RunAndReturnSettings()
-}
-
-// Scheme returns the project's scheme by name and the project's absolute path.
-func (p XcodeProj) Scheme(name string) (*xcscheme.Scheme, string, error) {
-	schemes, err := p.Schemes()
-	if err != nil {
-		return nil, "", err
-	}
-
-	normName := norm.NFC.String(name)
-	for _, scheme := range schemes {
-		if norm.NFC.String(scheme.Name) == normName {
-			return &scheme, p.Path, nil
-		}
-	}
-
-	return nil, "", xcscheme.NotFoundError{Scheme: name, Container: p.Name}
-}
-
-// Schemes ...
-func (p XcodeProj) Schemes() ([]xcscheme.Scheme, error) {
-	log.TDebugf("Locating scheme for project path: %s", p.Path)
-
-	schemes, err := xcscheme.FindSchemesIn(p.Path)
-
-	log.TDebugf("Located %v schemes", len(schemes))
-
-	return schemes, err
 }
 
 // Open ...

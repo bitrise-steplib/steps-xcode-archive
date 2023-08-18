@@ -8,12 +8,9 @@ import (
 
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
-	"golang.org/x/text/unicode/norm"
 )
 
 const (
@@ -30,23 +27,23 @@ type Workspace struct {
 	Path string
 }
 
-// Scheme returns the scheme by name and it's container's absolute path.
-func (w Workspace) Scheme(name string) (*xcscheme.Scheme, string, error) {
-	schemesByContainer, err := w.Schemes()
+// Open ...
+func Open(pth string) (Workspace, error) {
+	contentsPth := filepath.Join(pth, "contents.xcworkspacedata")
+	b, err := fileutil.ReadBytesFromFile(contentsPth)
 	if err != nil {
-		return nil, "", err
+		return Workspace{}, err
 	}
 
-	normName := norm.NFC.String(name)
-	for container, schemes := range schemesByContainer {
-		for _, scheme := range schemes {
-			if norm.NFC.String(scheme.Name) == normName {
-				return &scheme, container, nil
-			}
-		}
+	var workspace Workspace
+	if err := xml.Unmarshal(b, &workspace); err != nil {
+		return Workspace{}, fmt.Errorf("failed to unmarshal workspace file: %s, error: %s", pth, err)
 	}
 
-	return nil, "", xcscheme.NotFoundError{Scheme: name, Container: w.Name}
+	workspace.Name = strings.TrimSuffix(filepath.Base(pth), filepath.Ext(pth))
+	workspace.Path = pth
+
+	return workspace, nil
 }
 
 // SchemeBuildSettings ...
@@ -63,51 +60,6 @@ func (w Workspace) SchemeBuildSettings(scheme, configuration string, customOptio
 	log.TDebugf("Fetched %s scheme build settings", scheme)
 
 	return object, err
-}
-
-// Schemes ...
-func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
-	log.TDebugf("Looking for schemes in workspace: %s", w.Name)
-
-	schemesByContainer := map[string][]xcscheme.Scheme{}
-
-	workspaceSchemes, err := xcscheme.FindSchemesIn(w.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	schemesByContainer[w.Path] = workspaceSchemes
-
-	// project schemes
-	projectLocations, err := w.ProjectFileLocations()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, projectLocation := range projectLocations {
-		if exist, err := pathutil.IsPathExists(projectLocation); err != nil {
-			return nil, fmt.Errorf("failed to check if project exist at: %s, error: %s", projectLocation, err)
-		} else if !exist {
-			// at this point we are interested the schemes visible for the workspace
-			continue
-		}
-
-		project, err := xcodeproj.Open(projectLocation)
-		if err != nil {
-			return nil, err
-		}
-
-		projectSchemes, err := project.Schemes()
-		if err != nil {
-			return nil, err
-		}
-
-		schemesByContainer[project.Path] = projectSchemes
-	}
-
-	log.TDebugf("Found %v workspace schemes", len(schemesByContainer))
-
-	return schemesByContainer, nil
 }
 
 // FileLocations ...
@@ -148,28 +100,4 @@ func (w Workspace) ProjectFileLocations() ([]string, error) {
 		}
 	}
 	return projectLocations, nil
-}
-
-// Open ...
-func Open(pth string) (Workspace, error) {
-	contentsPth := filepath.Join(pth, "contents.xcworkspacedata")
-	b, err := fileutil.ReadBytesFromFile(contentsPth)
-	if err != nil {
-		return Workspace{}, err
-	}
-
-	var workspace Workspace
-	if err := xml.Unmarshal(b, &workspace); err != nil {
-		return Workspace{}, fmt.Errorf("failed to unmarshal workspace file: %s, error: %s", pth, err)
-	}
-
-	workspace.Name = strings.TrimSuffix(filepath.Base(pth), filepath.Ext(pth))
-	workspace.Path = pth
-
-	return workspace, nil
-}
-
-// IsWorkspace ...
-func IsWorkspace(pth string) bool {
-	return filepath.Ext(pth) == ".xcworkspace"
 }

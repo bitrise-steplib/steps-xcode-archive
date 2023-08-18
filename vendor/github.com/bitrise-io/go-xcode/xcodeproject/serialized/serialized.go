@@ -21,6 +21,21 @@ func (o Object) Value(key string) (interface{}, error) {
 	return value, nil
 }
 
+// Bool ...
+func (o Object) Bool(key string) (bool, error) {
+	value, err := o.Value(key)
+	if err != nil {
+		return false, err
+	}
+
+	casted, ok := value.(bool)
+	if !ok {
+		return false, NewTypeCastError(key, value, "bool")
+	}
+
+	return casted, nil
+}
+
 // String ...
 func (o Object) String(key string) (string, error) {
 	value, err := o.Value(key)
