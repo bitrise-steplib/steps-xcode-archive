@@ -227,6 +227,10 @@ func (p XcodeProj) isAutocreateSchemesEnabled() (bool, error) {
 
 	autoCreate, err := settings.Bool("IDEWorkspaceSharedSettings_AutocreateContextsIfNeeded")
 	if err != nil {
+		if serialized.IsKeyNotFoundError(err) {
+			// By default 'Autocreate Schemes' is enabled
+			return true, nil
+		}
 		return false, err
 	}
 
