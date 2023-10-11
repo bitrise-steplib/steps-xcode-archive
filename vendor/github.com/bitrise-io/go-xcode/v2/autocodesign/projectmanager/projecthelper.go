@@ -448,7 +448,7 @@ func findBuiltProject(pth, schemeName string) (xcodeproj.XcodeProj, xcscheme.Sch
 
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {
-		return xcodeproj.XcodeProj{}, xcscheme.Scheme{}, fmt.Errorf("could not get scheme with name %s from path %s", schemeName, pth)
+		return xcodeproj.XcodeProj{}, xcscheme.Scheme{}, fmt.Errorf("could not get scheme with name %s from path %s: %w", schemeName, pth, err)
 	}
 
 	archiveEntry, archivable := scheme.AppBuildActionEntry()
