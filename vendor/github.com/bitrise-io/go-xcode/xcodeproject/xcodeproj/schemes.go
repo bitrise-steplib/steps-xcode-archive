@@ -43,7 +43,7 @@ func (p XcodeProj) Schemes() ([]xcscheme.Scheme, error) {
 
 		isAutocreateSchemesEnabled, err := p.isAutocreateSchemesEnabled()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read the project autocreate scheme option: %w", err)
 		}
 
 		if isAutocreateSchemesEnabled {

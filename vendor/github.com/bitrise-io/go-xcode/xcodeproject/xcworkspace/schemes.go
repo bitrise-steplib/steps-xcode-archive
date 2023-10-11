@@ -26,12 +26,12 @@ func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
 
 	sharedSchemes, err := w.sharedSchemes()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read shared schemes: %w", err)
 	}
 
 	userSchemes, err := w.userSchemes()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read user schemes: %w", err)
 	}
 
 	workspaceSchemes := append(sharedSchemes, userSchemes...)
@@ -44,17 +44,17 @@ func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
 	// project schemes
 	projectLocations, err := w.ProjectFileLocations()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get project locations from workspace: %w", err)
 	}
 
 	isAutocreateSchemesEnabled, err := w.isAutocreateSchemesEnabled()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read the workspace autocreate scheme option: %w", err)
 	}
 
 	for _, projectLocation := range projectLocations {
 		if exist, err := pathutil.IsPathExists(projectLocation); err != nil {
-			return nil, fmt.Errorf("failed to check if project exist at: %s, error: %s", projectLocation, err)
+			return nil, fmt.Errorf("failed to check if project (%s) exists: %w", projectLocation, err)
 		} else if !exist {
 			// at this point we are interested the schemes visible for the workspace
 			continue
@@ -62,12 +62,12 @@ func (w Workspace) Schemes() (map[string][]xcscheme.Scheme, error) {
 
 		project, err := xcodeproj.Open(projectLocation)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to open project (%s): %w", projectLocation, err)
 		}
 
 		projectSchemes, err := project.SchemesWithAutocreateEnabled(isAutocreateSchemesEnabled)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read project (%s) schemes: %w", projectLocation, err)
 		}
 
 		if len(projectSchemes) > 0 {
@@ -179,7 +179,7 @@ func (w Workspace) isAutocreateSchemesEnabled() (bool, error) {
 
 	var settings serialized.Object
 	if _, err := plist.Unmarshal(workspaceSettingsContent, &settings); err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to unmarshall settings: %w", err)
 	}
 
 	autoCreate, err := settings.Bool("IDEWorkspaceSharedSettings_AutocreateContextsIfNeeded")
