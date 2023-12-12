@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -102,7 +103,13 @@ func runSpaceshipCommand(cmd spaceshipCommand) (string, error) {
 	log.Debugf("$ %s", cmd.printableCommandArgs)
 	output, err := cmd.command.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("spaceship command failed, output: %s, error: %v", output, err)
+		// Omitting err from log, to avoid logging plaintext password present in command params
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			return "", fmt.Errorf("spaceship command exited with status %d, output: %s", exitError.ProcessState.ExitCode(), output)
+		}
+
+		return "", fmt.Errorf("spaceship command failed with output: %s", output)
 	}
 
 	jsonRegexp := regexp.MustCompile(`(?m)^\{.*\}$`)
