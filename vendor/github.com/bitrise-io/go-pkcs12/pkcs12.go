@@ -403,6 +403,122 @@ func DecodeTrustStore(pfxData []byte, password string) (certs []*x509.Certificat
 	return
 }
 
+var IncorrectAliasError = errors.New("pkcs12: incorrect key alias")
+var IncorrectKeystorePasswordError = errors.New("pkcs12: incorrect keystore password")
+var IncorrectKeyPasswordError = errors.New("pkcs12: incorrect key password")
+
+func DecodeKeystore(pfxData []byte, storepass, alias, keypass string) (privateKey interface{}, certificate *x509.Certificate, err error) {
+	encodedPassword, err := bmpStringZeroTerminated(storepass)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	encodedPrivateKeyPassword, err := bmpStringZeroTerminated(keypass)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	expectedNumberOfBags := 2
+	bags, encodedPassword, err := getSafeContents(pfxData, encodedPassword, expectedNumberOfBags)
+	if err != nil {
+		if err == ErrIncorrectPassword {
+			return nil, nil, IncorrectKeystorePasswordError
+		}
+		return nil, nil, err
+	}
+
+	if len(bags) != expectedNumberOfBags {
+		return nil, nil, fmt.Errorf("unexpected number of bags (%d), expected: %d", len(bags), expectedNumberOfBags)
+	}
+
+	certAlias := ""
+	privateKeyAlias := ""
+
+	for _, bag := range bags {
+		switch {
+		case bag.Id.Equal(oidCertBag):
+			certAlias, err = getAlias(bag)
+			if err != nil {
+				return nil, nil, fmt.Errorf("pkcs12: failed to get alias for the cert bag: %s", err)
+			}
+
+			certsData, err := decodeCertBag(bag.Value.Bytes)
+			if err != nil {
+				return nil, nil, err
+			}
+			cert, err := x509.ParseCertificate(certsData)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			certificate = cert
+		case bag.Id.Equal(oidPKCS8ShroundedKeyBag):
+			privateKeyAlias, err = getAlias(bag)
+			if err != nil {
+				return nil, nil, fmt.Errorf("pkcs12: failed to get alias for the key bag: %s", err)
+			}
+
+			key, err := decodePkcs8ShroudedKeyBag(bag.Value.Bytes, encodedPrivateKeyPassword)
+			if err != nil {
+				if err.Error() == "pkcs12: error decrypting PKCS#8 shrouded key bag: pkcs12: decryption error, incorrect padding" {
+					return nil, nil, IncorrectKeyPasswordError
+				}
+				return nil, nil, err
+			}
+
+			privateKey = key
+		}
+	}
+
+	if certificate == nil {
+		return nil, nil, errors.New("pkcs12: expected a certificate in the keystore")
+	}
+	if privateKey == nil {
+		return nil, nil, errors.New("pkcs12: expected a private key in the keystore")
+	}
+	if certAlias != privateKeyAlias {
+		return nil, nil, errors.New("pkcs12: expected same alias for the certificate and private key")
+	}
+	if certAlias != alias {
+		return nil, nil, IncorrectAliasError
+	}
+
+	return
+}
+
+func getAlias(bag safeBag) (string, error) {
+	if len(bag.Attributes) == 0 {
+		return "", errors.New("no attributes")
+	}
+
+	var aliasAttribute *pkcs12Attribute
+	for _, attribute := range bag.Attributes {
+		if attribute.Id.Equal(oidFriendlyName) {
+			aliasAttribute = &attribute
+			break
+		}
+	}
+
+	if aliasAttribute == nil {
+		return "", errors.New("alias attribute not found")
+	}
+
+	if err := unmarshal(aliasAttribute.Value.Bytes, &aliasAttribute.Value); err != nil {
+		return "", err
+	}
+
+	alias, err := decodeBMPString(aliasAttribute.Value.Bytes)
+	if err != nil {
+		return "", err
+	}
+
+	if alias == "" {
+		return "", errors.New("empty alias")
+	}
+
+	return alias, nil
+}
+
 func getSafeContents(p12Data, password []byte, expectedItems int) (bags []safeBag, updatedPassword []byte, err error) {
 	pfx := new(pfxPdu)
 	if err := unmarshal(p12Data, pfx); err != nil {
