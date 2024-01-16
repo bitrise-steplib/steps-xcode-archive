@@ -2,6 +2,7 @@ package codesign
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/appleauth"
@@ -229,6 +230,12 @@ func SelectConnectionCredentials(
 		session, err := bitriseConnection.AppleIDConnection.FastlaneLoginSession()
 		if err != nil {
 			return appleauth.Credentials{}, fmt.Errorf("failed to restore Apple ID login session: %w", err)
+		}
+
+		if session != "" &&
+			bitriseConnection.AppleIDConnection.SessionExpiryDate != nil &&
+			bitriseConnection.AppleIDConnection.SessionExpiryDate.Before(time.Now()) {
+			logger.Warnf("Two-factor session has expired at: %s", bitriseConnection.AppleIDConnection.SessionExpiryDate.Format("2006-01-02 15:04"))
 		}
 
 		logger.Donef("Using Apple Service connection with Apple ID.")

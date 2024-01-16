@@ -15,10 +15,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/go-steputils/v2/ruby"
 	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-xcode/appleauth"
@@ -101,21 +103,30 @@ func (c *Client) createRequestCommand(subCommand string, opts ...string) (spaces
 
 func runSpaceshipCommand(cmd spaceshipCommand) (string, error) {
 	log.Debugf("$ %s", cmd.printableCommandArgs)
-	output, err := cmd.command.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
+	var spaceshipOut string
+	if err := retry.Times(2).Wait(5 * time.Second).TryWithAbort(func(attempt uint) (error, bool) {
+		output, err := cmd.command.RunAndReturnTrimmedCombinedOutput()
+		spaceshipOut = output
+		if err != nil && shouldRetrySpaceshipCommand(output) {
+			log.Debugf(output)
+			log.Warnf("spaceship command failed with a retryable error, retrying...")
+			return err, false
+		}
+		return err, true
+	}); err != nil {
 		// Omitting err from log, to avoid logging plaintext password present in command params
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
-			return "", fmt.Errorf("spaceship command exited with status %d, output: %s", exitError.ProcessState.ExitCode(), output)
+			return "", fmt.Errorf("spaceship command exited with status %d, output: %s", exitError.ProcessState.ExitCode(), spaceshipOut)
 		}
 
-		return "", fmt.Errorf("spaceship command failed with output: %s", output)
+		return "", fmt.Errorf("spaceship command failed with output: %s", spaceshipOut)
 	}
 
 	jsonRegexp := regexp.MustCompile(`(?m)^\{.*\}$`)
-	match := jsonRegexp.FindString(output)
+	match := jsonRegexp.FindString(spaceshipOut)
 	if match == "" {
-		return "", fmt.Errorf("output does not contain response: %s", output)
+		return "", fmt.Errorf("output does not contain response: %s", spaceshipOut)
 	}
 
 	var response struct {
@@ -212,4 +223,11 @@ func prepareSpaceship() (string, error) {
 	}
 
 	return targetDir, nil
+}
+
+func shouldRetrySpaceshipCommand(out string) bool {
+	if out == "" {
+		return false
+	}
+	return strings.Contains(out, "503 Service Temporarily Unavailable")
 }
