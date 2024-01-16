@@ -25,46 +25,50 @@ begin
     opt.on('--udid UDID') { |o| options[:udid] = o }
   end.parse!
 
-  Log.verbose = true
+  FastlaneCore::Globals.verbose = true
 
-  begin
-    Portal::AuthClient.login(options[:username], options[:password], options[:session], options[:team_id])
-  rescue => e
-    puts "\nApple ID authentication failed: #{e}"
-    exit(1)
-  end
-
-  result = '{}'
-  case options[:subcommand]
-  when 'list_dev_certs'
-    client = CertificateHelper.new
-    result = client.list_dev_certs
-  when 'list_dist_certs'
-    client = CertificateHelper.new
-    result = client.list_dist_certs
-  when 'list_profiles'
-    result = list_profiles(options[:profile_type], options[:profile_name])
-  when 'get_app'
-    result = get_app(options[:bundle_id])
-  when 'create_app'
-    result = create_app(options[:bundle_id], options[:bundle_id_name])
-  when 'delete_profile'
-    delete_profile(options[:id])
-    result = { status: 'OK' }
-  when 'create_profile'
-    result = create_profile(options[:profile_type], options[:bundle_id], options[:certificate_id], options[:profile_name])
-  when 'check_bundleid'
-    entitlements = JSON.parse(options[:entitlements])
-    check_bundleid(options[:bundle_id], entitlements)
-  when 'sync_bundleid'
-    entitlements = JSON.parse(options[:entitlements])
-    sync_bundleid(options[:bundle_id], entitlements)
-  when 'list_devices'
-    result = list_devices
-  when 'register_device'
-    result = register_device(options[:udid], options[:name])
+  if options[:subcommand] == 'login'
+    begin
+      Portal::AuthClient.login(options[:username], options[:password], options[:session], options[:team_id])
+    rescue => e
+      puts "\nApple ID authentication failed: #{e}"
+      exit(1)
+    end
   else
-    raise "Unknown subcommand: #{options[:subcommand]}"
+    Portal::AuthClient.restore_from_session(options[:username], options[:team_id])
+
+    result = '{}'
+    case options[:subcommand]
+    when 'list_dev_certs'
+      client = CertificateHelper.new
+      result = client.list_dev_certs
+    when 'list_dist_certs'
+      client = CertificateHelper.new
+      result = client.list_dist_certs
+    when 'list_profiles'
+      result = list_profiles(options[:profile_type], options[:profile_name])
+    when 'get_app'
+      result = get_app(options[:bundle_id])
+    when 'create_app'
+      result = create_app(options[:bundle_id], options[:bundle_id_name])
+    when 'delete_profile'
+      delete_profile(options[:id])
+      result = { status: 'OK' }
+    when 'create_profile'
+      result = create_profile(options[:profile_type], options[:bundle_id], options[:certificate_id], options[:profile_name])
+    when 'check_bundleid'
+      entitlements = JSON.parse(options[:entitlements])
+      check_bundleid(options[:bundle_id], entitlements)
+    when 'sync_bundleid'
+      entitlements = JSON.parse(options[:entitlements])
+      sync_bundleid(options[:bundle_id], entitlements)
+    when 'list_devices'
+      result = list_devices
+    when 'register_device'
+      result = register_device(options[:udid], options[:name])
+    else
+      raise "Unknown subcommand: #{options[:subcommand]}"
+    end
   end
 
   response = { data: result }

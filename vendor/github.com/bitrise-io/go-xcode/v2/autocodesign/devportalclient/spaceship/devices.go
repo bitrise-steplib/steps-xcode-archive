@@ -51,12 +51,7 @@ func newDevice(d DeviceInfo) appstoreconnect.Device {
 func (d *DeviceClient) ListDevices(udid string, platform appstoreconnect.DevicePlatform) ([]appstoreconnect.Device, error) {
 	log.Debugf("Fetching devices")
 
-	cmd, err := d.client.createRequestCommand("list_devices")
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := runSpaceshipCommand(cmd)
+	output, err := d.client.runSpaceshipCommand("list_devices")
 	if err != nil {
 		return nil, err
 	}
@@ -94,15 +89,10 @@ func (d *DeviceClient) ListDevices(udid string, platform appstoreconnect.DeviceP
 func (d *DeviceClient) RegisterDevice(testDevice devportalservice.TestDevice) (*appstoreconnect.Device, error) {
 	log.Debugf("Registering device")
 
-	cmd, err := d.client.createRequestCommand("register_device",
+	output, err := d.client.runSpaceshipCommand("register_device",
 		"--udid", testDevice.DeviceID,
 		"--name", testDevice.Title,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := runSpaceshipCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
