@@ -115,6 +115,10 @@ func (c *Client) runSpaceshipCommand(subCommand string, opts ...string) (string,
 			log.Debugf(spaceshipOut)
 			log.TWarnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", i)
 
+			if err := c.clearSpaceshipCookie(); err != nil {
+				log.Debugf("failed to clear spaceship cookie: %s", err)
+			}
+
 			waitTimeSec := i * 15
 			time.Sleep(time.Duration(waitTimeSec) * time.Second)
 		} else {
@@ -159,6 +163,19 @@ func (c *Client) runSpaceshipCommandOnce(cmd spaceshipCommand) (string, error) {
 	}
 
 	return match, nil
+}
+
+func (c *Client) clearSpaceshipCookie() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	cookiePth := filepath.Join(home, ".fastlane/spaceship", c.authConfig.Username, "cookie")
+	err = os.Remove(cookiePth)
+	if os.IsNotExist(err) {
+		log.Debugf("spaceship cookie doesn't exist at: %s", cookiePth)
+	}
+	return err
 }
 
 func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
