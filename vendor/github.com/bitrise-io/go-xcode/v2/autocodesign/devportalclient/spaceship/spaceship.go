@@ -20,7 +20,6 @@ import (
 	"github.com/bitrise-io/go-steputils/v2/ruby"
 	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-xcode/appleauth"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
@@ -100,27 +99,30 @@ func (c *Client) createSpaceshipCommand(subCommand string, opts ...string) (spac
 
 func (c *Client) runSpaceshipCommand(subCommand string, opts ...string) (string, error) {
 	var spaceshipOut string
-	if err := retry.Times(2).Wait(5 * time.Second).TryWithAbort(func(attempt uint) (error, bool) {
+	var spaceshipErr error
+	for i := 1; i <= 3; i++ {
 		cmd, err := c.createSpaceshipCommand(subCommand, opts...)
 		if err != nil {
-			return err, true
+			return "", err
 		}
 
 		log.Debugf("$ %s", cmd.printableCommandArgs)
 
-		output, err := c.runSpaceshipCommandOnce(cmd)
-		spaceshipOut = output
-		if err != nil && shouldRetrySpaceshipCommand(output) {
-			log.Debugf(output)
-			log.Warnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", attempt+1)
-			return err, false
+		spaceshipOut, spaceshipErr = c.runSpaceshipCommandOnce(cmd)
+		if spaceshipErr == nil {
+			return spaceshipOut, nil
+		} else if shouldRetrySpaceshipCommand(spaceshipOut) {
+			log.Debugf(spaceshipOut)
+			log.Warnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", i)
+
+			waitTimeSec := i * 15
+			time.Sleep(time.Duration(waitTimeSec) * time.Second)
+		} else {
+			return "", spaceshipErr
 		}
-		return err, true
-	}); err != nil {
-		return "", err
 	}
 
-	return spaceshipOut, nil
+	return spaceshipOut, spaceshipErr
 }
 
 func (c *Client) runSpaceshipCommandOnce(cmd spaceshipCommand) (string, error) {
