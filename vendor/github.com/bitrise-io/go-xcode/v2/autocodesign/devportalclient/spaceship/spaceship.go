@@ -106,14 +106,14 @@ func (c *Client) runSpaceshipCommand(subCommand string, opts ...string) (string,
 			return "", err
 		}
 
-		log.Debugf("$ %s", cmd.printableCommandArgs)
+		log.TDebugf("$ %s", cmd.printableCommandArgs)
 
 		spaceshipOut, spaceshipErr = c.runSpaceshipCommandOnce(cmd)
 		if spaceshipErr == nil {
 			return spaceshipOut, nil
 		} else if shouldRetrySpaceshipCommand(spaceshipOut) {
 			log.Debugf(spaceshipOut)
-			log.Warnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", i)
+			log.TWarnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", i)
 
 			waitTimeSec := i * 15
 			time.Sleep(time.Duration(waitTimeSec) * time.Second)
