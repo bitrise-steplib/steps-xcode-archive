@@ -225,10 +225,10 @@ workflows:
 #    - _check_outputs
 #    - _check_exported_artifacts
 
-  test_api_key_signing_manual:
+  test_apple_id:
     steps:
     - bitrise-run:
-#        run_if: enveq "IS_LATEST_STACK_XCODE" "true"
+        run_if: enveq "IS_LATEST_STACK_XCODE" "true"
         inputs:
         - workflow_id: utility_test_apple_id
         - bitrise_config_path: ./e2e/bitrise.yml
@@ -284,7 +284,7 @@ workflows:
   test_apple_id_signing_managed_app_store:
     steps:
     - bitrise-run:
-#        run_if: enveq "IS_LATEST_STACK_XCODE" "true"
+        run_if: enveq "IS_LATEST_STACK_XCODE" "true"
         inputs:
         - workflow_id: utility_test_apple_id_signing_managed_app_store
         - bitrise_config_path: ./e2e/bitrise.yml
