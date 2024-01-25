@@ -222,11 +222,7 @@ func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
 
 		output, err := cmd.RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
-			if errorutil.IsExitStatusError(err) {
-				return "", fmt.Errorf("Installing bundler gem failed: %s", output)
-			}
-
-			return "", fmt.Errorf("running command failed: %s", err)
+			return "", fmt.Errorf("running command failed with error %s, output: %s", err, output)
 		}
 	}
 
@@ -240,11 +236,7 @@ func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
 
 	output, err := bundleInstallCmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		if errorutil.IsExitStatusError(err) {
-			return "", fmt.Errorf("bundle install failed: %s", output)
-		}
-
-		return "", fmt.Errorf("running command failed: %s", err)
+		return "", fmt.Errorf("running command failed with error %s, output: %s", err, output)
 	}
 
 	return targetDir, nil
