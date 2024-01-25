@@ -168,7 +168,8 @@ func (c *Client) clearSpaceshipCookie() error {
 	if err != nil {
 		return err
 	}
-	cookiePth := filepath.Join(home, ".fastlane/spaceship", c.authConfig.Username, "cookie")
+	//cookiePth := filepath.Join(home, ".fastlane/spaceship", c.authConfig.Username, "cookie")
+	cookiePth := filepath.Join(home, ".fastlane")
 	err = os.Remove(cookiePth)
 	if os.IsNotExist(err) {
 		log.Debugf("spaceship cookie doesn't exist at: %s", cookiePth)
