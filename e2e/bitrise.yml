@@ -225,7 +225,15 @@ workflows:
 #    - _check_outputs
 #    - _check_exported_artifacts
 
-  test_apple_id:
+  test_api_key_signing_manual:
+    steps:
+    - bitrise-run:
+        run_if: enveq "IS_LATEST_STACK_XCODE" "true"
+        inputs:
+        - workflow_id: utility_test_apple_id
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_apple_id:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-simple-objc.git
     - TEST_APP_BRANCH: new-certificates
@@ -274,6 +282,14 @@ workflows:
 #    - _check_exported_artifacts
 
   test_apple_id_signing_managed_app_store:
+    steps:
+    - bitrise-run:
+        run_if: enveq "IS_LATEST_STACK_XCODE" "true"
+        inputs:
+        - workflow_id: utility_test_apple_id_signing_managed_app_store
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_apple_id_signing_managed_app_store:
     description: Test Apple ID based code signing and app store export on a project where signing is managed automatically
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
