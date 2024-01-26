@@ -118,7 +118,7 @@ func (c *Client) runSpaceshipCommand(subCommand string, opts ...string) (string,
 				log.Debugf("failed to clear spaceship cookie: %s", err)
 			}
 
-			time.Sleep(time.Duration(i) * time.Minute)
+			time.Sleep(time.Duration(i*5) * time.Second)
 		} else {
 			return "", spaceshipErr
 		}
