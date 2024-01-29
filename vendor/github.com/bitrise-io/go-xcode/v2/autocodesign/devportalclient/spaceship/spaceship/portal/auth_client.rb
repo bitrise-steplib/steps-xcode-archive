@@ -23,6 +23,8 @@ module Portal
       client = Spaceship::PortalClient.new(current_team_id: team_id)
       client.user = username
       client.load_session_from_file
+
+      Spaceship::Portal.client = client
     end
   end
 end
