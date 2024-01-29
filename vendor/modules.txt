@@ -60,7 +60,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/xcpretty
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.37.0.20240116131404-a5f69d4a5a40
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.37.0.20240129091427-813938aeac63
 ## explicit; go 1.20
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader

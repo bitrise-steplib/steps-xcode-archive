@@ -125,15 +125,10 @@ type AppInfo struct {
 func (c *ProfileClient) FindProfile(name string, profileType appstoreconnect.ProfileType) (autocodesign.Profile, error) {
 	log.Debugf("Locating provision profile")
 
-	cmd, err := c.client.createRequestCommand("list_profiles",
+	output, err := c.client.runSpaceshipCommand("list_profiles",
 		profileNameArgKey, name,
 		profileTypeArgKey, string(profileType),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := runSpaceshipCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -164,12 +159,7 @@ func (c *ProfileClient) FindProfile(name string, profileType appstoreconnect.Pro
 func (c *ProfileClient) DeleteProfile(id string) error {
 	log.Debugf("Deleting provisioning profile: %s", id)
 
-	cmd, err := c.client.createRequestCommand("delete_profile", "--id", id)
-	if err != nil {
-		return err
-	}
-
-	_, err = runSpaceshipCommand(cmd)
+	_, err := c.client.runSpaceshipCommand("delete_profile", "--id", id)
 	if err != nil {
 		return err
 	}
@@ -181,17 +171,12 @@ func (c *ProfileClient) DeleteProfile(id string) error {
 func (c *ProfileClient) CreateProfile(name string, profileType appstoreconnect.ProfileType, bundleID appstoreconnect.BundleID, certificateIDs []string, deviceIDs []string) (autocodesign.Profile, error) {
 	log.Debugf("Creating provisioning profile with name: %s", name)
 
-	cmd, err := c.client.createRequestCommand("create_profile",
+	output, err := c.client.runSpaceshipCommand("create_profile",
 		bundleIDIdentifierArgKey, bundleID.Attributes.Identifier,
 		certificateIDArgKey, certificateIDs[0],
 		profileNameArgKey, name,
 		profileTypeArgKey, string(profileType),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := runSpaceshipCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -219,14 +204,9 @@ func (c *ProfileClient) CreateProfile(name string, profileType appstoreconnect.P
 func (c *ProfileClient) FindBundleID(bundleIDIdentifier string) (*appstoreconnect.BundleID, error) {
 	log.Debugf("Locating bundle id: %s", bundleIDIdentifier)
 
-	cmd, err := c.client.createRequestCommand("get_app",
+	output, err := c.client.runSpaceshipCommand("get_app",
 		bundleIDIdentifierArgKey, bundleIDIdentifier,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := runSpaceshipCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -256,15 +236,10 @@ func (c *ProfileClient) FindBundleID(bundleIDIdentifier string) (*appstoreconnec
 func (c *ProfileClient) CreateBundleID(bundleIDIdentifier, appIDName string) (*appstoreconnect.BundleID, error) {
 	log.Debugf("Creating new bundle id with name: %s", bundleIDIdentifier)
 
-	cmd, err := c.client.createRequestCommand("create_app",
+	output, err := c.client.runSpaceshipCommand("create_app",
 		bundleIDIdentifierArgKey, bundleIDIdentifier,
 		bundleIDNameArgKey, appIDName,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := runSpaceshipCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -295,15 +270,10 @@ func (c *ProfileClient) CheckBundleIDEntitlements(bundleID appstoreconnect.Bundl
 	}
 	entitlementsBase64 := base64.StdEncoding.EncodeToString(entitlementsBytes)
 
-	cmd, err := c.client.createRequestCommand("check_bundleid",
+	_, err = c.client.runSpaceshipCommand("check_bundleid",
 		bundleIDIdentifierArgKey, bundleID.Attributes.Identifier,
 		entitlementsArgKey, entitlementsBase64,
 	)
-	if err != nil {
-		return err
-	}
-
-	_, err = runSpaceshipCommand(cmd)
 	if err != nil {
 		return err
 	}
@@ -321,15 +291,10 @@ func (c *ProfileClient) SyncBundleID(bundleID appstoreconnect.BundleID, appEntit
 	}
 	entitlementsBase64 := base64.StdEncoding.EncodeToString(entitlementsBytes)
 
-	cmd, err := c.client.createRequestCommand("sync_bundleid",
+	_, err = c.client.runSpaceshipCommand("sync_bundleid",
 		bundleIDIdentifierArgKey, bundleID.Attributes.Identifier,
 		entitlementsArgKey, entitlementsBase64,
 	)
-	if err != nil {
-		return err
-	}
-
-	_, err = runSpaceshipCommand(cmd)
 	if err != nil {
 		return err
 	}
