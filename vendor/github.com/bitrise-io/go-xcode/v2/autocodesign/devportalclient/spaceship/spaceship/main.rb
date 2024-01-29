@@ -25,6 +25,8 @@ begin
     opt.on('--udid UDID') { |o| options[:udid] = o }
   end.parse!
 
+  FastlaneCore::Globals.verbose = true
+
   if options[:subcommand] == 'login'
     begin
       Portal::AuthClient.login(options[:username], options[:password], options[:session], options[:team_id])
