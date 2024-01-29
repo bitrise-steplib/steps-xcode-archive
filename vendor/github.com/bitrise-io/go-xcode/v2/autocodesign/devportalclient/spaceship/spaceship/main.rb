@@ -28,11 +28,8 @@ begin
   Log.verbose = true
 
   begin
-    login_started = Time.now.utc
     Portal::AuthClient.login(options[:username], options[:password], options[:session], options[:team_id])
   rescue => e
-    login_finished = Time.now.utc
-    puts "\nLogin started at #{login_started} finished at #{login_finished}"
     puts "\nApple ID authentication failed: #{e}"
     exit(1)
   end

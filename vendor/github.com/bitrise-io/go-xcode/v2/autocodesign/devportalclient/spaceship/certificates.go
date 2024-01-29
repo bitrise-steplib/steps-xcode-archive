@@ -54,16 +54,26 @@ func (s *CertificateSource) QueryAllIOSCertificates() (map[appstoreconnect.Certi
 }
 
 func (s *CertificateSource) downloadAll() error {
+	devCertsCmd, err := s.client.createRequestCommand("list_dev_certs")
+	if err != nil {
+		return err
+	}
+
+	distCertsCommand, err := s.client.createRequestCommand("list_dist_certs")
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("Fetching developer certificates")
 
-	devCerts, err := s.getCertificates(true)
+	devCerts, err := getCertificates(devCertsCmd)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("Fetching distribution certificates")
 
-	distCers, err := s.getCertificates(false)
+	distCers, err := getCertificates(distCertsCommand)
 	if err != nil {
 		return err
 	}
@@ -83,14 +93,8 @@ type certificatesResponse struct {
 	} `json:"data"`
 }
 
-func (s *CertificateSource) getCertificates(devCerts bool) ([]autocodesign.Certificate, error) {
-	var output string
-	var err error
-	if devCerts {
-		output, err = s.client.runSpaceshipCommand("list_dev_certs")
-	} else {
-		output, err = s.client.runSpaceshipCommand("list_dist_certs")
-	}
+func getCertificates(cmd spaceshipCommand) ([]autocodesign.Certificate, error) {
+	output, err := runSpaceshipCommand(cmd)
 	if err != nil {
 		return nil, err
 	}

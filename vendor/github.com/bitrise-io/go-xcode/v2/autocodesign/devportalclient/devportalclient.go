@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/bitrise-io/go-steputils/v2/ruby"
 	"github.com/bitrise-io/go-utils/retry"
-	"github.com/bitrise-io/go-utils/v2/command"
-	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/appleauth"
 	"github.com/bitrise-io/go-xcode/devportalservice"
@@ -79,12 +76,7 @@ func (f Factory) Create(credentials appleauth.Credentials, teamID string) (autoc
 		devportalClient = appstoreconnectclient.NewAPIDevPortalClient(client)
 		f.logger.Debugf("App Store Connect API client created with base URL: %s", client.BaseURL)
 	} else if credentials.AppleID != nil {
-		cmdFactory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), env.NewCommandLocator())
-		if err != nil {
-			return nil, err
-		}
-
-		client, err := spaceship.NewClient(*credentials.AppleID, teamID, cmdFactory)
+		client, err := spaceship.NewClient(*credentials.AppleID, teamID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize Apple ID client: %v", err)
 		}

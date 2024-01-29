@@ -18,8 +18,11 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-steputils/v2/ruby"
+	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-xcode/appleauth"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 )
@@ -32,13 +35,11 @@ type Client struct {
 	workDir    string
 	authConfig appleauth.AppleID
 	teamID     string
-
-	cmdFactory ruby.CommandFactory
 }
 
 // NewClient ...
-func NewClient(authConfig appleauth.AppleID, teamID string, cmdFactory ruby.CommandFactory) (*Client, error) {
-	dir, err := prepareSpaceship(cmdFactory)
+func NewClient(authConfig appleauth.AppleID, teamID string) (*Client, error) {
+	dir, err := prepareSpaceship()
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,6 @@ func NewClient(authConfig appleauth.AppleID, teamID string, cmdFactory ruby.Comm
 		workDir:    dir,
 		authConfig: authConfig,
 		teamID:     teamID,
-		cmdFactory: cmdFactory,
 	}, nil
 }
 
@@ -72,7 +72,7 @@ type spaceshipCommand struct {
 	printableCommandArgs string
 }
 
-func (c *Client) createSpaceshipCommand(subCommand string, opts ...string) (spaceshipCommand, error) {
+func (c *Client) createRequestCommand(subCommand string, opts ...string) (spaceshipCommand, error) {
 	authParams := []string{
 		"--username", c.authConfig.Username,
 		"--password", c.authConfig.Password,
@@ -86,7 +86,12 @@ func (c *Client) createSpaceshipCommand(subCommand string, opts ...string) (spac
 	printableCommand := strings.Join(s, " ")
 	s = append(s, authParams...)
 
-	cmd := c.cmdFactory.CreateBundleExec("ruby", s, "", &command.Opts{
+	factory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), env.NewCommandLocator())
+	if err != nil {
+		return spaceshipCommand{}, err
+	}
+
+	cmd := factory.CreateBundleExec("ruby", s, "", &command.Opts{
 		Dir: c.workDir,
 	})
 
@@ -96,53 +101,30 @@ func (c *Client) createSpaceshipCommand(subCommand string, opts ...string) (spac
 	}, nil
 }
 
-func (c *Client) runSpaceshipCommand(subCommand string, opts ...string) (string, error) {
+func runSpaceshipCommand(cmd spaceshipCommand) (string, error) {
+	log.Debugf("$ %s", cmd.printableCommandArgs)
 	var spaceshipOut string
-	var spaceshipErr error
-	for i := 1; i <= 3; i++ {
-		cmd, err := c.createSpaceshipCommand(subCommand, opts...)
-		if err != nil {
-			return "", err
+	if err := retry.Times(2).Wait(5 * time.Second).TryWithAbort(func(attempt uint) (error, bool) {
+		output, err := cmd.command.RunAndReturnTrimmedCombinedOutput()
+		spaceshipOut = output
+		if err != nil && shouldRetrySpaceshipCommand(output) {
+			return err, false
 		}
-
-		log.TDebugf("$ %s", cmd.printableCommandArgs)
-
-		spaceshipOut, spaceshipErr = c.runSpaceshipCommandOnce(cmd)
-		if spaceshipErr == nil {
-			return spaceshipOut, nil
-		} else if shouldRetrySpaceshipCommand(spaceshipOut) {
-			log.Debugf(spaceshipOut)
-			log.TWarnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", i)
-
-			if err := c.clearSpaceshipCookie(); err != nil {
-				log.Debugf("failed to clear spaceship cookie: %s", err)
-			}
-
-			time.Sleep(time.Duration(i*5) * time.Second)
-		} else {
-			return "", spaceshipErr
-		}
-	}
-
-	return spaceshipOut, spaceshipErr
-}
-
-func (c *Client) runSpaceshipCommandOnce(cmd spaceshipCommand) (string, error) {
-	output, err := cmd.command.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
+		return err, true
+	}); err != nil {
 		// Omitting err from log, to avoid logging plaintext password present in command params
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
-			return output, fmt.Errorf("spaceship command exited with status %d, output: %s", exitError.ProcessState.ExitCode(), output)
+			return "", fmt.Errorf("spaceship command exited with status %d, output: %s", exitError.ProcessState.ExitCode(), spaceshipOut)
 		}
 
-		return output, fmt.Errorf("spaceship command failed with output: %s", output)
+		return "", fmt.Errorf("spaceship command failed with output: %s", spaceshipOut)
 	}
 
 	jsonRegexp := regexp.MustCompile(`(?m)^\{.*\}$`)
-	match := jsonRegexp.FindString(output)
+	match := jsonRegexp.FindString(spaceshipOut)
 	if match == "" {
-		return "", fmt.Errorf("output does not contain response: %s", output)
+		return "", fmt.Errorf("output does not contain response: %s", spaceshipOut)
 	}
 
 	var response struct {
@@ -163,21 +145,7 @@ func (c *Client) runSpaceshipCommandOnce(cmd spaceshipCommand) (string, error) {
 	return match, nil
 }
 
-func (c *Client) clearSpaceshipCookie() error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-	//cookiePth := filepath.Join(home, ".fastlane/spaceship", c.authConfig.Username, "cookie")
-	cookiePth := filepath.Join(home, ".fastlane")
-	err = os.Remove(cookiePth)
-	if os.IsNotExist(err) {
-		log.Debugf("spaceship cookie doesn't exist at: %s", cookiePth)
-	}
-	return err
-}
-
-func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
+func prepareSpaceship() (string, error) {
 	targetDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return "", err
@@ -212,8 +180,13 @@ func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
 		return "", err
 	}
 
+	factory, err := ruby.NewCommandFactory(command.NewFactory(env.NewRepository()), env.NewCommandLocator())
+	if err != nil {
+		return "", err
+	}
+
 	bundlerVersion := "2.2.24"
-	cmds := cmdFactory.CreateGemInstall("bundler", bundlerVersion, false, true, &command.Opts{
+	cmds := factory.CreateGemInstall("bundler", bundlerVersion, false, true, &command.Opts{
 		Dir: targetDir,
 	})
 	for _, cmd := range cmds {
@@ -222,12 +195,16 @@ func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
 
 		output, err := cmd.RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
-			return "", fmt.Errorf("running command failed with error: %s, output: %s", err, output)
+			if errorutil.IsExitStatusError(err) {
+				return "", fmt.Errorf("Installing bundler gem failed: %s", output)
+			}
+
+			return "", fmt.Errorf("running command failed: %s", err)
 		}
 	}
 
 	fmt.Println()
-	bundleInstallCmd := cmdFactory.CreateBundleInstall(bundlerVersion, &command.Opts{
+	bundleInstallCmd := factory.CreateBundleInstall(bundlerVersion, &command.Opts{
 		Dir: targetDir,
 	})
 
@@ -236,15 +213,19 @@ func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
 
 	output, err := bundleInstallCmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("running command failed with error: %s, output: %s", err, output)
+		if errorutil.IsExitStatusError(err) {
+			return "", fmt.Errorf("bundle install failed: %s", output)
+		}
+
+		return "", fmt.Errorf("running command failed: %s", err)
 	}
 
 	return targetDir, nil
 }
 
 func shouldRetrySpaceshipCommand(out string) bool {
-	if out == "" {
-		return false
+	if strings.Contains(out, "503 Service Temporarily Unavailable") {
+		return true
 	}
-	return strings.Contains(out, "503 Service Temporarily Unavailable")
+	return false
 }
