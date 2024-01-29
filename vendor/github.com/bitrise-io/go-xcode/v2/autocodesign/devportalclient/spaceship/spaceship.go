@@ -50,9 +50,9 @@ func NewClient(authConfig appleauth.AppleID, teamID string, cmdFactory ruby.Comm
 		cmdFactory: cmdFactory,
 	}
 
-	output, err := c.runSpaceshipCommand("login")
+	_, err = c.runSpaceshipCommand("login")
 	if err != nil {
-		return nil, fmt.Errorf("running command failed with error: %s, output: %s", err, output)
+		return nil, fmt.Errorf("running command failed with error: %s", err)
 	}
 
 	return c, nil
@@ -117,8 +117,8 @@ func (c *Client) runSpaceshipCommand(subCommand string, opts ...string) (string,
 		spaceshipOut, spaceshipErr = c.runSpaceshipCommandOnce(cmd)
 		if spaceshipErr == nil {
 			return spaceshipOut, nil
-		} else if shouldRetrySpaceshipCommand(spaceshipOut) {
-			log.Debugf(spaceshipOut)
+		} else if shouldRetrySpaceshipCommand(spaceshipErr.Error()) {
+			log.Debugf(spaceshipErr.Error())
 			log.TWarnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", i)
 
 			time.Sleep(time.Duration(i) * time.Minute)
@@ -136,10 +136,10 @@ func (c *Client) runSpaceshipCommandOnce(cmd spaceshipCommand) (string, error) {
 		// Omitting err from log, to avoid logging plaintext password present in command params
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
-			return output, fmt.Errorf("spaceship command exited with status %d, output: %s", exitError.ProcessState.ExitCode(), output)
+			return "", fmt.Errorf("spaceship command exited with status %d, output: %s", exitError.ProcessState.ExitCode(), output)
 		}
 
-		return output, fmt.Errorf("spaceship command failed with output: %s", output)
+		return "", fmt.Errorf("spaceship command failed with output: %s", output)
 	}
 
 	jsonRegexp := regexp.MustCompile(`(?m)^\{.*\}$`)
