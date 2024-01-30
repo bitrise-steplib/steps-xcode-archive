@@ -12,6 +12,7 @@ import (
 	v1command "github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/errorutil"
 	v1fileutil "github.com/bitrise-io/go-utils/fileutil"
+	logv1 "github.com/bitrise-io/go-utils/log"
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/sliceutil"
@@ -152,6 +153,9 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 
 	config := Config{Inputs: inputs}
 	s.logger.EnableDebugLog(config.VerboseLog)
+	if config.VerboseLog {
+		logv1.SetEnableDebugLog(true)
+	}
 
 	var err error
 	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)

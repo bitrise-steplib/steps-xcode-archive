@@ -7,7 +7,7 @@ module Portal
       ENV['FASTLANE_SESSION'] = two_factor_session unless two_factor_session.to_s.empty?
       ENV['SPACESHIP_SKIP_2FA_UPGRADE'] = '1'
 
-      client = Spaceship::Portal.login(username, password)
+      client = Spaceship::PortalClient.login(username, password)
 
       if team_id.to_s.empty?
         teams = client.teams
@@ -15,6 +15,16 @@ module Portal
       else
         client.team_id = team_id
       end
+
+      client.store_cookie
+    end
+
+    def self.restore_from_session(username, team_id)
+      client = Spaceship::PortalClient.new(current_team_id: team_id)
+      client.user = username
+      client.load_session_from_file
+
+      Spaceship::Portal.client = client
     end
   end
 end
