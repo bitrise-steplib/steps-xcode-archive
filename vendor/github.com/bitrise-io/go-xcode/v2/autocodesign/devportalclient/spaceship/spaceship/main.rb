@@ -27,9 +27,12 @@ begin
 
   FastlaneCore::Globals.verbose = true
 
+  result = '{}'
+
   if options[:subcommand] == 'login'
     begin
-      Portal::AuthClient.login(options[:username], options[:password], options[:session], options[:team_id])
+      team_id = Portal::AuthClient.login(options[:username], options[:password], options[:session], options[:team_id])
+      result = team_id
     rescue => e
       puts "\nApple ID authentication failed: #{e}"
       exit(1)
@@ -37,7 +40,6 @@ begin
   else
     Portal::AuthClient.restore_from_session(options[:username], options[:team_id])
 
-    result = '{}'
     case options[:subcommand]
     when 'list_dev_certs'
       client = CertificateHelper.new

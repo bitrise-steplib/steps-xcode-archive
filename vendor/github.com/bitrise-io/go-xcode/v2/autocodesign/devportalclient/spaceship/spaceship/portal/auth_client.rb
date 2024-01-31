@@ -17,6 +17,8 @@ module Portal
       end
 
       client.store_cookie
+
+      client.team_id
     end
 
     def self.restore_from_session(username, team_id)
