@@ -414,15 +414,24 @@ func (m *Manager) prepareAutomaticAssets(credentials appleauth.Credentials, appL
 		return nil, err
 	}
 
+	if err := devPortalClient.Login(); err != nil {
+		return nil, fmt.Errorf("Developer Portal client login failed: %w", err)
+	}
+
 	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.assetInstaller, m.localCodeSignAssetManager)
 
-	return manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
+	codesignAssets, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
 		DistributionType:        m.opts.ExportMethod,
 		TypeToLocalCertificates: typeToLocalCerts,
 		BitriseTestDevices:      testDevicesToRegister,
 		MinProfileValidityDays:  m.opts.MinDaysProfileValidity,
 		VerboseLog:              m.opts.IsVerboseLog,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to ensure code signing assets: %w", err)
+	}
+
+	return codesignAssets, nil
 }
 
 func (m *Manager) prepareManualAssets(certificates []certificateutil.CertificateInfoModel) error {

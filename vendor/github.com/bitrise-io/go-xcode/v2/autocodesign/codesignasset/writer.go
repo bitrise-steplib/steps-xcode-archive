@@ -3,7 +3,6 @@ package codesignasset
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -101,7 +100,7 @@ func (w Writer) InstallProfile(profile autocodesign.Profile) error {
 	}
 
 	name := path.Join(profilesDir, profile.Attributes().UUID+ext)
-	if err := ioutil.WriteFile(name, profile.Attributes().ProfileContent, 0600); err != nil {
+	if err := os.WriteFile(name, profile.Attributes().ProfileContent, 0600); err != nil {
 		return fmt.Errorf("failed to write profile to file: %s", err)
 	}
 

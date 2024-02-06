@@ -43,44 +43,17 @@ func NewClient(authConfig appleauth.AppleID, teamID string, cmdFactory ruby.Comm
 		return nil, err
 	}
 
-	c := &Client{
+	return &Client{
 		workDir:    dir,
 		authConfig: authConfig,
 		teamID:     teamID,
 		cmdFactory: cmdFactory,
-	}
-
-	currentTeamID, err := c.login()
-	if err != nil {
-		return nil, fmt.Errorf("spaceship command failed: %s", err)
-	}
-
-	log.Debugf("current team id: %s", currentTeamID)
-
-	c.teamID = currentTeamID
-
-	return c, nil
-}
-
-func (c *Client) login() (string, error) {
-	output, err := c.runSpaceshipCommand("login")
-	if err != nil {
-		return "", fmt.Errorf("running command failed with error: %s", err)
-	}
-
-	// {"data":"72SA8V3WYL"}
-	var teamIDResponse struct {
-		Data string `json:"data"`
-	}
-	if err := json.Unmarshal([]byte(output), &teamIDResponse); err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	return teamIDResponse.Data, nil
+	}, nil
 }
 
 // DevPortalClient ...
 type DevPortalClient struct {
+	*AuthClient
 	*CertificateSource
 	*ProfileClient
 	*DeviceClient
@@ -89,6 +62,7 @@ type DevPortalClient struct {
 // NewSpaceshipDevportalClient ...
 func NewSpaceshipDevportalClient(client *Client) autocodesign.DevPortalClient {
 	return DevPortalClient{
+		AuthClient:        NewAuthClient(client),
 		CertificateSource: NewSpaceshipCertificateSource(client),
 		DeviceClient:      NewDeviceClient(client),
 		ProfileClient:     NewSpaceshipProfileClient(client),
