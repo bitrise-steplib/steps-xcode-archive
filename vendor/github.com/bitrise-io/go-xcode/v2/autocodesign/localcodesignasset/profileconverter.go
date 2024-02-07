@@ -1,7 +1,7 @@
 package localcodesignasset
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
@@ -26,7 +26,7 @@ func (c provisioningProfileConverter) ProfileInfoToProfile(info profileutil.Prov
 	if err != nil {
 		return nil, err
 	}
-	content, err := ioutil.ReadFile(pth)
+	content, err := os.ReadFile(pth)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 
 // Client ...
 type Client struct {
+	*AuthClient
 	*CertificateSource
 	*DeviceClient
 	*ProfileClient
@@ -18,6 +19,7 @@ type Client struct {
 // NewAPIDevPortalClient ...
 func NewAPIDevPortalClient(client *appstoreconnect.Client) autocodesign.DevPortalClient {
 	return Client{
+		AuthClient:        NewAuthClient(),
 		CertificateSource: NewCertificateSource(client),
 		DeviceClient:      NewDeviceClient(client),
 		ProfileClient:     NewProfileClient(client),

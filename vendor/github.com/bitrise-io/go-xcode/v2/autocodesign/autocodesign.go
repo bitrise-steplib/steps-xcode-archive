@@ -69,6 +69,8 @@ type Certificate struct {
 
 // DevPortalClient abstract away the Apple Developer Portal API
 type DevPortalClient interface {
+	Login() error
+
 	QueryCertificateBySerial(serial big.Int) (Certificate, error)
 	QueryAllIOSCertificates() (map[appstoreconnect.CertificateType][]Certificate, error)
 

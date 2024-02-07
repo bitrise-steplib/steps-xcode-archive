@@ -361,15 +361,9 @@ func (m *Manager) registerTestDevices(credentials appleauth.Credentials, devices
 }
 
 func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credentials, testDevices []devportalservice.TestDevice) error {
-	// Analyze project
 	fmt.Println()
 	m.logger.TDebugf("Analyzing project")
 	appLayout, err := m.detailsProvider.GetAppLayout(m.opts.SignUITests)
-	if err != nil {
-		return err
-	}
-
-	devPortalClient, err := m.devPortalClientFactory.Create(credentials, m.opts.TeamID)
 	if err != nil {
 		return err
 	}
@@ -386,21 +380,12 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 		return err
 	}
 
-	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.assetInstaller, m.localCodeSignAssetManager)
-
-	// Fetch and apply codesigning assets
 	var testDevicesToRegister []devportalservice.TestDevice
 	if m.opts.RegisterTestDevices {
 		testDevicesToRegister = testDevices
 	}
 
-	codesignAssetsByDistributionType, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
-		DistributionType:        m.opts.ExportMethod,
-		TypeToLocalCertificates: typeToLocalCerts,
-		BitriseTestDevices:      testDevicesToRegister,
-		MinProfileValidityDays:  m.opts.MinDaysProfileValidity,
-		VerboseLog:              m.opts.IsVerboseLog,
-	})
+	codesignAssetsByDistributionType, err := m.prepareAutomaticAssets(credentials, appLayout, typeToLocalCerts, testDevicesToRegister)
 	if err != nil {
 		if !m.fallbackProfileDownloader.IsAvailable() {
 			return err
@@ -421,6 +406,32 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 	}
 
 	return nil
+}
+
+func (m *Manager) prepareAutomaticAssets(credentials appleauth.Credentials, appLayout autocodesign.AppLayout, typeToLocalCerts autocodesign.LocalCertificates, testDevicesToRegister []devportalservice.TestDevice) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	devPortalClient, err := m.devPortalClientFactory.Create(credentials, m.opts.TeamID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := devPortalClient.Login(); err != nil {
+		return nil, fmt.Errorf("Developer Portal client login failed: %w", err)
+	}
+
+	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.assetInstaller, m.localCodeSignAssetManager)
+
+	codesignAssets, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
+		DistributionType:        m.opts.ExportMethod,
+		TypeToLocalCertificates: typeToLocalCerts,
+		BitriseTestDevices:      testDevicesToRegister,
+		MinProfileValidityDays:  m.opts.MinDaysProfileValidity,
+		VerboseLog:              m.opts.IsVerboseLog,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to ensure code signing assets: %w", err)
+	}
+
+	return codesignAssets, nil
 }
 
 func (m *Manager) prepareManualAssets(certificates []certificateutil.CertificateInfoModel) error {
