@@ -423,7 +423,7 @@ workflows:
     - _run
     - _check_outputs
     - _check_exported_artifacts
-  
+
   test_visionOS:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/visionOS-HelloWorld
@@ -443,6 +443,7 @@ workflows:
     - _run
     - _check_outputs
     - _check_exported_artifacts
+
   _run:
     steps:
     - script:
