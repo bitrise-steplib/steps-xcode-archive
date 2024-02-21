@@ -23,10 +23,9 @@ workflows:
     description: visionOS SDK requires Xcode 15.2+
     steps:
     - bitrise-run:
+        title: Run visionOS test if current stack supports it
         run_if: |-
-          {{ with $stack := getenv "BITRISEIO_STACK_ID" }}
-            {{ and (ne $stack "osx-xcode-14.3.x") (ne $stack "osx-xcode-14.2.x-ventura") (ne $stack "osx-xcode-14.1.x-ventura") (ne $stack "osx-xcode-14.0.x-ventura") }}
-          {{ end }}
+            {{ and (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.3.x") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.2.x-ventura") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.1.x-ventura") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.0.x-ventura") }}
         inputs:
         - workflow_id: utility_test_visionOS
         - bitrise_config_path: ./e2e/bitrise.yml
