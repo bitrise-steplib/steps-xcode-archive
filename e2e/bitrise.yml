@@ -25,7 +25,7 @@ workflows:
     - bitrise-run:
         title: Run visionOS test if current stack supports it
         run_if: |-
-            {{ and (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.3.x") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.2.x-ventura") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.1.x-ventura") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.0.x-ventura") }}
+            {{ and (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-15.0.x") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.3.x-ventura") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.2.x-ventura") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.1.x-ventura") (ne (getenv "BITRISEIO_STACK_ID") "osx-xcode-14.0.x-ventura") }}
         inputs:
         - workflow_id: utility_test_visionOS
         - bitrise_config_path: ./e2e/bitrise.yml
