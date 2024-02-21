@@ -25,7 +25,7 @@ workflows:
     - bitrise-run:
         run_if: |-
           {{ with $stack := getenv "BITRISEIO_STACK_ID" }}
-            {{ and (ne (index $stack "osx-xcode-14.") 0) (ne (index $stack "osx-xcode-15.0") 0) }}
+            {{ and (ne $stack "osx-xcode-14.3.x") (ne $stack "osx-xcode-14.2.x-ventura") (ne $stack "osx-xcode-14.1.x-ventura") (ne $stack "osx-xcode-14.0.x-ventura") }}
           {{ end }}
         inputs:
         - workflow_id: utility_test_visionOS
