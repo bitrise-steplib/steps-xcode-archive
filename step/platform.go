@@ -12,17 +12,16 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 )
 
-// Platform ...
 type Platform string
 
 const (
-	iOS     Platform = "iOS"
-	osX     Platform = "OS X"
-	tvOS    Platform = "tvOS"
-	watchOS Platform = "watchOS"
+	iOS      Platform = "iOS"
+	osX      Platform = "OS X"
+	tvOS     Platform = "tvOS"
+	watchOS  Platform = "watchOS"
+	visionOS Platform = "visionOS"
 )
 
-// OpenArchivableProject ...
 func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodeproj.XcodeProj, *xcscheme.Scheme, string, error) {
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {
@@ -53,21 +52,17 @@ func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodepro
 	return &xcodeProj, scheme, configurationName, nil
 }
 
-// TargetBuildSettingsProvider ...
 type TargetBuildSettingsProvider interface {
 	TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error)
 }
 
-// XcodeBuild ...
 type XcodeBuild struct {
 }
 
-// TargetBuildSettings ...
 func (x XcodeBuild) TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error) {
 	return xcodeProj.TargetBuildSettings(target, configuration, customOptions...)
 }
 
-// BuildableTargetPlatform ...
 func BuildableTargetPlatform(
 	xcodeProj *xcodeproj.XcodeProj,
 	scheme *xcscheme.Scheme,
@@ -140,6 +135,9 @@ func getPlatform(buildSettings serialized.Object) (Platform, error) {
 		return tvOS, nil
 	case strings.HasPrefix(sdk, "watchos"):
 		return watchOS, nil
+	case strings.HasPrefix(sdk, "xros"):
+		// visionOS SDK is called xros (as of Xcode 15.2), but the platform is called visionOS (e.g. in the destination specifier)
+		return visionOS, nil
 	default:
 		return "", fmt.Errorf("unkown SDKROOT: %s", sdk)
 	}
