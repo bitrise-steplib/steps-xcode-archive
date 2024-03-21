@@ -76,23 +76,18 @@ func (manifest Manifest) ToHash() map[string]string {
 	return hash
 }
 
-// MethodKey ...
 const MethodKey = "method"
 
 const (
-	// MethodAppStore ...
 	MethodAppStore Method = "app-store"
-	// MethodAdHoc ...
 	MethodAdHoc Method = "ad-hoc"
-	// MethodPackage ...
 	MethodPackage Method = "package"
-	// MethodEnterprise ...
 	MethodEnterprise Method = "enterprise"
-	// MethodDevelopment ...
 	MethodDevelopment Method = "development"
-	// MethodDeveloperID ...
 	MethodDeveloperID Method = "developer-id"
-	// MethodDefault ...
+	MethodDebugging Method = "debugging"
+	MethodAppStoreConnect Method = "app-store-connect"
+	MethodReleaseTesting Method = "release-testing"
 	MethodDefault Method = MethodDevelopment
 )
 
@@ -103,15 +98,15 @@ type Method string
 func ParseMethod(method string) (Method, error) {
 	switch method {
 	case "app-store":
-		return MethodAppStore, nil
+		return MethodAppStoreConnect, nil
 	case "ad-hoc":
-		return MethodAdHoc, nil
+		return MethodReleaseTesting, nil
 	case "package":
 		return MethodPackage, nil
 	case "enterprise":
 		return MethodEnterprise, nil
 	case "development":
-		return MethodDevelopment, nil
+		return MethodDebugging, nil
 	case "developer-id":
 		return MethodDeveloperID, nil
 	default:
