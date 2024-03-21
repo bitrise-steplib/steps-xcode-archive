@@ -19,6 +19,18 @@ func GetXcodeVersion() (models.XcodebuildVersionModel, error) {
 	return getXcodeVersionFromXcodebuildOutput(outStr)
 }
 
+// XcodeBuildVersionIsAtLeast returns true if the active Xcode's build version is at least the given version.
+// Comparison is done by comparing the version strings, assuming monotonic build versions.
+// Use this helper to alter step behavior based on a change introduced in a specific Xcode version.
+func XcodeBuildVersionIsAtLeast(buildVersion string) (bool, error) {
+	xcodeVersion, err := GetXcodeVersion()
+	if err != nil {
+		return false, err
+	}
+
+	return xcodeVersion.BuildVersion >= buildVersion, nil
+}
+
 func getXcodeVersionFromXcodebuildOutput(outStr string) (models.XcodebuildVersionModel, error) {
 	split := strings.Split(outStr, "\n")
 	if len(split) == 0 {

@@ -1,6 +1,10 @@
 package exportoptions
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/bitrise-io/go-xcode/utility"
+)
 
 // CompileBitcodeKey ...
 const CompileBitcodeKey = "compileBitcode"
@@ -44,6 +48,8 @@ const ManifestFullSizeImageURLKey = "fullSizeImageURL"
 
 // ManifestAssetPackManifestURLKey ...
 const ManifestAssetPackManifestURLKey = "assetPackManifestURL"
+
+const xcode15Dot3BuildVersion = "15E204a"
 
 // Manifest ...
 type Manifest struct {
@@ -96,17 +102,35 @@ type Method string
 
 // ParseMethod ...
 func ParseMethod(method string) (Method, error) {
+	// TODO: Print warning if old export methods are used with Xcode 15.3 or newer
+	newExportMethods, err := utility.XcodeBuildVersionIsAtLeast(xcode15Dot3BuildVersion)
+	if err != nil {
+		return Method(""), fmt.Errorf("check Xcode version: %s", err)
+	}
+
 	switch method {
 	case "app-store":
-		return MethodAppStoreConnect, nil
+		if newExportMethods {
+			return MethodAppStoreConnect, nil
+		} else {
+			return MethodAppStore, nil
+		}
 	case "ad-hoc":
-		return MethodReleaseTesting, nil
+		if newExportMethods {
+			return MethodReleaseTesting, nil
+		} else {
+			return MethodAdHoc, nil
+		}
 	case "package":
 		return MethodPackage, nil
 	case "enterprise":
 		return MethodEnterprise, nil
 	case "development":
-		return MethodDebugging, nil
+		if newExportMethods {
+			return MethodDebugging, nil
+		} else {
+			return MethodDevelopment, nil
+		}
 	case "developer-id":
 		return MethodDeveloperID, nil
 	default:
