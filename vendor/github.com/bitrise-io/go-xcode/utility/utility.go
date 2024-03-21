@@ -28,7 +28,7 @@ func XcodeBuildVersionIsAtLeast(buildVersion string) (bool, error) {
 		return false, err
 	}
 
-	return xcodeVersion.BuildVersion >= buildVersion, nil
+	return strings.Replace(xcodeVersion.BuildVersion, "Build version ", "", -1) >= buildVersion, nil
 }
 
 func getXcodeVersionFromXcodebuildOutput(outStr string) (models.XcodebuildVersionModel, error) {
