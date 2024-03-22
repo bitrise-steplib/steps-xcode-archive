@@ -1,10 +1,6 @@
 package exportoptions
 
-import (
-	"fmt"
-
-	"github.com/bitrise-io/go-xcode/utility"
-)
+import "fmt"
 
 // CompileBitcodeKey ...
 const CompileBitcodeKey = "compileBitcode"
@@ -49,8 +45,6 @@ const ManifestFullSizeImageURLKey = "fullSizeImageURL"
 // ManifestAssetPackManifestURLKey ...
 const ManifestAssetPackManifestURLKey = "assetPackManifestURL"
 
-const xcode15Dot3BuildVersion = "15E204a"
-
 // Manifest ...
 type Manifest struct {
 	AppURL               string
@@ -82,18 +76,23 @@ func (manifest Manifest) ToHash() map[string]string {
 	return hash
 }
 
+// MethodKey ...
 const MethodKey = "method"
 
 const (
+	// MethodAppStore ...
 	MethodAppStore Method = "app-store"
+	// MethodAdHoc ...
 	MethodAdHoc Method = "ad-hoc"
+	// MethodPackage ...
 	MethodPackage Method = "package"
+	// MethodEnterprise ...
 	MethodEnterprise Method = "enterprise"
+	// MethodDevelopment ...
 	MethodDevelopment Method = "development"
+	// MethodDeveloperID ...
 	MethodDeveloperID Method = "developer-id"
-	MethodDebugging Method = "debugging"
-	MethodAppStoreConnect Method = "app-store-connect"
-	MethodReleaseTesting Method = "release-testing"
+	// MethodDefault ...
 	MethodDefault Method = MethodDevelopment
 )
 
@@ -102,35 +101,17 @@ type Method string
 
 // ParseMethod ...
 func ParseMethod(method string) (Method, error) {
-	// TODO: Print warning if old export methods are used with Xcode 15.3 or newer
-	newExportMethods, err := utility.XcodeBuildVersionIsAtLeast(xcode15Dot3BuildVersion)
-	if err != nil {
-		return Method(""), fmt.Errorf("check Xcode version: %s", err)
-	}
-
 	switch method {
 	case "app-store":
-		if newExportMethods {
-			return MethodAppStoreConnect, nil
-		} else {
-			return MethodAppStore, nil
-		}
+		return MethodAppStore, nil
 	case "ad-hoc":
-		if newExportMethods {
-			return MethodReleaseTesting, nil
-		} else {
-			return MethodAdHoc, nil
-		}
+		return MethodAdHoc, nil
 	case "package":
 		return MethodPackage, nil
 	case "enterprise":
 		return MethodEnterprise, nil
 	case "development":
-		if newExportMethods {
-			return MethodDebugging, nil
-		} else {
-			return MethodDevelopment, nil
-		}
+		return MethodDevelopment, nil
 	case "developer-id":
 		return MethodDeveloperID, nil
 	default:
