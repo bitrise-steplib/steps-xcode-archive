@@ -196,7 +196,7 @@ func prepareSpaceship(cmdFactory ruby.CommandFactory) (string, error) {
 		return "", err
 	}
 
-	bundlerVersion := "2.2.24"
+	bundlerVersion := "2.5.6"
 	cmds := cmdFactory.CreateGemInstall("bundler", bundlerVersion, false, true, &command.Opts{
 		Dir: targetDir,
 	})
