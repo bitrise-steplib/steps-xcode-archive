@@ -59,6 +59,9 @@ def map_device_status_to_api_status(status)
     'ENABLED'
   when 'r'
     'DISABLED'
+  #  pending
+  when 'p'
+    'DISABLED'
   else
     raise "invalid device status #{status}"
   end
