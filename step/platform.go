@@ -67,6 +67,7 @@ func BuildableTargetPlatform(
 	xcodeProj *xcodeproj.XcodeProj,
 	scheme *xcscheme.Scheme,
 	configurationName string,
+	additionalOptions []string,
 	provider TargetBuildSettingsProvider,
 	logger log.Logger,
 ) (Platform, error) {
@@ -82,7 +83,7 @@ func BuildableTargetPlatform(
 		return "", fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}
 
-	settings, err := provider.TargetBuildSettings(xcodeProj, mainTarget.Name, configurationName)
+	settings, err := provider.TargetBuildSettings(xcodeProj, mainTarget.Name, configurationName, additionalOptions...)
 	if err != nil {
 		return "", fmt.Errorf("failed to get target (%s) build settings: %s", mainTarget.Name, err)
 	}

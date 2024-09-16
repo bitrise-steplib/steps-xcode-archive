@@ -98,7 +98,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 				On("TargetBuildSettings", mock.AnythingOfType("*xcodeproj.XcodeProj"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 				Return(tt.settings, nil)
 
-			got, err := BuildableTargetPlatform(tt.xcodeProj, tt.scheme, tt.configurationName, provider, log.NewLogger())
+			got, err := BuildableTargetPlatform(tt.xcodeProj, tt.scheme, tt.configurationName, []string{}, provider, log.NewLogger())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("BuildableTargetPlatform() error = %v, wantErr %v", err, tt.wantErr)
 				return

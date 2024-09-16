@@ -805,7 +805,7 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 
 	s.logger.TInfof("Reading xcode project")
 
-	platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, XcodeBuild{}, s.logger)
+	platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
 	if err != nil {
 		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 	}
