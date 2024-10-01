@@ -3,7 +3,6 @@ package appstoreconnect
 import (
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 // CertificatesEndpoint ...
@@ -108,8 +107,7 @@ func (s ProvisioningService) Certificates(relationshipLink string, opt *PagingOp
 		return nil, err
 	}
 
-	endpoint := strings.TrimPrefix(u, baseURL+apiVersion)
-	req, err := s.client.NewRequest(http.MethodGet, endpoint, nil)
+	req, err := s.client.NewRequestWithRelationshipURL(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}

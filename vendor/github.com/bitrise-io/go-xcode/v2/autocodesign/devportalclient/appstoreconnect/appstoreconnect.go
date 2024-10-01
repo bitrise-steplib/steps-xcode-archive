@@ -23,7 +23,12 @@ import (
 )
 
 const (
-	baseURL    = "https://api.appstoreconnect.apple.com/"
+	clientBaseURL = "https://api.appstoreconnect.apple.com/"
+	tokenAudience = "appstoreconnect-v1"
+
+	clientBaseEnterpiseURL  = "https://api.enterprise.developer.apple.com/"
+	tokenEnterpriseAudience = "apple-developer-enterprise-v1"
+
 	apiVersion = "v1"
 )
 
@@ -52,6 +57,7 @@ type Client struct {
 	keyID             string
 	issuerID          string
 	privateKeyContent []byte
+	audience          string
 
 	token       *jwt.Token
 	signedToken string
@@ -83,8 +89,15 @@ func NewRetryableHTTPClient() *http.Client {
 }
 
 // NewClient creates a new client
-func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte) *Client {
-	baseURL, err := url.Parse(baseURL)
+func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte, isEnterpise bool) *Client {
+	targetURL := clientBaseURL
+	targetAudience := tokenAudience
+	if isEnterpise {
+		targetURL = clientBaseEnterpiseURL
+		targetAudience = tokenEnterpriseAudience
+	}
+
+	baseURL, err := url.Parse(targetURL)
 	if err != nil {
 		panic("invalid api base url: " + err.Error())
 	}
@@ -93,6 +106,7 @@ func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte)
 		keyID:             keyID,
 		issuerID:          issuerID,
 		privateKeyContent: privateKey,
+		audience:          targetAudience,
 
 		client:  httpClient,
 		BaseURL: baseURL,
@@ -126,7 +140,7 @@ func (c *Client) ensureSignedToken() (string, error) {
 		log.Debugf("Generating JWT token")
 	}
 
-	c.token = createToken(c.keyID, c.issuerID)
+	c.token = createToken(c.keyID, c.issuerID, c.audience)
 	var err error
 	if c.signedToken, err = signToken(c.token, c.privateKeyContent); err != nil {
 		return "", err
@@ -134,9 +148,21 @@ func (c *Client) ensureSignedToken() (string, error) {
 	return c.signedToken, nil
 }
 
+func (c *Client) NewRequestWithRelationshipURL(method, endpoint string, body interface{}) (*http.Request, error) {
+	// endpoint = strings.TrimPrefix(endpoint, c.B+apiVersion)
+	log.Donef("REL URL: %s", endpoint)
+
+	return c.newRequest(method, endpoint, body)
+}
+
 // NewRequest creates a new http.Request
 func (c *Client) NewRequest(method, endpoint string, body interface{}) (*http.Request, error) {
 	endpoint = apiVersion + "/" + endpoint
+
+	return c.newRequest(method, endpoint, body)
+}
+
+func (c *Client) newRequest(method, endpoint string, body interface{}) (*http.Request, error) {
 	u, err := c.BaseURL.Parse(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("parsing endpoint failed: %v", err)

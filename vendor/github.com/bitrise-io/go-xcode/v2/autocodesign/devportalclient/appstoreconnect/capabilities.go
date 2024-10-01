@@ -2,7 +2,6 @@ package appstoreconnect
 
 import (
 	"net/http"
-	"strings"
 )
 
 // BundleIDCapabilitiesEndpoint ...
@@ -262,8 +261,7 @@ func (s ProvisioningService) UpdateCapability(id string, body BundleIDCapability
 
 // Capabilities ...
 func (s ProvisioningService) Capabilities(relationshipLink string) (*BundleIDCapabilitiesResponse, error) {
-	endpoint := strings.TrimPrefix(relationshipLink, baseURL+apiVersion)
-	req, err := s.client.NewRequest(http.MethodGet, endpoint, nil)
+	req, err := s.client.NewRequestWithRelationshipURL(http.MethodGet, relationshipLink, nil)
 	if err != nil {
 		return nil, err
 	}
