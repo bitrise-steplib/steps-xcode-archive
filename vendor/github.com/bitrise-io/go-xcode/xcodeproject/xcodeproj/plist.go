@@ -1,7 +1,7 @@
 package xcodeproj
 
 import (
-	"io/ioutil"
+	"os"
 
 	plist "github.com/bitrise-io/go-plist"
 	"github.com/bitrise-io/go-utils/fileutil"
@@ -49,5 +49,5 @@ func WritePlistFile(path string, entitlements serialized.Object, format int) err
 		return err
 	}
 
-	return ioutil.WriteFile(path, marshalled, 0644)
+	return os.WriteFile(path, marshalled, 0644)
 }

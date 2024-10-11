@@ -3,7 +3,7 @@ package xcodeproj
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -233,7 +233,7 @@ func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) 
 func resolve(bundleID string, buildSettings serialized.Object) (string, error) {
 	resolvedBundleIDs := map[string]bool{}
 	resolved := bundleID
-	for true {
+	for {
 		if !strings.Contains(resolved, "$") {
 			return resolved, nil
 		}
@@ -250,7 +250,6 @@ func resolve(bundleID string, buildSettings serialized.Object) (string, error) {
 		}
 		resolvedBundleIDs[resolved] = true
 	}
-	return "", fmt.Errorf("failed to resolve bundle id: %s", bundleID)
 }
 
 func expand(bundleID string, buildSettings serialized.Object) (string, error) {
@@ -537,7 +536,7 @@ func (p XcodeProj) savePBXProj() error {
 	pth := path.Join(p.Path, "project.pbxproj")
 	newContent, merr := p.perObjectModify()
 	if merr == nil {
-		return ioutil.WriteFile(pth, newContent, 0644)
+		return os.WriteFile(pth, newContent, 0644)
 	}
 	// merr != nil
 	log.Warnf("failed to modify project in-place: %v", merr)
@@ -547,7 +546,7 @@ func (p XcodeProj) savePBXProj() error {
 		return fmt.Errorf("failed to marshal .pbxproj: %v", err)
 	}
 
-	return ioutil.WriteFile(pth, newContent, 0644)
+	return os.WriteFile(pth, newContent, 0644)
 }
 
 const (

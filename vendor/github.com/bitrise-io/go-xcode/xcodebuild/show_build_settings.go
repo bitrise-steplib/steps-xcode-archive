@@ -114,7 +114,7 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 		buffer.WriteString(lineFragment)
 
 		// isPrefix is set to false once a full line has been read
-		if isPrefix == false {
+		if !isPrefix {
 			line := strings.TrimSpace(buffer.String())
 
 			if split := strings.Split(line, "="); len(split) > 1 {

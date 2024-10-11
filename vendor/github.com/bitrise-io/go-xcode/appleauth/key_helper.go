@@ -1,9 +1,9 @@
 package appleauth
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 
@@ -24,7 +24,7 @@ func fetchPrivateKey(privateKeyURL string) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	key, err := ioutil.ReadFile(localFile)
+	key, err := os.ReadFile(localFile)
 	if err != nil {
 		return nil, "", err
 	}

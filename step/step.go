@@ -22,6 +22,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/devportalservice"
+	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
@@ -1001,10 +1002,14 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		}
 
 		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
+		signingStyle := exportoptions.SigningStyleManual
+		if opts.XcodeAuthOptions != nil {
+			signingStyle = exportoptions.SigningStyleAutomatic
+		}
 
 		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
-			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, int64(opts.XcodeMajorVersion))
+			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion))
 		if err != nil {
 			return out, err
 		}
