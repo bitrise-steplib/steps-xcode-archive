@@ -42,7 +42,7 @@ func FilterValidCertificateInfos(certificateInfos []CertificateInfoModel) ValidC
 		}
 
 		sort.Slice(certs, func(i, j int) bool {
-			return certs[i].EndDate.Before(certs[j].EndDate)
+			return certs[i].EndDate.After(certs[j].EndDate)
 		})
 		validCertificates = append(validCertificates, certs[0])
 		if len(certs) > 1 {

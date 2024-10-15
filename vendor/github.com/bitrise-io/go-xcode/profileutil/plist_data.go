@@ -9,10 +9,6 @@ import (
 	"howett.net/plist"
 )
 
-const (
-	notValidParameterErrorMessage = "security: SecPolicySetValue: One or more parameters passed to a function were not valid."
-)
-
 // PlistData ...
 type PlistData plistutil.PlistData
 

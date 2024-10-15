@@ -189,9 +189,8 @@ func findInProjectTree(target string, currentID string, object serialized.Object
 		return nil, fmt.Errorf("object not found, id: %s, error: %s", currentID, err)
 	}
 
-	entryPath, err := entry.String("path")
-	if err != nil {
-	}
+	entryPath, _ := entry.String("path")
+
 	sourceTreeRaw, err := entry.String("sourceTree")
 	if err != nil {
 		return nil, err

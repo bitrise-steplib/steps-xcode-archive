@@ -12,7 +12,8 @@ type AppStoreOptionsModel struct {
 	BundleIDProvisioningProfileMapping map[string]string
 	SigningCertificate                 string
 	InstallerSigningCertificate        string
-	SigningStyle                       string
+	SigningStyle                       SigningStyle
+	Destination                        Destination
 	ICloudContainerEnvironment         ICloudContainerEnvironment
 	DistributionBundleIdentifier       string
 
@@ -39,12 +40,15 @@ func (options AppStoreOptionsModel) Hash() map[string]interface{} {
 	if options.TeamID != "" {
 		hash[TeamIDKey] = options.TeamID
 	}
+	//nolint:gosimple
 	if options.UploadBitcode != UploadBitcodeDefault {
 		hash[UploadBitcodeKey] = options.UploadBitcode
 	}
+	//nolint:gosimple
 	if options.UploadSymbols != UploadSymbolsDefault {
 		hash[UploadSymbolsKey] = options.UploadSymbols
 	}
+	//nolint:gosimple
 	if options.ManageAppVersion != manageAppVersionDefault {
 		hash[manageAppVersionKey] = options.ManageAppVersion
 	}
@@ -65,6 +69,9 @@ func (options AppStoreOptionsModel) Hash() map[string]interface{} {
 	}
 	if options.SigningStyle != "" {
 		hash[SigningStyleKey] = options.SigningStyle
+	}
+	if options.Destination != "" {
+		hash[DestinationKey] = options.Destination
 	}
 	return hash
 }

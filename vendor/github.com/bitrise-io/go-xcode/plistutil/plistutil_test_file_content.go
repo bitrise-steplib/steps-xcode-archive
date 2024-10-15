@@ -186,61 +186,6 @@ const appStoreProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
 	<integer>1</integer>
 </dict>`
 
-const adHocProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>AppIDName</key>
-	<string>Bitrise Test</string>
-	<key>ApplicationIdentifierPrefix</key>
-	<array>
-	<string>9NS4</string>
-	</array>
-	<key>CreationDate</key>
-	<date>2016-09-22T11:29:38Z</date>
-	<key>Platform</key>
-	<array>
-		<string>iOS</string>
-	</array>
-	<key>DeveloperCertificates</key>
-	<array>
-		<data></data>
-	</array>
-	<key>Entitlements</key>
-	<dict>
-		<key>keychain-access-groups</key>
-		<array>
-			<string>9NS4.*</string>
-		</array>
-		<key>get-task-allow</key>
-		<false/>
-		<key>application-identifier</key>
-		<string>9NS4.*</string>
-		<key>com.apple.developer.team-identifier</key>
-		<string>9NS4</string>
-	</dict>
-	<key>ExpirationDate</key>
-	<date>2017-09-21T13:20:06Z</date>
-	<key>Name</key>
-	<string>Bitrise Test Ad Hoc</string>
-	<key>ProvisionedDevices</key>
-	<array>
-		<string>b138</string>
-	</array>
-	<key>TeamIdentifier</key>
-	<array>
-		<string>9NS4</string>
-	</array>
-	<key>TeamName</key>
-	<string>Some Dude</string>
-	<key>TimeToLive</key>
-	<integer>364</integer>
-	<key>UUID</key>
-	<string>26668300</string>
-	<key>Version</key>
-	<integer>1</integer>
-</dict>`
-
 const enterpriseProfileContent = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

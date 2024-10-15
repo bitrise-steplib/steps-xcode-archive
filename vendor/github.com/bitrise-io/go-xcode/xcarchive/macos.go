@@ -24,7 +24,7 @@ func (app macosBaseApplication) BundleIdentifier() string {
 }
 
 func newMacosBaseApplication(path string) (macosBaseApplication, error) {
-	infoPlist := plistutil.PlistData{}
+	var infoPlist plistutil.PlistData
 	{
 		infoPlistPath := filepath.Join(path, "Contents/Info.plist")
 		if exist, err := pathutil.IsPathExists(infoPlistPath); err != nil {
@@ -129,7 +129,7 @@ type MacosArchive struct {
 
 // NewMacosArchive ...
 func NewMacosArchive(path string) (MacosArchive, error) {
-	infoPlist := plistutil.PlistData{}
+	var infoPlist plistutil.PlistData
 	{
 		infoPlistPath := filepath.Join(path, "Info.plist")
 		if exist, err := pathutil.IsPathExists(infoPlistPath); err != nil {
@@ -144,7 +144,7 @@ func NewMacosArchive(path string) (MacosArchive, error) {
 		infoPlist = plist
 	}
 
-	application := MacosApplication{}
+	var application MacosApplication
 	{
 		pattern := filepath.Join(pathutil.EscapeGlobPath(path), "Products/Applications/*.app")
 		pths, err := filepath.Glob(pattern)
