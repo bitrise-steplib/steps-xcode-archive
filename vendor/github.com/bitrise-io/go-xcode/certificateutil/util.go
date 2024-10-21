@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/bitrise-io/go-pkcs12"
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/fileutil"
-	"github.com/bitrise-io/go-pkcs12"
 	"github.com/pkg/errors"
 )
 

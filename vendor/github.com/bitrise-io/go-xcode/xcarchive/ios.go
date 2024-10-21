@@ -26,7 +26,7 @@ func (app IosBaseApplication) BundleIdentifier() string {
 
 // NewIosBaseApplication ...
 func NewIosBaseApplication(path string) (IosBaseApplication, error) {
-	infoPlist := plistutil.PlistData{}
+	var infoPlist plistutil.PlistData
 	{
 		infoPlistPath := filepath.Join(path, "Info.plist")
 		if exist, err := pathutil.IsPathExists(infoPlistPath); err != nil {
@@ -41,7 +41,7 @@ func NewIosBaseApplication(path string) (IosBaseApplication, error) {
 		infoPlist = plist
 	}
 
-	provisioningProfile := profileutil.ProvisioningProfileInfoModel{}
+	var provisioningProfile profileutil.ProvisioningProfileInfoModel
 	{
 		provisioningProfilePath := filepath.Join(path, "embedded.mobileprovision")
 		if exist, err := pathutil.IsPathExists(provisioningProfilePath); err != nil {
@@ -222,7 +222,7 @@ type IosArchive struct {
 
 // NewIosArchive ...
 func NewIosArchive(path string) (IosArchive, error) {
-	infoPlist := plistutil.PlistData{}
+	var infoPlist plistutil.PlistData
 	{
 		infoPlistPath := filepath.Join(path, "Info.plist")
 		if exist, err := pathutil.IsPathExists(infoPlistPath); err != nil {
@@ -237,7 +237,7 @@ func NewIosArchive(path string) (IosArchive, error) {
 		infoPlist = plist
 	}
 
-	application := IosApplication{}
+	var application IosApplication
 	{
 		appPath := ""
 		if appRelativePathToProducts, found := applicationFromPlist(infoPlist); found {

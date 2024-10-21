@@ -224,13 +224,12 @@ func parse(reader io.Reader) (scheme Scheme, err error) {
 type XMLToken int
 
 const (
-	invalid XMLToken = iota
 	// XMLStart ...
-	XMLStart
+	XMLStart XMLToken = 1
 	// XMLEnd ...
-	XMLEnd
+	XMLEnd XMLToken = 2
 	// XMLAttribute ...
-	XMLAttribute
+	XMLAttribute XMLToken = 3
 )
 
 // Marshal ...

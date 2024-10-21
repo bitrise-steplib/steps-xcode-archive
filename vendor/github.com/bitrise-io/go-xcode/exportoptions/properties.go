@@ -17,15 +17,15 @@ const EmbedOnDemandResourcesAssetPacksInBundleDefault = true
 // ICloudContainerEnvironmentKey ...
 const ICloudContainerEnvironmentKey = "iCloudContainerEnvironment"
 
+// ICloudContainerEnvironment ...
+type ICloudContainerEnvironment string
+
 const (
 	// ICloudContainerEnvironmentDevelopment ...
 	ICloudContainerEnvironmentDevelopment ICloudContainerEnvironment = "Development"
 	// ICloudContainerEnvironmentProduction ...
 	ICloudContainerEnvironmentProduction ICloudContainerEnvironment = "Production"
 )
-
-// ICloudContainerEnvironment ...
-type ICloudContainerEnvironment string
 
 // DistributionBundleIdentifier ...
 const DistributionBundleIdentifier = "distributionBundleIdentifier"
@@ -79,6 +79,9 @@ func (manifest Manifest) ToHash() map[string]string {
 // MethodKey ...
 const MethodKey = "method"
 
+// Method ...
+type Method string
+
 const (
 	// MethodAppStore ...
 	MethodAppStore Method = "app-store"
@@ -95,9 +98,6 @@ const (
 	// MethodDefault ...
 	MethodDefault Method = MethodDevelopment
 )
-
-// Method ...
-type Method string
 
 // ParseMethod ...
 func ParseMethod(method string) (Method, error) {
@@ -165,3 +165,22 @@ const InstallerSigningCertificateKey = "installerSigningCertificate"
 
 // SigningStyleKey ...
 const SigningStyleKey = "signingStyle"
+
+// SigningStyle ...
+type SigningStyle string
+
+// SigningStyle ...
+const (
+	SigningStyleManual    SigningStyle = "manual"
+	SigningStyleAutomatic SigningStyle = "automatic"
+)
+
+const DestinationKey = "destination"
+
+type Destination string
+
+// Destination ...
+const (
+	DestinationExport  Destination = "export"
+	DestinationDefault Destination = DestinationExport
+)

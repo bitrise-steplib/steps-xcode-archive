@@ -2,7 +2,6 @@ package xcodeproj
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -35,7 +34,7 @@ func (p XcodeProj) SaveSharedScheme(scheme xcscheme.Scheme) error {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
-	if err := ioutil.WriteFile(path, contents, 0600); err != nil {
+	if err := os.WriteFile(path, contents, 0600); err != nil {
 		return fmt.Errorf("failed to write Scheme file (%s): %v", path, err)
 	}
 
