@@ -285,7 +285,7 @@ func (s ProvisioningService) Profiles(relationshipLink string, opt *PagingOption
 		return nil, err
 	}
 
-	req, err := s.client.NewRequest(http.MethodGet, u, nil)
+	req, err := s.client.NewRequestWithRelationshipURL(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}

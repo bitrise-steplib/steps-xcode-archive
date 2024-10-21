@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/bitrise-io/go-utils/httputil"
@@ -148,13 +149,11 @@ func (c *Client) ensureSignedToken() (string, error) {
 	return c.signedToken, nil
 }
 
-// TODO: Add comment
 // NewRequestWithRelationshipURL ...
 func (c *Client) NewRequestWithRelationshipURL(method, endpoint string, body interface{}) (*http.Request, error) {
-	// endpoint = strings.TrimPrefix(endpoint, c.B+apiVersion)
-	log.Donef("REL URL: %s", endpoint)
+	endpoint = strings.TrimPrefix(endpoint, c.BaseURL.String()+apiVersion+"/")
 
-	return c.newRequest(method, endpoint, body)
+	return c.NewRequest(method, endpoint, body)
 }
 
 // NewRequest creates a new http.Request

@@ -144,7 +144,7 @@ func (s ProvisioningService) Devices(relationshipLink string, opt *PagingOptions
 		return nil, err
 	}
 
-	req, err := s.client.NewRequest(http.MethodGet, u, nil)
+	req, err := s.client.NewRequestWithRelationshipURL(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}
