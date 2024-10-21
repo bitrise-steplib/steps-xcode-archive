@@ -104,6 +104,7 @@ type Inputs struct {
 	APIKeyPath                      stepconf.Secret `env:"api_key_path"`
 	APIKeyID                        string          `env:"api_key_id"`
 	APIKeyIssuerID                  string          `env:"api_key_issuer_id"`
+	APIKeyEnterpriseAccount         bool            `env:"api_key_enterprise_account"`
 	BuildURL                        string          `env:"BITRISE_BUILD_URL"`
 	BuildAPIToken                   stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
@@ -715,9 +716,10 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 	}
 
 	connectionInputs := codesign.ConnectionOverrideInputs{
-		APIKeyPath:     config.Inputs.APIKeyPath,
-		APIKeyID:       config.Inputs.APIKeyID,
-		APIKeyIssuerID: config.Inputs.APIKeyIssuerID,
+		APIKeyPath:              config.Inputs.APIKeyPath,
+		APIKeyID:                config.Inputs.APIKeyID,
+		APIKeyIssuerID:          config.Inputs.APIKeyIssuerID,
+		APIKeyEnterpriseAccount: config.Inputs.APIKeyEnterpriseAccount,
 	}
 
 	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, connectionInputs, s.logger)

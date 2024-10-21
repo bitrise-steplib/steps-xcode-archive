@@ -2,7 +2,6 @@ package appstoreconnect
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/time"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
@@ -286,8 +285,7 @@ func (s ProvisioningService) Profiles(relationshipLink string, opt *PagingOption
 		return nil, err
 	}
 
-	endpoint := strings.TrimPrefix(u, baseURL+apiVersion)
-	req, err := s.client.NewRequest(http.MethodGet, endpoint, nil)
+	req, err := s.client.NewRequestWithRelationshipURL(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}

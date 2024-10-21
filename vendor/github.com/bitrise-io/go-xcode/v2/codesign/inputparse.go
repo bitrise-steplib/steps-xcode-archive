@@ -37,9 +37,10 @@ type Input struct {
 // ConnectionOverrideInputs are used in steps to control the API key based auth credentials
 // This overrides the global API connection defined on Bitrise.io
 type ConnectionOverrideInputs struct {
-	APIKeyPath     stepconf.Secret
-	APIKeyID       string
-	APIKeyIssuerID string
+	APIKeyPath              stepconf.Secret
+	APIKeyID                string
+	APIKeyIssuerID          string
+	APIKeyEnterpriseAccount bool
 }
 
 // Config ...
@@ -83,7 +84,7 @@ func ParseConfig(input Input, cmdFactory command.Factory) (Config, error) {
 }
 
 // parseConnectionOverrideConfig validates and parses the step input-level connection parameters
-func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string, logger log.Logger) (*devportalservice.APIKeyConnection, error) {
+func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssuerID string, isEnterpriseAccount bool, logger log.Logger) (*devportalservice.APIKeyConnection, error) {
 	var key []byte
 	if strings.HasPrefix(string(keyPathOrURL), "https://") {
 		resp, err := retryhttp.NewClient(logger).Get(string(keyPathOrURL))
@@ -120,9 +121,10 @@ func parseConnectionOverrideConfig(keyPathOrURL stepconf.Secret, keyID, keyIssue
 	}
 
 	return &devportalservice.APIKeyConnection{
-		KeyID:      strings.TrimSpace(keyID),
-		IssuerID:   strings.TrimSpace(keyIssuerID),
-		PrivateKey: string(key),
+		KeyID:             strings.TrimSpace(keyID),
+		IssuerID:          strings.TrimSpace(keyIssuerID),
+		PrivateKey:        string(key),
+		EnterpriseAccount: isEnterpriseAccount,
 	}, nil
 }
 

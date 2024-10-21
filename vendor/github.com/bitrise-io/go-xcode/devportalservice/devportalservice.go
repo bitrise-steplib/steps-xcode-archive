@@ -161,9 +161,10 @@ type AppleIDConnection struct {
 
 // APIKeyConnection represents a Bitrise.io API key-based Apple Developer connection.
 type APIKeyConnection struct {
-	KeyID      string `json:"key_id"`
-	IssuerID   string `json:"issuer_id"`
-	PrivateKey string `json:"private_key"`
+	KeyID             string `json:"key_id"`
+	IssuerID          string `json:"issuer_id"`
+	PrivateKey        string `json:"private_key"`
+	EnterpriseAccount bool   `json:"is_enterprise_account"`
 }
 
 // IsEqualUDID compares two UDIDs (stored in the DeviceID field of TestDevice)

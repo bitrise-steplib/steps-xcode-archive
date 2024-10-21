@@ -198,7 +198,7 @@ func SelectConnectionCredentials(
 	if authType == APIKeyAuth && inputs.APIKeyPath != "" && inputs.APIKeyIssuerID != "" && inputs.APIKeyID != "" {
 		logger.Infof("Overriding Bitrise Apple Service connection with Step-provided credentials (api_key_path, api_key_id, api_key_issuer_id)")
 
-		config, err := parseConnectionOverrideConfig(inputs.APIKeyPath, inputs.APIKeyID, inputs.APIKeyIssuerID, logger)
+		config, err := parseConnectionOverrideConfig(inputs.APIKeyPath, inputs.APIKeyID, inputs.APIKeyIssuerID, inputs.APIKeyEnterpriseAccount, logger)
 		if err != nil {
 			return appleauth.Credentials{}, err
 		}
