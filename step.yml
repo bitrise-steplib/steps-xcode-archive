@@ -457,8 +457,8 @@ inputs:
       Indicates if the account is an enterprise type.
       This overrides the Bitrise-managed API connection, only set this input if you know you have an enterprise account.
     value_options:
-      - "yes"
-      - "no"
+    - "yes"
+    - "no"
     is_required: false
 
 # Debugging
