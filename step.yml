@@ -448,6 +448,19 @@ inputs:
       This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_id`).
     is_required: false
 
+- api_key_enterprise_account: "no"
+  opts:
+    category: App Store Connect connection override
+    title: App Store Connect API enterprise account
+    summary: Indicates if the account is an enterprise type. This overrides the Bitrise-managed API connection.
+    description: |-
+      Indicates if the account is an enterprise type.
+      This overrides the Bitrise-managed API connection, only set this input if you know you have an enterprise account.
+    value_options:
+      - "yes"
+      - "no"
+    is_required: false
+
 # Debugging
 
 - verbose_log: "no"
