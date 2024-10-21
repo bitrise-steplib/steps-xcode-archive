@@ -272,14 +272,14 @@ func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials) (
 		return codeSigningBitriseAPIKey, "Using Bitrise-managed code signing assets with API key because 'xcodebuild -allowProvisioningUpdates' with API authentication requires Xcode 13 or higher.", nil
 	}
 
-	isManaged, err := m.detailsProvider.IsSigningManagedAutomatically()
-	if err != nil {
-		return codeSigningBitriseAPIKey, manualProfilesReason, err
-	}
-
-	if !isManaged {
-		return codeSigningBitriseAPIKey, manualProfilesReason, nil
-	}
+	//isManaged, err := m.detailsProvider.IsSigningManagedAutomatically()
+	//if err != nil {
+	//	return codeSigningBitriseAPIKey, manualProfilesReason, err
+	//}
+	//
+	//if !isManaged {
+	//	return codeSigningBitriseAPIKey, manualProfilesReason, nil
+	//}
 
 	if m.opts.MinDaysProfileValidity > 0 {
 		return codeSigningBitriseAPIKey, "Specifying the minimum validity period of the Provisioning Profile is not supported by xcodebuild.", nil
