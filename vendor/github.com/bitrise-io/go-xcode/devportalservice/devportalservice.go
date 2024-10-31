@@ -61,6 +61,8 @@ func privateKeyWithHeader(privateKey string) string {
 func (c *BitriseClient) GetAppleDeveloperConnection() (*AppleDeveloperConnection, error) {
 	var rawCreds []byte
 	var err error
+	
+	log.infoF("test")
 
 	if strings.HasPrefix(c.buildURL, "file://") {
 		rawCreds, err = c.readBytesFromFile(strings.TrimPrefix(c.buildURL, "file://"))
