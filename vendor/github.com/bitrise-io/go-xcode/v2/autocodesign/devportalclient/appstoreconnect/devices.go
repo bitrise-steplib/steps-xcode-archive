@@ -2,7 +2,6 @@ package appstoreconnect
 
 import (
 	"net/http"
-	"strings"
 )
 
 // DevicesEndpoint ...
@@ -145,8 +144,7 @@ func (s ProvisioningService) Devices(relationshipLink string, opt *PagingOptions
 		return nil, err
 	}
 
-	endpoint := strings.TrimPrefix(u, baseURL+apiVersion)
-	req, err := s.client.NewRequest(http.MethodGet, endpoint, nil)
+	req, err := s.client.NewRequestWithRelationshipURL(http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}

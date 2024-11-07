@@ -5,13 +5,12 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-utils/v2/log"
-	"github.com/bitrise-io/go-xcode/appleauth"
 	"github.com/bitrise-io/go-xcode/certificateutil"
-	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
+	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 )
 
 // AuthType ...
@@ -51,7 +50,7 @@ type Opts struct {
 type Manager struct {
 	opts Opts
 
-	appleAuthCredentials      appleauth.Credentials
+	appleAuthCredentials      devportalservice.Credentials
 	bitriseTestDevices        []devportalservice.TestDevice
 	devPortalClientFactory    devportalclient.Factory
 	certDownloader            autocodesign.CertificateProvider
@@ -68,7 +67,7 @@ type Manager struct {
 // NewManagerWithArchive creates a codesign manager, which reads the code signing asset requirements from an XCArchive file.
 func NewManagerWithArchive(
 	opts Opts,
-	appleAuth appleauth.Credentials,
+	appleAuth devportalservice.Credentials,
 	bitriseTestDevices []devportalservice.TestDevice,
 	clientFactory devportalclient.Factory,
 	certDownloader autocodesign.CertificateProvider,
@@ -95,7 +94,7 @@ func NewManagerWithArchive(
 // NewManagerWithProject creates a codesign manager, which reads the code signing asset requirements from an Xcode Project.
 func NewManagerWithProject(
 	opts Opts,
-	appleAuth appleauth.Credentials,
+	appleAuth devportalservice.Credentials,
 	bitriseTestDevices []devportalservice.TestDevice,
 	clientFactory devportalclient.Factory,
 	certDownloader autocodesign.CertificateProvider,
@@ -194,15 +193,15 @@ func (m *Manager) PrepareCodesigning() (*devportalservice.APIKeyConnection, erro
 func SelectConnectionCredentials(
 	authType AuthType,
 	bitriseConnection *devportalservice.AppleDeveloperConnection,
-	inputs ConnectionOverrideInputs, logger log.Logger) (appleauth.Credentials, error) {
+	inputs ConnectionOverrideInputs, logger log.Logger) (devportalservice.Credentials, error) {
 	if authType == APIKeyAuth && inputs.APIKeyPath != "" && inputs.APIKeyIssuerID != "" && inputs.APIKeyID != "" {
 		logger.Infof("Overriding Bitrise Apple Service connection with Step-provided credentials (api_key_path, api_key_id, api_key_issuer_id)")
 
-		config, err := parseConnectionOverrideConfig(inputs.APIKeyPath, inputs.APIKeyID, inputs.APIKeyIssuerID, logger)
+		config, err := parseConnectionOverrideConfig(inputs.APIKeyPath, inputs.APIKeyID, inputs.APIKeyIssuerID, inputs.APIKeyEnterpriseAccount, logger)
 		if err != nil {
-			return appleauth.Credentials{}, err
+			return devportalservice.Credentials{}, err
 		}
-		return appleauth.Credentials{
+		return devportalservice.Credentials{
 			APIKey:  config,
 			AppleID: nil,
 		}, nil
@@ -211,11 +210,11 @@ func SelectConnectionCredentials(
 	if authType == APIKeyAuth {
 		if bitriseConnection == nil || bitriseConnection.APIKeyConnection == nil {
 			logger.Warnf(devportalclient.NotConnectedWarning)
-			return appleauth.Credentials{}, fmt.Errorf("Apple Service connection via App Store Connect API key is not estabilished")
+			return devportalservice.Credentials{}, fmt.Errorf("Apple Service connection via App Store Connect API key is not estabilished")
 		}
 
 		logger.Donef("Using Apple Service connection with API key.")
-		return appleauth.Credentials{
+		return devportalservice.Credentials{
 			APIKey:  bitriseConnection.APIKeyConnection,
 			AppleID: nil,
 		}, nil
@@ -224,12 +223,12 @@ func SelectConnectionCredentials(
 	if authType == AppleIDAuth {
 		if bitriseConnection == nil || bitriseConnection.AppleIDConnection == nil {
 			logger.Warnf(devportalclient.NotConnectedWarning)
-			return appleauth.Credentials{}, fmt.Errorf("Apple Service connection through Apple ID is not estabilished")
+			return devportalservice.Credentials{}, fmt.Errorf("Apple Service connection through Apple ID is not estabilished")
 		}
 
 		session, err := bitriseConnection.AppleIDConnection.FastlaneLoginSession()
 		if err != nil {
-			return appleauth.Credentials{}, fmt.Errorf("failed to restore Apple ID login session: %w", err)
+			return devportalservice.Credentials{}, fmt.Errorf("failed to restore Apple ID login session: %w", err)
 		}
 
 		if session != "" &&
@@ -239,8 +238,8 @@ func SelectConnectionCredentials(
 		}
 
 		logger.Donef("Using Apple Service connection with Apple ID.")
-		return appleauth.Credentials{
-			AppleID: &appleauth.AppleID{
+		return devportalservice.Credentials{
+			AppleID: &devportalservice.AppleID{
 				Username:            bitriseConnection.AppleIDConnection.AppleID,
 				Password:            bitriseConnection.AppleIDConnection.Password,
 				Session:             session,
@@ -253,7 +252,7 @@ func SelectConnectionCredentials(
 	panic("Unexpected AuthType")
 }
 
-func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials) (codeSigningStrategy, string, error) {
+func (m *Manager) selectCodeSigningStrategy(credentials devportalservice.Credentials) (codeSigningStrategy, string, error) {
 	const manualProfilesReason = "Using Bitrise-managed code signing assets with API key because Automatically managed signing is disabled in Xcode for the project."
 
 	if credentials.AppleID != nil {
@@ -270,6 +269,10 @@ func (m *Manager) selectCodeSigningStrategy(credentials appleauth.Credentials) (
 
 	if m.opts.XcodeMajorVersion < 13 {
 		return codeSigningBitriseAPIKey, "Using Bitrise-managed code signing assets with API key because 'xcodebuild -allowProvisioningUpdates' with API authentication requires Xcode 13 or higher.", nil
+	}
+
+	if credentials.APIKey.EnterpriseAccount {
+		return codeSigningBitriseAPIKey, "Using Bitrise-managed code signing assets with API key because 'xcodebuild -allowProvisioningUpdates' for Enterprise Program is not yet supported.", nil
 	}
 
 	isManaged, err := m.detailsProvider.IsSigningManagedAutomatically()
@@ -341,7 +344,7 @@ func (m *Manager) validateCertificatesForXcodeManagedSigning(certificates []cert
 	return nil
 }
 
-func (m *Manager) registerTestDevices(credentials appleauth.Credentials, devices []devportalservice.TestDevice) error {
+func (m *Manager) registerTestDevices(credentials devportalservice.Credentials, devices []devportalservice.TestDevice) error {
 	platform, err := m.detailsProvider.Platform()
 	if err != nil {
 		return fmt.Errorf("failed to read platform from project: %s", err)
@@ -360,7 +363,7 @@ func (m *Manager) registerTestDevices(credentials appleauth.Credentials, devices
 	return nil
 }
 
-func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credentials, testDevices []devportalservice.TestDevice) error {
+func (m *Manager) prepareCodeSigningWithBitrise(credentials devportalservice.Credentials, testDevices []devportalservice.TestDevice) error {
 	fmt.Println()
 	m.logger.TDebugf("Analyzing project")
 	appLayout, err := m.detailsProvider.GetAppLayout(m.opts.SignUITests)
@@ -408,7 +411,7 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials appleauth.Credential
 	return nil
 }
 
-func (m *Manager) prepareAutomaticAssets(credentials appleauth.Credentials, appLayout autocodesign.AppLayout, typeToLocalCerts autocodesign.LocalCertificates, testDevicesToRegister []devportalservice.TestDevice) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+func (m *Manager) prepareAutomaticAssets(credentials devportalservice.Credentials, appLayout autocodesign.AppLayout, typeToLocalCerts autocodesign.LocalCertificates, testDevicesToRegister []devportalservice.TestDevice) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
 	devPortalClient, err := m.devPortalClientFactory.Create(credentials, m.opts.TeamID)
 	if err != nil {
 		return nil, err

@@ -31,11 +31,11 @@ func signToken(token *jwt.Token, privateKeyContent []byte) (string, error) {
 }
 
 // createToken creates a jwt.Token for the Apple API
-func createToken(keyID string, issuerID string) *jwt.Token {
+func createToken(keyID string, issuerID string, audience string) *jwt.Token {
 	payload := claims{
 		IssuerID:   issuerID,
 		Expiration: time.Now().Add(jwtDuration).Unix(),
-		Audience:   "appstoreconnect-v1",
+		Audience:   audience,
 	}
 
 	// registers headers: alg = ES256 and typ = JWT
