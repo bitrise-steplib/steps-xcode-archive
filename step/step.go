@@ -104,7 +104,7 @@ type Inputs struct {
 	APIKeyPath                      stepconf.Secret `env:"api_key_path"`
 	APIKeyID                        string          `env:"api_key_id"`
 	APIKeyIssuerID                  string          `env:"api_key_issuer_id"`
-	APIKeyEnterpriseAccount         bool            `env:"api_key_enterprise_account"`
+	APIKeyEnterpriseAccount         bool            `env:"api_key_enterprise_account,opt[yes,no]"`
 	BuildURL                        string          `env:"BITRISE_BUILD_URL"`
 	BuildAPIToken                   stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
