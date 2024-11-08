@@ -2,7 +2,6 @@ package appstoreconnect
 
 import (
 	"net/http"
-	"strings"
 )
 
 // BundleIDsEndpoint ...
@@ -125,8 +124,7 @@ func (s ProvisioningService) CreateBundleID(body BundleIDCreateRequest) (*Bundle
 
 // BundleID ...
 func (s ProvisioningService) BundleID(relationshipLink string) (*BundleIDResponse, error) {
-	endpoint := strings.TrimPrefix(relationshipLink, baseURL+apiVersion)
-	req, err := s.client.NewRequest(http.MethodGet, endpoint, nil)
+	req, err := s.client.NewRequestWithRelationshipURL(http.MethodGet, relationshipLink, nil)
 	if err != nil {
 		return nil, err
 	}

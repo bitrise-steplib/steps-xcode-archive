@@ -12,9 +12,53 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/bitrise-io/go-utils/fileutil"
-	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/v2/fileutil"
+	"github.com/bitrise-io/go-utils/v2/log"
 )
+
+const appleDeveloperConnectionPath = "apple_developer_portal_data.json"
+
+type cookie struct {
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Value     string `json:"value"`
+	Domain    string `json:"domain"`
+	Secure    bool   `json:"secure"`
+	Expires   string `json:"expires,omitempty"`
+	MaxAge    int    `json:"max_age,omitempty"`
+	Httponly  bool   `json:"httponly"`
+	ForDomain *bool  `json:"for_domain,omitempty"`
+}
+
+// AppleIDConnection represents a Bitrise.io Apple ID-based Apple Developer connection.
+type AppleIDConnection struct {
+	AppleID             string              `json:"apple_id"`
+	Password            string              `json:"password"`
+	AppSpecificPassword string              `json:"app_specific_password"`
+	SessionExpiryDate   *time.Time          `json:"connection_expiry_date"`
+	SessionCookies      map[string][]cookie `json:"session_cookies"`
+}
+
+// APIKeyConnection represents a Bitrise.io API key-based Apple Developer connection.
+type APIKeyConnection struct {
+	KeyID             string `json:"key_id"`
+	IssuerID          string `json:"issuer_id"`
+	PrivateKey        string `json:"private_key"`
+	EnterpriseAccount bool   `json:"is_enterprise_account"`
+}
+
+// IsEqualUDID compares two UDIDs (stored in the DeviceID field of TestDevice)
+func IsEqualUDID(UDID string, otherUDID string) bool {
+	return normalizeDeviceUDID(UDID) == normalizeDeviceUDID(otherUDID)
+}
+
+// AppleDeveloperConnection represents a Bitrise.io Apple Developer connection.
+// https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/
+type AppleDeveloperConnection struct {
+	AppleIDConnection                  *AppleIDConnection
+	APIKeyConnection                   *APIKeyConnection
+	TestDevices, DuplicatedTestDevices []TestDevice
+}
 
 type httpClient interface {
 	Do(req *http.Request) (*http.Response, error)
@@ -27,23 +71,23 @@ type AppleDeveloperConnectionProvider interface {
 
 // BitriseClient implements AppleDeveloperConnectionProvider through the Bitrise.io API.
 type BitriseClient struct {
-	httpClient              httpClient
-	buildURL, buildAPIToken string
+	log         log.Logger
+	filemanager fileutil.FileManager
+	httpClient  httpClient
 
-	readBytesFromFile func(pth string) ([]byte, error)
+	buildURL, buildAPIToken string
 }
 
 // NewBitriseClient creates a new instance of BitriseClient.
-func NewBitriseClient(client httpClient, buildURL, buildAPIToken string) *BitriseClient {
+func NewBitriseClient(logger log.Logger, filemanager fileutil.FileManager, client httpClient, buildURL, buildAPIToken string) *BitriseClient {
 	return &BitriseClient{
-		httpClient:        client,
-		buildURL:          buildURL,
-		buildAPIToken:     buildAPIToken,
-		readBytesFromFile: fileutil.ReadBytesFromFile,
+		log:           logger,
+		filemanager:   filemanager,
+		httpClient:    client,
+		buildURL:      buildURL,
+		buildAPIToken: buildAPIToken,
 	}
 }
-
-const appleDeveloperConnectionPath = "apple_developer_portal_data.json"
 
 func privateKeyWithHeader(privateKey string) string {
 	if strings.HasPrefix(privateKey, "-----BEGIN PRIVATE KEY----") {
@@ -55,6 +99,15 @@ func privateKeyWithHeader(privateKey string) string {
 		privateKey,
 		"\n-----END PRIVATE KEY-----",
 	)
+}
+
+func (c *BitriseClient) readBytesFromFile(filepath string) ([]byte, error) {
+	reader, err := c.filemanager.OpenReaderIfExists(filepath)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return io.ReadAll(reader)
 }
 
 // GetAppleDeveloperConnection fetches the Bitrise.io Apple Developer connection.
@@ -122,7 +175,7 @@ func (c *BitriseClient) download() ([]byte, error) {
 	// The client must close the response body when finished with it
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
-			log.Warnf("Failed to close response body: %s", cerr)
+			c.log.Warnf("Failed to close response body: %s", cerr)
 		}
 	}()
 
@@ -136,47 +189,6 @@ func (c *BitriseClient) download() ([]byte, error) {
 	}
 
 	return body, nil
-}
-
-type cookie struct {
-	Name      string `json:"name"`
-	Path      string `json:"path"`
-	Value     string `json:"value"`
-	Domain    string `json:"domain"`
-	Secure    bool   `json:"secure"`
-	Expires   string `json:"expires,omitempty"`
-	MaxAge    int    `json:"max_age,omitempty"`
-	Httponly  bool   `json:"httponly"`
-	ForDomain *bool  `json:"for_domain,omitempty"`
-}
-
-// AppleIDConnection represents a Bitrise.io Apple ID-based Apple Developer connection.
-type AppleIDConnection struct {
-	AppleID             string              `json:"apple_id"`
-	Password            string              `json:"password"`
-	AppSpecificPassword string              `json:"app_specific_password"`
-	SessionExpiryDate   *time.Time          `json:"connection_expiry_date"`
-	SessionCookies      map[string][]cookie `json:"session_cookies"`
-}
-
-// APIKeyConnection represents a Bitrise.io API key-based Apple Developer connection.
-type APIKeyConnection struct {
-	KeyID      string `json:"key_id"`
-	IssuerID   string `json:"issuer_id"`
-	PrivateKey string `json:"private_key"`
-}
-
-// IsEqualUDID compares two UDIDs (stored in the DeviceID field of TestDevice)
-func IsEqualUDID(UDID string, otherUDID string) bool {
-	return normalizeDeviceUDID(UDID) == normalizeDeviceUDID(otherUDID)
-}
-
-// AppleDeveloperConnection represents a Bitrise.io Apple Developer connection.
-// https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/
-type AppleDeveloperConnection struct {
-	AppleIDConnection                  *AppleIDConnection
-	APIKeyConnection                   *APIKeyConnection
-	TestDevices, DuplicatedTestDevices []TestDevice
 }
 
 // FastlaneLoginSession returns the Apple ID login session in a ruby/object:HTTP::Cookie format.

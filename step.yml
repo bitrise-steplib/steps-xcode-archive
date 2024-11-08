@@ -422,7 +422,6 @@ inputs:
       on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise.
       The input value can be a file path (eg. `$TMPDIR/private_key.p8`) or an HTTPS URL.
       This input only takes effect if the other two connection override inputs are set too (`api_key_id`, `api_key_issuer_id`).
-    is_required: false
 
 - api_key_id:
   opts:
@@ -434,7 +433,6 @@ inputs:
       This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection
       on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise.
       This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_issuer_id`).
-    is_required: false
 
 - api_key_issuer_id:
   opts:
@@ -446,7 +444,19 @@ inputs:
       This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection
       on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise.
       This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_id`).
-    is_required: false
+
+- api_key_enterprise_account: "no"
+  opts:
+    category: App Store Connect connection override
+    title: App Store Connect API enterprise account
+    summary: Indicates if the account is an enterprise type. This overrides the Bitrise-managed API connection.
+    description: |-
+      Indicates if the account is an enterprise type.
+      This overrides the Bitrise-managed API connection, only set this input if you know you have an enterprise account.
+    value_options:
+    - "yes"
+    - "no"
+    is_required: true
 
 # Debugging
 

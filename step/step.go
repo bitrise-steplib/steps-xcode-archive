@@ -21,7 +21,6 @@ import (
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
@@ -31,6 +30,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/profiledownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/v2/codesign"
+	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
@@ -104,6 +104,7 @@ type Inputs struct {
 	APIKeyPath                      stepconf.Secret `env:"api_key_path"`
 	APIKeyID                        string          `env:"api_key_id"`
 	APIKeyIssuerID                  string          `env:"api_key_issuer_id"`
+	APIKeyEnterpriseAccount         bool            `env:"api_key_enterprise_account,opt[yes,no]"`
 	BuildURL                        string          `env:"BITRISE_BUILD_URL"`
 	BuildAPIToken                   stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
@@ -705,7 +706,7 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 		return codesign.Manager{}, err
 	}
 
-	devPortalClientFactory := devportalclient.NewFactory(s.logger)
+	devPortalClientFactory := devportalclient.NewFactory(s.logger, s.fileManager)
 
 	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
 	if config.BuildURL != "" && config.BuildAPIToken != "" {
@@ -715,9 +716,10 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 	}
 
 	connectionInputs := codesign.ConnectionOverrideInputs{
-		APIKeyPath:     config.Inputs.APIKeyPath,
-		APIKeyID:       config.Inputs.APIKeyID,
-		APIKeyIssuerID: config.Inputs.APIKeyIssuerID,
+		APIKeyPath:              config.Inputs.APIKeyPath,
+		APIKeyID:                config.Inputs.APIKeyID,
+		APIKeyIssuerID:          config.Inputs.APIKeyIssuerID,
+		APIKeyEnterpriseAccount: config.Inputs.APIKeyEnterpriseAccount,
 	}
 
 	appleAuthCredentials, err := codesign.SelectConnectionCredentials(authType, serviceConnection, connectionInputs, s.logger)
