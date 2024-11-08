@@ -7,7 +7,7 @@ import (
 
 	big "math/big"
 
-	devportalservice "github.com/bitrise-io/go-xcode/devportalservice"
+	devportalservice "github.com/bitrise-io/go-xcode/v2/devportalservice"
 
 	mock "github.com/stretchr/testify/mock"
 )

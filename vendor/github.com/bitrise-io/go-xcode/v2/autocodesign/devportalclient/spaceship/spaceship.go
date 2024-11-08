@@ -20,8 +20,8 @@ import (
 	"github.com/bitrise-io/go-steputils/v2/ruby"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/v2/command"
-	"github.com/bitrise-io/go-xcode/appleauth"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
+	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 )
 
 //go:embed spaceship
@@ -29,15 +29,16 @@ var spaceship embed.FS
 
 // Client ...
 type Client struct {
-	workDir    string
-	authConfig appleauth.AppleID
-	teamID     string
+	workDir        string
+	authConfig     devportalservice.AppleID
+	teamID         string
+	isNoSleepRetry bool
 
 	cmdFactory ruby.CommandFactory
 }
 
 // NewClient ...
-func NewClient(authConfig appleauth.AppleID, teamID string, cmdFactory ruby.CommandFactory) (*Client, error) {
+func NewClient(authConfig devportalservice.AppleID, teamID string, cmdFactory ruby.CommandFactory) (*Client, error) {
 	dir, err := prepareSpaceship(cmdFactory)
 	if err != nil {
 		return nil, err
@@ -116,7 +117,9 @@ func (c *Client) runSpaceshipCommand(subCommand string, opts ...string) (string,
 			log.Debugf(spaceshipErr.Error())
 			log.TWarnf("spaceship command failed with a retryable error, retrying (%d. attempt)...", i)
 
-			time.Sleep(time.Duration(i) * time.Minute)
+			if !c.isNoSleepRetry {
+				time.Sleep(time.Duration(i) * time.Minute)
+			}
 		} else {
 			return "", spaceshipErr
 		}

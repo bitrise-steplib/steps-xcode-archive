@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
+	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 )
 
 // EnsureTestDevices fetches devices from Apple, and register missing devices.

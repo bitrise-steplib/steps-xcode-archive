@@ -21,7 +21,6 @@ import (
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
@@ -31,6 +30,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/profiledownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/v2/codesign"
+	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
@@ -706,7 +706,7 @@ func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manag
 		return codesign.Manager{}, err
 	}
 
-	devPortalClientFactory := devportalclient.NewFactory(s.logger)
+	devPortalClientFactory := devportalclient.NewFactory(s.logger, s.fileManager)
 
 	var serviceConnection *devportalservice.AppleDeveloperConnection = nil
 	if config.BuildURL != "" && config.BuildAPIToken != "" {

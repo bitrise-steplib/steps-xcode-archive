@@ -16,11 +16,11 @@ import (
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/retryhttp"
-	"github.com/bitrise-io/go-xcode/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/keychain"
+	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 )
 
 // Input ...
