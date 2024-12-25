@@ -96,6 +96,7 @@ inputs:
     summary: Describes how Xcode should export the archive.
     value_options:
     - development
+    - testflight-internal
     - app-store
     - ad-hoc
     - enterprise
