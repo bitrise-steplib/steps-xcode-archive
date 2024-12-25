@@ -96,10 +96,18 @@ inputs:
     summary: Describes how Xcode should export the archive.
     value_options:
     - development
-    - testflight-internal
     - app-store
-    - ad-hoc
+    - ad-hoccl
     - enterprise
+    is_required: true
+
+- testflight_internal: "no"
+  opts:
+    title: Testflight Internal Only
+    summary: Flag for testflight interal only.
+    value_options:
+    - "no"
+    - "yes"
     is_required: true
 
 # xcodebuild configuration
