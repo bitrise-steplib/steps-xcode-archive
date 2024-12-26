@@ -70,6 +70,7 @@ const (
 // Inputs ...
 type Inputs struct {
 	ExportMethod               string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
+	TestFlightInternalOnly     bool   `env:"testflight_internal_only,opt[yes,no]"`
 	UploadBitcode              bool   `env:"upload_bitcode,opt[yes,no]"`
 	CompileBitcode             bool   `env:"compile_bitcode,opt[yes,no]"`
 	ICloudContainerEnvironment string `env:"icloud_container_environment"`
@@ -323,6 +324,7 @@ type RunOpts struct {
 	// IPA Export
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
+	TestFlightInternalOnly          bool
 	ICloudContainerEnvironment      string
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
@@ -445,6 +447,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		Archive:                         *archiveOut.Archive,
 		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
 		ExportMethod:                    opts.ExportMethod,
+		TestFlightInternalOnly:          opts.TestFlightInternalOnly,
 		ICloudContainerEnvironment:      opts.ICloudContainerEnvironment,
 		ExportDevelopmentTeam:           opts.ExportDevelopmentTeam,
 		UploadBitcode:                   opts.UploadBitcode,
@@ -935,6 +938,7 @@ type xcodeIPAExportOpts struct {
 	Archive                         xcarchive.IosArchive
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
+	TestFlightInternalOnly          bool
 	ICloudContainerEnvironment      string
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
@@ -1011,7 +1015,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
-			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion))
+			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion), opts.TestFlightInternalOnly)
 		if err != nil {
 			return out, err
 		}

@@ -56,6 +56,7 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 	archivedWithXcodeManagedProfiles bool,
 	codeSigningStyle exportoptions.SigningStyle,
 	xcodeMajorVersion int64,
+	testFlightInternalOnly bool,
 ) (exportoptions.ExportOptions, error) {
 	mainTargetBundleID, entitlementsByBundleID, err := g.applicationTargetsAndEntitlements(exportMethod)
 	if err != nil {
@@ -89,6 +90,10 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 		}
 
 		exportOpts = addManualSigningFields(exportOpts, codeSignGroup, archivedWithXcodeManagedProfiles, g.logger)
+	}
+
+	if testFlightInternalOnly {
+		exportOpts = addTestFlightInternalOnly(exportOpts, testFlightInternalOnly)
 	}
 
 	return exportOpts, nil
@@ -378,6 +383,17 @@ func addTeamID(exportOpts exportoptions.ExportOptions, teamID string) exportopti
 		options.TeamID = teamID
 		return options
 	}
+	return exportOpts
+}
+
+func addTestFlightInternalOnly(exportOpts exportoptions.ExportOptions, testFlightInternalOnly bool) exportoptions.ExportOptions {
+	switch options := exportOpts.(type) {
+	case exportoptions.AppStoreOptionsModel:
+		options.TestFlightInternalTestingOnly = testFlightInternalOnly // Only available for app-store exports
+
+		return options
+	}
+
 	return exportOpts
 }
 
