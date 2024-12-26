@@ -105,6 +105,8 @@ inputs:
   opts:
     title: Testflight Internal Testing Only
     summary: Set this flag if the archive is for internal testflight distribution. Distribution Method has to be set to app_store
+    deps: 
+      distribution_method: "app_store"
     value_options:
     - "yes"
     - "no"
