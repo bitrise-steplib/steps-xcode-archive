@@ -155,6 +155,7 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	s.logger.Println()
 
 	config := Config{Inputs: inputs}
+
 	s.logger.EnableDebugLog(config.VerboseLog)
 	if config.VerboseLog {
 		logv1.SetEnableDebugLog(true)

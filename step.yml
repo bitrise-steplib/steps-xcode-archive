@@ -108,7 +108,6 @@ inputs:
     value_options:
     - "yes"
     - "no"
-    
     is_required: true
 
 # xcodebuild configuration
