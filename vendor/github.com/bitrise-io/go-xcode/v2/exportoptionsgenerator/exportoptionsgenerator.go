@@ -392,7 +392,9 @@ func addTestFlightInternalOnly(exportOpts exportoptions.ExportOptions, testFligh
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
 		options.TestFlightInternalTestingOnly = testFlightInternalOnly // Only available for app-store exports
-
+		return options
+	case exportoptions.NonAppStoreOptionsModel:
+		options.TestFlightInternalTestingOnly = testFlightInternalOnly
 		return options
 	}
 
