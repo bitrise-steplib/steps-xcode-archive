@@ -352,6 +352,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	)
 
 	s.logger.Println()
+	s.logger.Printf("Value of TestFlightInternalOnly: %v", opts.TestFlightInternalOnly)
 	if opts.XcodeMajorVersion >= 11 {
 		s.logger.Infof("Running resolve Swift package dependencies")
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
