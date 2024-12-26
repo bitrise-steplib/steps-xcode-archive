@@ -69,12 +69,12 @@ const (
 
 // Inputs ...
 type Inputs struct {
-	ExportMethod               string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
-	TestFlightInternalOnly     bool   `env:"testflight_internal_only,opt[yes,no]"`
-	UploadBitcode              bool   `env:"upload_bitcode,opt[yes,no]"`
-	CompileBitcode             bool   `env:"compile_bitcode,opt[yes,no]"`
-	ICloudContainerEnvironment string `env:"icloud_container_environment"`
-	ExportDevelopmentTeam      string `env:"export_development_team"`
+	ExportMethod                  string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
+	TestFlightInternalTestingOnly bool   `env:"testflight_internal_testing_only,opt[yes,no]"`
+	UploadBitcode                 bool   `env:"upload_bitcode,opt[yes,no]"`
+	CompileBitcode                bool   `env:"compile_bitcode,opt[yes,no]"`
+	ICloudContainerEnvironment    string `env:"icloud_container_environment"`
+	ExportDevelopmentTeam         string `env:"export_development_team"`
 
 	ExportOptionsPlistContent string `env:"export_options_plist_content"`
 
@@ -325,7 +325,7 @@ type RunOpts struct {
 	// IPA Export
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
-	TestFlightInternalOnly          bool
+	TestFlightInternalTestingOnly   bool
 	ICloudContainerEnvironment      string
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
@@ -353,7 +353,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	)
 
 	s.logger.Println()
-	s.logger.Printf("Value of TestFlightInternalOnly: %v", opts.TestFlightInternalOnly)
+	s.logger.Printf("Value of TestFlightInternalOnly: %v", opts.TestFlightInternalTestingOnly)
 	if opts.XcodeMajorVersion >= 11 {
 		s.logger.Infof("Running resolve Swift package dependencies")
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
@@ -449,7 +449,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		Archive:                         *archiveOut.Archive,
 		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
 		ExportMethod:                    opts.ExportMethod,
-		TestFlightInternalOnly:          opts.TestFlightInternalOnly,
+		TestFlightInternalTestingOnly:   opts.TestFlightInternalTestingOnly,
 		ICloudContainerEnvironment:      opts.ICloudContainerEnvironment,
 		ExportDevelopmentTeam:           opts.ExportDevelopmentTeam,
 		UploadBitcode:                   opts.UploadBitcode,
@@ -940,7 +940,7 @@ type xcodeIPAExportOpts struct {
 	Archive                         xcarchive.IosArchive
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
-	TestFlightInternalOnly          bool
+	TestFlightInternalTestingOnly   bool
 	ICloudContainerEnvironment      string
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
@@ -1017,7 +1017,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
-			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion), opts.TestFlightInternalOnly)
+			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion), opts.TestFlightInternalTestingOnly)
 		if err != nil {
 			return out, err
 		}

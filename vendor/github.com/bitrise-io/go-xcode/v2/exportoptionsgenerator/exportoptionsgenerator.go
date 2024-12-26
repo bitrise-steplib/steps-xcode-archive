@@ -56,7 +56,7 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 	archivedWithXcodeManagedProfiles bool,
 	codeSigningStyle exportoptions.SigningStyle,
 	xcodeMajorVersion int64,
-	testFlightInternalOnly bool,
+	testFlightInternalTestingOnly bool,
 ) (exportoptions.ExportOptions, error) {
 	mainTargetBundleID, entitlementsByBundleID, err := g.applicationTargetsAndEntitlements(exportMethod)
 	if err != nil {
@@ -92,10 +92,10 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 		exportOpts = addManualSigningFields(exportOpts, codeSignGroup, archivedWithXcodeManagedProfiles, g.logger)
 	}
 
-	g.logger.Printf("testFlightInternalOnly value: %t", testFlightInternalOnly)
+	g.logger.Printf("testFlightInternalTestingOnly value: %t", testFlightInternalTestingOnly)
 
-	if testFlightInternalOnly {
-		exportOpts = addTestFlightInternalOnly(exportOpts, testFlightInternalOnly)
+	if testFlightInternalTestingOnly {
+		exportOpts = addTestFlightInternalTestingOnly(exportOpts, testFlightInternalTestingOnly)
 	}
 
 	return exportOpts, nil
@@ -388,13 +388,13 @@ func addTeamID(exportOpts exportoptions.ExportOptions, teamID string) exportopti
 	return exportOpts
 }
 
-func addTestFlightInternalOnly(exportOpts exportoptions.ExportOptions, testFlightInternalOnly bool) exportoptions.ExportOptions {
+func addTestFlightInternalTestingOnly(exportOpts exportoptions.ExportOptions, testFlightInternalTestingOnly bool) exportoptions.ExportOptions {
 	switch options := exportOpts.(type) {
 	case exportoptions.AppStoreOptionsModel:
-		options.TestFlightInternalTestingOnly = testFlightInternalOnly // Only available for app-store exports
+		options.TestFlightInternalTestingOnly = testFlightInternalTestingOnly // Only available for app-store exports
 		return options
 	case exportoptions.NonAppStoreOptionsModel:
-		options.TestFlightInternalTestingOnly = testFlightInternalOnly
+		options.TestFlightInternalTestingOnly = testFlightInternalTestingOnly
 		return options
 	}
 
