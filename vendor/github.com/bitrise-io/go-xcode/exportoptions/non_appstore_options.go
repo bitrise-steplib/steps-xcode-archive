@@ -24,7 +24,7 @@ type NonAppStoreOptionsModel struct {
 	OnDemandResourcesAssetPacksBaseURL       string
 	Thinning                                 string
 	// TestFlightInternalTestingOnly
-	TestFlightInternalTestingOnly bool
+	//TestFlightInternalTestingOnly bool
 }
 
 // NewNonAppStoreOptions ...
@@ -81,9 +81,9 @@ func (options NonAppStoreOptionsModel) Hash() map[string]interface{} {
 	if options.Destination != "" {
 		hash[DestinationKey] = options.Destination
 	}
-	if options.TestFlightInternalTestingOnly {
+	/*if options.TestFlightInternalTestingOnly {
 		hash[TestFlightInternalTestingOnly] = options.TestFlightInternalTestingOnly
-	}
+	}*/
 	return hash
 }
 

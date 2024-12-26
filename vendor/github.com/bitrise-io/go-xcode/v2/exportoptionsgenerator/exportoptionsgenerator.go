@@ -391,9 +391,9 @@ func addTestFlightInternalTestingOnly(exportOpts exportoptions.ExportOptions, te
 	case exportoptions.AppStoreOptionsModel:
 		options.TestFlightInternalTestingOnly = testFlightInternalTestingOnly // Only available for app-store exports
 		return options
-	case exportoptions.NonAppStoreOptionsModel:
+		/*case exportoptions.NonAppStoreOptionsModel:
 		options.TestFlightInternalTestingOnly = testFlightInternalTestingOnly
-		return options
+		return options */
 	}
 
 	return exportOpts

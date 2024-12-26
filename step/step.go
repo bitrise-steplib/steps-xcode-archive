@@ -221,6 +221,12 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
 
+	if config.ExportMethod != "app-store" && config.TestFlightInternalTestingOnly {
+		s.logger.Println()
+		s.logger.Warnf("Test Flight Internal Testing Only is valid only for Distribution Method app-store.")
+		s.logger.Println()
+	}
+
 	absProjectPath, err := filepath.Abs(config.ProjectPath)
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to get absolute project path, error: %s", err)
