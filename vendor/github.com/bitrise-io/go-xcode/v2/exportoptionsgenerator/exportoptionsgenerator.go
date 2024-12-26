@@ -92,8 +92,6 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 		exportOpts = addManualSigningFields(exportOpts, codeSignGroup, archivedWithXcodeManagedProfiles, g.logger)
 	}
 
-	g.logger.Printf("testFlightInternalTestingOnly value: %t", testFlightInternalTestingOnly)
-
 	if testFlightInternalTestingOnly {
 		exportOpts = addTestFlightInternalTestingOnly(exportOpts, testFlightInternalTestingOnly)
 	}
