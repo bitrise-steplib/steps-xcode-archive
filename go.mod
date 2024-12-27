@@ -36,4 +36,5 @@ require (
 )
 
 replace github.com/bitrise-io/go-xcode v1.1.2-0.20241021091717-e6ebe7ad2c74 => github.com/naveen-bitrise/go-xcode v1.1.2
+
 replace github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.50 => github.com/naveen-bitrise/go-xcode/v2 v2.0.1
