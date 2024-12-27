@@ -76,7 +76,7 @@ func (options AppStoreOptionsModel) Hash() map[string]interface{} {
 		hash[DestinationKey] = options.Destination
 	}
 	if options.TestFlightInternalTestingOnly {
-		hash[TestFlightInternalTestingOnly] = options.TestFlightInternalTestingOnly
+		hash[TestFlightInternalTestingOnlyKey] = options.TestFlightInternalTestingOnly
 	}
 	return hash
 }

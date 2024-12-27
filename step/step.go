@@ -223,7 +223,7 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 
 	if config.ExportMethod != "app-store" && config.TestFlightInternalTestingOnly {
 		s.logger.Println()
-		s.logger.Warnf("Test Flight Internal Testing Only is valid only for Distribution Method app-store.")
+		s.logger.Warnf("TestFlightInternalTestingOnly is valid only for Distribution Method app-store.")
 		s.logger.Println()
 	}
 
