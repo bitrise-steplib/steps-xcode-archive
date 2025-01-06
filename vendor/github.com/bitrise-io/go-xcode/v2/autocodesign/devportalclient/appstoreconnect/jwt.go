@@ -32,29 +32,22 @@ func signToken(token *jwt.Token, privateKeyContent []byte) (string, error) {
 
 // createToken creates a jwt.Token for the Apple API
 func createToken(keyID string, issuerID string, audience string) *jwt.Token {
-	payload := claims{
-		IssuerID:   issuerID,
-		Expiration: time.Now().Add(jwtDuration).Unix(),
-		Audience:   audience,
+	issuedAt := time.Now()
+	expirationTime := time.Now().Add(jwtDuration)
+
+	claims := jwt.RegisteredClaims{
+		Issuer:    issuerID,
+		IssuedAt:  jwt.NewNumericDate(issuedAt),
+		ExpiresAt: jwt.NewNumericDate(expirationTime),
+		Audience:  jwt.ClaimStrings{audience},
 	}
 
 	// registers headers: alg = ES256 and typ = JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, payload)
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
 
 	header := token.Header
 	header["kid"] = keyID
+	token.Header = header
 
 	return token
-}
-
-// claims represents the JWT payload for the Apple API
-type claims struct {
-	IssuerID   string `json:"iss"`
-	Expiration int64  `json:"exp"`
-	Audience   string `json:"aud"`
-}
-
-// Valid implements the jwt.Claims interface
-func (c claims) Valid() error {
-	return nil
 }
