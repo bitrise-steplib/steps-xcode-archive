@@ -101,15 +101,6 @@ inputs:
     - enterprise
     is_required: true
 
-- testflight_internal_testing_only: "no"
-  opts:
-    title: Testflight Internal Testing Only
-    summary: Set this flag if the archive is for internal testflight distribution. Distribution Method has to be set to app-store
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-
 # xcodebuild configuration
 
 - configuration:
@@ -368,6 +359,16 @@ inputs:
       Specifies a plist file content that configures archive exporting.
 
       If not specified, the Step will auto-generate it.
+
+- testflight_internal_testing_only: "no"
+  opts:
+    category: IPA export configuration
+    title: Testflight Internal Testing Only
+    summary: Set this flag if the archive is for internal testflight distribution. Distribution method has to be set to app-store
+    value_options:
+    - "yes"
+    - "no"
+    is_required: true
 
 # Step Output Export configuration
 
