@@ -22,16 +22,17 @@ type AppStoreOptionsModel struct {
 	UploadSymbols bool
 	// Should Xcode manage the app's build number when uploading to App Store Connect? Defaults to YES.
 	ManageAppVersion bool
-	// TestFlightInternalTestingOnly
+
 	TestFlightInternalTestingOnly bool
 }
 
 // NewAppStoreOptions ...
 func NewAppStoreOptions() AppStoreOptionsModel {
 	return AppStoreOptionsModel{
-		UploadBitcode:    UploadBitcodeDefault,
-		UploadSymbols:    UploadSymbolsDefault,
-		ManageAppVersion: manageAppVersionDefault,
+		UploadBitcode:                 UploadBitcodeDefault,
+		UploadSymbols:                 UploadSymbolsDefault,
+		ManageAppVersion:              manageAppVersionDefault,
+		TestFlightInternalTestingOnly: TestFlightInternalTestingOnlyDefault,
 	}
 }
 
@@ -75,7 +76,8 @@ func (options AppStoreOptionsModel) Hash() map[string]interface{} {
 	if options.Destination != "" {
 		hash[DestinationKey] = options.Destination
 	}
-	if options.TestFlightInternalTestingOnly {
+	//nolint:gosimple
+	if options.TestFlightInternalTestingOnly != TestFlightInternalTestingOnlyDefault {
 		hash[TestFlightInternalTestingOnlyKey] = options.TestFlightInternalTestingOnly
 	}
 	return hash

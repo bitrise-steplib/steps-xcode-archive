@@ -37,9 +37,8 @@ var (
 	// A given token can be reused for up to 20 minutes:
 	// https://developer.apple.com/documentation/appstoreconnectapi/generating_tokens_for_api_requests
 	//
-	// Using 19 minutes to make sure time inaccuracies at token validation does not cause issues.
-	jwtDuration    = 19 * time.Minute
-	jwtReserveTime = 2 * time.Minute
+	// We use 18 minutes to make sure time inaccuracies at token validation does not cause issues.
+	jwtDuration = 18 * time.Minute
 )
 
 // HTTPClient ...
@@ -76,6 +75,23 @@ func NewRetryableHTTPClient() *http.Client {
 	client.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
 			log.Debugf("Received HTTP 401 (Unauthorized), retrying request...")
+			return true, nil
+		}
+
+		if resp != nil && resp.StatusCode == http.StatusTooManyRequests {
+			message := "Received HTTP 429 Too Many Requests"
+			if rateLimit := resp.Header.Get("X-Rate-Limit"); rateLimit != "" {
+				message += " (" + rateLimit + ")"
+			}
+
+			if retryAfter := resp.Header.Get("Retry-After"); retryAfter != "" {
+				message += ", retrying the request in " + retryAfter + " seconds..."
+			} else {
+				message += ", retrying the request..."
+			}
+
+			log.Warnf(message)
+
 			return true, nil
 		}
 
@@ -122,21 +138,12 @@ func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte,
 // and return a signed key
 func (c *Client) ensureSignedToken() (string, error) {
 	if c.token != nil {
-		claim, ok := c.token.Claims.(claims)
-		if !ok {
-			return "", fmt.Errorf("failed to cast claim for token")
-		}
-		expiration := time.Unix(int64(claim.Expiration), 0)
-
-		// A given token can be reused for up to 20 minutes:
-		// https://developer.apple.com/documentation/appstoreconnectapi/generating_tokens_for_api_requests
-		//
-		// The step generates a new token 2 minutes before the expiry.
-		if time.Until(expiration) > jwtReserveTime {
+		err := c.token.Claims.Valid()
+		if err == nil {
 			return c.signedToken, nil
 		}
 
-		log.Debugf("JWT token expired, regenerating")
+		log.Debugf("JWT token is invalid: %s, regenerating...", err)
 	} else {
 		log.Debugf("Generating JWT token")
 	}

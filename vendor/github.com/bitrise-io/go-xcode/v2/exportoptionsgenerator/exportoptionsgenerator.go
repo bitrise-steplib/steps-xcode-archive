@@ -92,8 +92,10 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 		exportOpts = addManualSigningFields(exportOpts, codeSignGroup, archivedWithXcodeManagedProfiles, g.logger)
 	}
 
-	if testFlightInternalTestingOnly {
-		exportOpts = addTestFlightInternalTestingOnly(exportOpts, testFlightInternalTestingOnly)
+	if xcodeMajorVersion >= 15 {
+		if testFlightInternalTestingOnly {
+			exportOpts = addTestFlightInternalTestingOnly(exportOpts, testFlightInternalTestingOnly)
+		}
 	}
 
 	return exportOpts, nil
