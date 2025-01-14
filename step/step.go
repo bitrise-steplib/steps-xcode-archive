@@ -178,7 +178,7 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	if config.ExportOptionsPlistContent != "" {
 		var options map[string]interface{}
 		if _, err := plist.Unmarshal([]byte(config.ExportOptionsPlistContent), &options); err != nil {
-			return Config{}, fmt.Errorf("issue with input ExportOptionsPlistContent: " + err.Error())
+			return Config{}, fmt.Errorf("issue with input ExportOptionsPlistContent: %s", err)
 		}
 	}
 
