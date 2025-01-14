@@ -1,13 +1,15 @@
 module github.com/bitrise-steplib/steps-xcode-archive
 
-go 1.20
+go 1.21
+
+toolchain go1.23.2
 
 require (
 	github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.23
 	github.com/bitrise-io/go-utils v1.0.12
 	github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.23
 	github.com/bitrise-io/go-xcode v1.1.2-0.20241021091717-e6ebe7ad2c74
-	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.50
+	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.51
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/stretchr/testify v1.9.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -29,10 +31,10 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/crypto v0.16.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.29.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/term v0.26.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 )
 
 replace github.com/bitrise-io/go-xcode v1.1.2-0.20241021091717-e6ebe7ad2c74 => github.com/naveen-bitrise/go-xcode v1.1.2
