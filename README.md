@@ -124,7 +124,6 @@ Build a development IPA with custom xcconfig file path:
 | `project_path` | Xcode Project (`.xcodeproj`) or Workspace (`.xcworkspace`) path.  The input value sets xcodebuild's `-project` or `-workspace` option. | required | `$BITRISE_PROJECT_PATH` |
 | `scheme` | Xcode Scheme name.  The input value sets xcodebuild's `-scheme` option. | required | `$BITRISE_SCHEME` |
 | `distribution_method` | Describes how Xcode should export the archive. | required | `development` |
-| `testflight_internal_testing_only` | Sets if the archive is for testflight internal testing. `distribution_method` should be app-store. |  | `no` |
 | `configuration` | Xcode Build Configuration.  If not specified, the default Build Configuration will be used.  The input value sets xcodebuild's `-configuration` option. |  |  |
 | `xcconfig_content` | Build settings to override the project's build settings, using xcodebuild's `-xcconfig` option.  You can't define `-xcconfig` option in `Additional options for the xcodebuild command` if this input is set.  If empty, no setting is changed. When set it can be either: 1.  Existing `.xcconfig` file path.      Example:      `./ios-sample/ios-sample/Configurations/Dev.xcconfig`  2.  The contents of a newly created temporary `.xcconfig` file. (This is the default.)      Build settings must be separated by newline character (`\n`).      Example:     ```     COMPILER_INDEX_STORE_ENABLE = NO     ONLY_ACTIVE_ARCH[config=Debug][sdk=*][arch=*] = YES     ``` |  | `COMPILER_INDEX_STORE_ENABLE = NO` |
 | `perform_clean_action` | If this input is set, `clean` xcodebuild action will be performed besides the `archive` action. | required | `no` |
@@ -143,6 +142,7 @@ Build a development IPA with custom xcconfig file path:
 | `compile_bitcode` | For __non-App Store__ exports, should Xcode re-compile the app from bitcode? | required | `yes` |
 | `upload_bitcode` | For __App Store__ exports, should the package include bitcode? | required | `yes` |
 | `icloud_container_environment` | If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.  Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`. |  |  |
+| `testflight_internal_testing_only` | Set this flag if the archive is for internal testflight distribution. Distribution method has to be set to app-store | required | `no` |
 | `export_options_plist_content` | Specifies a plist file content that configures archive exporting.  If not specified, the Step will auto-generate it. |  |  |
 | `output_dir` | This directory will contain the generated artifacts. | required | `$BITRISE_DEPLOY_DIR` |
 | `export_all_dsyms` | Export additional dSYM files besides the app dSYM file for Frameworks. | required | `yes` |
@@ -151,6 +151,7 @@ Build a development IPA with custom xcconfig file path:
 | `api_key_path` | Local path or remote URL to the private key (p8 file) for App Store Connect API. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. The input value can be a file path (eg. `$TMPDIR/private_key.p8`) or an HTTPS URL. This input only takes effect if the other two connection override inputs are set too (`api_key_id`, `api_key_issuer_id`). |  |  |
 | `api_key_id` | Private key ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_issuer_id`). |  |  |
 | `api_key_issuer_id` | Private key issuer ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_id`). |  |  |
+| `api_key_enterprise_account` | Indicates if the account is an enterprise type. This overrides the Bitrise-managed API connection, only set this input if you know you have an enterprise account. | required | `no` |
 | `verbose_log` | If this input is set, the Step will print additional logs for debugging. | required | `no` |
 </details>
 

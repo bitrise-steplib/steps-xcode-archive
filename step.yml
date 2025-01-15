@@ -350,16 +350,6 @@ inputs:
 
       Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`.
 
-- export_options_plist_content:
-  opts:
-    category: IPA export configuration
-    title: Export options plist content
-    summary: Specifies a plist file content that configures archive exporting.
-    description: |-
-      Specifies a plist file content that configures archive exporting.
-
-      If not specified, the Step will auto-generate it.
-
 - testflight_internal_testing_only: "no"
   opts:
     category: IPA export configuration
@@ -369,6 +359,16 @@ inputs:
     - "yes"
     - "no"
     is_required: true
+
+- export_options_plist_content:
+  opts:
+    category: IPA export configuration
+    title: Export options plist content
+    summary: Specifies a plist file content that configures archive exporting.
+    description: |-
+      Specifies a plist file content that configures archive exporting.
+
+      If not specified, the Step will auto-generate it.
 
 # Step Output Export configuration
 
