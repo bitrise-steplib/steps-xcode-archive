@@ -97,7 +97,7 @@ inputs:
     value_options:
     - development
     - app-store
-    - ad-hoccl
+    - ad-hoc
     - enterprise
     is_required: true
 
