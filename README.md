@@ -142,6 +142,7 @@ Build a development IPA with custom xcconfig file path:
 | `compile_bitcode` | For __non-App Store__ exports, should Xcode re-compile the app from bitcode? | required | `yes` |
 | `upload_bitcode` | For __App Store__ exports, should the package include bitcode? | required | `yes` |
 | `icloud_container_environment` | If the app is using CloudKit, this configures the `com.apple.developer.icloud-container-environment` entitlement.  Available options vary depending on the type of provisioning profile used, but may include: `Development` and `Production`. |  |  |
+| `testflight_internal_testing_only` | Set this flag if the archive is for internal testflight distribution. Distribution method has to be set to app-store | required | `no` |
 | `export_options_plist_content` | Specifies a plist file content that configures archive exporting.  If not specified, the Step will auto-generate it. |  |  |
 | `output_dir` | This directory will contain the generated artifacts. | required | `$BITRISE_DEPLOY_DIR` |
 | `export_all_dsyms` | Export additional dSYM files besides the app dSYM file for Frameworks. | required | `yes` |
@@ -150,6 +151,7 @@ Build a development IPA with custom xcconfig file path:
 | `api_key_path` | Local path or remote URL to the private key (p8 file) for App Store Connect API. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. The input value can be a file path (eg. `$TMPDIR/private_key.p8`) or an HTTPS URL. This input only takes effect if the other two connection override inputs are set too (`api_key_id`, `api_key_issuer_id`). |  |  |
 | `api_key_id` | Private key ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_issuer_id`). |  |  |
 | `api_key_issuer_id` | Private key issuer ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_id`). |  |  |
+| `api_key_enterprise_account` | Indicates if the account is an enterprise type. This overrides the Bitrise-managed API connection, only set this input if you know you have an enterprise account. | required | `no` |
 | `verbose_log` | If this input is set, the Step will print additional logs for debugging. | required | `no` |
 </details>
 

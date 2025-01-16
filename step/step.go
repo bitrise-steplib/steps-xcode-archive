@@ -69,44 +69,58 @@ const (
 
 // Inputs ...
 type Inputs struct {
-	ExportMethod               string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
-	UploadBitcode              bool   `env:"upload_bitcode,opt[yes,no]"`
-	CompileBitcode             bool   `env:"compile_bitcode,opt[yes,no]"`
-	ICloudContainerEnvironment string `env:"icloud_container_environment"`
-	ExportDevelopmentTeam      string `env:"export_development_team"`
+	ProjectPath  string `env:"project_path,file"`
+	Scheme       string `env:"scheme,required"`
+	ExportMethod string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
 
-	ExportOptionsPlistContent string `env:"export_options_plist_content"`
-
-	LogFormatter       string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
-	ProjectPath        string `env:"project_path,file"`
-	Scheme             string `env:"scheme,required"`
+	// xcodebuild configuration
 	Configuration      string `env:"configuration"`
-	OutputDir          string `env:"output_dir,required"`
+	XcconfigContent    string `env:"xcconfig_content"`
 	PerformCleanAction bool   `env:"perform_clean_action,opt[yes,no]"`
 	XcodebuildOptions  string `env:"xcodebuild_options"`
-	XcconfigContent    string `env:"xcconfig_content"`
 
-	ExportAllDsyms bool   `env:"export_all_dsyms,opt[yes,no]"`
-	ArtifactName   string `env:"artifact_name"`
-	VerboseLog     bool   `env:"verbose_log,opt[yes,no]"`
+	// xcodebuild log formatting
+	LogFormatter string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
 
-	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
-
+	// Automatic code signing
 	CodeSigningAuthSource           string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
+	RegisterTestDevices             bool            `env:"register_test_devices,opt[yes,no]"`
+	TestDeviceListPath              string          `env:"test_device_list_path"`
+	MinDaysProfileValid             int             `env:"min_profile_validity,required"`
 	CertificateURLList              string          `env:"certificate_url_list"`
 	CertificatePassphraseList       stepconf.Secret `env:"passphrase_list"`
 	KeychainPath                    string          `env:"keychain_path"`
 	KeychainPassword                stepconf.Secret `env:"keychain_password"`
-	RegisterTestDevices             bool            `env:"register_test_devices,opt[yes,no]"`
-	TestDeviceListPath              string          `env:"test_device_list_path"`
-	MinDaysProfileValid             int             `env:"min_profile_validity,required"`
 	FallbackProvisioningProfileURLs string          `env:"fallback_provisioning_profile_url_list"`
-	APIKeyPath                      stepconf.Secret `env:"api_key_path"`
-	APIKeyID                        string          `env:"api_key_id"`
-	APIKeyIssuerID                  string          `env:"api_key_issuer_id"`
-	APIKeyEnterpriseAccount         bool            `env:"api_key_enterprise_account,opt[yes,no]"`
-	BuildURL                        string          `env:"BITRISE_BUILD_URL"`
-	BuildAPIToken                   stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
+
+	// IPA export configuration
+	ExportDevelopmentTeam         string `env:"export_development_team"`
+	CompileBitcode                bool   `env:"compile_bitcode,opt[yes,no]"`
+	UploadBitcode                 bool   `env:"upload_bitcode,opt[yes,no]"`
+	ICloudContainerEnvironment    string `env:"icloud_container_environment"`
+	TestFlightInternalTestingOnly bool   `env:"testflight_internal_testing_only,opt[yes,no]"`
+	ExportOptionsPlistContent     string `env:"export_options_plist_content"`
+
+	// Step Output Export configuration
+	OutputDir      string `env:"output_dir,required"`
+	ExportAllDsyms bool   `env:"export_all_dsyms,opt[yes,no]"`
+	ArtifactName   string `env:"artifact_name"`
+
+	// Caching
+	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
+
+	// App Store Connect connection override
+	APIKeyPath              stepconf.Secret `env:"api_key_path"`
+	APIKeyID                string          `env:"api_key_id"`
+	APIKeyIssuerID          string          `env:"api_key_issuer_id"`
+	APIKeyEnterpriseAccount bool            `env:"api_key_enterprise_account,opt[yes,no]"`
+
+	// Debugging
+	VerboseLog bool `env:"verbose_log,opt[yes,no]"`
+
+	// Hidden inputs
+	BuildURL      string          `env:"BITRISE_BUILD_URL"`
+	BuildAPIToken stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
 
 // Config ...
@@ -154,6 +168,7 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	s.logger.Println()
 
 	config := Config{Inputs: inputs}
+
 	s.logger.EnableDebugLog(config.VerboseLog)
 	if config.VerboseLog {
 		logv1.SetEnableDebugLog(true)
@@ -218,6 +233,12 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 		s.logger.Println()
 	}
 	config.ExportOptionsPlistContent = exportOptionsPlistContent
+
+	if config.ExportMethod != "app-store" && config.TestFlightInternalTestingOnly {
+		s.logger.Println()
+		s.logger.Warnf("TestFlightInternalTestingOnly is valid only for Distribution Method app-store.")
+		s.logger.Println()
+	}
 
 	absProjectPath, err := filepath.Abs(config.ProjectPath)
 	if err != nil {
@@ -323,6 +344,7 @@ type RunOpts struct {
 	// IPA Export
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
+	TestFlightInternalTestingOnly   bool
 	ICloudContainerEnvironment      string
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
@@ -350,6 +372,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	)
 
 	s.logger.Println()
+
 	if opts.XcodeMajorVersion >= 11 {
 		s.logger.Infof("Running resolve Swift package dependencies")
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
@@ -445,6 +468,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		Archive:                         *archiveOut.Archive,
 		CustomExportOptionsPlistContent: opts.CustomExportOptionsPlistContent,
 		ExportMethod:                    opts.ExportMethod,
+		TestFlightInternalTestingOnly:   opts.TestFlightInternalTestingOnly,
 		ICloudContainerEnvironment:      opts.ICloudContainerEnvironment,
 		ExportDevelopmentTeam:           opts.ExportDevelopmentTeam,
 		UploadBitcode:                   opts.UploadBitcode,
@@ -935,6 +959,7 @@ type xcodeIPAExportOpts struct {
 	Archive                         xcarchive.IosArchive
 	CustomExportOptionsPlistContent string
 	ExportMethod                    string
+	TestFlightInternalTestingOnly   bool
 	ICloudContainerEnvironment      string
 	ExportDevelopmentTeam           string
 	UploadBitcode                   bool
@@ -1011,7 +1036,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
-			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion))
+			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion), opts.TestFlightInternalTestingOnly)
 		if err != nil {
 			return out, err
 		}
