@@ -10,7 +10,6 @@ import (
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/colorstring"
 	v1command "github.com/bitrise-io/go-utils/command"
-	"github.com/bitrise-io/go-utils/errorutil"
 	v1fileutil "github.com/bitrise-io/go-utils/fileutil"
 	logv1 "github.com/bitrise-io/go-utils/log"
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
@@ -34,7 +33,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
-	"github.com/bitrise-io/go-xcode/v2/xcpretty"
+	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/kballard/go-shellquote"
@@ -80,7 +79,7 @@ type Inputs struct {
 	XcodebuildOptions  string `env:"xcodebuild_options"`
 
 	// xcodebuild log formatting
-	LogFormatter string `env:"log_formatter,opt[xcpretty,xcodebuild]"`
+	LogFormatter string `env:"log_formatter,opt[xcbeautify,xcodebuild,xcpretty]"`
 
 	// Automatic code signing
 	CodeSigningAuthSource           string          `env:"automatic_code_signing,opt[off,api-key,apple-id]"`
@@ -123,6 +122,13 @@ type Inputs struct {
 	BuildAPIToken stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
 
+// Output tools
+const (
+	XcbeautifyTool = "xcbeautify"
+	XcodebuildTool = "xcodebuild"
+	XcprettyTool   = "xcpretty"
+)
+
 // Config ...
 type Config struct {
 	Inputs
@@ -131,34 +137,50 @@ type Config struct {
 	CodesignManager             *codesign.Manager // nil if automatic code signing is "off"
 }
 
+type ConfigParser struct {
+	stepInputParser      stepconf.InputParser
+	xcodeVersionProvider XcodeVersionProvider
+	fileManager          fileutil.FileManager
+	cmdFactory           command.Factory
+	logger               log.Logger
+}
+
 // XcodebuildArchiver ...
 type XcodebuildArchiver struct {
-	xcodeVersionProvider XcodeVersionProvider
-	stepInputParser      stepconf.InputParser
-	pathProvider         pathutil.PathProvider
-	pathChecker          pathutil.PathChecker
-	pathModifier         pathutil.PathModifier
-	fileManager          fileutil.FileManager
-	logger               log.Logger
-	cmdFactory           command.Factory
+	xcodeCommandRunner xcodecommand.Runner
+	pathProvider       pathutil.PathProvider
+	pathChecker        pathutil.PathChecker
+	pathModifier       pathutil.PathModifier
+	fileManager        fileutil.FileManager
+	logger             log.Logger
+	cmdFactory         command.Factory
+}
+
+func NewConfigParser(stepInputParser stepconf.InputParser, xcodeVersionProvider XcodeVersionProvider, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) ConfigParser {
+	return ConfigParser{
+		stepInputParser:      stepInputParser,
+		xcodeVersionProvider: xcodeVersionProvider,
+		fileManager:          fileManager,
+		cmdFactory:           cmdFactory,
+		logger:               logger,
+	}
 }
 
 // NewXcodebuildArchiver ...
-func NewXcodebuildArchiver(xcodeVersionProvider XcodeVersionProvider, stepInputParser stepconf.InputParser, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, logger log.Logger, cmdFactory command.Factory) XcodebuildArchiver {
+func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
 	return XcodebuildArchiver{
-		xcodeVersionProvider: xcodeVersionProvider,
-		stepInputParser:      stepInputParser,
-		pathProvider:         pathProvider,
-		pathChecker:          pathChecker,
-		pathModifier:         pathModifier,
-		fileManager:          fileManager,
-		logger:               logger,
-		cmdFactory:           cmdFactory,
+		xcodeCommandRunner: xcodecommandRunner,
+		pathProvider:       pathProvider,
+		pathChecker:        pathChecker,
+		pathModifier:       pathModifier,
+		fileManager:        fileManager,
+		logger:             logger,
+		cmdFactory:         cmdFactory,
 	}
 }
 
 // ProcessInputs ...
-func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
+func (s ConfigParser) ProcessInputs() (Config, error) {
 	var inputs Inputs
 	if err := s.stepInputParser.Parse(&inputs); err != nil {
 		return Config{}, fmt.Errorf("issue with input: %s", err)
@@ -272,54 +294,21 @@ func (s XcodebuildArchiver) ProcessInputs() (Config, error) {
 	return config, nil
 }
 
-// EnsureDependenciesOpts ...
-type EnsureDependenciesOpts struct {
-	XCPretty bool
-}
-
 // EnsureDependencies ...
-func (s XcodebuildArchiver) EnsureDependencies(opts EnsureDependenciesOpts) error {
-	if !opts.XCPretty {
-		return nil
-	}
-
-	s.logger.Println()
-	s.logger.Infof("Checking if log formatter (xcpretty) is installed")
-
-	var xcpretty = xcpretty.NewXcpretty(s.logger)
-
-	installed, err := xcpretty.IsInstalled()
+func (s *XcodebuildArchiver) EnsureDependencies() {
+	logFormatterVersion, err := s.xcodeCommandRunner.CheckInstall()
 	if err != nil {
-		return XCPrettyInstallError{fmt.Errorf("failed to check if xcpretty is installed, error: %s", err)}
-	}
-
-	if !installed {
-		s.logger.Warnf(`xcpretty is not installed`)
 		s.logger.Println()
-		s.logger.Printf("Installing xcpretty")
+		s.logger.Errorf("Selected log formatter is unavailable: %s", err)
+		s.logger.Infof("Switching back to xcodebuild log formatter.")
+		s.xcodeCommandRunner = xcodecommand.NewRawCommandRunner(s.logger, s.cmdFactory)
 
-		cmds, err := xcpretty.Install()
-		if err != nil {
-			return XCPrettyInstallError{fmt.Errorf("failed to create xcpretty install command: %s", err)}
-		}
-
-		for _, cmd := range cmds {
-			if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
-				if errorutil.IsExitStatusError(err) {
-					return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), out)
-				}
-				return XCPrettyInstallError{fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), err)}
-			}
-		}
+		return
 	}
 
-	xcprettyVersion, err := xcpretty.Version()
-	if err != nil {
-		return XCPrettyInstallError{fmt.Errorf("failed to determine xcpretty version, error: %s", err)}
+	if logFormatterVersion != nil { // raw xcodebuild runner returns nil
+		s.logger.Printf("- log formatter version: %s", logFormatterVersion.String())
 	}
-	s.logger.Printf("- xcprettyVersion: %s", xcprettyVersion.String())
-
-	return nil
 }
 
 // RunOpts ...
@@ -704,7 +693,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	return nil
 }
 
-func (s XcodebuildArchiver) createCodesignManager(config Config) (codesign.Manager, error) {
+func (s ConfigParser) createCodesignManager(config Config) (codesign.Manager, error) {
 	var authType codesign.AuthType
 	switch config.CodeSigningAuthSource {
 	case codeSignSourceAppleID:
@@ -898,7 +887,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 
 	s.logger.Infof("Starting the Archive ...")
 
-	xcodebuildLog, err := runArchiveCommandWithRetry(archiveCmd, opts.LogFormatter == "xcpretty", swiftPackagesPath, s.logger)
+	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, archiveCmd, swiftPackagesPath, s.logger)
 	out.XcodebuildArchiveLog = xcodebuildLog
 	if err != nil || opts.LogFormatter == "xcodebuild" {
 		const lastLinesMsg = "\nLast lines of the Xcode's build log:"

@@ -175,14 +175,15 @@ inputs:
       Defines how `xcodebuild` command's log is formatted.
 
       Available options:
-
-      - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty.
+      - `xcbeautify`: The xcodebuild command's output will be beautified by xcbeautify.
       - `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
+      - `xcpretty`: The xcodebuild command's output will be prettified by xcpretty.
 
       The raw xcodebuild log will be exported in both cases.
     value_options:
-    - xcpretty
+    - xcbeautify
     - xcodebuild
+    - xcpretty
     is_required: true
 
 # Automatic code signing
