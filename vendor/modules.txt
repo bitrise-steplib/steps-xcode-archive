@@ -74,11 +74,13 @@ github.com/bitrise-io/go-xcode/v2/autocodesign/profiledownloader
 github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager
 github.com/bitrise-io/go-xcode/v2/codesign
 github.com/bitrise-io/go-xcode/v2/devportalservice
+github.com/bitrise-io/go-xcode/v2/errorfinder
 github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator
 github.com/bitrise-io/go-xcode/v2/xcarchive
 github.com/bitrise-io/go-xcode/v2/xcconfig
 github.com/bitrise-io/go-xcode/v2/xcodebuild
 github.com/bitrise-io/go-xcode/v2/xcodecache
+github.com/bitrise-io/go-xcode/v2/xcodecommand
 github.com/bitrise-io/go-xcode/v2/xcpretty
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
