@@ -40,8 +40,9 @@ func (r ErrorResponse) Error() string {
 
 // IsCursorInvalid ...
 func (r ErrorResponse) IsCursorInvalid() bool {
+	// {"errors"=>[{"id"=>"[ ... ]", "status"=>"400", "code"=>"PARAMETER_ERROR.INVALID", "title"=>"A parameter has an invalid value", "detail"=>"'eyJvZmZzZXQiOiIyMCJ9' is not a valid cursor for this request", "source"=>{"parameter"=>"cursor"}}]}
 	for _, err := range r.Errors {
-		if err.ID == "PARAMETER_ERROR.INVALID" && strings.Contains(err.Detail, "is not a valid cursor for this request") {
+		if err.Code == "PARAMETER_ERROR.INVALID" && strings.Contains(err.Detail, "is not a valid cursor for this request") {
 			return true
 		}
 	}
