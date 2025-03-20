@@ -3,6 +3,7 @@ package appstoreconnect
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // ErrorResponseError ...
@@ -35,6 +36,16 @@ func (r ErrorResponse) Error() string {
 	}
 
 	return m
+}
+
+// IsCursorInvalid ...
+func (r ErrorResponse) IsCursorInvalid() bool {
+	for _, err := range r.Errors {
+		if err.ID == "PARAMETER_ERROR.INVALID" && strings.Contains(err.Detail, "is not a valid cursor for this request") {
+			return true
+		}
+	}
+	return false
 }
 
 // DeviceRegistrationError ...
