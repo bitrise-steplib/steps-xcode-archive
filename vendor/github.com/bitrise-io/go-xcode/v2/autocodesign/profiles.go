@@ -3,6 +3,7 @@ package autocodesign
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,7 +26,7 @@ func appIDName(bundleID string) string {
 
 func ensureProfiles(profileClient DevPortalClient, distrType DistributionType,
 	certsByType map[appstoreconnect.CertificateType][]Certificate, app AppLayout,
-	devPortalDeviceIDs []string, minProfileDaysValid int) (*AppCodesignAssets, error) {
+	devPortalDeviceIDs DeviceIDs, devPortalDeviceUDIDs DeviceUDIDs, minProfileDaysValid int) (*AppCodesignAssets, error) {
 	// Ensure Profiles
 
 	bundleIDByBundleIDIdentifer := map[string]*appstoreconnect.BundleID{}
@@ -68,12 +69,14 @@ func ensureProfiles(profileClient DevPortalClient, distrType DistributionType,
 	profileType := platformProfileTypes[distrType]
 
 	for bundleIDIdentifier, entitlements := range app.EntitlementsByArchivableTargetBundleID {
-		var profileDeviceIDs []string
+		var profileDeviceIDs DeviceIDs
+		var profileDeviceUDIDs DeviceUDIDs
 		if DistributionTypeRequiresDeviceList([]DistributionType{distrType}) {
 			profileDeviceIDs = devPortalDeviceIDs
+			profileDeviceUDIDs = devPortalDeviceUDIDs
 		}
 
-		profile, err := profileManager.ensureProfileWithRetry(profileType, bundleIDIdentifier, entitlements, certIDs, profileDeviceIDs, minProfileDaysValid)
+		profile, err := profileManager.ensureProfileWithRetry(profileType, bundleIDIdentifier, entitlements, certIDs, profileDeviceIDs, profileDeviceUDIDs, minProfileDaysValid)
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +93,7 @@ func ensureProfiles(profileClient DevPortalClient, distrType DistributionType,
 			}
 
 			// Capabilities are not supported for UITest targets.
-			profile, err := profileManager.ensureProfileWithRetry(profileType, wildcardBundleID, nil, certIDs, devPortalDeviceIDs, minProfileDaysValid)
+			profile, err := profileManager.ensureProfileWithRetry(profileType, wildcardBundleID, nil, certIDs, devPortalDeviceIDs, devPortalDeviceUDIDs, minProfileDaysValid)
 			if err != nil {
 				return nil, err
 			}
@@ -199,7 +202,7 @@ func (m profileManager) ensureBundleID(bundleIDIdentifier string, entitlements E
 	return bundleID, nil
 }
 
-func (m profileManager) ensureProfileWithRetry(profileType appstoreconnect.ProfileType, bundleIDIdentifier string, entitlements Entitlements, certIDs, deviceIDs []string, minProfileDaysValid int) (*Profile, error) {
+func (m profileManager) ensureProfileWithRetry(profileType appstoreconnect.ProfileType, bundleIDIdentifier string, entitlements Entitlements, certIDs, deviceIDs DeviceIDs, deviceUDIDs DeviceUDIDs, minProfileDaysValid int) (*Profile, error) {
 	var profile *Profile
 	// Accessing the same Apple Developer Portal team can cause race conditions (parallel CI runs for example).
 	// Between the time of finding and downloading a profile, it could have been deleted for example.
@@ -210,7 +213,7 @@ func (m profileManager) ensureProfileWithRetry(profileType appstoreconnect.Profi
 		}
 
 		var err error
-		profile, err = m.ensureProfile(profileType, bundleIDIdentifier, entitlements, certIDs, deviceIDs, minProfileDaysValid)
+		profile, err = m.ensureProfile(profileType, bundleIDIdentifier, entitlements, certIDs, deviceIDs, deviceUDIDs, minProfileDaysValid)
 		if err != nil {
 			if ok := errors.As(err, &ProfilesInconsistentError{}); ok {
 				log.Warnf("  %s", err)
@@ -228,7 +231,7 @@ func (m profileManager) ensureProfileWithRetry(profileType appstoreconnect.Profi
 	return profile, nil
 }
 
-func (m profileManager) ensureProfile(profileType appstoreconnect.ProfileType, bundleIDIdentifier string, entitlements Entitlements, certIDs, deviceIDs []string, minProfileDaysValid int) (*Profile, error) {
+func (m profileManager) ensureProfile(profileType appstoreconnect.ProfileType, bundleIDIdentifier string, entitlements Entitlements, certIDs, deviceIDs DeviceIDs, deviceUDIDs DeviceUDIDs, minProfileDaysValid int) (*Profile, error) {
 	fmt.Println()
 	log.Infof("  Checking bundle id: %s", bundleIDIdentifier)
 	log.Printf("  capabilities:")
@@ -250,7 +253,7 @@ func (m profileManager) ensureProfile(profileType appstoreconnect.ProfileType, b
 
 		if profile.Attributes().ProfileState == appstoreconnect.Active {
 			// Check if Bitrise managed Profile is sync with the project
-			err := checkProfile(m.client, profile, entitlements, deviceIDs, certIDs, minProfileDaysValid)
+			err := checkProfile(m.client, profile, entitlements, deviceUDIDs, certIDs, minProfileDaysValid)
 			if err != nil {
 				if mErr, ok := err.(NonmatchingProfileError); ok {
 					log.Warnf("  the profile is not in sync with the project requirements (%s), regenerating ...", mErr.Reason)
@@ -376,6 +379,21 @@ func checkProfileEntitlements(client DevPortalClient, prof Profile, appEntitleme
 	return client.CheckBundleIDEntitlements(bundleID, appEntitlements)
 }
 
+// ParseRawProfileDeviceUDIDs reads the device UDIDs from the provisioning profile.
+func ParseRawProfileDeviceUDIDs(profileContents []byte) (DeviceUDIDs, error) {
+	pkcs, err := profileutil.ProvisioningProfileFromContent(profileContents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse pkcs7 from profile content: %s", err)
+	}
+
+	profile, err := profileutil.NewProvisioningProfileInfo(*pkcs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse profile info from pkcs7 content: %s", err)
+	}
+
+	return profile.ProvisionedDevices, nil
+}
+
 // ParseRawProfileEntitlements ...
 func ParseRawProfileEntitlements(profileContents []byte) (Entitlements, error) {
 	pkcs, err := profileutil.ProvisioningProfileFromContent(profileContents)
@@ -440,11 +458,35 @@ func checkProfileCertificates(profileCertificateIDs []string, certificateIDs []s
 	return nil
 }
 
-func checkProfileDevices(profileDeviceIDs []string, deviceIDs []string) error {
-	for _, id := range deviceIDs {
-		if !sliceutil.IsStringInSlice(id, profileDeviceIDs) {
+func validDeviceUDID(udid string) string {
+	r := regexp.MustCompile("[^a-zA-Z0-9-]")
+	return r.ReplaceAllLiteralString(udid, "")
+}
+
+// Available UDIDs (for more info see https://theapplewiki.com/wiki/UDID)
+// iDevice example:
+// - 00008020-008D4548007B4F26
+// - 9f9bb1b742882152fb1746aab7db415cea979232
+// Mac example:
+// - 0D990E91-F2D3-430D-8405-A054CEF983CF
+// For comparing UDIDs, we ignore casing as did see cases when the UDIDs mismatched, when accepting freehand UDIDs on a form.
+// This should not happen when using UDIDs returned by Apple API and also when reading the UDIDs from the provisioning profile,
+// as the provisioning profile is also created by Apple, and did not see mismatches.
+// But to be on the safe side, we ignore casing and the '-' separator.
+func normalizeDeviceUDID(udid string) string {
+	return strings.ToLower(strings.ReplaceAll(validDeviceUDID(udid), "-", ""))
+}
+
+func checkProfileDevices(profileDeviceIDs DeviceUDIDs, deviceUDIDs DeviceUDIDs) error {
+	normalizedProfileDeviceIDs := []string{}
+	for _, d := range profileDeviceIDs {
+		normalizedProfileDeviceIDs = append(normalizedProfileDeviceIDs, normalizeDeviceUDID(d))
+	}
+
+	for _, UDID := range deviceUDIDs {
+		if !sliceutil.IsStringInSlice(normalizeDeviceUDID(UDID), normalizedProfileDeviceIDs) {
 			return NonmatchingProfileError{
-				Reason: fmt.Sprintf("device with ID (%s) not included in the profile", id),
+				Reason: fmt.Sprintf("device with UDID (%s) not included in the profile", UDID),
 			}
 		}
 	}
@@ -460,7 +502,7 @@ func isProfileExpired(prof Profile, minProfileDaysValid int) bool {
 	return time.Time(prof.Attributes().ExpirationDate).Before(relativeExpiryTime)
 }
 
-func checkProfile(client DevPortalClient, prof Profile, entitlements Entitlements, deviceIDs, certificateIDs []string, minProfileDaysValid int) error {
+func checkProfile(client DevPortalClient, prof Profile, entitlements Entitlements, deviceUDIDs DeviceUDIDs, certificateIDs []string, minProfileDaysValid int) error {
 	if isProfileExpired(prof, minProfileDaysValid) {
 		return NonmatchingProfileError{
 			Reason: fmt.Sprintf("profile expired, or will expire in less then %d day(s)", minProfileDaysValid),
@@ -479,11 +521,11 @@ func checkProfile(client DevPortalClient, prof Profile, entitlements Entitlement
 		return err
 	}
 
-	profileDeviceIDs, err := prof.DeviceIDs()
+	profileDeviceUDIDs, err := prof.DeviceUDIDs()
 	if err != nil {
 		return err
 	}
-	return checkProfileDevices(profileDeviceIDs, deviceIDs)
+	return checkProfileDevices(profileDeviceUDIDs, deviceUDIDs)
 }
 
 // SelectCertificate selects the first certificate with the given distribution type.
