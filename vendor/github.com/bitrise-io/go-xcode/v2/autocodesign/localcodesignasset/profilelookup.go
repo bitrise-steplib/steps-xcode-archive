@@ -10,9 +10,9 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 )
 
-func findProfile(localProfiles []profileutil.ProvisioningProfileInfoModel, platform autocodesign.Platform, distributionType autocodesign.DistributionType, bundleID string, entitlements autocodesign.Entitlements, minProfileDaysValid int, certSerials []string, deviceIDs []string) *profileutil.ProvisioningProfileInfoModel {
+func findProfile(localProfiles []profileutil.ProvisioningProfileInfoModel, platform autocodesign.Platform, distributionType autocodesign.DistributionType, bundleID string, entitlements autocodesign.Entitlements, minProfileDaysValid int, certSerials []string, deviceUDIDs []string) *profileutil.ProvisioningProfileInfoModel {
 	for _, profile := range localProfiles {
-		if isProfileMatching(profile, platform, distributionType, bundleID, entitlements, minProfileDaysValid, certSerials, deviceIDs) {
+		if isProfileMatching(profile, platform, distributionType, bundleID, entitlements, minProfileDaysValid, certSerials, deviceUDIDs) {
 			return &profile
 		}
 	}
@@ -20,7 +20,7 @@ func findProfile(localProfiles []profileutil.ProvisioningProfileInfoModel, platf
 	return nil
 }
 
-func isProfileMatching(profile profileutil.ProvisioningProfileInfoModel, platform autocodesign.Platform, distributionType autocodesign.DistributionType, bundleID string, entitlements autocodesign.Entitlements, minProfileDaysValid int, certSerials []string, deviceIDs []string) bool {
+func isProfileMatching(profile profileutil.ProvisioningProfileInfoModel, platform autocodesign.Platform, distributionType autocodesign.DistributionType, bundleID string, entitlements autocodesign.Entitlements, minProfileDaysValid int, certSerials []string, deviceUDIDs []string) bool {
 	if !isActive(profile, minProfileDaysValid) {
 		return false
 	}
@@ -45,7 +45,7 @@ func isProfileMatching(profile profileutil.ProvisioningProfileInfoModel, platfor
 		return false
 	}
 
-	if !provisionsDevices(profile, deviceIDs) {
+	if !provisionsDevices(profile, deviceUDIDs) {
 		return false
 	}
 
@@ -118,8 +118,8 @@ func hasMatchingPlatform(profile profileutil.ProvisioningProfileInfoModel, platf
 	return strings.ToLower(string(platform)) == string(profile.Type)
 }
 
-func provisionsDevices(profile profileutil.ProvisioningProfileInfoModel, deviceIDs []string) bool {
-	if profile.ProvisionsAllDevices || len(deviceIDs) == 0 {
+func provisionsDevices(profile profileutil.ProvisioningProfileInfoModel, deviceUDIDs []string) bool {
+	if profile.ProvisionsAllDevices || len(deviceUDIDs) == 0 {
 		return true
 	}
 
@@ -127,8 +127,8 @@ func provisionsDevices(profile profileutil.ProvisioningProfileInfoModel, deviceI
 		return false
 	}
 
-	for _, deviceID := range deviceIDs {
-		if contains(profile.ProvisionedDevices, deviceID) {
+	for _, deviceUDID := range deviceUDIDs {
+		if contains(profile.ProvisionedDevices, deviceUDID) {
 			continue
 		}
 		return false
