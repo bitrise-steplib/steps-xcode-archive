@@ -894,7 +894,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 		if err != nil {
 			s.logger.Infof(colorstring.Red(lastLinesMsg))
 		} else {
-			s.logger.Infof(lastLinesMsg)
+			s.logger.Infof(lastLinesMsg) // ToDo never reached
 		}
 		s.logger.Printf(stringutil.LastNLines(xcodebuildLog, 20))
 
@@ -1050,11 +1050,11 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
 	}
 
-	useXCPretty := opts.LogFormatter == "xcpretty"
-	xcodebuildLog, exportErr := runIPAExportCommand(exportCmd, useXCPretty, s.logger)
+	shouldPrintLastLines := opts.LogFormatter != "xcodebuild"
+	xcodebuildLog, exportErr := runIPAExportCommand(s.xcodeCommandRunner, exportCmd, s.logger)
 	out.XcodebuildExportArchiveLog = xcodebuildLog
 	if exportErr != nil {
-		if useXCPretty {
+		if shouldPrintLastLines {
 			s.logger.Warnf(fmt.Sprintf(`If you can't find the reason of the error in the log, please check the %s
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path
 will be available in the $%s environment variable`, xcodebuildExportArchiveLogFilename, xcodebuildExportArchiveLogPathEnvKey))
@@ -1073,7 +1073,7 @@ will be available in the $%s environment variable`, xcodebuildExportArchiveLogFi
 				s.logger.Printf(criticalDistLog)
 			}
 
-			if useXCPretty {
+			if shouldPrintLastLines {
 				s.logger.Warnf(`Also please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)

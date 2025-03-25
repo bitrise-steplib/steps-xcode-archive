@@ -2,25 +2,16 @@ package step
 
 import (
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
-	v1xcpretty "github.com/bitrise-io/go-xcode/xcpretty"
 )
 
-func runIPAExportCommand(exportCmd *xcodebuild.ExportCommandModel, useXcpretty bool, logger log.Logger) (string, error) {
-	if useXcpretty {
-		xcprettyCmd := v1xcpretty.New(exportCmd)
-
-		logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
-		logger.Println()
-
-		out, err := xcprettyCmd.Run()
-		return out, wrapXcodebuildCommandError(xcprettyCmd, out, err)
+func runIPAExportCommand(xcodeCommandRunner xcodecommand.Runner, exportCmd *xcodebuild.ExportCommandModel, logger log.Logger) (string, error) {
+	exportCommandArgs := exportCmd.Command().GetCmd().Args
+	if len(exportCommandArgs) <= 1 {
+		panic("ToDo should not happen")
 	}
 
-	// Using xcodebuild
-	logger.TDonef("$ %s", exportCmd.PrintableCmd())
-	logger.Println()
-
-	out, err := exportCmd.RunAndReturnOutput()
-	return out, wrapXcodebuildCommandError(exportCmd, out, err)
+	output, err := xcodeCommandRunner.Run(".", exportCommandArgs[1:], []string{})
+	return string(output.RawOut), wrapXcodebuildCommandError(exportCmd, string(output.RawOut), err)
 }
