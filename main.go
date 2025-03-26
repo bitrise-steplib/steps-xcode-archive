@@ -8,6 +8,7 @@ import (
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
+	"github.com/bitrise-io/go-utils/v2/errorutil"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
@@ -24,13 +25,13 @@ func run() int {
 	configParser := createConfigParser(logger)
 	config, err := configParser.ProcessInputs()
 	if err != nil {
-		logger.Errorf(formattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
+		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
 		return 1
 	}
 
 	archiver, err := createXcodebuildArchiver(logger, config.LogFormatter)
 	if err != nil {
-		logger.Errorf(formattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
+		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
 		return 1
 	}
 
@@ -40,14 +41,14 @@ func run() int {
 	runOpts := createRunOptions(config)
 	result, err := archiver.Run(runOpts)
 	if err != nil {
-		logger.Errorf(formattedError(fmt.Errorf("Failed to execute Step main logic: %w", err)))
+		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", err)))
 		exitCode = 1
 		// don't return as step outputs needs to be exported even in case of failure (for example the xcodebuild logs)
 	}
 
 	exportOpts := createExportOptions(config, result)
 	if err := archiver.ExportOutput(exportOpts); err != nil {
-		logger.Errorf(formattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
+		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
 		return 1
 	}
 
