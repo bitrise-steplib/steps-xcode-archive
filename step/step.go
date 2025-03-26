@@ -984,7 +984,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 	}
 
 	s.logger.Println()
-	s.logger.Infof("Exporting ipa from the archive...")
+	s.logger.Infof("Collecting export options...")
 
 	tmpDir, err := v1pathutil.NormalizedOSTempDirPath("xcodeIPAExport")
 	if err != nil {

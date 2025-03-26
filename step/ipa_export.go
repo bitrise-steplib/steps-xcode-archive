@@ -7,6 +7,9 @@ import (
 )
 
 func runIPAExportCommand(xcodeCommandRunner xcodecommand.Runner, exportCmd *xcodebuild.ExportCommandModel, logger log.Logger) (string, error) {
+	logger.Println()
+	logger.Infof("Exporting IPA from the archive...")
+
 	output, err := xcodeCommandRunner.Run("", exportCmd.CommandArgs(), []string{})
 	return string(output.RawOut), wrapXcodebuildCommandError(exportCmd, string(output.RawOut), err)
 }
