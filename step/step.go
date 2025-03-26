@@ -8,14 +8,12 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
-	"github.com/bitrise-io/go-utils/colorstring"
 	v1command "github.com/bitrise-io/go-utils/command"
 	v1fileutil "github.com/bitrise-io/go-utils/fileutil"
 	logv1 "github.com/bitrise-io/go-utils/log"
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/sliceutil"
-	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -886,21 +884,8 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 	}
 
 	s.logger.Infof("Starting the Archive ...")
-
-	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, archiveCmd, swiftPackagesPath, s.logger)
+	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, opts.LogFormatter, archiveCmd, swiftPackagesPath, s.logger)
 	out.XcodebuildArchiveLog = xcodebuildLog
-	if err != nil || opts.LogFormatter == "xcodebuild" {
-		const lastLinesMsg = "\nLast lines of the Xcode's build log:"
-		if err != nil {
-			s.logger.Infof(colorstring.Red(lastLinesMsg))
-		} else {
-			s.logger.Infof(lastLinesMsg) // ToDo never reached
-		}
-		s.logger.Printf(stringutil.LastNLines(xcodebuildLog, 20))
-
-		s.logger.Warnf(fmt.Sprintf(`You can find the last couple of lines of Xcode's build log above, but the full log will be also available in the %s
-The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path will be available in the $%s environment variable.`, xcodebuildArchiveLogFilename, xcodebuildArchiveLogPathEnvKey))
-	}
 	if err != nil {
 		return out, fmt.Errorf("failed to archive the project: %w", err)
 	}
