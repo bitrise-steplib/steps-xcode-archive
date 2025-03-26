@@ -291,20 +291,22 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 }
 
 // EnsureDependencies ...
-func (s *XcodebuildArchiver) EnsureDependencies() {
+func (s *XcodebuildArchiver) EnsureDependencies() error {
 	logFormatterVersion, err := s.xcodeCommandRunner.CheckInstall()
 	if err != nil {
 		s.logger.Println()
 		s.logger.Errorf("Selected log formatter is unavailable: %s", err)
 		s.logger.Infof("Switching back to xcodebuild log formatter.")
-		s.xcodeCommandRunner = xcodecommand.NewRawCommandRunner(s.logger, s.cmdFactory)
 
-		return
+		s.xcodeCommandRunner = xcodecommand.NewRawCommandRunner(s.logger, s.cmdFactory)
+		return LogFormatterErr{}
 	}
 
 	if logFormatterVersion != nil { // raw xcodebuild runner returns nil
 		s.logger.Printf("- log formatter version: %s", logFormatterVersion.String())
 	}
+
+	return nil
 }
 
 // RunOpts ...

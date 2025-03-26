@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -35,7 +36,14 @@ func run() int {
 		return 1
 	}
 
-	archiver.EnsureDependencies()
+	if err := archiver.EnsureDependencies(); err != nil {
+		var logFormatterErr step.LogFormatterErr
+		if errors.As(err, &logFormatterErr) {
+			config.LogFormatter = step.XcodebuildTool
+		} else {
+			logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to ensure dependencies: %w", err)))
+		}
+	}
 
 	exitCode := 0
 	runOpts := createRunOptions(config)
