@@ -43,7 +43,7 @@ func (c *XcbeautifyRunner) Run(workDir string, xcodebuildArgs []string, xcbeauti
 	buildCmd := c.commandFactory.Create("xcodebuild", xcodebuildArgs, &command.Opts{
 		Stdout:      buildOutWriter,
 		Stderr:      buildOutWriter,
-		Env:         xcodeCommandEnvs,
+		Env:         unbufferedIOEnv,
 		Dir:         workDir,
 		ErrorFinder: errorfinder.FindXcodebuildErrors,
 	})
@@ -52,6 +52,7 @@ func (c *XcbeautifyRunner) Run(workDir string, xcodebuildArgs []string, xcbeauti
 		Stdin:  pipeReader,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
+		Env:    unbufferedIOEnv,
 	})
 
 	defer func() {

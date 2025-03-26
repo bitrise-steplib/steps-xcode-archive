@@ -7,11 +7,6 @@ import (
 )
 
 func runIPAExportCommand(xcodeCommandRunner xcodecommand.Runner, exportCmd *xcodebuild.ExportCommandModel, logger log.Logger) (string, error) {
-	exportCommandArgs := exportCmd.Command().GetCmd().Args
-	if len(exportCommandArgs) <= 1 {
-		panic("ToDo should not happen")
-	}
-
-	output, err := xcodeCommandRunner.Run(".", exportCommandArgs[1:], []string{})
+	output, err := xcodeCommandRunner.Run("", exportCmd.CommandArgs(), []string{})
 	return string(output.RawOut), wrapXcodebuildCommandError(exportCmd, string(output.RawOut), err)
 }

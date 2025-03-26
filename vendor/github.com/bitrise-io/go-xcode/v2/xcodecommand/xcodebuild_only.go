@@ -11,7 +11,7 @@ import (
 	version "github.com/hashicorp/go-version"
 )
 
-var xcodeCommandEnvs = []string{"NSUnbufferedIO=YES"}
+var unbufferedIOEnv = []string{"NSUnbufferedIO=YES"}
 
 // RawXcodeCommandRunner is an xcodebuild runner that uses no additional log formatter
 type RawXcodeCommandRunner struct {
@@ -38,7 +38,7 @@ func (c *RawXcodeCommandRunner) Run(workDir string, args []string, _ []string) (
 	command := c.commandFactory.Create("xcodebuild", args, &command.Opts{
 		Stdout:      &outBuffer,
 		Stderr:      &outBuffer,
-		Env:         xcodeCommandEnvs,
+		Env:         unbufferedIOEnv,
 		Dir:         workDir,
 		ErrorFinder: errorfinder.FindXcodebuildErrors,
 	})

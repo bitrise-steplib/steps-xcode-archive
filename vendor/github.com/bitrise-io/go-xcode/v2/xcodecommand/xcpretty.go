@@ -53,7 +53,7 @@ func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcp
 	buildCmd := c.commandFactory.Create("xcodebuild", xcodebuildArgs, &command.Opts{
 		Stdout:      buildOutWriter,
 		Stderr:      buildOutWriter,
-		Env:         xcodeCommandEnvs,
+		Env:         unbufferedIOEnv,
 		Dir:         workDir,
 		ErrorFinder: errorfinder.FindXcodebuildErrors,
 	})

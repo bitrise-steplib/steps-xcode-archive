@@ -24,12 +24,7 @@ func runArchiveCommandWithRetry(xcodeCommandRunner xcodecommand.Runner, archiveC
 }
 
 func runArchiveCommand(xcodeCommandRunner xcodecommand.Runner, archiveCmd *xcodebuild.CommandBuilder, logger log.Logger) (string, error) {
-	xcodebuildArgs := archiveCmd.ExecCommand().Args
-	if len(xcodebuildArgs) == 0 {
-		panic("ToDo should not happen")
-	}
-
-	output, err := xcodeCommandRunner.Run(".", xcodebuildArgs[1:], []string{})
+	output, err := xcodeCommandRunner.Run("", archiveCmd.CommandArgs(), []string{})
 
 	return string(output.RawOut), wrapXcodebuildCommandError(archiveCmd, string(output.RawOut), err)
 }
