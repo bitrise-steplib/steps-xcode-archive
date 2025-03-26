@@ -1039,16 +1039,13 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
 	}
 
-	isRawLogOutput := opts.LogFormatter == XcodebuildTool
-	exportArchiveLog, exportErr := runIPAExportCommand(s.xcodeCommandRunner, exportCmd, s.logger)
+	s.logger.Println()
+	s.logger.Infof("Exporting IPA from the archive...")
+	exportArchiveLog, exportErr := runIPAExportCommand(s.xcodeCommandRunner, opts.LogFormatter, exportCmd, s.logger)
 	out.XcodebuildExportArchiveLog = exportArchiveLog
-	if isRawLogOutput {
-		// xcodecommand does not output to stdout for xcodebuild log formatter.
-		// The export log is short, so we print it in entirety.
-		s.logger.Printf(exportArchiveLog)
-	}
 	if exportErr != nil {
 		s.logger.Println()
+		isRawLogOutput := opts.LogFormatter == XcodebuildTool
 		if !isRawLogOutput {
 			s.logger.Warnf(`If you can't find the reason of the error in the log, please check the %s
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path

@@ -6,10 +6,13 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 )
 
-func runIPAExportCommand(xcodeCommandRunner xcodecommand.Runner, exportCmd *xcodebuild.ExportCommandModel, logger log.Logger) (string, error) {
-	logger.Println()
-	logger.Infof("Exporting IPA from the archive...")
-
+func runIPAExportCommand(xcodeCommandRunner xcodecommand.Runner, logFormatter string, exportCmd *xcodebuild.ExportCommandModel, logger log.Logger) (string, error) {
 	output, err := xcodeCommandRunner.Run("", exportCmd.CommandArgs(), []string{})
+	if logFormatter == XcodebuildTool {
+		// xcodecommand does not output to stdout for xcodebuild log formatter.
+		// The export log is short, so we print it in entirety.
+		logger.Printf("%s", output.RawOut)
+	}
+
 	return string(output.RawOut), wrapXcodebuildCommandError(exportCmd, string(output.RawOut), err)
 }
