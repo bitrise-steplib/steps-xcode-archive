@@ -45,7 +45,7 @@ func determineExportMethod(desiredExportMethod string, archiveExportMethod expor
 }
 
 func findIDEDistrubutionLogsPath(output string, logger log.Logger) (string, error) {
-	pattern := `IDEDistribution: -\[IDEDistributionLogging _createLoggingBundleAtPath:\]: Created bundle at path '(?P<log_path>.*)'`
+	pattern := `IDEDistribution: -\[IDEDistributionLogging _createLoggingBundleAtPath:\]: Created bundle at path ['\"](?P<log_path>.*)['\"]`
 	re := regexp.MustCompile(pattern)
 
 	logger.Printf("Locating IDE distrubution logs path")
