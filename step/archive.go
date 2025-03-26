@@ -29,5 +29,5 @@ func runArchiveCommand(xcodeCommandRunner xcodecommand.Runner, logFormatter stri
 		printLastLinesOfXcodebuildLog(logger, string(output.RawOut), err == nil)
 	}
 
-	return string(output.RawOut), wrapXcodebuildCommandError(archiveCmd, string(output.RawOut), err)
+	return string(output.RawOut), err
 }

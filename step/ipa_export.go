@@ -14,5 +14,5 @@ func runIPAExportCommand(xcodeCommandRunner xcodecommand.Runner, logFormatter st
 		logger.Printf("%s", output.RawOut)
 	}
 
-	return string(output.RawOut), wrapXcodebuildCommandError(exportCmd, string(output.RawOut), err)
+	return string(output.RawOut), err
 }
