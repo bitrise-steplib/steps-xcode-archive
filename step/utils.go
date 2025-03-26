@@ -61,11 +61,11 @@ func printLastLinesOfXcodebuildLog(logger log.Logger, xcodebuildLog string, isXc
 		logger.Warnf("If you can't find the reason of the error in the log, please check the artifact %s.", xcodebuildArchiveLogFilename)
 	}
 
-	logger.Infof(colorstring.Magenta(`
+	logger.Infof(colorstring.Magenta(fmt.Sprintf(`
 The log file is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $%s environment variable.
 
-Deploy to Bitrise.io Step can attach the file to your build as an artifact.`), xcodebuildArchiveLogPathEnvKey)
+Deploy to Bitrise.io Step can attach the file to your build as an artifact.`, xcodebuildArchiveLogPathEnvKey)))
 }
 
 func findIDEDistrubutionLogsPath(output string, logger log.Logger) (string, error) {

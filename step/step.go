@@ -62,6 +62,11 @@ const (
 	codeSignSourceOff     = "off"
 	codeSignSourceAPIKey  = "api-key"
 	codeSignSourceAppleID = "apple-id"
+
+	// Output tools
+	XcbeautifyTool = "xcbeautify"
+	XcodebuildTool = "xcodebuild"
+	XcprettyTool   = "xcpretty"
 )
 
 // Inputs ...
@@ -120,13 +125,6 @@ type Inputs struct {
 	BuildAPIToken stepconf.Secret `env:"BITRISE_BUILD_API_TOKEN"`
 }
 
-// Output tools
-const (
-	XcbeautifyTool = "xcbeautify"
-	XcodebuildTool = "xcodebuild"
-	XcprettyTool   = "xcpretty"
-)
-
 // Config ...
 type Config struct {
 	Inputs
@@ -135,7 +133,7 @@ type Config struct {
 	CodesignManager             *codesign.Manager // nil if automatic code signing is "off"
 }
 
-type ConfigParser struct {
+type XcodebuildArchiveConfigParser struct {
 	stepInputParser      stepconf.InputParser
 	xcodeVersionProvider XcodeVersionProvider
 	fileManager          fileutil.FileManager
@@ -154,8 +152,8 @@ type XcodebuildArchiver struct {
 	cmdFactory         command.Factory
 }
 
-func NewConfigParser(stepInputParser stepconf.InputParser, xcodeVersionProvider XcodeVersionProvider, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) ConfigParser {
-	return ConfigParser{
+func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionProvider XcodeVersionProvider, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
+	return XcodebuildArchiveConfigParser{
 		stepInputParser:      stepInputParser,
 		xcodeVersionProvider: xcodeVersionProvider,
 		fileManager:          fileManager,
@@ -178,7 +176,7 @@ func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, pathProvider 
 }
 
 // ProcessInputs ...
-func (s ConfigParser) ProcessInputs() (Config, error) {
+func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	var inputs Inputs
 	if err := s.stepInputParser.Parse(&inputs); err != nil {
 		return Config{}, fmt.Errorf("issue with input: %s", err)
@@ -691,7 +689,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	return nil
 }
 
-func (s ConfigParser) createCodesignManager(config Config) (codesign.Manager, error) {
+func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (codesign.Manager, error) {
 	var authType codesign.AuthType
 	switch config.CodeSigningAuthSource {
 	case codeSignSourceAppleID:

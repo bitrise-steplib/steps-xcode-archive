@@ -54,14 +54,14 @@ func run() int {
 	return exitCode
 }
 
-func createConfigParser(logger log.Logger) step.ConfigParser {
+func createConfigParser(logger log.Logger) step.XcodebuildArchiveConfigParser {
 	envRepository := env.NewRepository()
 	inputParser := stepconf.NewInputParser(envRepository)
 	xcodeVersionProvider := step.NewXcodebuildXcodeVersionProvider()
 	fileManager := fileutil.NewFileManager()
 	cmdFactory := command.NewFactory(envRepository)
 
-	return step.NewConfigParser(inputParser, xcodeVersionProvider, fileManager, cmdFactory, logger)
+	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionProvider, fileManager, cmdFactory, logger)
 }
 
 func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.XcodebuildArchiver, error) {
@@ -72,22 +72,21 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 	fileManager := fileutil.NewFileManager()
 	cmdFactory := command.NewFactory(envRepository)
 
-	commandFactory := command.NewFactory(envRepository)
 	xcodeCommandRunner := xcodecommand.Runner(nil)
 	switch logFormatter {
 	case step.XcodebuildTool:
-		xcodeCommandRunner = xcodecommand.NewRawCommandRunner(logger, commandFactory)
+		xcodeCommandRunner = xcodecommand.NewRawCommandRunner(logger, cmdFactory)
 	case step.XcbeautifyTool:
-		xcodeCommandRunner = xcodecommand.NewXcbeautifyRunner(logger, commandFactory)
+		xcodeCommandRunner = xcodecommand.NewXcbeautifyRunner(logger, cmdFactory)
 	case step.XcprettyTool:
 		commandLocator := env.NewCommandLocator()
-		rubyComamndFactory, err := ruby.NewCommandFactory(commandFactory, commandLocator)
+		rubyComamndFactory, err := ruby.NewCommandFactory(cmdFactory, commandLocator)
 		if err != nil {
 			return step.XcodebuildArchiver{}, fmt.Errorf("failed to install xcpretty: %s", err)
 		}
 		rubyEnv := ruby.NewEnvironment(rubyComamndFactory, commandLocator, logger)
 
-		xcodeCommandRunner = xcodecommand.NewXcprettyCommandRunner(logger, commandFactory, pathChecker, fileManager, rubyComamndFactory, rubyEnv)
+		xcodeCommandRunner = xcodecommand.NewXcprettyCommandRunner(logger, cmdFactory, pathChecker, fileManager, rubyComamndFactory, rubyEnv)
 	default:
 		panic(fmt.Sprintf("Unknown log formatter: %s", logFormatter))
 	}
