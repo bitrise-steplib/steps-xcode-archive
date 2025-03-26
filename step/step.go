@@ -1054,18 +1054,24 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
 	}
 
-	shouldPrintLastLines := opts.LogFormatter != "xcodebuild"
-	xcodebuildLog, exportErr := runIPAExportCommand(s.xcodeCommandRunner, exportCmd, s.logger)
-	out.XcodebuildExportArchiveLog = xcodebuildLog
+	isRawLogOutput := opts.LogFormatter == XcodebuildTool
+	exportArchiveLog, exportErr := runIPAExportCommand(s.xcodeCommandRunner, exportCmd, s.logger)
+	out.XcodebuildExportArchiveLog = exportArchiveLog
+	if isRawLogOutput {
+		// xcodecommand does not output to stdout for xcodebuild log formatter.
+		// The export log is short, so we print it in entirety.
+		s.logger.Printf(exportArchiveLog)
+	}
 	if exportErr != nil {
-		if shouldPrintLastLines {
-			s.logger.Warnf(fmt.Sprintf(`If you can't find the reason of the error in the log, please check the %s
+		s.logger.Println()
+		if !isRawLogOutput {
+			s.logger.Warnf(`If you can't find the reason of the error in the log, please check the %s
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path
-will be available in the $%s environment variable`, xcodebuildExportArchiveLogFilename, xcodebuildExportArchiveLogPathEnvKey))
+will be available in the $%s environment variable`, xcodebuildExportArchiveLogFilename, xcodebuildExportArchiveLogPathEnvKey)
 		}
 
 		// xcdistributionlogs
-		ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(xcodebuildLog, s.logger)
+		ideDistrubutionLogsDir, err := findIDEDistrubutionLogsPath(exportArchiveLog, s.logger)
 		if err != nil {
 			s.logger.Warnf("Failed to find xcdistributionlogs, error: %s", err)
 		} else {
@@ -1077,7 +1083,7 @@ will be available in the $%s environment variable`, xcodebuildExportArchiveLogFi
 				s.logger.Printf(criticalDistLog)
 			}
 
-			if shouldPrintLastLines {
+			if !isRawLogOutput {
 				s.logger.Warnf(`Also please check the xcdistributionlogs
 The logs directory is stored in $BITRISE_DEPLOY_DIR, and its full path
 is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
