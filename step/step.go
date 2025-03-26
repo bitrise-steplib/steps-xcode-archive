@@ -1033,7 +1033,11 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		s.logger.Println()
 		s.logger.Printf("generated export options content:")
 		s.logger.Println()
-		s.logger.Printf(exportOptions.String())
+		exportOptionsContent, err := exportOptions.String()
+		if err != nil {
+			return out, err
+		}
+		s.logger.Printf("%s", exportOptionsContent)
 
 		if err := exportOptions.WriteToFile(exportOptionsPath); err != nil {
 			return out, err
