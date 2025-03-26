@@ -144,6 +144,7 @@ type XcodebuildArchiveConfigParser struct {
 // XcodebuildArchiver ...
 type XcodebuildArchiver struct {
 	xcodeCommandRunner xcodecommand.Runner
+	logFormatter       string
 	pathProvider       pathutil.PathProvider
 	pathChecker        pathutil.PathChecker
 	pathModifier       pathutil.PathModifier
@@ -163,9 +164,10 @@ func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVers
 }
 
 // NewXcodebuildArchiver ...
-func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
+func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, logFormatter string, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
 	return XcodebuildArchiver{
 		xcodeCommandRunner: xcodecommandRunner,
+		logFormatter:       logFormatter,
 		pathProvider:       pathProvider,
 		pathChecker:        pathChecker,
 		pathModifier:       pathModifier,
@@ -291,22 +293,21 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 }
 
 // EnsureDependencies ...
-func (s *XcodebuildArchiver) EnsureDependencies() error {
+func (s *XcodebuildArchiver) EnsureDependencies() {
 	logFormatterVersion, err := s.xcodeCommandRunner.CheckInstall()
 	if err != nil {
 		s.logger.Println()
 		s.logger.Errorf("Selected log formatter is unavailable: %s", err)
 		s.logger.Infof("Switching back to xcodebuild log formatter.")
 
+		s.logFormatter = XcodebuildTool
 		s.xcodeCommandRunner = xcodecommand.NewRawCommandRunner(s.logger, s.cmdFactory)
-		return LogFormatterErr{}
+		return
 	}
 
 	if logFormatterVersion != nil { // raw xcodebuild runner returns nil
 		s.logger.Printf("- log formatter version: %s", logFormatterVersion.String())
 	}
-
-	return nil
 }
 
 // RunOpts ...
@@ -315,7 +316,6 @@ type RunOpts struct {
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
-	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
 
@@ -426,7 +426,6 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
 		Configuration:     opts.Configuration,
-		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		ArtifactName:      opts.ArtifactName,
 		XcodeAuthOptions:  authOptions,
@@ -448,7 +447,6 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		ProjectPath:       opts.ProjectPath,
 		Scheme:            opts.Scheme,
 		Configuration:     opts.Configuration,
-		LogFormatter:      opts.LogFormatter,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		XcodeAuthOptions:  authOptions,
 
@@ -789,7 +787,6 @@ type xcodeArchiveOpts struct {
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
-	LogFormatter      string
 	XcodeMajorVersion int
 	ArtifactName      string
 	XcodeAuthOptions  *xcodebuild.AuthenticationParams
@@ -884,7 +881,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 	}
 
 	s.logger.Infof("Starting the Archive ...")
-	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, opts.LogFormatter, archiveCmd, swiftPackagesPath, s.logger)
+	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, s.logFormatter, archiveCmd, swiftPackagesPath, s.logger)
 	out.XcodebuildArchiveLog = xcodebuildLog
 	if err != nil {
 		return out, fmt.Errorf("failed to archive the project: %w", err)
@@ -926,7 +923,6 @@ type xcodeIPAExportOpts struct {
 	ProjectPath       string
 	Scheme            string
 	Configuration     string
-	LogFormatter      string
 	XcodeMajorVersion int
 	XcodeAuthOptions  *xcodebuild.AuthenticationParams
 
@@ -1041,11 +1037,11 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 	s.logger.Println()
 	s.logger.Infof("Exporting IPA from the archive...")
-	exportArchiveLog, exportErr := runIPAExportCommand(s.xcodeCommandRunner, opts.LogFormatter, exportCmd, s.logger)
+	exportArchiveLog, exportErr := runIPAExportCommand(s.xcodeCommandRunner, s.logFormatter, exportCmd, s.logger)
 	out.XcodebuildExportArchiveLog = exportArchiveLog
 	if exportErr != nil {
 		s.logger.Println()
-		isRawLogOutput := opts.LogFormatter == XcodebuildTool
+		isRawLogOutput := s.logFormatter == XcodebuildTool
 		if !isRawLogOutput {
 			s.logger.Warnf(`If you can't find the reason of the error in the log, please check the %s
 The log file will be stored in $BITRISE_DEPLOY_DIR, and its full path

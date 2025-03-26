@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -36,14 +35,7 @@ func run() int {
 		return 1
 	}
 
-	if err := archiver.EnsureDependencies(); err != nil {
-		var logFormatterErr step.LogFormatterErr
-		if errors.As(err, &logFormatterErr) {
-			config.LogFormatter = step.XcodebuildTool
-		} else {
-			logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to ensure dependencies: %w", err)))
-		}
-	}
+	archiver.EnsureDependencies()
 
 	exitCode := 0
 	runOpts := createRunOptions(config)
@@ -100,7 +92,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 		panic(fmt.Sprintf("Unknown log formatter: %s", logFormatter))
 	}
 
-	return step.NewXcodebuildArchiver(xcodeCommandRunner, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, logger), nil
+	return step.NewXcodebuildArchiver(xcodeCommandRunner, logFormatter, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, logger), nil
 }
 
 func createRunOptions(config step.Config) step.RunOpts {
@@ -108,7 +100,6 @@ func createRunOptions(config step.Config) step.RunOpts {
 		ProjectPath:       config.ProjectPath,
 		Scheme:            config.Scheme,
 		Configuration:     config.Configuration,
-		LogFormatter:      config.LogFormatter,
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
