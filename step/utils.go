@@ -47,7 +47,7 @@ func determineExportMethod(desiredExportMethod string, archiveExportMethod expor
 }
 
 func printLastLinesOfXcodebuildLog(logger log.Logger, xcodebuildLog string, isXcodebuildSuccess bool) {
-	const lastLinesMsg = "\nLast lines of the log:"
+	const lastLinesMsg = "\nLast lines of the Xcode log:"
 	if isXcodebuildSuccess {
 		logger.Infof(lastLinesMsg)
 	} else {
