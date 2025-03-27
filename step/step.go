@@ -491,7 +491,7 @@ type ExportOpts struct {
 // ExportOutput ...
 func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	s.logger.Println()
-	s.logger.Infof("Exporting outputs...")
+	s.logger.TInfof("Exporting outputs...")
 
 	cleanup := func(pth string) error {
 		if exist, err := v1pathutil.IsPathExists(pth); err != nil {
@@ -880,7 +880,6 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 		}
 	}
 
-	s.logger.Infof("Starting the Archive ...")
 	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, s.logFormatter, archiveCmd, swiftPackagesPath, s.logger)
 	out.XcodebuildArchiveLog = xcodebuildLog
 	if err != nil {
