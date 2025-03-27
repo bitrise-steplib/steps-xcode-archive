@@ -3,6 +3,7 @@ package step
 import (
 	"testing"
 
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,6 +37,40 @@ func Test_generateAdditionalOptions(t *testing.T) {
 			got := generateAdditionalOptions(tt.platform, tt.customOptions)
 
 			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_findIDEDistrubutionLogsPath(t *testing.T) {
+	tests := []struct {
+		name    string
+		output  string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:   "match double quotes",
+			output: `IDEDistribution: -[IDEDistributionLogging _createLoggingBundleAtPath:]: Created bundle at path "sample.xcdistributionlogs".`,
+			want:   "sample.xcdistributionlogs",
+		},
+		{
+			name:   "match single quotes",
+			output: `IDEDistribution: -[IDEDistributionLogging _createLoggingBundleAtPath:]: Created bundle at path 'sample.xcdistributionlogs'.`,
+			want:   "sample.xcdistributionlogs",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger := log.NewLogger()
+
+			got, err := findIDEDistrubutionLogsPath(tt.output, logger)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("findIDEDistrubutionLogsPath() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("findIDEDistrubutionLogsPath() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

@@ -8,7 +8,6 @@ github.com/bitrise-io/go-plist
 # github.com/bitrise-io/go-steputils v1.0.6
 ## explicit; go 1.15
 github.com/bitrise-io/go-steputils/cache
-github.com/bitrise-io/go-steputils/command/rubycommand
 github.com/bitrise-io/go-steputils/input
 github.com/bitrise-io/go-steputils/tools
 # github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.23
@@ -35,12 +34,13 @@ github.com/bitrise-io/go-utils/ziputil
 ## explicit; go 1.17
 github.com/bitrise-io/go-utils/v2/command
 github.com/bitrise-io/go-utils/v2/env
+github.com/bitrise-io/go-utils/v2/errorutil
 github.com/bitrise-io/go-utils/v2/fileutil
 github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/log/colorstring
 github.com/bitrise-io/go-utils/v2/pathutil
 github.com/bitrise-io/go-utils/v2/retryhttp
-# github.com/bitrise-io/go-xcode v1.1.2
+# github.com/bitrise-io/go-xcode v1.2.0
 ## explicit; go 1.20
 github.com/bitrise-io/go-xcode/certificateutil
 github.com/bitrise-io/go-xcode/export
@@ -57,7 +57,6 @@ github.com/bitrise-io/go-xcode/xcodeproject/serialized
 github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
-github.com/bitrise-io/go-xcode/xcpretty
 # github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.54
 ## explicit; go 1.22
 github.com/bitrise-io/go-xcode/v2/autocodesign
@@ -74,12 +73,12 @@ github.com/bitrise-io/go-xcode/v2/autocodesign/profiledownloader
 github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager
 github.com/bitrise-io/go-xcode/v2/codesign
 github.com/bitrise-io/go-xcode/v2/devportalservice
+github.com/bitrise-io/go-xcode/v2/errorfinder
 github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator
 github.com/bitrise-io/go-xcode/v2/xcarchive
 github.com/bitrise-io/go-xcode/v2/xcconfig
-github.com/bitrise-io/go-xcode/v2/xcodebuild
 github.com/bitrise-io/go-xcode/v2/xcodecache
-github.com/bitrise-io/go-xcode/v2/xcpretty
+github.com/bitrise-io/go-xcode/v2/xcodecommand
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew

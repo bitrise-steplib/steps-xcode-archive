@@ -53,8 +53,16 @@ func (c *ExportCommandModel) SetAuthentication(authenticationParams Authenticati
 	return c
 }
 
-func (c ExportCommandModel) cmdSlice() []string {
-	slice := []string{toolName, "-exportArchive"}
+func (c *ExportCommandModel) cmdSlice() []string {
+	slice := []string{toolName}
+	slice = append(slice, c.CommandArgs()...)
+
+	return slice
+}
+
+// CommandArgs returns the xcodebuild command arguments for the export action
+func (c *ExportCommandModel) CommandArgs() []string {
+	slice := []string{"-exportArchive"}
 	if c.archivePath != "" {
 		slice = append(slice, "-archivePath", c.archivePath)
 	}
@@ -75,25 +83,25 @@ func (c ExportCommandModel) cmdSlice() []string {
 }
 
 // PrintableCmd ...
-func (c ExportCommandModel) PrintableCmd() string {
+func (c *ExportCommandModel) PrintableCmd() string {
 	cmdSlice := c.cmdSlice()
 	return command.PrintableCommandArgs(false, cmdSlice)
 }
 
 // Command ...
-func (c ExportCommandModel) Command() *command.Model {
+func (c *ExportCommandModel) Command() *command.Model {
 	cmdSlice := c.cmdSlice()
 	return command.New(cmdSlice[0], cmdSlice[1:]...)
 }
 
 // Cmd ...
-func (c ExportCommandModel) Cmd() *exec.Cmd {
+func (c *ExportCommandModel) Cmd() *exec.Cmd {
 	command := c.Command()
 	return command.GetCmd()
 }
 
 // Run ...
-func (c ExportCommandModel) Run() error {
+func (c *ExportCommandModel) Run() error {
 	command := c.Command()
 
 	command.SetStdout(os.Stdout)
@@ -103,7 +111,7 @@ func (c ExportCommandModel) Run() error {
 }
 
 // RunAndReturnOutput ...
-func (c ExportCommandModel) RunAndReturnOutput() (string, error) {
+func (c *ExportCommandModel) RunAndReturnOutput() (string, error) {
 	command := c.Command()
 
 	var outBuffer bytes.Buffer

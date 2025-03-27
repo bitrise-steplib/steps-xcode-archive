@@ -2,25 +2,17 @@ package step
 
 import (
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
-	v1xcpretty "github.com/bitrise-io/go-xcode/xcpretty"
 )
 
-func runIPAExportCommand(exportCmd *xcodebuild.ExportCommandModel, useXcpretty bool, logger log.Logger) (string, error) {
-	if useXcpretty {
-		xcprettyCmd := v1xcpretty.New(exportCmd)
-
-		logger.TDonef("$ %s", xcprettyCmd.PrintableCmd())
-		logger.Println()
-
-		out, err := xcprettyCmd.Run()
-		return out, wrapXcodebuildCommandError(xcprettyCmd, out, err)
+func runIPAExportCommand(xcodeCommandRunner xcodecommand.Runner, logFormatter string, exportCmd *xcodebuild.ExportCommandModel, logger log.Logger) (string, error) {
+	output, err := xcodeCommandRunner.Run("", exportCmd.CommandArgs(), []string{})
+	if logFormatter == XcodebuildTool {
+		// xcodecommand does not output to stdout for xcodebuild log formatter.
+		// The export log is short, so we print it in entirety.
+		logger.Printf("%s", output.RawOut)
 	}
 
-	// Using xcodebuild
-	logger.TDonef("$ %s", exportCmd.PrintableCmd())
-	logger.Println()
-
-	out, err := exportCmd.RunAndReturnOutput()
-	return out, wrapXcodebuildCommandError(exportCmd, out, err)
+	return string(output.RawOut), err
 }

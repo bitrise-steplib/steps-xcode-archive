@@ -308,7 +308,7 @@ workflows:
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
-    - LOG_FORMATTER: xcpretty
+    - LOG_FORMATTER: xcbeautify
     after_run:
     - _run
     - _check_outputs
@@ -335,7 +335,7 @@ workflows:
     - TEAM_ID: 72SA8V3WYL
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
-    - LOG_FORMATTER: xcpretty
+    - LOG_FORMATTER: xcbeautify
     after_run:
     - _run
     - _check_outputs

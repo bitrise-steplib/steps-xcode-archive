@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/bitrise-io/go-utils/v2/log"
-
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
