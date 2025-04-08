@@ -10,7 +10,8 @@ import (
 type Version struct {
 	Version      string
 	BuildVersion string
-	MajorVersion int64
+	Major        int64
+	Minor        int64
 }
 
 // Reader ...
@@ -39,4 +40,15 @@ func (b *reader) GetVersion() (Version, error) {
 	}
 
 	return getXcodeVersionFromXcodebuildOutput(outStr)
+}
+
+// IsGreaterThanOrEqualTo checks if the Xcode version is greater than or equal to the given major and minor version.
+func (v Version) IsGreaterThanOrEqualTo(major, minor int64) bool {
+	if v.Major > major {
+		return true
+	}
+	if v.Major == major && v.Minor >= minor {
+		return true
+	}
+	return false
 }
