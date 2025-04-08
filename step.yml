@@ -94,6 +94,16 @@ inputs:
   opts:
     title: Distribution method
     summary: Describes how Xcode should export the archive.
+    description: |-
+      Describes how Xcode should export the archive.
+
+      The input value sets the method in the export options plist content.
+
+      From Xcode 15.3 onwards, updated methods are used:
+      - `debugging`, when `development` is selected
+      - `app-store-connect`, when `app-store` is selected
+      - `release-testing`, when `ad-hoc` is selected
+      - `enterprise` is unchanged
     value_options:
     - development
     - app-store
