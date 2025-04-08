@@ -75,10 +75,7 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 		return nil, err
 	}
 
-	if xcodeVersion.IsGreaterThanOrEqualTo(15, 3) {
-		exportMethod = exportoptions.UpgradeToXcode15_3MethodName(exportMethod)
-	}
-	exportOpts := generateBaseExportOptions(exportMethod, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
+	exportOpts := generateBaseExportOptions(exportMethod, xcodeVersion, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
 
 	if xcodeVersion.Major >= 12 {
 		exportOpts = addDistributionBundleIdentifierFromXcode12(exportOpts, mainTargetBundleID)
@@ -342,7 +339,11 @@ func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData)
 }
 
 // generateBaseExportOptions creates a default exportOptions introduced in Xcode 7.
-func generateBaseExportOptions(exportMethod exportoptions.Method, cfgUploadBitcode, cfgCompileBitcode bool, iCloudContainerEnvironment string) exportoptions.ExportOptions {
+func generateBaseExportOptions(exportMethod exportoptions.Method, xcodeVersion xcodeversion.Version, cfgUploadBitcode, cfgCompileBitcode bool, iCloudContainerEnvironment string) exportoptions.ExportOptions {
+	if xcodeVersion.IsGreaterThanOrEqualTo(15, 3) {
+		exportMethod = exportoptions.UpgradeToXcode15_3MethodName(exportMethod)
+	}
+
 	if exportMethod.IsAppStore() {
 		appStoreOptions := exportoptions.NewAppStoreConnectOptions(exportMethod)
 		appStoreOptions.UploadBitcode = cfgUploadBitcode
