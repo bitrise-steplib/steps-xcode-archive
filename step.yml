@@ -125,7 +125,7 @@ inputs:
 
       The input value sets xcodebuild's `-configuration` option.
 
-- lock_swift_packages: "yes"
+- lock_swift_packages: "no"
   opts:
     category: xcodebuild configuration
     title: Disable Swift Package Manager automatic resolution
@@ -135,8 +135,8 @@ inputs:
 
       When enabled, runs the following:
       ```
-      defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile  -bool YES
-      defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution  -bool YES
+      defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile -bool YES
+      defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool YES
       ```
     value_options:
     - "yes"

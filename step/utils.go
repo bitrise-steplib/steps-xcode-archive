@@ -95,9 +95,6 @@ func findIDEDistrubutionLogsPath(output string, logger log.Logger) (string, erro
 }
 
 func lockSwiftPackages(logger log.Logger, cmdFactory command.Factory) error {
-	// defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile  -bool YES
-	// defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution  -bool YES
-
 	cmdOpts := &command.Opts{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -108,7 +105,7 @@ func lockSwiftPackages(logger log.Logger, cmdFactory command.Factory) error {
 	}
 
 	for _, cmd := range deafultsCommands {
-		logger.Printf("$ %s", cmd.PrintableCommandArgs())
+		logger.TPrintf("$ %s", cmd.PrintableCommandArgs())
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("Locking Swift pacakges failed: %w", err)
 		}

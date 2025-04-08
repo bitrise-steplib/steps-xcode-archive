@@ -102,6 +102,7 @@ workflows:
         inputs:
         - project_path: ./_tmp/ios-simple-objc/ios-simple-objc.xcodeproj
         - scheme: ios-simple-objc
+        - lock_swift_packages: "yes"
         - automatic_code_signing: api-key
         - certificate_url_list: $BITFALL_APPLE_IOS_CERTIFICATE_NOPASSPHRASE_URL
         - passphrase_list: ""
@@ -161,6 +162,7 @@ workflows:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
         - automatic_code_signing: $CODE_SIGNING_METHOD
+        - lock_swift_packages: "yes"
         - xcconfig_content: |
             COMPILER_INDEX_STORE_ENABLE = NO
             CODE_SIGN_IDENTITY = Apple Development: Tooling Bot Bitrise
@@ -484,6 +486,7 @@ workflows:
         inputs:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
+        - lock_swift_packages: "yes"
         - automatic_code_signing: $CODE_SIGNING_METHOD
         - min_profile_validity: $MIN_DAYS_PROFILE_VALID
         - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
