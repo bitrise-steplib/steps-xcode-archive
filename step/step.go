@@ -76,10 +76,11 @@ type Inputs struct {
 	ExportMethod string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
 
 	// xcodebuild configuration
-	Configuration      string `env:"configuration"`
-	XcconfigContent    string `env:"xcconfig_content"`
-	PerformCleanAction bool   `env:"perform_clean_action,opt[yes,no]"`
-	XcodebuildOptions  string `env:"xcodebuild_options"`
+	Configuration           string `env:"configuration"`
+	ShouldLockSwiftPackages bool   `env:"lock_swift_packages,opt[yes,no]"`
+	XcconfigContent         string `env:"xcconfig_content"`
+	PerformCleanAction      bool   `env:"perform_clean_action,opt[yes,no]"`
+	XcodebuildOptions       string `env:"xcodebuild_options"`
 
 	// xcodebuild log formatting
 	LogFormatter string `env:"log_formatter,opt[xcbeautify,xcodebuild,xcpretty]"`
@@ -319,6 +320,8 @@ type RunOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
+	ShouldLockSwiftPackages bool
+
 	// Code signing, nil if automatic code signing is "off"
 	CodesignManager *codesign.Manager
 
@@ -361,6 +364,13 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	s.logger.Println()
 
 	if opts.XcodeMajorVersion >= 11 {
+		if opts.ShouldLockSwiftPackages {
+			s.logger.Infof("Swift package dependencies are locked, disabling automatic updates")
+			if err := lockSwiftPackages(s.logger, s.cmdFactory); err != nil {
+				return out, fmt.Errorf("failed to lock swift packages: %w", err)
+			}
+		}
+
 		s.logger.Infof("Running resolve Swift package dependencies")
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
 		// Specifying a scheme is required for workspaces

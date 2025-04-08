@@ -103,6 +103,8 @@ func createRunOptions(config step.Config) step.RunOpts {
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
 
+		ShouldLockSwiftPackages: config.ShouldLockSwiftPackages,
+
 		CodesignManager: config.CodesignManager,
 
 		PerformCleanAction:          config.PerformCleanAction,
