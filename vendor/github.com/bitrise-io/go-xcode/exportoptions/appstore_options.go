@@ -30,13 +30,7 @@ type AppStoreOptionsModel struct {
 // NewAppStoreOptions sets "app-store" as the export method
 // deprecated: use NewAppStoreConnectOptions instead
 func NewAppStoreOptions() AppStoreOptionsModel {
-	return AppStoreOptionsModel{
-		Method:                        MethodAppStore,
-		UploadBitcode:                 UploadBitcodeDefault,
-		UploadSymbols:                 UploadSymbolsDefault,
-		ManageAppVersion:              manageAppVersionDefault,
-		TestFlightInternalTestingOnly: TestFlightInternalTestingOnlyDefault,
-	}
+	return NewAppStoreConnectOptions(MethodAppStore)
 }
 
 // NewAppStoreConnectOptions sets either "app-store" or "app-store-connect" as the export method

@@ -44,7 +44,7 @@ func CreateMacCodeSignGroup(selectableGroups []SelectableCodeSignGroup, installe
 	iosCodesignGroups := CreateIosCodeSignGroups(selectableGroups)
 
 	for _, group := range iosCodesignGroups {
-		if exportMethod == exportoptions.MethodAppStore {
+		if exportMethod.IsAppStore() {
 			installerCertificates := []certificateutil.CertificateInfoModel{}
 
 			for _, installerCertificate := range installedInstallerCertificates {
