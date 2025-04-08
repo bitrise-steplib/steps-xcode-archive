@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,6 +77,16 @@ func NewRetryableHTTPClient() *http.Client {
 		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
 			log.Debugf("Received HTTP 401 (Unauthorized), retrying request...")
 			return true, nil
+		}
+
+		if resp != nil && resp.StatusCode == http.StatusForbidden {
+			var apiError *ErrorResponse
+			if ok := errors.As(checkResponse(resp), &apiError); ok {
+				if apiError.IsRequiredAgreementMissingOrExpired() {
+					log.Warnf("Received error FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED (status 403), retrying request...")
+					return true, nil
+				}
+			}
 		}
 
 		if resp != nil && resp.StatusCode == http.StatusTooManyRequests {

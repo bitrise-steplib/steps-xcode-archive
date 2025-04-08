@@ -2,44 +2,58 @@ package xcodeversion
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
+	"strings"
 )
 
 func getXcodeVersionFromXcodebuildOutput(outStr string) (Version, error) {
-	versionRegexp := regexp.MustCompile(`(?m)^Xcode.* (\d+)(\.(\d+))?.*$`)
-	buildVersionRegexp := regexp.MustCompile(`(?m)^Build version.* (\w.*)$`)
-
-	xcodeVersionMatch := versionRegexp.FindStringSubmatch(outStr)
-	if len(xcodeVersionMatch) < 4 {
-		return Version{}, fmt.Errorf("couldn't find Xcode version in output: (%s)", outStr)
+	split := strings.Split(outStr, "\n")
+	if len(split) == 0 {
+		return Version{}, fmt.Errorf("failed to parse xcodebuild version output (%s)", outStr)
 	}
 
-	xcodebuildVersion := xcodeVersionMatch[0]
-	majorVersionStr := xcodeVersionMatch[1]
-	majorVersion, err := strconv.Atoi(majorVersionStr)
+	filteredOutput, err := filterXcodeWarnings(split)
 	if err != nil {
-		return Version{}, fmt.Errorf("failed to parse xcodebuild major version (output %s): %w", outStr, err)
+		return Version{}, err
 	}
 
-	minorVersion := int(0)
-	minorVersionStr := xcodeVersionMatch[3]
-	if minorVersionStr != "" {
-		if minorVersion, err = strconv.Atoi(minorVersionStr); err != nil {
-			return Version{}, fmt.Errorf("failed to parse xcodebuild minor version (output %s): %w", outStr, err)
-		}
+	xcodebuildVersion := filteredOutput[0]
+	buildVersion := filteredOutput[1]
+
+	split = strings.Split(xcodebuildVersion, " ")
+	if len(split) != 2 {
+		return Version{}, fmt.Errorf("failed to parse xcodebuild version output (%s)", outStr)
 	}
 
-	buildVersionMatch := buildVersionRegexp.FindStringSubmatch(outStr)
-	buildVersion := "unknown"
-	if len(buildVersionMatch) >= 2 {
-		buildVersion = buildVersionMatch[1]
+	version := split[1]
+
+	split = strings.Split(version, ".")
+	majorVersionStr := split[0]
+
+	majorVersion, err := strconv.ParseInt(majorVersionStr, 10, 32)
+	if err != nil {
+		return Version{}, fmt.Errorf("failed to parse xcodebuild version output (%s), error: %s", outStr, err)
 	}
 
 	return Version{
 		Version:      xcodebuildVersion,
 		BuildVersion: buildVersion,
-		Major:        int64(majorVersion),
-		Minor:        int64(minorVersion),
+		MajorVersion: majorVersion,
 	}, nil
+}
+
+func filterXcodeWarnings(cmdOutputLines []string) ([]string, error) {
+	firstLineIndex := -1
+	for i, line := range cmdOutputLines {
+		if strings.HasPrefix(line, "Xcode ") {
+			firstLineIndex = i
+			break
+		}
+	}
+
+	if firstLineIndex < 0 {
+		return []string{}, fmt.Errorf("couldn't find Xcode version in output: %s", cmdOutputLines)
+	}
+
+	return cmdOutputLines[firstLineIndex:], nil
 }

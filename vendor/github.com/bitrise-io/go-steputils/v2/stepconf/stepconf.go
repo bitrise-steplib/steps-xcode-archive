@@ -100,6 +100,12 @@ func setField(field reflect.Value, value, constraint string) error {
 			return errors.New("can't convert to int")
 		}
 		field.SetInt(n)
+	case reflect.Int64:
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return errors.New("can't convert to int64")
+		}
+		field.SetInt(n)
 	case reflect.Float64:
 		value = strings.TrimSpace(value)
 		f, err := strconv.ParseFloat(value, 64)

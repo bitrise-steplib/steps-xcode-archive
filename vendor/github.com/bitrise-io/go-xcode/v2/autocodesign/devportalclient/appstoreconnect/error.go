@@ -49,6 +49,22 @@ func (r ErrorResponse) IsCursorInvalid() bool {
 	return false
 }
 
+// IsRequiredAgreementMissingOrExpired ...
+func (r ErrorResponse) IsRequiredAgreementMissingOrExpired() bool {
+	// status code: 403
+	// code: FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED
+	// title: A required agreement is missing or has expired.
+	// detail: This request requires an in-effect agreement that has not been signed or has expired.
+
+	for _, err := range r.Errors {
+		if err.Code == "FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // DeviceRegistrationError ...
 type DeviceRegistrationError struct {
 	Reason string
