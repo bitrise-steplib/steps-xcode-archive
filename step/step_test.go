@@ -36,9 +36,8 @@ func TestXcodeArchiveStep_ProcessInputs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			envRepository := MockEnvRepository{envs: tt.envs}
 			s := XcodebuildArchiveConfigParser{
-				xcodeVersionProvider: NewMockXcodeVersionProvider(models.XcodebuildVersionModel{MajorVersion: 11}),
-				stepInputParser:      stepconf.NewInputParser(envRepository),
-				logger:               log.NewLogger(),
+				stepInputParser: stepconf.NewInputParser(envRepository),
+				logger:          log.NewLogger(),
 			}
 
 			config, err := s.ProcessInputs()
