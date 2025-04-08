@@ -32,6 +32,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
+	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/kballard/go-shellquote"
@@ -76,10 +77,11 @@ type Inputs struct {
 	ExportMethod string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
 
 	// xcodebuild configuration
-	Configuration      string `env:"configuration"`
-	XcconfigContent    string `env:"xcconfig_content"`
-	PerformCleanAction bool   `env:"perform_clean_action,opt[yes,no]"`
-	XcodebuildOptions  string `env:"xcodebuild_options"`
+	Configuration           string `env:"configuration"`
+	ShouldLockSwiftPackages bool   `env:"lock_swift_packages,opt[yes,no]"`
+	XcconfigContent         string `env:"xcconfig_content"`
+	PerformCleanAction      bool   `env:"perform_clean_action,opt[yes,no]"`
+	XcodebuildOptions       string `env:"xcodebuild_options"`
 
 	// xcodebuild log formatting
 	LogFormatter string `env:"log_formatter,opt[xcbeautify,xcodebuild,xcpretty]"`
@@ -134,17 +136,18 @@ type Config struct {
 }
 
 type XcodebuildArchiveConfigParser struct {
-	stepInputParser      stepconf.InputParser
-	xcodeVersionProvider XcodeVersionProvider
-	fileManager          fileutil.FileManager
-	cmdFactory           command.Factory
-	logger               log.Logger
+	stepInputParser    stepconf.InputParser
+	xcodeVersionReader xcodeversion.Reader
+	fileManager        fileutil.FileManager
+	cmdFactory         command.Factory
+	logger             log.Logger
 }
 
 // XcodebuildArchiver ...
 type XcodebuildArchiver struct {
 	xcodeCommandRunner xcodecommand.Runner
 	logFormatter       string
+	xcodeVersionReader xcodeversion.Reader
 	pathProvider       pathutil.PathProvider
 	pathChecker        pathutil.PathChecker
 	pathModifier       pathutil.PathModifier
@@ -153,21 +156,22 @@ type XcodebuildArchiver struct {
 	cmdFactory         command.Factory
 }
 
-func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionProvider XcodeVersionProvider, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
+func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
 	return XcodebuildArchiveConfigParser{
-		stepInputParser:      stepInputParser,
-		xcodeVersionProvider: xcodeVersionProvider,
-		fileManager:          fileManager,
-		cmdFactory:           cmdFactory,
-		logger:               logger,
+		stepInputParser:    stepInputParser,
+		xcodeVersionReader: xcodeVersionReader,
+		fileManager:        fileManager,
+		cmdFactory:         cmdFactory,
+		logger:             logger,
 	}
 }
 
 // NewXcodebuildArchiver ...
-func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, logFormatter string, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
+func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, logFormatter string, xcodeVersionReader xcodeversion.Reader, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
 	return XcodebuildArchiver{
 		xcodeCommandRunner: xcodecommandRunner,
 		logFormatter:       logFormatter,
+		xcodeVersionReader: xcodeVersionReader,
 		pathProvider:       pathProvider,
 		pathChecker:        pathChecker,
 		pathModifier:       pathModifier,
@@ -222,17 +226,16 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	s.logger.Infof("Xcode version:")
 
 	// Detect Xcode major version
-	xcodebuildVersion, err := s.xcodeVersionProvider.GetXcodeVersion()
+	xcodebuildVersion, err := s.xcodeVersionReader.GetVersion()
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to determine xcode version, error: %s", err)
 	}
 	s.logger.Printf("%s (%s)", xcodebuildVersion.Version, xcodebuildVersion.BuildVersion)
 
-	xcodeMajorVersion := xcodebuildVersion.MajorVersion
-	if xcodeMajorVersion < minSupportedXcodeMajorVersion {
-		return Config{}, fmt.Errorf("invalid xcode major version (%d), should not be less then min supported: %d", xcodeMajorVersion, minSupportedXcodeMajorVersion)
+	if xcodebuildVersion.Major < minSupportedXcodeMajorVersion {
+		return Config{}, fmt.Errorf("invalid xcode major version (%d), should not be less then min supported: %d", xcodebuildVersion.Major, minSupportedXcodeMajorVersion)
 	}
-	config.XcodeMajorVersion = int(xcodeMajorVersion)
+	config.XcodeMajorVersion = int(xcodebuildVersion.Major)
 
 	// Validation ExportOptionsPlistContent
 	exportOptionsPlistContent := strings.TrimSpace(config.ExportOptionsPlistContent)
@@ -319,6 +322,8 @@ type RunOpts struct {
 	XcodeMajorVersion int
 	ArtifactName      string
 
+	ShouldLockSwiftPackages bool
+
 	// Code signing, nil if automatic code signing is "off"
 	CodesignManager *codesign.Manager
 
@@ -361,6 +366,13 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	s.logger.Println()
 
 	if opts.XcodeMajorVersion >= 11 {
+		if opts.ShouldLockSwiftPackages {
+			s.logger.Infof("Swift package dependencies are locked, disabling automatic updates")
+			if err := lockSwiftPackages(s.logger, s.cmdFactory); err != nil {
+				return out, fmt.Errorf("failed to lock swift packages: %w", err)
+			}
+		}
+
 		s.logger.Infof("Running resolve Swift package dependencies")
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
 		// Specifying a scheme is required for workspaces
@@ -1003,9 +1015,9 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 			signingStyle = exportoptions.SigningStyleAutomatic
 		}
 
-		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.logger)
+		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.xcodeVersionReader, s.logger)
 		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
-			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, int64(opts.XcodeMajorVersion), opts.TestFlightInternalTestingOnly)
+			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, opts.TestFlightInternalTestingOnly)
 		if err != nil {
 			return out, err
 		}

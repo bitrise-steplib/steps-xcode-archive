@@ -13,6 +13,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
+	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-steplib/steps-xcode-archive/step"
 )
 
@@ -58,11 +59,11 @@ func run() int {
 func createConfigParser(logger log.Logger) step.XcodebuildArchiveConfigParser {
 	envRepository := env.NewRepository()
 	inputParser := stepconf.NewInputParser(envRepository)
-	xcodeVersionProvider := step.NewXcodebuildXcodeVersionProvider()
 	fileManager := fileutil.NewFileManager()
 	cmdFactory := command.NewFactory(envRepository)
+	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
 
-	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionProvider, fileManager, cmdFactory, logger)
+	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, cmdFactory, logger)
 }
 
 func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.XcodebuildArchiver, error) {
@@ -72,6 +73,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 	pathModifier := pathutil.NewPathModifier()
 	fileManager := fileutil.NewFileManager()
 	cmdFactory := command.NewFactory(envRepository)
+	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
 
 	xcodeCommandRunner := xcodecommand.Runner(nil)
 	switch logFormatter {
@@ -92,7 +94,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 		panic(fmt.Sprintf("Unknown log formatter: %s", logFormatter))
 	}
 
-	return step.NewXcodebuildArchiver(xcodeCommandRunner, logFormatter, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, logger), nil
+	return step.NewXcodebuildArchiver(xcodeCommandRunner, logFormatter, xcodeVersionReader, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, logger), nil
 }
 
 func createRunOptions(config step.Config) step.RunOpts {
@@ -102,6 +104,8 @@ func createRunOptions(config step.Config) step.RunOpts {
 		Configuration:     config.Configuration,
 		XcodeMajorVersion: config.XcodeMajorVersion,
 		ArtifactName:      config.ArtifactName,
+
+		ShouldLockSwiftPackages: config.ShouldLockSwiftPackages,
 
 		CodesignManager: config.CodesignManager,
 

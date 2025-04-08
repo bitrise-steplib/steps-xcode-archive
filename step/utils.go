@@ -3,12 +3,14 @@ package step
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 )
@@ -90,4 +92,24 @@ func findIDEDistrubutionLogsPath(output string, logger log.Logger) (string, erro
 	logger.Printf("IDE distrubution logs path not found")
 
 	return "", nil
+}
+
+func lockSwiftPackages(logger log.Logger, cmdFactory command.Factory) error {
+	cmdOpts := &command.Opts{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+	deafultsCommands := []command.Command{
+		cmdFactory.Create("defaults", []string{"write", "com.apple.dt.Xcode", "IDEPackageOnlyUseVersionsFromResolvedFile", "-bool", "YES"}, cmdOpts),
+		cmdFactory.Create("defaults", []string{"write", "com.apple.dt.Xcode", "IDEDisableAutomaticPackageResolution", "-bool", "YES"}, cmdOpts),
+	}
+
+	for _, cmd := range deafultsCommands {
+		logger.TPrintf("$ %s", cmd.PrintableCommandArgs())
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Locking Swift pacakges failed: %w", err)
+		}
+	}
+
+	return nil
 }
