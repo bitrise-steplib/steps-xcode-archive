@@ -99,7 +99,7 @@ inputs:
 
       The input value sets the method in the export options plist content.
 
-      From Xcode 15.3 onwards, updated methods are used:
+      Note: In Xcode 15.3, distribution methods have been renamed. The values of this input reflect the old names. When running with Xcode 15.3 and later, the new names are passed to `xcodebuild`:
       - `debugging`, when `development` is selected
       - `app-store-connect`, when `app-store` is selected
       - `release-testing`, when `ad-hoc` is selected
