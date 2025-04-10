@@ -477,14 +477,20 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            rm -rf "$PROFILES_PATH_OLD/*"
             if [[ -d "$PROFILES_PATH_OLD" ]]; then
-                ls -la "$PROFILES_PATH_OLD"
+              ls "$PROFILES_PATH_OLD"
+            fi
+            rm -f "$PROFILES_PATH_OLD/*"
+            if [[ -d "$PROFILES_PATH_OLD" ]]; then
+              ls "$PROFILES_PATH_OLD"
             fi
 
-            rm -rf "$PROFILES_PATH/*"
             if [[ -d "$PROFILES_PATH" ]]; then
-                ls -la "$PROFILES_PATH"
+              ls "$PROFILES_PATH"
+            fi
+            rm -f "$PROFILES_PATH/*"
+            if [[ -d "$PROFILES_PATH" ]]; then
+                ls "$PROFILES_PATH"
             fi
     - restore-cache:
         run_if: "true"
@@ -621,6 +627,33 @@ workflows:
               echo "$infoplist_path does not exist."
               exit 1
             fi
+
+  _random_invalid_login:
+    steps:
+    - script:
+        title: Set invalid login
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+
+            # fail 10% of the time
+            if [[ $((RANDOM % 10)) -eq 0 ]]; then
+              echo "Randomly failing login"
+            else
+              exit 0
+            fi
+
+            INVALID_BUILD_URL=./_invalid_authinfo
+            echo '{"key_id": "x", "issuer_id": "x", "private_key": "x"}' > $INVALID_BUILD_URL
+
+            BITRISE_BUILD_URL="file://$INVALID_BUILD_URL"
+            BITRISE_BUILD_API_TOKEN="x"
+
+            export BITRISE_BUILD_API_TOKEN
+            export BITRISE_BUILD_API_TOKEN
+            envman add --key BITRISE_BUILD_URL --value $BITRISE_BUILD_URL
+            envman add --key BITRISE_BUILD_API_TOKEN --value $BITRISE_BUILD_API_TOKEN
 
   _invalid_login:
     steps:
