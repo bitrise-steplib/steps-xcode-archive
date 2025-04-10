@@ -487,6 +487,8 @@ workflows:
 
             if [[ -d "$PROFILES_PATH" ]]; then
               ls "$PROFILES_PATH"
+            else
+              mkdir -p "$PROFILES_PATH"
             fi
             rm -f "$PROFILES_PATH/*"
             if [[ -d "$PROFILES_PATH" ]]; then
