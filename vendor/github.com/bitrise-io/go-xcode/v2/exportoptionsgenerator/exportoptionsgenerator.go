@@ -10,6 +10,7 @@ import (
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
@@ -26,6 +27,7 @@ type ExportOptionsGenerator struct {
 	scheme        *xcscheme.Scheme
 	configuration string
 
+	xcodeVersionReader  xcodeversion.Reader
 	certificateProvider CodesignIdentityProvider
 	profileProvider     ProvisioningProfileProvider
 	targetInfoProvider  TargetInfoProvider
@@ -33,11 +35,12 @@ type ExportOptionsGenerator struct {
 }
 
 // New constructs a new ExportOptionsGenerator.
-func New(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string, logger log.Logger) ExportOptionsGenerator {
+func New(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string, xcodeVersionReader xcodeversion.Reader, logger log.Logger) ExportOptionsGenerator {
 	g := ExportOptionsGenerator{
-		xcodeProj:     xcodeProj,
-		scheme:        scheme,
-		configuration: configuration,
+		xcodeProj:          xcodeProj,
+		scheme:             scheme,
+		configuration:      configuration,
+		xcodeVersionReader: xcodeVersionReader,
 	}
 	g.certificateProvider = LocalCodesignIdentityProvider{}
 	g.profileProvider = LocalProvisioningProfileProvider{}
@@ -55,26 +58,30 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 	compileBitcode bool,
 	archivedWithXcodeManagedProfiles bool,
 	codeSigningStyle exportoptions.SigningStyle,
-	xcodeMajorVersion int64,
 	testFlightInternalTestingOnly bool,
 ) (exportoptions.ExportOptions, error) {
+	xcodeVersion, err := g.xcodeVersionReader.GetVersion()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Xcode version: %w", err)
+	}
+
 	mainTargetBundleID, entitlementsByBundleID, err := g.applicationTargetsAndEntitlements(exportMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, entitlementsByBundleID, exportMethod, xcodeMajorVersion)
+	iCloudContainerEnvironment, err := determineIcloudContainerEnvironment(containerEnvironment, entitlementsByBundleID, exportMethod, xcodeVersion.Major)
 	if err != nil {
 		return nil, err
 	}
 
-	exportOpts := generateBaseExportOptions(exportMethod, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
+	exportOpts := generateBaseExportOptions(exportMethod, xcodeVersion, uploadBitcode, compileBitcode, iCloudContainerEnvironment)
 
-	if xcodeMajorVersion >= 12 {
+	if xcodeVersion.Major >= 12 {
 		exportOpts = addDistributionBundleIdentifierFromXcode12(exportOpts, mainTargetBundleID)
 	}
 
-	if xcodeMajorVersion >= 13 {
+	if xcodeVersion.Major >= 13 {
 		exportOpts = disableManagedBuildNumberFromXcode13(exportOpts)
 	}
 
@@ -92,7 +99,7 @@ func (g ExportOptionsGenerator) GenerateApplicationExportOptions(
 		exportOpts = addManualSigningFields(exportOpts, codeSignGroup, archivedWithXcodeManagedProfiles, g.logger)
 	}
 
-	if xcodeMajorVersion >= 15 {
+	if xcodeVersion.Major >= 15 {
 		if testFlightInternalTestingOnly {
 			exportOpts = addTestFlightInternalTestingOnly(exportOpts, testFlightInternalTestingOnly)
 		}
@@ -292,11 +299,11 @@ func determineIcloudContainerEnvironment(desiredIcloudContainerEnvironment strin
 	}
 
 	// From Xcode 9 iCloudContainerEnvironment is required for every export method, before that version only for non app-store exports.
-	if xcodeMajorVersion < 9 && exportMethod == exportoptions.MethodAppStore {
+	if xcodeMajorVersion < 9 && exportMethod.IsAppStore() {
 		return "", nil
 	}
 
-	if exportMethod == exportoptions.MethodAppStore {
+	if exportMethod.IsAppStore() {
 		return "Production", nil
 	}
 
@@ -332,9 +339,13 @@ func projectUsesCloudKit(bundleIDEntitlementsMap map[string]plistutil.PlistData)
 }
 
 // generateBaseExportOptions creates a default exportOptions introduced in Xcode 7.
-func generateBaseExportOptions(exportMethod exportoptions.Method, cfgUploadBitcode, cfgCompileBitcode bool, iCloudContainerEnvironment string) exportoptions.ExportOptions {
-	if exportMethod == exportoptions.MethodAppStore {
-		appStoreOptions := exportoptions.NewAppStoreOptions()
+func generateBaseExportOptions(exportMethod exportoptions.Method, xcodeVersion xcodeversion.Version, cfgUploadBitcode, cfgCompileBitcode bool, iCloudContainerEnvironment string) exportoptions.ExportOptions {
+	if xcodeVersion.IsGreaterThanOrEqualTo(15, 3) {
+		exportMethod = exportoptions.UpgradeToXcode15_3MethodName(exportMethod)
+	}
+
+	if exportMethod.IsAppStore() {
+		appStoreOptions := exportoptions.NewAppStoreConnectOptions(exportMethod)
 		appStoreOptions.UploadBitcode = cfgUploadBitcode
 		if iCloudContainerEnvironment != "" {
 			appStoreOptions.ICloudContainerEnvironment = exportoptions.ICloudContainerEnvironment(iCloudContainerEnvironment)

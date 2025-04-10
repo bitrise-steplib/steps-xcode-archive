@@ -2,6 +2,7 @@ package exportoptionsgenerator
 
 import (
 	"fmt"
+
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
@@ -62,7 +63,7 @@ func filterApplicationBundleTargets(targets []xcodeproj.Target, exportMethod exp
 		// 	<string>Development App Clip Profile</string>
 		// </dict>
 		// ..,
-		if exportMethod != exportoptions.MethodAppStore && target.IsAppClipProduct() {
+		if !exportMethod.IsAppStore() && target.IsAppClipProduct() {
 			continue
 		}
 
