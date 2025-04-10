@@ -476,10 +476,10 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            rm -rf ~/Library/MobileDevice/Provisioning\ Profiles
+            rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/*
             ls -la ~/Library/MobileDevice/Provisioning\ Profiles
 
-            rm -rf "$PROFILES_PATH"
+            rm -rf "$PROFILES_PATH/*"
             ls -la "$PROFILES_PATH"
     - restore-cache:
         run_if: "true"
