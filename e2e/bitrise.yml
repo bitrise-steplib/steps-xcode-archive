@@ -457,8 +457,8 @@ workflows:
 
   _run:
     envs:
-    - PROFILES_PATH: ~/Library/Developer/Xcode/UserData/Provisioning Profiles
-    - PROFILES_PATH_OLD: ~/Library/MobileDevice/Provisioning Profiles
+    - PROFILES_PATH: /Users/vagrant/Library/Developer/Xcode/UserData/Provisioning Profiles
+    - PROFILES_PATH_OLD: /Users/vagrant/Library/MobileDevice/Provisioning Profiles
     before_run:
     - _generate_api_token
     steps:
@@ -487,8 +487,10 @@ workflows:
 
             if [[ -d "$PROFILES_PATH" ]]; then
               ls "$PROFILES_PATH"
+              envman add --key PROFILES_PATH --value $PROFILES_PATH
             else
               mkdir -p "$PROFILES_PATH"
+              envmand add --key PROFILES_PATH --value $PROFILES_PATH_OLD
             fi
             rm -f "$PROFILES_PATH/*"
             if [[ -d "$PROFILES_PATH" ]]; then
