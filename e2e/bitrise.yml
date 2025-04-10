@@ -540,7 +540,7 @@ workflows:
         inputs:
         - key: xcode-profiles-cache
         - verbose: "yes"
-        - cache_paths: |-
+        - paths: |-
             $PROFILES_PATH
 
   _check_outputs:
