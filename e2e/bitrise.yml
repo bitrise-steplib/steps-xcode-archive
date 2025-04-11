@@ -461,6 +461,7 @@ workflows:
     - PROFILES_PATH_OLD: /Users/vagrant/Library/MobileDevice/Provisioning Profiles
     before_run:
     - _generate_api_token
+    - _random_invalid_login
     steps:
     - script:
         title: Remove temp folder
