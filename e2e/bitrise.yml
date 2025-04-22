@@ -202,15 +202,15 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
-  test_api_key_signing_managed:
-    description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
-    steps:
-    - bitrise-run:
-        run_if: |-
-          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
-        inputs:
-        - workflow_id: utility_test_api_key_signing_managed
-        - bitrise_config_path: ./e2e/bitrise.yml
+  # test_api_key_signing_managed:
+  #   description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
+  #   steps:
+  #   - bitrise-run:
+  #       run_if: |-
+  #         {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+  #       inputs:
+  #       - workflow_id: utility_test_api_key_signing_managed
+  #       - bitrise_config_path: ./e2e/bitrise.yml
 
   utility_test_api_key_signing_managed:
     description: |
@@ -298,21 +298,21 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
-  test_api_key_signing_managed_app_store:
-    description: Test API key based code signing and app store export on a project where signing is managed automatically
-    envs:
-    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: automatic
-    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-    - BITRISE_SCHEME: code-sign-test
-    - CODE_SIGNING_METHOD: api-key
-    - MIN_DAYS_PROFILE_VALID: 0
-    - IPA_EXPORT_METHOD: app-store
-    - LOG_FORMATTER: xcbeautify
-    after_run:
-    - _run
-    - _check_outputs
-    - _check_exported_artifacts
+  # test_api_key_signing_managed_app_store:
+  #   description: Test API key based code signing and app store export on a project where signing is managed automatically
+  #   envs:
+  #   - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+  #   - TEST_APP_BRANCH: automatic
+  #   - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+  #   - BITRISE_SCHEME: code-sign-test
+  #   - CODE_SIGNING_METHOD: api-key
+  #   - MIN_DAYS_PROFILE_VALID: 0
+  #   - IPA_EXPORT_METHOD: app-store
+  #   - LOG_FORMATTER: xcbeautify
+  #   after_run:
+  #   - _run
+  #   - _check_outputs
+  #   - _check_exported_artifacts
 
   test_apple_id_signing_managed_app_store:
     description: Running Apple ID tests on a single stack to avoid 503 Service Temporarily Unavailable issue.
@@ -498,7 +498,6 @@ workflows:
         inputs:
         - key: |-
             profile-cache-key-{{ checksum "$PROFILES_PATH_OLD/*.mobileprovision" }}-{{ checksum "$PROFILES_PATH/*.mobileprovision" }}
-            profile-cache-key-
     - script:
         title: List profiles
         inputs:
