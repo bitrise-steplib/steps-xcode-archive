@@ -478,37 +478,39 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            if [[ -d "$PROFILES_PATH_OLD" ]]; then
-              ls "$PROFILES_PATH_OLD"
-            fi
+            
             rm -f "$PROFILES_PATH_OLD/*"
-            if [[ -d "$PROFILES_PATH_OLD" ]]; then
-              ls "$PROFILES_PATH_OLD"
-            fi
-
-            envman add --key PROFILES_FALLBACK_PATH --value "$PROFILES_PATH_OLD"
-            if [[ -d "$PROFILES_PATH" ]]; then
-              ls "$PROFILES_PATH"
-            else
-              mkdir -p "$PROFILES_PATH"
-            fi
             rm -f "$PROFILES_PATH/*"
-            if [[ -d "$PROFILES_PATH" ]]; then
-                ls "$PROFILES_PATH"
-            fi
-    - restore-cache:
-        run_if: "true"
-        inputs:
-        - key: xcode-profiles-cache
     - script:
-        title: List profiles
+        title: Create provisioning profiles folder
         run_if: .IsCI
         inputs:
         - content: |-
             #!/bin/bash
             set -ex
+            if [[ ! -d "$PROFILES_PATH_OLD" ]]; then
+              mkdir -p "$PROFILES_PATH_OLD"
+            fi
+            if [[ ! -d "$PROFILES_PATH" ]]; then
+              mkdir -p "$PROFILES_PATH"
+            fi
+    - restore-cache:
+        run_if: "true"
+        inputs:
+        - key: |-
+            profile-cache-key-{{ checksum "$PROFILES_PATH_OLD/*.mobileprovision" }}-{{ checksum "$PROFILES_PATH/*.mobileprovision" }}
+            profile-cache-key-
+    - script:
+        title: List profiles
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            if [[ -d "$PROFILES_PATH_OLD" ]]; then
+              ls "$PROFILES_PATH_OLD"
+            fi
             if [[ -d "$PROFILES_PATH" ]]; then
-                ls -la "$PROFILES_PATH"
+              ls "$PROFILES_PATH"
             fi
     - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
         inputs:
@@ -533,7 +535,9 @@ workflows:
         - verbose_log: "yes"
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
-        - fallback_provisioning_profile_url_list: $PROFILES_FALLBACK_PATH
+        - fallback_provisioning_profile_url_list: |-
+            $PROFILES_PATH_OLD
+            $PROFILES_PATH
         - api_key_path: $API_KEY_PATH
         - api_key_id: $API_KEY_ID
         - api_key_issuer_id: $API_KEY_ISSUER_ID
@@ -542,8 +546,11 @@ workflows:
         inputs:
         - key: xcode-profiles-cache
         - verbose: "yes"
+        - key: |-
+            profile-cache-key-{{ checksum "$PROFILES_PATH_OLD/*.mobileprovision" }}-{{ checksum "$PROFILES_PATH/*.mobileprovision" }}
         - paths: |-
-            $PROFILES_FALLBACK_PATH
+            $PROFILES_PATH_OLD
+            $PROFILES_PATH
 
   _check_outputs:
     steps:
@@ -733,3 +740,4 @@ workflows:
 
             envman add --key BITRISEIO_ABCS_API_URL --value $BITRISEIO_CACHE_SERVICE_URL
             envman add --key BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN --value $auth_token --sensitive
+
