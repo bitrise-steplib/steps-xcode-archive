@@ -543,7 +543,6 @@ workflows:
     - save-cache:
         run_if: "true"
         inputs:
-        - key: xcode-profiles-cache
         - verbose: "yes"
         - key: |-
             profile-cache-key-{{ checksum "$PROFILES_PATH_OLD/*.mobileprovision" }}-{{ checksum "$PROFILES_PATH/*.mobileprovision" }}
