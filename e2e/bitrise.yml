@@ -478,7 +478,6 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            
             rm -f "$PROFILES_PATH_OLD/*"
             rm -f "$PROFILES_PATH/*"
     - script:
@@ -740,4 +739,3 @@ workflows:
 
             envman add --key BITRISEIO_ABCS_API_URL --value $BITRISEIO_CACHE_SERVICE_URL
             envman add --key BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN --value $auth_token --sensitive
-
