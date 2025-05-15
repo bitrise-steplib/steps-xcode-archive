@@ -21,6 +21,11 @@ func NewIosArchive(path string) (IosArchive, error) {
 	}, err
 }
 
+// IsSigningManagedAutomatically ...
+func (archive IosArchive) IsSigningManagedAutomatically() (bool, error) {
+	return archive.IsXcodeManaged(), nil
+}
+
 // Platform ...
 func (archive IosArchive) Platform() (autocodesign.Platform, error) {
 	platformName := archive.Application.InfoPlist["DTPlatformName"]
@@ -34,11 +39,11 @@ func (archive IosArchive) Platform() (autocodesign.Platform, error) {
 	}
 }
 
-// ReadCodesignParameters ...
-func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, error) {
+// GetAppLayout ...
+func (archive IosArchive) GetAppLayout(_ bool) (autocodesign.AppLayout, error) {
 	platform, err := archive.Platform()
 	if err != nil {
-		return nil, err
+		return autocodesign.AppLayout{}, err
 	}
 
 	bundleIDEntitlementsMap := archive.BundleIDEntitlementsMap()
@@ -50,7 +55,7 @@ func (archive IosArchive) ReadCodesignParameters() (*autocodesign.AppLayout, err
 		entitlementsMap[bundleID] = autocodesign.Entitlements(entitlements)
 	}
 
-	return &autocodesign.AppLayout{
+	return autocodesign.AppLayout{
 		Platform:                               platform,
 		EntitlementsByArchivableTargetBundleID: entitlementsMap,
 		UITestTargetBundleIDs:                  nil,

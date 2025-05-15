@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"howett.net/plist"
+
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	v1command "github.com/bitrise-io/go-utils/command"
 	v1fileutil "github.com/bitrise-io/go-utils/fileutil"
@@ -36,7 +38,6 @@ import (
 	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/kballard/go-shellquote"
-	"howett.net/plist"
 )
 
 const (
@@ -994,22 +995,29 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 		s.logger.TPrintf("Opening Xcode project at path: %s.", opts.ProjectPath)
 
-		xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		if err != nil {
-			return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
-		}
-
 		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
 		signingStyle := exportoptions.SigningStyleManual
 		if opts.XcodeAuthOptions != nil {
 			signingStyle = exportoptions.SigningStyleAutomatic
 		}
 
-		generator := exportoptionsgenerator.New(xcodeProj, scheme, configuration, s.xcodeVersionReader, s.logger)
-		exportOptions, err := generator.GenerateApplicationExportOptions(exportMethod, opts.ICloudContainerEnvironment, opts.ExportDevelopmentTeam,
-			opts.UploadBitcode, opts.CompileBitcode, archiveCodeSignIsXcodeManaged, signingStyle, opts.TestFlightInternalTestingOnly)
+		archiveInfo, err := exportoptionsgenerator.ReadArchiveExportInfo(opts.Archive)
 		if err != nil {
-			return out, err
+			return out, fmt.Errorf("failed to read xcarchive: %s", err)
+		}
+
+		generator := exportoptionsgenerator.New(s.xcodeVersionReader, s.logger)
+		exportOptions, err := generator.GenerateApplicationExportOptions(exportoptionsgenerator.ExportProductApp, archiveInfo, exportMethod, signingStyle, exportoptionsgenerator.Opts{
+			ContainerEnvironment:             opts.ICloudContainerEnvironment,
+			TeamID:                           opts.ExportDevelopmentTeam,
+			UploadBitcode:                    opts.UploadBitcode,
+			CompileBitcode:                   opts.CompileBitcode,
+			ArchivedWithXcodeManagedProfiles: archiveCodeSignIsXcodeManaged,
+			TestFlightInternalTestingOnly:    opts.TestFlightInternalTestingOnly,
+			ManageVersionAndBuildNumber:      false,
+		})
+		if err != nil {
+			return out, fmt.Errorf("failed to generate xcode export options: %s", err)
 		}
 
 		s.logger.Println()
