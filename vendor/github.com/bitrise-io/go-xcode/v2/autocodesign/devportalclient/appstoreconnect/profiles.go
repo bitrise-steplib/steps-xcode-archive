@@ -185,7 +185,7 @@ type ProfileCreateRequestDataRelationshipsDevices struct {
 type ProfileCreateRequestDataRelationships struct {
 	BundleID     ProfileCreateRequestDataRelationshipsBundleID     `json:"bundleId"`
 	Certificates ProfileCreateRequestDataRelationshipsCertificates `json:"certificates"`
-	Devices      ProfileCreateRequestDataRelationshipsDevices      `json:"devices"`
+	Devices      *ProfileCreateRequestDataRelationshipsDevices     `json:"devices,omitempty"`
 }
 
 // ProfileCreateRequestData ...
@@ -228,7 +228,7 @@ func NewProfileCreateRequest(profileType ProfileType, name, bundleIDID string, c
 		})
 	}
 	if len(deviceData) > 0 {
-		relationships.Devices = ProfileCreateRequestDataRelationshipsDevices{Data: deviceData}
+		relationships.Devices = &ProfileCreateRequestDataRelationshipsDevices{Data: deviceData}
 	}
 
 	data := ProfileCreateRequestData{
