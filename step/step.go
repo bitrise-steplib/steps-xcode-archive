@@ -447,9 +447,6 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	out.Archive = archiveOut.Archive
 
 	IPAExportOpts := xcodeIPAExportOpts{
-		ProjectPath:       opts.ProjectPath,
-		Scheme:            opts.Scheme,
-		Configuration:     opts.Configuration,
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		XcodeAuthOptions:  authOptions,
 
@@ -922,9 +919,6 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 }
 
 type xcodeIPAExportOpts struct {
-	ProjectPath       string
-	Scheme            string
-	Configuration     string
 	XcodeMajorVersion int
 	XcodeAuthOptions  *xcodebuild.AuthenticationParams
 
@@ -992,8 +986,6 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 		if err != nil {
 			return out, err
 		}
-
-		s.logger.TPrintf("Opening Xcode project at path: %s.", opts.ProjectPath)
 
 		archiveCodeSignIsXcodeManaged := opts.Archive.IsXcodeManaged()
 		signingStyle := exportoptions.SigningStyleManual
