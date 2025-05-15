@@ -11,6 +11,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
+	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 )
 
 // AuthType ...
@@ -74,7 +75,7 @@ func NewManagerWithArchive(
 	fallbackProfileDownloader autocodesign.ProfileProvider,
 	assetInstaller autocodesign.AssetWriter,
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
-	archive Archive,
+	archive xcarchive.IosArchive,
 	logger log.Logger,
 ) Manager {
 	return Manager{
