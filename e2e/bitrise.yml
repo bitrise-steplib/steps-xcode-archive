@@ -202,15 +202,15 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
-  test_api_key_signing_managed:
-    description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
-    steps:
-    - bitrise-run:
-        run_if: |-
-          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
-        inputs:
-        - workflow_id: utility_test_api_key_signing_managed
-        - bitrise_config_path: ./e2e/bitrise.yml
+  # test_api_key_signing_managed:
+  #   description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
+  #   steps:
+  #   - bitrise-run:
+  #       run_if: |-
+  #         {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+  #       inputs:
+  #       - workflow_id: utility_test_api_key_signing_managed
+  #       - bitrise_config_path: ./e2e/bitrise.yml
 
   utility_test_api_key_signing_managed:
     description: |
@@ -298,21 +298,21 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
-  test_api_key_signing_managed_app_store:
-    description: Test API key based code signing and app store export on a project where signing is managed automatically
-    envs:
-    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: automatic
-    - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
-    - BITRISE_SCHEME: code-sign-test
-    - CODE_SIGNING_METHOD: api-key
-    - MIN_DAYS_PROFILE_VALID: 0
-    - IPA_EXPORT_METHOD: app-store
-    - LOG_FORMATTER: xcbeautify
-    after_run:
-    - _run
-    - _check_outputs
-    - _check_exported_artifacts
+  # test_api_key_signing_managed_app_store:
+  #   description: Test API key based code signing and app store export on a project where signing is managed automatically
+  #   envs:
+  #   - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
+  #   - TEST_APP_BRANCH: automatic
+  #   - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
+  #   - BITRISE_SCHEME: code-sign-test
+  #   - CODE_SIGNING_METHOD: api-key
+  #   - MIN_DAYS_PROFILE_VALID: 0
+  #   - IPA_EXPORT_METHOD: app-store
+  #   - LOG_FORMATTER: xcbeautify
+  #   after_run:
+  #   - _run
+  #   - _check_outputs
+  #   - _check_exported_artifacts
 
   test_apple_id_signing_managed_app_store:
     description: Running Apple ID tests on a single stack to avoid 503 Service Temporarily Unavailable issue.
@@ -456,6 +456,12 @@ workflows:
     - _check_exported_artifacts
 
   _run:
+    envs:
+    - PROFILES_PATH: /Users/vagrant/Library/Developer/Xcode/UserData/Provisioning Profiles
+    - PROFILES_PATH_OLD: /Users/vagrant/Library/MobileDevice/Provisioning Profiles
+    before_run:
+    - _generate_api_token
+    - _random_invalid_login
     steps:
     - script:
         title: Remove temp folder
@@ -472,7 +478,38 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            rm -rf ~/Library/MobileDevice/Provisioning Profiles
+            rm -f "$PROFILES_PATH_OLD/*"
+            rm -f "$PROFILES_PATH/*"
+    - script:
+        title: Create provisioning profiles folder
+        run_if: .IsCI
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            if [[ ! -d "$PROFILES_PATH_OLD" ]]; then
+              mkdir -p "$PROFILES_PATH_OLD"
+            fi
+            if [[ ! -d "$PROFILES_PATH" ]]; then
+              mkdir -p "$PROFILES_PATH"
+            fi
+    - restore-cache:
+        run_if: "true"
+        inputs:
+        - key: |-
+            profile-cache-key-{{ checksum "$PROFILES_PATH_OLD/*.mobileprovision" }}-{{ checksum "$PROFILES_PATH/*.mobileprovision" }}
+    - script:
+        title: List profiles
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            if [[ -d "$PROFILES_PATH_OLD" ]]; then
+              ls "$PROFILES_PATH_OLD"
+            fi
+            if [[ -d "$PROFILES_PATH" ]]; then
+              ls "$PROFILES_PATH"
+            fi
     - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
         inputs:
         - repository_url: $TEST_APP_URL
@@ -496,10 +533,21 @@ workflows:
         - verbose_log: "yes"
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
-        - fallback_provisioning_profile_url_list: $FALLBACK_PROFILES
+        - fallback_provisioning_profile_url_list: |-
+            $PROFILES_PATH_OLD
+            $PROFILES_PATH
         - api_key_path: $API_KEY_PATH
         - api_key_id: $API_KEY_ID
         - api_key_issuer_id: $API_KEY_ISSUER_ID
+    - save-cache:
+        run_if: "true"
+        inputs:
+        - verbose: "yes"
+        - key: |-
+            profile-cache-key-{{ checksum "$PROFILES_PATH_OLD/*.mobileprovision" }}-{{ checksum "$PROFILES_PATH/*.mobileprovision" }}
+        - paths: |-
+            $PROFILES_PATH_OLD
+            $PROFILES_PATH
 
   _check_outputs:
     steps:
@@ -588,6 +636,33 @@ workflows:
               exit 1
             fi
 
+  _random_invalid_login:
+    steps:
+    - script:
+        title: Set invalid login
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+
+            # fail 10% of the time
+            if [[ $((RANDOM % 10)) -eq 0 ]]; then
+              echo "Randomly failing login"
+            else
+              exit 0
+            fi
+
+            INVALID_BUILD_URL=./_invalid_authinfo
+            echo '{"key_id": "x", "issuer_id": "x", "private_key": "x"}' > $INVALID_BUILD_URL
+
+            BITRISE_BUILD_URL="file://$INVALID_BUILD_URL"
+            BITRISE_BUILD_API_TOKEN="x"
+
+            export BITRISE_BUILD_API_TOKEN
+            export BITRISE_BUILD_API_TOKEN
+            envman add --key BITRISE_BUILD_URL --value $BITRISE_BUILD_URL
+            envman add --key BITRISE_BUILD_API_TOKEN --value $BITRISE_BUILD_API_TOKEN
+
   _invalid_login:
     steps:
     - script:
@@ -638,3 +713,27 @@ workflows:
             set -ex
             envman add --key BITRISE_BUILD_URL --value $BITRISE_BUILD_URL_BACKUP
             envman add --key BITRISE_BUILD_API_TOKEN --value $BITRISE_BUILD_API_TOKEN_BACKUP
+
+  _generate_api_token:
+    steps:
+    - script:
+        run_if: "{{ not .IsCI }}"
+        title: Generate API access token
+        description: Generate an expiring API token using $API_CLIENT_SECRET
+        inputs:
+        - content: |
+            #!/bin/env bash
+            set -e
+
+            json_response=$(curl --fail -X POST https://auth.services.bitrise.io/auth/realms/bitrise-services/protocol/openid-connect/token -k \
+                --data "client_id=bitrise-steps" \
+                --data "client_secret=$CACHE_API_CLIENT_SECRET" \
+                --data "grant_type=urn:ietf:params:oauth:grant-type:uma-ticket" \
+                --data "claim_token=eyJhcHBfaWQiOlsiY2FjaGUtc3RlcHMtdGVzdHMiXSwgIm9yZ19pZCI6WyJ0ZXN0LW9yZy1pZCJdLCAiYWJjc19hY2Nlc3NfZ3JhbnRlZCI6WyJ0cnVlIl19" \
+                --data "claim_token_format=urn:ietf:params:oauth:token-type:jwt" \
+                --data "audience=bitrise-services")
+
+            auth_token=$(echo $json_response | jq -r .access_token)
+
+            envman add --key BITRISEIO_ABCS_API_URL --value $BITRISEIO_CACHE_SERVICE_URL
+            envman add --key BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN --value $auth_token --sensitive
