@@ -3,58 +3,31 @@ package exportoptionsgenerator
 import (
 	"fmt"
 
-	"github.com/bitrise-io/go-xcode/plistutil"
+	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 )
 
-// ArchiveInfo contains the distribution bundle ID(s)	and entitlements of the main target and its dependencies.
-type ArchiveInfo struct {
-	AppBundleID            string
-	AppClipBundleID        string
-	EntitlementsByBundleID map[string]plistutil.PlistData
+// TargetInfoProvider can determine a target's bundle id and codesign entitlements.
+type TargetInfoProvider interface {
+	TargetBundleID(target, configuration string) (string, error)
+	TargetCodeSignEntitlements(target, configuration string) (serialized.Object, error)
 }
 
-// ReadArchiveInfoFromXcodeproject reads the Bundle ID for the given scheme and configuration.
-func ReadArchiveInfoFromXcodeproject(xcodeProj *xcodeproj.XcodeProj, scheme *xcscheme.Scheme, configuration string) (ArchiveInfo, error) {
-	mainTarget, err := ArchivableApplicationTarget(xcodeProj, scheme)
-	if err != nil {
-		return ArchiveInfo{}, err
-	}
+// XcodebuildTargetInfoProvider implements TargetInfoProvider.
+type XcodebuildTargetInfoProvider struct {
+	xcodeProj *xcodeproj.XcodeProj
+}
 
-	dependentTargets := filterApplicationBundleTargets(xcodeProj.DependentTargetsOfTarget(*mainTarget))
-	targets := append([]xcodeproj.Target{*mainTarget}, dependentTargets...)
+// TargetBundleID ...
+func (b XcodebuildTargetInfoProvider) TargetBundleID(target, configuration string) (string, error) {
+	return b.xcodeProj.TargetBundleID(target, configuration)
+}
 
-	mainTargetBundleID := ""
-	appClipBundleID := ""
-	entitlementsByBundleID := map[string]plistutil.PlistData{}
-	for i, target := range targets {
-		bundleID, err := xcodeProj.TargetBundleID(target.Name, configuration)
-		if err != nil {
-			return ArchiveInfo{}, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
-		}
-
-		entitlements, err := xcodeProj.TargetCodeSignEntitlements(target.Name, configuration)
-		if err != nil && !serialized.IsKeyNotFoundError(err) {
-			return ArchiveInfo{}, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
-		}
-
-		entitlementsByBundleID[bundleID] = plistutil.PlistData(entitlements)
-
-		if target.IsAppClipProduct() {
-			appClipBundleID = bundleID
-		}
-		if i == 0 {
-			mainTargetBundleID = bundleID
-		}
-	}
-
-	return ArchiveInfo{
-		AppBundleID:            mainTargetBundleID,
-		AppClipBundleID:        appClipBundleID,
-		EntitlementsByBundleID: entitlementsByBundleID,
-	}, nil
+// TargetCodeSignEntitlements ...
+func (b XcodebuildTargetInfoProvider) TargetCodeSignEntitlements(target, configuration string) (serialized.Object, error) {
+	return b.xcodeProj.TargetCodeSignEntitlements(target, configuration)
 }
 
 // ArchivableApplicationTarget locate archivable app target from a given project and scheme
@@ -72,14 +45,32 @@ func ArchivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcschem
 	return &mainTarget, nil
 }
 
-func filterApplicationBundleTargets(targets []xcodeproj.Target) (filteredTargets []xcodeproj.Target) {
+func filterApplicationBundleTargets(targets []xcodeproj.Target, exportMethod exportoptions.Method) (filteredTargets []xcodeproj.Target) {
+	fmt.Printf("Filtering %v application bundle targets", len(targets))
+
 	for _, target := range targets {
 		if !target.IsExecutableProduct() {
 			continue
 		}
 
+		// App store exports contain App Clip too. App Clip provisioning profile has to be included in export options:
+		// ..
+		// <key>provisioningProfiles</key>
+		// <dict>
+		// 	<key>io.bundle.id</key>
+		// 	<string>Development Application Profile</string>
+		// 	<key>io.bundle.id.AppClipID</key>
+		// 	<string>Development App Clip Profile</string>
+		// </dict>
+		// ..,
+		if !exportMethod.IsAppStore() && target.IsAppClipProduct() {
+			continue
+		}
+
 		filteredTargets = append(filteredTargets, target)
 	}
+
+	fmt.Printf("Found %v application bundle targets", len(filteredTargets))
 
 	return
 }
