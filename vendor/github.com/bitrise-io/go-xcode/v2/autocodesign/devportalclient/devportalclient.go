@@ -7,7 +7,6 @@ import (
 
 	"github.com/bitrise-io/go-steputils/v2/ruby"
 	"github.com/bitrise-io/go-utils/retry"
-	"github.com/bitrise-io/go-utils/v2/analytics"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
@@ -75,7 +74,8 @@ func (f Factory) Create(credentials devportalservice.Credentials, teamID string)
 	f.logger.Println()
 	f.logger.Infof("Initializing Developer Portal client")
 	var devportalClient autocodesign.DevPortalClient
-	tracker := appstoreconnect.NewDefaultTracker(analytics.NewDefaultTracker(f.logger), env.NewRepository())
+	// tracker := appstoreconnect.NewDefaultTracker(analytics.NewDefaultTracker(f.logger), env.NewRepository())
+	tracker := appstoreconnect.StdoutTracker{}
 	if credentials.APIKey != nil {
 		httpClient := appstoreconnect.NewRetryableHTTPClient()
 		client := appstoreconnect.NewClient(
