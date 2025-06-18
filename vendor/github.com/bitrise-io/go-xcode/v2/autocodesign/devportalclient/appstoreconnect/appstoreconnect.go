@@ -257,17 +257,18 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	resp, err := c.client.Do(req)
 	duration := time.Since(startTime)
 
-	if err != nil {
-		c.tracker.TrackAPIError(req.Method, req.URL.Host, req.URL.Path, 0, err.Error())
-		return nil, err
-	}
-
 	c.Debugf("Response:")
 	if c.EnableDebugLogs {
 		if err := httputil.PrintResponse(resp); err != nil {
 			c.Debugf("Failed to print response: %s", err)
 		}
 	}
+
+	if err != nil {
+		c.tracker.TrackAPIError(req.Method, req.URL.Host, req.URL.Path, 0, err.Error())
+		return nil, err
+	}
+
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
 			log.Warnf("Failed to close response body: %s", cerr)
@@ -275,6 +276,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	}()
 
 	if err := checkResponse(resp); err != nil {
+		c.tracker.TrackAPIRequest(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, duration)
 		c.tracker.TrackAPIError(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, err.Error())
 		return resp, err
 	}
