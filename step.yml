@@ -90,10 +90,10 @@ inputs:
       The input value sets xcodebuild's `-scheme` option.
     is_required: true
 
-- platform: "automatic"
+- platform: automatic
   opts:
     title: Platform
-    summary: 
+    summary: Xcode Platform to build.
     description: |-
       Xcode Platform to build.
       If not specified, will try to detect the platform from the project settings.
