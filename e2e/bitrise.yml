@@ -58,6 +58,7 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
+    - DESTINATION: "iOS"
     - CODE_SIGNING_METHOD: api-key
     - API_KEY_PATH: $BITFALL_APPSTORECONNECT_API_KEY_URL
     - API_KEY_ID: $BITFALL_APPSTORECONNECT_API_KEY_ID
@@ -188,6 +189,7 @@ workflows:
     - TEST_APP_BRANCH: new-certificates
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - XCCONFIG_CONTENT: |
         COMPILER_INDEX_STORE_ENABLE = NO
@@ -221,6 +223,7 @@ workflows:
     - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: ad-hoc
@@ -247,6 +250,7 @@ workflows:
     - TEST_APP_BRANCH: manual-signing
     - BITRISE_PROJECT_PATH: Fruta.xcodeproj
     - BITRISE_SCHEME: Fruta iOS
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
@@ -272,6 +276,7 @@ workflows:
     - TEST_APP_BRANCH: new-certificates
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
+    - DESTINATION: "iOS"
     - CODE_SIGNING_METHOD: apple-id
     - TEAM_ID: 72SA8V3WYL
     - MIN_DAYS_PROFILE_VALID: 0
@@ -289,6 +294,7 @@ workflows:
     - TEST_APP_BRANCH: entitlements
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
@@ -305,6 +311,7 @@ workflows:
     - TEST_APP_BRANCH: automatic
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
@@ -331,6 +338,7 @@ workflows:
     - TEST_APP_BRANCH: automatic
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: apple-id
     - TEAM_ID: 72SA8V3WYL
     - MIN_DAYS_PROFILE_VALID: 0
@@ -348,6 +356,7 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
@@ -366,6 +375,7 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcworkspace
     - BITRISE_SCHEME: ios-simple-objc
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
@@ -385,6 +395,7 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: ios-simple-objc/ios-simple-objc.xcodeproj
     - BITRISE_SCHEME: ios-simple-objc
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
@@ -407,6 +418,7 @@ workflows:
     - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
+    - DESTINATION: "iOS"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 112
     - TEAM_ID: 72SA8V3WYL
@@ -424,6 +436,7 @@ workflows:
     - TEST_APP_BRANCH: master
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
+    - DESTINATION: "iOS"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - TEAM_ID: 72SA8V3WYL
@@ -442,6 +455,7 @@ workflows:
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
     - BITRISE_SCHEME: Catalyst Sample
+    - DESTINATION: "detect"
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
     - FORCE_CODE_SIGN_IDENTITY: "Apple Development: Tooling Bot Bitrise"
@@ -484,6 +498,7 @@ workflows:
         inputs:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
         - scheme: $BITRISE_SCHEME
+        - platform: $DESTINATION
         - automatic_code_signing: $CODE_SIGNING_METHOD
         - min_profile_validity: $MIN_DAYS_PROFILE_VALID
         - certificate_url_list: $BITFALL_APPLE_APPLE_CERTIFICATE_URL_LIST|$BITFALL_APPLE_IOS_CERTIFICATE_URL_LIST
