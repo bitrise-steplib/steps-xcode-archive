@@ -15,29 +15,28 @@ import (
 type Platform string
 
 const (
-	undefinedPlatform Platform = ""
-	detectPlatform    Platform = "automatic"
-	iOS               Platform = "iOS"
-	osX               Platform = "OS X"
-	tvOS              Platform = "tvOS"
-	watchOS           Platform = "watchOS"
-	visionOS          Platform = "visionOS"
+	detectPlatform Platform = "detect"
+	iOS            Platform = "iOS"
+	osX            Platform = "OS X"
+	tvOS           Platform = "tvOS"
+	watchOS        Platform = "watchOS"
+	visionOS       Platform = "visionOS"
 )
 
-func parsePlatform(platform string) Platform {
+func parsePlatform(platform string) (Platform, error) {
 	switch strings.ToLower(platform) {
 	case "automatic":
-		return detectPlatform
+		return detectPlatform, nil
 	case "ios":
-		return iOS
+		return iOS, nil
 	case "tvos":
-		return tvOS
+		return tvOS, nil
 	case "watchos":
-		return watchOS
+		return watchOS, nil
 	case "visionos":
-		return visionOS
+		return visionOS, nil
 	default:
-		return undefinedPlatform
+		return "", fmt.Errorf("unknown platform: %s", platform)
 	}
 }
 

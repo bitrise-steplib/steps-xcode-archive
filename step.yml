@@ -90,18 +90,18 @@ inputs:
       The input value sets xcodebuild's `-scheme` option.
     is_required: true
 
-- platform: automatic
+- platform: detect
   opts:
     title: Platform
-    summary: Xcode Platform to build.
+    summary: Platform to archive the product for.
     description: |-
-      Xcode Platform to build.
+      Platform to archive the product for.
       If not specified, will try to detect the platform from the project settings.
 
       Its value sets xcodebuild's `-destination` option.
       Example: `-destination generic/platform=iOS Simulator`.
     value_options:
-    - automatic
+    - detect
     - iOS
     - watchOS
     - tvOS
