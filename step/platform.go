@@ -25,7 +25,7 @@ const (
 
 func parsePlatform(platform string) (Platform, error) {
 	switch strings.ToLower(platform) {
-	case "automatic":
+	case "detect":
 		return detectPlatform, nil
 	case "ios":
 		return iOS, nil
