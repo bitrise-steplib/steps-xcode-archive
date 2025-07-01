@@ -15,30 +15,12 @@ import (
 type Platform string
 
 const (
-	detectPlatform Platform = "detect"
-	iOS            Platform = "iOS"
-	osX            Platform = "OS X"
-	tvOS           Platform = "tvOS"
-	watchOS        Platform = "watchOS"
-	visionOS       Platform = "visionOS"
+	iOS      Platform = "iOS"
+	osX      Platform = "OS X"
+	tvOS     Platform = "tvOS"
+	watchOS  Platform = "watchOS"
+	visionOS Platform = "visionOS"
 )
-
-func parsePlatform(platform string) (Platform, error) {
-	switch strings.ToLower(platform) {
-	case "detect":
-		return detectPlatform, nil
-	case "ios":
-		return iOS, nil
-	case "tvos":
-		return tvOS, nil
-	case "watchos":
-		return watchOS, nil
-	case "visionos":
-		return visionOS, nil
-	default:
-		return "", fmt.Errorf("unknown platform: %s", platform)
-	}
-}
 
 func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodeproj.XcodeProj, *xcscheme.Scheme, string, error) {
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
