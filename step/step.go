@@ -76,6 +76,7 @@ type Inputs struct {
 	ProjectPath  string `env:"project_path,file"`
 	Scheme       string `env:"scheme,required"`
 	ExportMethod string `env:"distribution_method,opt[app-store,ad-hoc,enterprise,development]"`
+	Platform     string `env:"platform,opt[detect,iOS,watchOS,tvOS,visionOS]"`
 
 	// xcodebuild configuration
 	Configuration      string `env:"configuration"`
@@ -130,6 +131,7 @@ type Inputs struct {
 // Config ...
 type Config struct {
 	Inputs
+	DestinationPlatform         Platform
 	XcodeMajorVersion           int
 	XcodebuildAdditionalOptions []string
 	CodesignManager             *codesign.Manager // nil if automatic code signing is "off"
@@ -199,6 +201,10 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	}
 
 	var err error
+	if config.DestinationPlatform, err = parsePlatform(config.Platform); err != nil {
+		return Config{}, fmt.Errorf("issue with input Platform: %w", err)
+	}
+
 	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)
 	if err != nil {
 		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
@@ -316,11 +322,12 @@ func (s *XcodebuildArchiver) EnsureDependencies() {
 // RunOpts ...
 type RunOpts struct {
 	// Shared
-	ProjectPath       string
-	Scheme            string
-	Configuration     string
-	XcodeMajorVersion int
-	ArtifactName      string
+	ProjectPath         string
+	Scheme              string
+	DestinationPlatform Platform
+	Configuration       string
+	XcodeMajorVersion   int
+	ArtifactName        string
 
 	// Code signing, nil if automatic code signing is "off"
 	CodesignManager *codesign.Manager
@@ -426,12 +433,13 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	s.logger.Println()
 
 	archiveOpts := xcodeArchiveOpts{
-		ProjectPath:       opts.ProjectPath,
-		Scheme:            opts.Scheme,
-		Configuration:     opts.Configuration,
-		XcodeMajorVersion: opts.XcodeMajorVersion,
-		ArtifactName:      opts.ArtifactName,
-		XcodeAuthOptions:  authOptions,
+		ProjectPath:         opts.ProjectPath,
+		Scheme:              opts.Scheme,
+		DestinationPlatform: opts.DestinationPlatform,
+		Configuration:       opts.Configuration,
+		XcodeMajorVersion:   opts.XcodeMajorVersion,
+		ArtifactName:        opts.ArtifactName,
+		XcodeAuthOptions:    authOptions,
 
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
@@ -784,12 +792,13 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 }
 
 type xcodeArchiveOpts struct {
-	ProjectPath       string
-	Scheme            string
-	Configuration     string
-	XcodeMajorVersion int
-	ArtifactName      string
-	XcodeAuthOptions  *xcodebuild.AuthenticationParams
+	ProjectPath         string
+	Scheme              string
+	DestinationPlatform Platform
+	Configuration       string
+	XcodeMajorVersion   int
+	ArtifactName        string
+	XcodeAuthOptions    *xcodebuild.AuthenticationParams
 
 	PerformCleanAction bool
 	XcconfigContent    string
@@ -816,9 +825,14 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 
 	s.logger.TInfof("Reading xcode project")
 
-	platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
-	if err != nil {
-		return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
+	if opts.DestinationPlatform == detectPlatform {
+		s.logger.TInfof("Platform is set to 'automatic', detecting platform from the project.")
+		s.logger.TWarnf("Define the platform step input manually to avoid this phase in the future.")
+		platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
+		if err != nil {
+			return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
+		}
+		opts.DestinationPlatform = platform
 	}
 
 	s.logger.TInfof("Reading main target")
@@ -869,7 +883,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
 	}
 
-	additionalOptions := generateAdditionalOptions(string(platform), opts.AdditionalOptions)
+	additionalOptions := generateAdditionalOptions(string(opts.DestinationPlatform), opts.AdditionalOptions)
 	archiveCmd.SetCustomOptions(additionalOptions)
 
 	var swiftPackagesPath string
