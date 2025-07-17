@@ -828,7 +828,7 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 	if opts.DestinationPlatform == detectPlatform {
 		s.logger.TInfof("Platform is set to 'automatic', detecting platform from the project.")
 		s.logger.TWarnf("Define the platform step input manually to avoid this phase in the future.")
-		platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
+		platform, err := BuildableTargetPlatform(opts.ProjectPath, xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
 		if err != nil {
 			return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 		}

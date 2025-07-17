@@ -16,14 +16,15 @@ type MockTargetBuildSettingsProvider struct {
 }
 
 // TargetBuildSettings ...
-func (m *MockTargetBuildSettingsProvider) TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error) {
-	args := m.Called(xcodeProj, target, configuration)
+func (m *MockTargetBuildSettingsProvider) TargetBuildSettings(projectPath string, xcodeProj *xcodeproj.XcodeProj, schemeName, target, configurationName string, customOptions ...string) (serialized.Object, error) {
+	args := m.Called(projectPath, xcodeProj, schemeName, target, configurationName)
 	return args.Get(0).(serialized.Object), args.Error(1)
 }
 
 func TestBuildableTargetPlatform(t *testing.T) {
 	tests := []struct {
 		name              string
+		projectPath       string
 		xcodeProj         *xcodeproj.XcodeProj
 		scheme            *xcscheme.Scheme
 		configurationName string
@@ -32,7 +33,8 @@ func TestBuildableTargetPlatform(t *testing.T) {
 		wantErr           bool
 	}{
 		{
-			name: "SDKROOT build settings not defined in the project, but showBuildSettings returns it",
+			name:        "SDKROOT build settings not defined in the project, but showBuildSettings returns it",
+			projectPath: "/path/to/project.xcodeproj",
 			xcodeProj: &xcodeproj.XcodeProj{
 				Proj: xcodeproj.Proj{
 					Targets: []xcodeproj.Target{
@@ -61,7 +63,8 @@ func TestBuildableTargetPlatform(t *testing.T) {
 			wantErr:           false,
 		},
 		{
-			name: "fails if showBuildSettings does not return SDKROOT",
+			name:        "fails if showBuildSettings does not return SDKROOT",
+			projectPath: "/path/to/project.xcworkspace",
 			xcodeProj: &xcodeproj.XcodeProj{
 				Proj: xcodeproj.Proj{
 					Targets: []xcodeproj.Target{
@@ -94,10 +97,10 @@ func TestBuildableTargetPlatform(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			provider := &MockTargetBuildSettingsProvider{}
 			provider.
-				On("TargetBuildSettings", mock.AnythingOfType("*xcodeproj.XcodeProj"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+				On("TargetBuildSettings", tt.projectPath, mock.AnythingOfType("*xcodeproj.XcodeProj"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 				Return(tt.settings, nil)
 
-			got, err := BuildableTargetPlatform(tt.xcodeProj, tt.scheme, tt.configurationName, []string{}, provider, log.NewLogger())
+			got, err := BuildableTargetPlatform(tt.projectPath, tt.xcodeProj, tt.scheme, tt.configurationName, []string{}, provider, log.NewLogger())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("BuildableTargetPlatform() error = %v, wantErr %v", err, tt.wantErr)
 				return

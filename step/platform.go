@@ -71,17 +71,24 @@ func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodepro
 }
 
 type TargetBuildSettingsProvider interface {
-	TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error)
+	TargetBuildSettings(projectPath string, xcodeProj *xcodeproj.XcodeProj, schemeName, target, configuration string, customOptions ...string) (serialized.Object, error)
 }
 
 type XcodeBuild struct {
 }
 
-func (x XcodeBuild) TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error) {
-	return xcodeProj.TargetBuildSettings(target, configuration, customOptions...)
+func (x XcodeBuild) TargetBuildSettings(projectPath string, xcodeProj *xcodeproj.XcodeProj, schemeName, target, configuration string, customOptions ...string) (serialized.Object, error) {
+	if strings.HasSuffix(projectPath, ".xcworkspace") {
+		// Use workspace-based build settings for better performance with SPM
+		return xcodeProj.SchemeBuildSettings(projectPath, schemeName, configuration, customOptions...)
+	} else {
+		// Use xcodeproj-based build settings
+		return xcodeProj.TargetBuildSettings(target, configuration, customOptions...)
+	}
 }
 
 func BuildableTargetPlatform(
+	projectPath string,
 	xcodeProj *xcodeproj.XcodeProj,
 	scheme *xcscheme.Scheme,
 	configurationName string,
@@ -101,7 +108,7 @@ func BuildableTargetPlatform(
 		return "", fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}
 
-	settings, err := provider.TargetBuildSettings(xcodeProj, mainTarget.Name, configurationName, additionalOptions...)
+	settings, err := provider.TargetBuildSettings(projectPath, xcodeProj, scheme.Name, mainTarget.Name, configurationName, additionalOptions...)
 	if err != nil {
 		return "", fmt.Errorf("failed to get target (%s) build settings: %s", mainTarget.Name, err)
 	}

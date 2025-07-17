@@ -193,6 +193,7 @@ func (p XcodeProj) ForceTargetBundleID(target, configuration, bundleID string) e
 
 // TargetBundleID ...
 func (p XcodeProj) TargetBundleID(target, configuration string) (string, error) {
+	// Use simple target-based settings since we don't have workspace/scheme context
 	buildSettings, err := p.TargetBuildSettings(target, configuration)
 	if err != nil {
 		return "", err
@@ -318,27 +319,19 @@ func envInBuildSettings(envKey string, buildSettings serialized.Object) (string,
 	return envValue, true
 }
 
-// TargetBuildSettings ...
+// TargetBuildSettings gets build settings using project + target approach
 func (p XcodeProj) TargetBuildSettings(target, configuration string, customOptions ...string) (serialized.Object, error) {
-	// Check if there's a workspace at the same level with the same name
-	projectDir := filepath.Dir(p.Path)
-	projectBaseName := strings.TrimSuffix(filepath.Base(p.Path), ".xcodeproj")
-	workspacePath := filepath.Join(projectDir, projectBaseName+".xcworkspace")
+	commandModel := xcodebuild.NewShowBuildSettingsCommand(p.Path)
+	commandModel.SetTarget(target)
+	commandModel.SetConfiguration(configuration)
+	commandModel.SetCustomOptions(customOptions)
+	return commandModel.RunAndReturnSettings()
+}
 
-	var commandModel *xcodebuild.ShowBuildSettingsCommandModel
-
-	// If workspace exists, use it with scheme instead of target
-	if _, err := os.Stat(workspacePath); err == nil {
-		commandModel = xcodebuild.NewShowBuildSettingsCommand(workspacePath)
-		// For workspace, we need to use scheme instead of target
-		// We'll use the target name as scheme name (common convention)
-		commandModel.SetScheme(target)
-	} else {
-		// Fallback to project with target
-		commandModel = xcodebuild.NewShowBuildSettingsCommand(p.Path)
-		commandModel.SetTarget(target)
-	}
-
+// SchemeBuildSettings gets build settings using xcworkspace + scheme approach
+func (p XcodeProj) SchemeBuildSettings(workspacePath, scheme, configuration string, customOptions ...string) (serialized.Object, error) {
+	commandModel := xcodebuild.NewShowBuildSettingsCommand(workspacePath)
+	commandModel.SetScheme(scheme)
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)
 	return commandModel.RunAndReturnSettings()
