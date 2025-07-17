@@ -320,8 +320,25 @@ func envInBuildSettings(envKey string, buildSettings serialized.Object) (string,
 
 // TargetBuildSettings ...
 func (p XcodeProj) TargetBuildSettings(target, configuration string, customOptions ...string) (serialized.Object, error) {
-	commandModel := xcodebuild.NewShowBuildSettingsCommand(p.Path)
-	commandModel.SetTarget(target)
+	// Check if there's a workspace at the same level with the same name
+	projectDir := filepath.Dir(p.Path)
+	projectBaseName := strings.TrimSuffix(filepath.Base(p.Path), ".xcodeproj")
+	workspacePath := filepath.Join(projectDir, projectBaseName+".xcworkspace")
+
+	var commandModel *xcodebuild.ShowBuildSettingsCommandModel
+
+	// If workspace exists, use it with scheme instead of target
+	if _, err := os.Stat(workspacePath); err == nil {
+		commandModel = xcodebuild.NewShowBuildSettingsCommand(workspacePath)
+		// For workspace, we need to use scheme instead of target
+		// We'll use the target name as scheme name (common convention)
+		commandModel.SetScheme(target)
+	} else {
+		// Fallback to project with target
+		commandModel = xcodebuild.NewShowBuildSettingsCommand(p.Path)
+		commandModel.SetTarget(target)
+	}
+
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)
 	return commandModel.RunAndReturnSettings()
