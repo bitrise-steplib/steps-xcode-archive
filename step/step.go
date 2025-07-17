@@ -818,7 +818,7 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 	// Open Xcode project
 	s.logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
 
-	xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
+	archivableProject, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
 	if err != nil {
 		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
 	}
@@ -828,7 +828,7 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 	if opts.DestinationPlatform == detectPlatform {
 		s.logger.TInfof("Platform is set to 'automatic', detecting platform from the project.")
 		s.logger.TWarnf("Define the platform step input manually to avoid this phase in the future.")
-		platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
+		platform, err := BuildableTargetPlatform(archivableProject, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
 		if err != nil {
 			return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 		}
@@ -837,6 +837,11 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 
 	s.logger.TInfof("Reading main target")
 
+	// Get the underlying XcodeProj for exportoptionsgenerator
+	xcodeProj, err := archivableProject.GetProject()
+	if err != nil {
+		return out, fmt.Errorf("failed to get underlying project: %s", err)
+	}
 	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
 	if err != nil {
 		return out, fmt.Errorf("failed to read main application target: %s", err)

@@ -6,10 +6,12 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcodeproject/schemeint"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
+	"github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace"
 )
 
 type Platform string
@@ -22,6 +24,44 @@ const (
 	watchOS        Platform = "watchOS"
 	visionOS       Platform = "visionOS"
 )
+
+// ArchivableProject represents either a workspace or a project that can be archived
+type ArchivableProject interface {
+	BuildSettings(scheme, configuration string, customOptions ...string) (serialized.Object, error)
+	GetProject() (*xcodeproj.XcodeProj, error)
+}
+
+// WorkspaceProject wraps a workspace and its main project
+type WorkspaceProject struct {
+	Workspace xcworkspace.Workspace
+	XcodeProj *xcodeproj.XcodeProj
+}
+
+func (w WorkspaceProject) BuildSettings(scheme, configuration string, customOptions ...string) (serialized.Object, error) {
+	return w.Workspace.SchemeBuildSettings(scheme, configuration, customOptions...)
+}
+
+func (w WorkspaceProject) GetProject() (*xcodeproj.XcodeProj, error) {
+	return w.XcodeProj, nil
+}
+
+// XcodeProjWrapper wraps a standalone project
+type XcodeProjWrapper struct {
+	XcodeProj *xcodeproj.XcodeProj
+}
+
+func (p XcodeProjWrapper) BuildSettings(scheme, configuration string, customOptions ...string) (serialized.Object, error) {
+	// For xcodeproj projects, use xcodebuild command directly with the project path
+	commandModel := xcodebuild.NewShowBuildSettingsCommand(p.XcodeProj.Path)
+	commandModel.SetScheme(scheme)
+	commandModel.SetConfiguration(configuration)
+	commandModel.SetCustomOptions(customOptions)
+	return commandModel.RunAndReturnSettings()
+}
+
+func (p XcodeProjWrapper) GetProject() (*xcodeproj.XcodeProj, error) {
+	return p.XcodeProj, nil
+}
 
 func parsePlatform(platform string) (Platform, error) {
 	switch strings.ToLower(platform) {
@@ -40,7 +80,7 @@ func parsePlatform(platform string) (Platform, error) {
 	}
 }
 
-func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodeproj.XcodeProj, *xcscheme.Scheme, string, error) {
+func OpenArchivableProject(pth, schemeName, configurationName string) (ArchivableProject, *xcscheme.Scheme, string, error) {
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("could not get scheme (%s) from path (%s): %s", schemeName, pth, err)
@@ -67,33 +107,48 @@ func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodepro
 	if err != nil {
 		return nil, nil, "", err
 	}
-	return &xcodeProj, scheme, configurationName, nil
+
+	// Check if the original path is a workspace
+	if strings.HasSuffix(pth, xcworkspace.XCWorkspaceExtension) {
+		workspace, err := xcworkspace.Open(pth)
+		if err != nil {
+			return nil, nil, "", fmt.Errorf("failed to open workspace: %s", err)
+		}
+		return WorkspaceProject{Workspace: workspace, XcodeProj: &xcodeProj}, scheme, configurationName, nil
+	}
+
+	// Otherwise it's a standalone project
+	return XcodeProjWrapper{XcodeProj: &xcodeProj}, scheme, configurationName, nil
 }
 
-type TargetBuildSettingsProvider interface {
-	TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error)
+type BuildSettingsProvider interface {
+	BuildSettings(archivableProject ArchivableProject, schemeName, target, configuration string, customOptions ...string) (serialized.Object, error)
 }
 
 type XcodeBuild struct {
 }
 
-func (x XcodeBuild) TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error) {
-	return xcodeProj.TargetBuildSettings(target, configuration, customOptions...)
+func (x XcodeBuild) BuildSettings(archivableProject ArchivableProject, schemeName, target, configuration string, customOptions ...string) (serialized.Object, error) {
+	// Use the archivable project's scheme build settings method
+	return archivableProject.BuildSettings(schemeName, configuration, customOptions...)
 }
 
 func BuildableTargetPlatform(
-	xcodeProj *xcodeproj.XcodeProj,
+	archivableProject ArchivableProject,
 	scheme *xcscheme.Scheme,
 	configurationName string,
 	additionalOptions []string,
-	provider TargetBuildSettingsProvider,
+	provider BuildSettingsProvider,
 	logger log.Logger,
 ) (Platform, error) {
-	logger.Printf("Finding platform type")
-
 	archiveEntry, ok := scheme.AppBuildActionEntry()
 	if !ok {
-		return "", fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
+		return "", fmt.Errorf("archivable entry not found in scheme: %s", scheme.Name)
+	}
+
+	xcodeProj, err := archivableProject.GetProject()
+	if err != nil {
+		return "", fmt.Errorf("failed to get project: %s", err)
 	}
 
 	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
@@ -101,7 +156,7 @@ func BuildableTargetPlatform(
 		return "", fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}
 
-	settings, err := provider.TargetBuildSettings(xcodeProj, mainTarget.Name, configurationName, additionalOptions...)
+	settings, err := provider.BuildSettings(archivableProject, scheme.Name, mainTarget.Name, configurationName, additionalOptions...)
 	if err != nil {
 		return "", fmt.Errorf("failed to get target (%s) build settings: %s", mainTarget.Name, err)
 	}

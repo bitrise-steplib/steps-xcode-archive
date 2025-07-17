@@ -62,6 +62,33 @@ func (w Workspace) SchemeBuildSettings(scheme, configuration string, customOptio
 	return object, err
 }
 
+// SchemeCodeSignEntitlements returns the code sign entitlements for a scheme and configuration
+func (w Workspace) SchemeCodeSignEntitlements(scheme, configuration string) (serialized.Object, error) {
+	// Get build settings to find the entitlements file path
+	buildSettings, err := w.SchemeBuildSettings(scheme, configuration)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the CODE_SIGN_ENTITLEMENTS path
+	entitlementsPath, err := buildSettings.String("CODE_SIGN_ENTITLEMENTS")
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve the absolute path relative to workspace directory
+	absolutePath := filepath.Join(filepath.Dir(w.Path), entitlementsPath)
+
+	// Read and parse the entitlements file
+	entitlements, _, err := xcodeproj.ReadPlistFile(absolutePath)
+	if err != nil {
+		return nil, err
+	}
+
+	log.TDebugf("Fetched %s scheme code sign entitlements", scheme)
+	return entitlements, nil
+}
+
 // FileLocations ...
 func (w Workspace) FileLocations() ([]string, error) {
 	var fileLocations []string
