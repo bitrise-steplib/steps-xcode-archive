@@ -387,7 +387,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
 		cmdModel.SetScheme(opts.Scheme)
 		cmdModel.SetConfiguration(opts.Configuration)
-		settings, err := cmdModel.RunAndReturnSettings(false)
+		settings, err := cmdModel.RunAndReturnSettings(true)
 		if err != nil {
 			return out, fmt.Errorf("failed to read build settings: %w", err)
 		}

@@ -55,7 +55,7 @@ func (w Workspace) SchemeBuildSettings(scheme, configuration string, customOptio
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)
 
-	object, err := commandModel.RunAndReturnSettings(true)
+	object, err := commandModel.RunAndReturnSettings(false)
 
 	log.TDebugf("Fetched %s scheme build settings", scheme)
 
