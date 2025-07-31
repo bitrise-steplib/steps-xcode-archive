@@ -232,33 +232,6 @@ func (p *ProjectHelper) targetTeamID(targetName, config string) (string, error) 
 
 }
 
-func (p *ProjectHelper) targetBuildSettings(name, conf string) (serialized.Object, error) {
-	targetCache, ok := p.buildSettingsCache[name]
-	if ok {
-		confCache, ok := targetCache[conf]
-		if ok {
-			return confCache, nil
-		}
-	}
-
-	settings, err := p.XcProj.TargetBuildSettings(name, conf)
-	if err != nil {
-		return nil, err
-	}
-
-	if targetCache == nil {
-		targetCache = map[string]serialized.Object{}
-	}
-	targetCache[conf] = settings
-
-	if p.buildSettingsCache == nil {
-		p.buildSettingsCache = map[string]map[string]serialized.Object{}
-	}
-	p.buildSettingsCache[name] = targetCache
-
-	return settings, nil
-}
-
 // buildSettings returns target build settings using workspace or project
 // For workspace: uses SchemeBuildSettings with scheme name
 // For xccodeproj: uses TargetBuildSettings with target name
@@ -267,7 +240,7 @@ func (p *ProjectHelper) buildSettings(targetName, conf string) (serialized.Objec
 	if ok {
 		confCache, ok := targetCache[conf]
 		if ok {
-			fmt.Printf("ABC buildSettings ok\n")
+			log.Debugf("✅ buildSettings: Using cached settings for target='%s'", targetName)
 			return confCache, nil
 		}
 	}
@@ -276,10 +249,30 @@ func (p *ProjectHelper) buildSettings(targetName, conf string) (serialized.Objec
 	var err error
 
 	if p.XcWorkspace != nil {
-		// Use workspace SchemeBuildSettings
-		settings, err = p.XcWorkspace.SchemeBuildSettings(p.SchemeName, conf)
+		if targetName == p.MainTarget.Name {
+			// For main target: use the main scheme's build settings
+			log.Debugf("📍 buildSettings: Using main scheme '%s' for MAIN target='%s' (workspace context)", p.SchemeName, targetName)
+			settings, err = p.XcWorkspace.SchemeBuildSettings(p.SchemeName, conf)
+		} else {
+			// For secondary targets: try SchemeBuildSettings first, fallback to TargetBuildSettings if it fails
+			log.Debugf("📍 buildSettings: Using SchemeBuildSettings for SECONDARY target='%s' (workspace context - keep first values)", targetName)
+			settings, err = p.XcWorkspace.SchemeBuildSettings(targetName, conf)
+
+			// If scheme build settings fail for secondary target, fallback to project target build settings
+			if err != nil {
+				log.Warnf("⚠️ buildSettings: SchemeBuildSettings failed for secondary target='%s': %s", targetName, err)
+				log.Debugf("🔄 buildSettings: Falling back to project TargetBuildSettings for target='%s'", targetName)
+				settings, err = p.XcProj.TargetBuildSettings(targetName, conf)
+				if err != nil {
+					log.Errorf("❌ buildSettings: Fallback TargetBuildSettings also failed for target='%s': %s", targetName, err)
+				} else {
+					log.Debugf("✅ buildSettings: Fallback TargetBuildSettings succeeded for target='%s'", targetName)
+				}
+			}
+		}
 	} else {
-		// Use project TargetBuildSettings
+		// Use project TargetBuildSettings for standalone projects
+		log.Debugf("📍 buildSettings: Using project TargetBuildSettings for STANDALONE project target='%s'", targetName)
 		settings, err = p.XcProj.TargetBuildSettings(targetName, conf)
 	}
 
@@ -371,19 +364,50 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 }
 
 func (p *ProjectHelper) targetEntitlements(name, config, bundleID string) (autocodesign.Entitlements, error) {
+	log.Debugf("🔍 targetEntitlements: fetching entitlements for target='%s', config='%s', bundleID='%s'", name, config, bundleID)
+	log.Debugf("🔍 targetEntitlements: MainTarget.Name='%s'", p.MainTarget.Name)
+	log.Debugf("🔍 targetEntitlements: Has workspace: %t", p.XcWorkspace != nil)
+
 	var entitlements serialized.Object
 	var err error
 
 	if p.XcWorkspace != nil {
-		// Use workspace SchemeCodeSignEntitlements
-		entitlements, err = p.XcWorkspace.SchemeCodeSignEntitlements(p.SchemeName, config)
+		if name == p.MainTarget.Name {
+			// For main target: use the main scheme's entitlements
+			log.Debugf("📍 targetEntitlements: Using main scheme '%s' for MAIN target='%s' (workspace context)", p.SchemeName, name)
+			entitlements, err = p.XcWorkspace.SchemeCodeSignEntitlements(p.SchemeName, config)
+		} else {
+			// For secondary targets: try SchemeCodeSignEntitlements first, fallback to TargetCodeSignEntitlements if it fails
+			log.Debugf("📍 targetEntitlements: Using target-specific entitlements for SECONDARY target='%s' (workspace context)", name)
+			entitlements, err = p.XcWorkspace.SchemeCodeSignEntitlements(name, config)
+
+			// If scheme entitlements fail for secondary target, fallback to project target entitlements
+			if err != nil {
+				log.Warnf("⚠️ targetEntitlements: SchemeCodeSignEntitlements failed for secondary target='%s': %s", name, err)
+				log.Debugf("🔄 targetEntitlements: Falling back to project TargetCodeSignEntitlements for target='%s'", name)
+				entitlements, err = p.XcProj.TargetCodeSignEntitlements(name, config)
+				if err != nil {
+					log.Errorf("❌ targetEntitlements: Fallback TargetCodeSignEntitlements also failed for target='%s': %s", name, err)
+				} else {
+					log.Debugf("✅ targetEntitlements: Fallback TargetCodeSignEntitlements succeeded for target='%s'", name)
+				}
+			}
+		}
 	} else {
-		// Use project TargetCodeSignEntitlements
+		// Use project TargetCodeSignEntitlements for standalone projects
+		log.Debugf("📍 targetEntitlements: Using project TargetCodeSignEntitlements for STANDALONE project target='%s'", name)
 		entitlements, err = p.XcProj.TargetCodeSignEntitlements(name, config)
 	}
 
 	if err != nil && !serialized.IsKeyNotFoundError(err) {
+		log.Errorf("❌ targetEntitlements: Failed to fetch entitlements for target='%s': %s", name, err)
 		return nil, err
+	}
+
+	if err != nil && serialized.IsKeyNotFoundError(err) {
+		log.Debugf("ℹ️ targetEntitlements: No entitlements found for target='%s' (this is normal for some targets)", name)
+	} else {
+		log.Debugf("✅ targetEntitlements: Successfully fetched entitlements for target='%s'", name)
 	}
 
 	return resolveEntitlementVariables(autocodesign.Entitlements(entitlements), bundleID)

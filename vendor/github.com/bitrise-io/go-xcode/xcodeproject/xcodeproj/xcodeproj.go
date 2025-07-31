@@ -324,7 +324,7 @@ func (p XcodeProj) TargetBuildSettings(target, configuration string, customOptio
 	commandModel.SetTarget(target)
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)
-	return commandModel.RunAndReturnSettings()
+	return commandModel.RunAndReturnSettings(false)
 }
 
 // Open ...

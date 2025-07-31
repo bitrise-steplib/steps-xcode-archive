@@ -56,7 +56,7 @@ func (p XcodeProjWrapper) BuildSettings(scheme, configuration string, customOpti
 	commandModel.SetScheme(scheme)
 	commandModel.SetConfiguration(configuration)
 	commandModel.SetCustomOptions(customOptions)
-	return commandModel.RunAndReturnSettings()
+	return commandModel.RunAndReturnSettings(false)
 }
 
 func (p XcodeProjWrapper) GetProject() (*xcodeproj.XcodeProj, error) {
