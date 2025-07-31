@@ -96,7 +96,11 @@ func (c ShowBuildSettingsCommandModel) PrintableCmd() string {
 	return command.PrintableCommandArgs(false, cmdSlice)
 }
 
-func parseBuildSettings(out string) (serialized.Object, error) {
+// parseBuildSettings parses xcodebuild -showBuildSettings output into a map of build settings.
+// The overwrite parameter controls whether duplicate keys should be overwritten:
+// - overwrite=false: preserves the first occurrence of each key (optimal for multi-target schemes)
+// - overwrite=true: overwrites with the last occurrence of each key (traditional behavior)
+func parseBuildSettings(out string, overwrite bool) (serialized.Object, error) {
 	settings := serialized.Object{}
 
 	reader := bufio.NewReader(strings.NewReader(out))
@@ -122,7 +126,16 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 				value := strings.TrimSpace(strings.Join(split[1:], "="))
 				value = strings.Trim(value, `"`)
 
-				settings[key] = value
+				// Set the value based on overwrite policy
+				if overwrite {
+					// Always overwrite (traditional behavior)
+					settings[key] = value
+				} else {
+					// Only set the value if the key doesn't already exist (keep first occurrence)
+					if _, exists := settings[key]; !exists {
+						settings[key] = value
+					}
+				}
 			}
 
 			buffer.Reset()
@@ -132,8 +145,11 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 	return settings, nil
 }
 
-// RunAndReturnSettings ...
-func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object, error) {
+// RunAndReturnSettings reads and parses build settings
+// The overwrite parameter controls whether duplicate keys should be overwritten:
+// - overwrite=false: preserves the first occurrence of each key (optimal for multi-target schemes)
+// - overwrite=true: overwrites with the last occurrence of each key (traditional behavior)
+func (c ShowBuildSettingsCommandModel) RunAndReturnSettings(overwrite bool) (serialized.Object, error) {
 	var cmd = c.Command()
 
 	log.TPrintf("Reading build settings...")
@@ -149,5 +165,5 @@ func (c ShowBuildSettingsCommandModel) RunAndReturnSettings() (serialized.Object
 
 	log.TPrintf("Read target settings.")
 
-	return parseBuildSettings(out)
+	return parseBuildSettings(out, overwrite)
 }
