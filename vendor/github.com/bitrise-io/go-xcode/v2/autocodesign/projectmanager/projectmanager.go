@@ -127,8 +127,19 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 
 // ForceCodesignAssets ...
 func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType, codesignAssetsByDistributionType map[autocodesign.DistributionType]autocodesign.AppCodesignAssets) error {
+	log.Debugf("🔍 [FORCE CODESIGN] Starting ForceCodesignAssets with distribution: %s", distribution)
+	log.Debugf("🔍 [FORCE CODESIGN] Available distribution types in codesignAssetsByDistributionType:")
+	for distType := range codesignAssetsByDistributionType {
+		log.Debugf("🔍 [FORCE CODESIGN]   - %s", distType)
+	}
+
 	archivableTargets := p.projHelper.ArchivableTargets()
 	var archivableTargetsCounter = 0
+
+	log.Debugf("🔍 [FORCE CODESIGN] Found %d archivable targets:", len(archivableTargets))
+	for i, target := range archivableTargets {
+		log.Debugf("🔍 [FORCE CODESIGN]   %d. %s", i+1, target.Name)
+	}
 
 	fmt.Println()
 	log.TInfof("Apply Bitrise managed codesigning on the executable targets (up to: %d targets)", len(archivableTargets))
@@ -136,77 +147,148 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 	for _, target := range archivableTargets {
 		fmt.Println()
 		log.Infof("  Target: %s", target.Name)
+		log.Debugf("🔍 [FORCE CODESIGN] Processing target: %s", target.Name)
 
 		forceCodesignDistribution := distribution
+		log.Debugf("🔍 [FORCE CODESIGN] Initial distribution for target %s: %s", target.Name, forceCodesignDistribution)
+
 		if _, isDevelopmentAvailable := codesignAssetsByDistributionType[autocodesign.Development]; isDevelopmentAvailable {
 			forceCodesignDistribution = autocodesign.Development
+			log.Debugf("🔍 [FORCE CODESIGN] Development assets available, switching to Development distribution for target %s", target.Name)
+		} else {
+			log.Debugf("🔍 [FORCE CODESIGN] No Development assets available for target %s", target.Name)
 		}
+
+		log.Debugf("🔍 [FORCE CODESIGN] Final distribution for target %s: %s", target.Name, forceCodesignDistribution)
 
 		codesignAssets, ok := codesignAssetsByDistributionType[forceCodesignDistribution]
 		if !ok {
+			log.Debugf("❌ [FORCE CODESIGN] No codesign settings found for distribution type %s for target %s", forceCodesignDistribution, target.Name)
 			return fmt.Errorf("no codesign settings ensured for distribution type %s", forceCodesignDistribution)
 		}
+		log.Debugf("🔍 [FORCE CODESIGN] Found codesign assets for distribution %s for target %s", forceCodesignDistribution, target.Name)
+
 		teamID := codesignAssets.Certificate.TeamID
+		log.Debugf("🔍 [FORCE CODESIGN] Team ID for target %s: %s", target.Name, teamID)
 
 		targetBundleID, err := p.projHelper.TargetBundleID(target.Name, p.projHelper.Configuration)
 		if err != nil {
+			log.Debugf("❌ [FORCE CODESIGN] Failed to get bundle ID for target %s: %v", target.Name, err)
 			return err
 		}
+		log.Debugf("🔍 [FORCE CODESIGN] Bundle ID for target %s: %s", target.Name, targetBundleID)
+
+		log.Debugf("🔍 [FORCE CODESIGN] Available profiles in ArchivableTargetProfilesByBundleID for target %s:", target.Name)
+		for bundleID, profile := range codesignAssets.ArchivableTargetProfilesByBundleID {
+			log.Debugf("🔍 [FORCE CODESIGN]   Bundle ID: %s -> Profile: %s", bundleID, profile.Attributes().Name)
+		}
+
 		profile, ok := codesignAssets.ArchivableTargetProfilesByBundleID[targetBundleID]
 		if !ok {
+			log.Debugf("❌ [FORCE CODESIGN] No profile found for bundle ID %s for target %s", targetBundleID, target.Name)
+			log.Debugf("❌ [FORCE CODESIGN] Available bundle IDs in profiles:")
+			for availableBundleID := range codesignAssets.ArchivableTargetProfilesByBundleID {
+				log.Debugf("❌ [FORCE CODESIGN]   - %s", availableBundleID)
+			}
 			return fmt.Errorf("no profile ensured for the bundleID %s", targetBundleID)
 		}
+		log.Debugf("✅ [FORCE CODESIGN] Found profile for target %s (bundle ID %s): %s", target.Name, targetBundleID, profile.Attributes().Name)
 
 		log.Printf("  development Team: %s(%s)", codesignAssets.Certificate.TeamName, teamID)
 		log.Printf("  provisioning Profile: %s", profile.Attributes().Name)
 		log.Printf("  certificate: %s", codesignAssets.Certificate.CommonName)
 
+		log.Debugf("🔍 [FORCE CODESIGN] About to apply code sign settings for target %s:", target.Name)
+		log.Debugf("🔍 [FORCE CODESIGN]   Configuration: %s", p.projHelper.Configuration)
+		log.Debugf("🔍 [FORCE CODESIGN]   Target: %s", target.Name)
+		log.Debugf("🔍 [FORCE CODESIGN]   Team ID: %s", teamID)
+		log.Debugf("🔍 [FORCE CODESIGN]   Certificate SHA1: %s", codesignAssets.Certificate.SHA1Fingerprint)
+		log.Debugf("🔍 [FORCE CODESIGN]   Profile UUID: %s", profile.Attributes().UUID)
+
 		if err := p.projHelper.XcProj.ForceCodeSign(p.projHelper.Configuration, target.Name, teamID, codesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
+			log.Debugf("❌ [FORCE CODESIGN] Failed to apply code sign settings for target %s: %v", target.Name, err)
 			return fmt.Errorf("failed to apply code sign settings for target (%s): %s", target.Name, err)
 		}
+		log.Debugf("✅ [FORCE CODESIGN] Successfully applied code sign settings for target %s", target.Name)
 
 		archivableTargetsCounter++
 	}
 
 	log.TInfof("Applied Bitrise managed codesigning on up to %s targets", archivableTargetsCounter)
+	log.Debugf("🔍 [FORCE CODESIGN] Completed processing %d archivable targets", archivableTargetsCounter)
 
 	devCodesignAssets, isDevelopmentAvailable := codesignAssetsByDistributionType[autocodesign.Development]
+	log.Debugf("🔍 [FORCE CODESIGN] Checking for UITest targets. Development available: %t", isDevelopmentAvailable)
+
+	if isDevelopmentAvailable {
+		log.Debugf("🔍 [FORCE CODESIGN] UITest target profiles count: %d", len(devCodesignAssets.UITestTargetProfilesByBundleID))
+		log.Debugf("🔍 [FORCE CODESIGN] UITest targets count: %d", len(p.projHelper.UITestTargets))
+	}
+
 	if isDevelopmentAvailable && len(devCodesignAssets.UITestTargetProfilesByBundleID) != 0 {
 		fmt.Println()
 		log.TInfof("Apply Bitrise managed codesigning on the UITest targets (%d)", len(p.projHelper.UITestTargets))
+		log.Debugf("🔍 [FORCE CODESIGN] Starting UITest targets processing")
 
 		for _, uiTestTarget := range p.projHelper.UITestTargets {
 			fmt.Println()
 			log.Infof("  Target: %s", uiTestTarget.Name)
+			log.Debugf("🔍 [FORCE CODESIGN] Processing UITest target: %s", uiTestTarget.Name)
 
 			teamID := devCodesignAssets.Certificate.TeamID
+			log.Debugf("🔍 [FORCE CODESIGN] Team ID for UITest target %s: %s", uiTestTarget.Name, teamID)
 
 			targetBundleID, err := p.projHelper.TargetBundleID(uiTestTarget.Name, p.projHelper.Configuration)
 			if err != nil {
+				log.Debugf("❌ [FORCE CODESIGN] Failed to get bundle ID for UITest target %s: %v", uiTestTarget.Name, err)
 				return err
 			}
+			log.Debugf("🔍 [FORCE CODESIGN] Bundle ID for UITest target %s: %s", uiTestTarget.Name, targetBundleID)
+
+			log.Debugf("🔍 [FORCE CODESIGN] Available UITest profiles:")
+			for bundleID, profile := range devCodesignAssets.UITestTargetProfilesByBundleID {
+				log.Debugf("🔍 [FORCE CODESIGN]   Bundle ID: %s -> Profile: %s", bundleID, profile.Attributes().Name)
+			}
+
 			profile, ok := devCodesignAssets.UITestTargetProfilesByBundleID[targetBundleID]
 			if !ok {
+				log.Debugf("❌ [FORCE CODESIGN] No UITest profile found for bundle ID %s for target %s", targetBundleID, uiTestTarget.Name)
 				return fmt.Errorf("no profile ensured for the bundleID %s", targetBundleID)
 			}
+			log.Debugf("✅ [FORCE CODESIGN] Found UITest profile for target %s (bundle ID %s): %s", uiTestTarget.Name, targetBundleID, profile.Attributes().Name)
 
 			log.Printf("  development Team: %s(%s)", devCodesignAssets.Certificate.TeamName, teamID)
 			log.Printf("  provisioning Profile: %s", profile.Attributes().Name)
 			log.Printf("  certificate: %s", devCodesignAssets.Certificate.CommonName)
 
+			log.Debugf("🔍 [FORCE CODESIGN] Processing %d build configurations for UITest target %s", len(uiTestTarget.BuildConfigurationList.BuildConfigurations), uiTestTarget.Name)
 			for _, c := range uiTestTarget.BuildConfigurationList.BuildConfigurations {
+				log.Debugf("🔍 [FORCE CODESIGN] Applying code sign for UITest target %s, configuration %s", uiTestTarget.Name, c.Name)
 				if err := p.projHelper.XcProj.ForceCodeSign(c.Name, uiTestTarget.Name, teamID, devCodesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
+					log.Debugf("❌ [FORCE CODESIGN] Failed to apply code sign settings for UITest target %s, config %s: %v", uiTestTarget.Name, c.Name, err)
 					return fmt.Errorf("failed to apply code sign settings for target (%s): %s", uiTestTarget.Name, err)
 				}
+				log.Debugf("✅ [FORCE CODESIGN] Successfully applied code sign for UITest target %s, configuration %s", uiTestTarget.Name, c.Name)
 			}
+		}
+		log.Debugf("🔍 [FORCE CODESIGN] Completed UITest targets processing")
+	} else {
+		if !isDevelopmentAvailable {
+			log.Debugf("🔍 [FORCE CODESIGN] Skipping UITest targets: Development assets not available")
+		} else {
+			log.Debugf("🔍 [FORCE CODESIGN] Skipping UITest targets: No UITest profiles available")
 		}
 	}
 
+	log.Debugf("🔍 [FORCE CODESIGN] About to save Xcode project...")
 	if err := p.projHelper.XcProj.Save(); err != nil {
+		log.Debugf("❌ [FORCE CODESIGN] Failed to save project: %v", err)
 		return fmt.Errorf("failed to save project: %s", err)
 	}
+	log.Debugf("✅ [FORCE CODESIGN] Successfully saved Xcode project")
 
 	log.Debugf("Xcode project saved.")
+	log.Debugf("🔍 [FORCE CODESIGN] ForceCodesignAssets completed successfully")
 
 	return nil
 }
