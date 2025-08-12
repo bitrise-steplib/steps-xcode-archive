@@ -431,6 +431,16 @@ workflows:
     - _check_exported_artifacts
 
   test_workspace:
+    description: "Running workspace tests on a single stack to avoid 'Communication with Apple failed: A non-HTTP 200 response was received (401) for URL ...'"
+    steps:
+    - bitrise-run:
+        run_if: |-
+          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+        inputs:
+        - workflow_id: utility_test_workspace
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_workspace:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
     - TEST_APP_BRANCH: master
