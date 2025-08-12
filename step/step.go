@@ -31,11 +31,11 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/codesign"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
+	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
-	"github.com/bitrise-io/go-xcode/xcarchive"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/kballard/go-shellquote"
 )
@@ -777,6 +777,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		testDevices = serviceConnection.TestDevices
 	}
 
+	profileConverter := localcodesignasset.NewProvisioningProfileConverter()
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
@@ -785,7 +786,8 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
 		codesignasset.NewWriter(codesignConfig.Keychain),
-		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
+		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), profileConverter),
+		profileConverter,
 		project,
 		s.logger,
 	), nil
