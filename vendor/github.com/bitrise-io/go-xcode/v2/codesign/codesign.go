@@ -524,6 +524,15 @@ func (m *Manager) createCodeSignAssetMap(appLayout autocodesign.AppLayout, certi
 }
 
 func (m *Manager) installManualCodeSigningAssets(certificates []certificateutil.CertificateInfoModel) ([]certificateutil.CertificateInfoModel, []profileutil.ProvisioningProfileInfoModel, error) {
+	m.logger.Printf("Installing %d certificate(s):", len(certificates))
+	for _, cert := range certificates {
+		m.logger.Printf("- %s", cert.String())
+		// Empty passphrase provided, as already parsed certificate + private key
+		if err := m.assetInstaller.InstallCertificate(cert); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	if err := m.installCertificates(certificates); err != nil {
 		return nil, nil, err
 	}
@@ -533,11 +542,10 @@ func (m *Manager) installManualCodeSigningAssets(certificates []certificateutil.
 		return certificates, nil, fmt.Errorf("failed to fetch profiles: %w", err)
 	}
 
-	m.logger.Printf("Installing manual profiles:")
+	m.logger.Printf("Installing %d profile(s)...", len(profiles))
 	var installedProfiles []profileutil.ProvisioningProfileInfoModel
 	for _, profile := range profiles {
-		m.logger.Printf("%s", profile.Info.String(certificates...))
-
+		m.logger.Printf("- UUID: %s, Name: %s, Export type: %s, Team: %s, Expiry: %s", profile.Info.UUID, profile.Info.Name, profile.Info.ExportType, profile.Info.TeamID, profile.Info.ExpirationDate)
 		if err := m.assetInstaller.InstallProfile(profile.Profile); err != nil {
 			return certificates, installedProfiles, fmt.Errorf("failed to install profile: %w", err)
 		}

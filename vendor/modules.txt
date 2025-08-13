@@ -29,7 +29,6 @@ github.com/bitrise-io/go-utils/progress
 github.com/bitrise-io/go-utils/retry
 github.com/bitrise-io/go-utils/sliceutil
 github.com/bitrise-io/go-utils/stringutil
-github.com/bitrise-io/go-utils/ziputil
 # github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.23
 ## explicit; go 1.17
 github.com/bitrise-io/go-utils/v2/analytics
@@ -49,8 +48,6 @@ github.com/bitrise-io/go-xcode/exportoptions
 github.com/bitrise-io/go-xcode/models
 github.com/bitrise-io/go-xcode/plistutil
 github.com/bitrise-io/go-xcode/profileutil
-github.com/bitrise-io/go-xcode/utility
-github.com/bitrise-io/go-xcode/xcarchive
 github.com/bitrise-io/go-xcode/xcodebuild
 github.com/bitrise-io/go-xcode/xcodecache
 github.com/bitrise-io/go-xcode/xcodeproject/schemeint
@@ -58,7 +55,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/serialized
 github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.61.0.20250812072516-5b5dbbb1aa41
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.61.0.20250813142524-c26a5ba6e7ab
 ## explicit; go 1.22
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
