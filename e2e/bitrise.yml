@@ -46,7 +46,7 @@ workflows:
     - FALLBACK_PROFILES: $BITFALL_APPLE_FALLBACK_PROVISIONING_PROFILE_URL
     after_run:
     - _invalid_login
-    - _run_xcode_archive
+    - _run
     - _check_outputs
     - _check_exported_artifacts
 
