@@ -504,7 +504,7 @@ workflows:
         - branch: $TEST_APP_BRANCH
         - commit: $TEST_APP_COMMIT
         - clone_into_dir: ./_tmp
-    - xcode_archive:
+    - xcode-archive:
         title: Execute step
         inputs:
         - project_path: ./_tmp/$BITRISE_PROJECT_PATH
