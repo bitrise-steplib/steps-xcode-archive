@@ -777,7 +777,6 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		testDevices = serviceConnection.TestDevices
 	}
 
-	profileConverter := localcodesignasset.NewProvisioningProfileConverter()
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
@@ -786,8 +785,8 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
 		codesignasset.NewWriter(codesignConfig.Keychain),
-		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), profileConverter),
-		profileConverter,
+		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
+		localcodesignasset.NewProvisioningProfileConverter(),
 		project,
 		s.logger,
 	), nil
