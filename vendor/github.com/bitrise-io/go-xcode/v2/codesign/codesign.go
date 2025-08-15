@@ -533,10 +533,6 @@ func (m *Manager) installManualCodeSigningAssets(certificates []certificateutil.
 		}
 	}
 
-	if err := m.installCertificates(certificates); err != nil {
-		return nil, nil, err
-	}
-
 	profiles, err := m.fallbackProfileDownloader.GetProfiles()
 	if err != nil {
 		return certificates, nil, fmt.Errorf("failed to fetch profiles: %w", err)
