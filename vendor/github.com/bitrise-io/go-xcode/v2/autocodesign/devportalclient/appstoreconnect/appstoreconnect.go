@@ -68,6 +68,8 @@ type Client struct {
 
 	common       service // Reuse a single struct instead of allocating one for each service on the heap.
 	Provisioning *ProvisioningService
+
+	tracker Tracker
 }
 
 // NewRetryableHTTPClient create a new http client with retry settings.
@@ -117,7 +119,7 @@ func NewRetryableHTTPClient() *http.Client {
 }
 
 // NewClient creates a new client
-func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte, isEnterpise bool) *Client {
+func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte, isEnterpise bool, tracker Tracker) *Client {
 	targetURL := clientBaseURL
 	targetAudience := tokenAudience
 	if isEnterpise {
@@ -138,6 +140,7 @@ func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte,
 
 		client:  httpClient,
 		BaseURL: baseURL,
+		tracker: tracker,
 	}
 	c.common.client = c
 	c.Provisioning = (*ProvisioningService)(&c.common)
@@ -162,6 +165,7 @@ func (c *Client) ensureSignedToken() (string, error) {
 	c.token = createToken(c.keyID, c.issuerID, c.audience)
 	var err error
 	if c.signedToken, err = signToken(c.token, c.privateKeyContent); err != nil {
+		c.tracker.TrackAuthError(fmt.Sprintf("JWT signing: %s", err.Error()))
 		return "", err
 	}
 	return c.signedToken, nil
@@ -241,6 +245,8 @@ func (c *Client) Debugf(format string, v ...interface{}) {
 
 // Do ...
 func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
+	startTime := time.Now()
+
 	c.Debugf("Request:")
 	if c.EnableDebugLogs {
 		if err := httputil.PrintRequest(req); err != nil {
@@ -249,6 +255,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	}
 
 	resp, err := c.client.Do(req)
+	duration := time.Since(startTime)
 
 	c.Debugf("Response:")
 	if c.EnableDebugLogs {
@@ -258,8 +265,10 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	}
 
 	if err != nil {
+		c.tracker.TrackAPIError(req.Method, req.URL.Host, req.URL.Path, 0, err.Error())
 		return nil, err
 	}
+
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
 			log.Warnf("Failed to close response body: %s", cerr)
@@ -267,8 +276,13 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	}()
 
 	if err := checkResponse(resp); err != nil {
+		c.tracker.TrackAPIRequest(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, duration)
+		c.tracker.TrackAPIError(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, err.Error())
 		return resp, err
 	}
+
+	c.tracker.TrackAPIRequest(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, duration)
+
 
 	if v != nil {
 		decErr := json.NewDecoder(resp.Body).Decode(v)

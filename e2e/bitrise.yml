@@ -12,6 +12,7 @@ app:
   - BITFALL_APPLE_IOS_CERTIFICATE_NOPASSPHRASE_URL: $BITFALL_APPLE_IOS_CERTIFICATE_NOPASSPHRASE_URL
   - BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST: $BITFALL_APPLE_IOS_CERTIFICATE_PASSPHRASE_LIST
   - BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
+  - BITFALL_APPLE_FALLBACK_PROVISIONING_PROFILE_URL: $BITFALL_APPLE_FALLBACK_PROVISIONING_PROFILE_URL
 
   - BITFALL_APPSTORECONNECT_API_KEY_URL: $BITFALL_APPSTORECONNECT_API_KEY_URL
   - BITFALL_APPSTORECONNECT_API_KEY_ID: $BITFALL_APPSTORECONNECT_API_KEY_ID
@@ -197,7 +198,7 @@ workflows:
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
-    - FALLBACK_PROFILES: $BITFALL_APPLE_PROVISIONING_PROFILE_URL_LIST
+    - FALLBACK_PROFILES: $BITFALL_APPLE_FALLBACK_PROVISIONING_PROFILE_URL
     after_run:
     - _invalid_login
     - _run
@@ -431,6 +432,16 @@ workflows:
     - _check_exported_artifacts
 
   test_workspace:
+    description: "Running workspace tests on a single stack to avoid 'Communication with Apple failed: A non-HTTP 200 response was received (401) for URL ...'"
+    steps:
+    - bitrise-run:
+        run_if: |-
+          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+        inputs:
+        - workflow_id: utility_test_workspace
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_workspace:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
     - TEST_APP_BRANCH: master
@@ -486,7 +497,8 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            rm -rf ~/Library/MobileDevice/Provisioning Profiles
+            rm -rf "~/Library/MobileDevice/Provisioning Profiles"
+            rm -rf "~/Library/Developer/Xcode/UserData/Provisioning Profiles"
     - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
         inputs:
         - repository_url: $TEST_APP_URL

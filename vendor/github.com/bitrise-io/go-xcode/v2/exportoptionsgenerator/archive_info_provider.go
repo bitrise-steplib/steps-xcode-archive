@@ -1,7 +1,7 @@
 package exportoptionsgenerator
 
 import (
-	"github.com/bitrise-io/go-xcode/xcarchive"
+	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 )
 
 // ExportProduct ...

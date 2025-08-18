@@ -168,7 +168,7 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 		archivableTargetsCounter++
 	}
 
-	log.TInfof("Applied Bitrise managed codesigning on up to %s targets", archivableTargetsCounter)
+	log.TInfof("Applied Bitrise managed codesigning on up to %d targets", archivableTargetsCounter)
 
 	devCodesignAssets, isDevelopmentAvailable := codesignAssetsByDistributionType[autocodesign.Development]
 	if isDevelopmentAvailable && len(devCodesignAssets.UITestTargetProfilesByBundleID) != 0 {

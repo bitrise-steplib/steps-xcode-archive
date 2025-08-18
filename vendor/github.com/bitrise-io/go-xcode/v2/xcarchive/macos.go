@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/env"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
-
-	"github.com/bitrise-io/go-utils/pathutil"
 )
 
 type macosBaseApplication struct {
@@ -24,10 +25,14 @@ func (app macosBaseApplication) BundleIdentifier() string {
 }
 
 func newMacosBaseApplication(path string) (macosBaseApplication, error) {
+	pathChecker := pathutil.NewPathChecker()
+	envRepo := env.NewRepository()
+	cmdFactory := command.NewFactory(envRepo)
+
 	var infoPlist plistutil.PlistData
 	{
 		infoPlistPath := filepath.Join(path, "Contents/Info.plist")
-		if exist, err := pathutil.IsPathExists(infoPlistPath); err != nil {
+		if exist, err := pathChecker.IsPathExists(infoPlistPath); err != nil {
 			return macosBaseApplication{}, fmt.Errorf("failed to check if Info.plist exists at: %s, error: %s", infoPlistPath, err)
 		} else if !exist {
 			return macosBaseApplication{}, fmt.Errorf("Info.plist not exists at: %s", infoPlistPath)
@@ -42,7 +47,7 @@ func newMacosBaseApplication(path string) (macosBaseApplication, error) {
 	var provisioningProfile *profileutil.ProvisioningProfileInfoModel
 	{
 		provisioningProfilePath := filepath.Join(path, "Contents/embedded.provisionprofile")
-		if exist, err := pathutil.IsPathExists(provisioningProfilePath); err != nil {
+		if exist, err := pathChecker.IsPathExists(provisioningProfilePath); err != nil {
 			return macosBaseApplication{}, fmt.Errorf("failed to check if profile exists at: %s, error: %s", provisioningProfilePath, err)
 		} else if exist {
 			profile, err := profileutil.NewProvisioningProfileInfoFromFile(provisioningProfilePath)
@@ -54,7 +59,7 @@ func newMacosBaseApplication(path string) (macosBaseApplication, error) {
 	}
 
 	executable := filepath.Join("/Contents/MacOS/", executableNameFromInfoPlist(infoPlist))
-	entitlements, err := getEntitlements(path, executable)
+	entitlements, err := getEntitlements(cmdFactory, path, executable)
 	if err != nil {
 		return macosBaseApplication{}, err
 	}
@@ -99,7 +104,7 @@ func NewMacosApplication(path string) (MacosApplication, error) {
 
 	extensions := []MacosExtension{}
 	{
-		pattern := filepath.Join(pathutil.EscapeGlobPath(path), "Contents/PlugIns/*.appex")
+		pattern := filepath.Join(escapeGlobPath(path), "Contents/PlugIns/*.appex")
 		pths, err := filepath.Glob(pattern)
 		if err != nil {
 			return MacosApplication{}, fmt.Errorf("failed to search for watch application's extensions using pattern: %s, error: %s", pattern, err)
@@ -129,10 +134,12 @@ type MacosArchive struct {
 
 // NewMacosArchive ...
 func NewMacosArchive(path string) (MacosArchive, error) {
+	pathChecker := pathutil.NewPathChecker()
+
 	var infoPlist plistutil.PlistData
 	{
 		infoPlistPath := filepath.Join(path, "Info.plist")
-		if exist, err := pathutil.IsPathExists(infoPlistPath); err != nil {
+		if exist, err := pathChecker.IsPathExists(infoPlistPath); err != nil {
 			return MacosArchive{}, fmt.Errorf("failed to check if Info.plist exists at: %s, error: %s", infoPlistPath, err)
 		} else if !exist {
 			return MacosArchive{}, fmt.Errorf("Info.plist not exists at: %s", infoPlistPath)
@@ -146,7 +153,7 @@ func NewMacosArchive(path string) (MacosArchive, error) {
 
 	var application MacosApplication
 	{
-		pattern := filepath.Join(pathutil.EscapeGlobPath(path), "Products/Applications/*.app")
+		pattern := filepath.Join(escapeGlobPath(path), "Products/Applications/*.app")
 		pths, err := filepath.Glob(pattern)
 		if err != nil {
 			return MacosArchive{}, err

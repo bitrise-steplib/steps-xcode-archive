@@ -1,16 +1,22 @@
 package codesign
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/certificateutil"
+	"github.com/bitrise-io/go-xcode/exportoptions"
+	"github.com/bitrise-io/go-xcode/plistutil"
+	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/localcodesignasset"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
+	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
 	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 )
 
@@ -58,6 +64,7 @@ type Manager struct {
 	fallbackProfileDownloader autocodesign.ProfileProvider
 	assetInstaller            autocodesign.AssetWriter
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager
+	profileConverter          localcodesignasset.ProvisioningProfileConverter
 
 	detailsProvider DetailsProvider
 	assetWriter     AssetWriter
@@ -75,6 +82,7 @@ func NewManagerWithArchive(
 	fallbackProfileDownloader autocodesign.ProfileProvider,
 	assetInstaller autocodesign.AssetWriter,
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
+	profileConverter localcodesignasset.ProvisioningProfileConverter,
 	archive xcarchive.IosArchive,
 	logger log.Logger,
 ) Manager {
@@ -87,6 +95,7 @@ func NewManagerWithArchive(
 		fallbackProfileDownloader: fallbackProfileDownloader,
 		assetInstaller:            assetInstaller,
 		localCodeSignAssetManager: localCodeSignAssetManager,
+		profileConverter:          profileConverter,
 		detailsProvider:           archive,
 		logger:                    logger,
 	}
@@ -102,6 +111,7 @@ func NewManagerWithProject(
 	fallbackProfileDownloader autocodesign.ProfileProvider,
 	assetInstaller autocodesign.AssetWriter,
 	localCodeSignAssetManager autocodesign.LocalCodeSignAssetManager,
+	profileConverter localcodesignasset.ProvisioningProfileConverter,
 	project projectmanager.Project,
 	logger log.Logger,
 ) Manager {
@@ -114,6 +124,7 @@ func NewManagerWithProject(
 		fallbackProfileDownloader: fallbackProfileDownloader,
 		assetInstaller:            assetInstaller,
 		localCodeSignAssetManager: localCodeSignAssetManager,
+		profileConverter:          profileConverter,
 		detailsProvider:           project,
 		assetWriter:               project,
 		logger:                    logger,
@@ -389,18 +400,23 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials devportalservice.Cre
 		testDevicesToRegister = testDevices
 	}
 
-	codesignAssetsByDistributionType, err := m.prepareAutomaticAssets(credentials, appLayout, typeToLocalCerts, testDevicesToRegister)
-	if err != nil {
+	codesignAssetsByDistributionType, autoCodesignErr := m.prepareAutomaticAssets(credentials, appLayout, typeToLocalCerts, testDevicesToRegister)
+	if autoCodesignErr != nil {
 		if !m.fallbackProfileDownloader.IsAvailable() {
-			return err
+			return autoCodesignErr
 		}
 
 		m.logger.Println()
-		m.logger.Warnf("Automatic code signing failed: %s", err)
+		m.logger.Warnf("Automatic code signing failed: %s", autoCodesignErr)
 		m.logger.Println()
 		m.logger.Infof("Falling back to manually managed codesigning assets.")
 
-		return m.prepareManualAssets(certs)
+		codesignAssetsByDistributionType, err = m.prepareManualAssets(appLayout, typeToLocalCerts)
+		if err != nil {
+			m.logger.Println()
+			m.logger.Warnf("Manual code signing failed: %s", err)
+			return autoCodesignErr
+		}
 	}
 
 	if m.assetWriter != nil {
@@ -438,24 +454,100 @@ func (m *Manager) prepareAutomaticAssets(credentials devportalservice.Credential
 	return codesignAssets, nil
 }
 
-func (m *Manager) prepareManualAssets(certificates []certificateutil.CertificateInfoModel) error {
-	if err := m.installCertificates(certificates); err != nil {
-		return err
+func (m *Manager) prepareManualAssets(appLayout autocodesign.AppLayout, typeToLocalCerts autocodesign.LocalCertificates) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	var certificates []certificateutil.CertificateInfoModel
+	for _, certs := range typeToLocalCerts {
+		certificates = append(certificates, certs...)
+	}
+
+	installedCerts, installedProfiles, err := m.installManualCodeSigningAssets(certificates)
+	if err != nil {
+		return nil, fmt.Errorf("failed to install manual code signing assets: %w", err)
+	}
+
+	assets, err := m.createCodeSignAssetMap(appLayout, installedCerts, installedProfiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create code signing asset map: %w", err)
+	}
+
+	return assets, nil
+}
+
+func (m *Manager) createCodeSignAssetMap(appLayout autocodesign.AppLayout, certificates []certificateutil.CertificateInfoModel, profiles []profileutil.ProvisioningProfileInfoModel) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
+	provider := exportoptionsgenerator.NewCodeSignGroupProvider(m.logger)
+
+	bundleIDEntitlementsMap := map[string]plistutil.PlistData{}
+	for bundleID, entitlements := range appLayout.EntitlementsByArchivableTargetBundleID {
+		bundleIDEntitlementsMap[bundleID] = plistutil.PlistData(entitlements)
+	}
+
+	distributionTypes := []autocodesign.DistributionType{m.opts.ExportMethod}
+	if m.opts.ExportMethod != autocodesign.Development {
+		// Add development distribution type if the selected export method is not development
+		distributionTypes = append(distributionTypes, autocodesign.Development)
+	}
+
+	assetsByDistributionType := map[autocodesign.DistributionType]autocodesign.AppCodesignAssets{}
+	for _, distributionType := range distributionTypes {
+		signingAssets, err := provider.DetermineCodesignGroup(certificates, profiles, nil, bundleIDEntitlementsMap, exportoptions.Method(distributionType), m.opts.TeamID, true)
+		if err != nil || signingAssets == nil {
+			if err == nil {
+				err = errors.New("no signing assets found")
+			}
+			if distributionType == m.opts.ExportMethod {
+				return nil, fmt.Errorf("failed to determine codesign group for %s distribution: %w", distributionType, err)
+			}
+			m.logger.Warnf("Failed to determine codesign group for %s distribution: %s, skipping", distributionType, err)
+			continue
+		}
+
+		bundleIDProfileInfoMap := signingAssets.BundleIDProfileMap()
+		bundleIDProfileMap := map[string]autocodesign.Profile{}
+		for bundleID, profileInfo := range bundleIDProfileInfoMap {
+			signingProfile, err := m.profileConverter.ProfileInfoToProfile(profileInfo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert profile info: %w", err)
+			}
+			bundleIDProfileMap[bundleID] = signingProfile
+		}
+
+		assetsByDistributionType[distributionType] = autocodesign.AppCodesignAssets{
+			Certificate:                        signingAssets.Certificate(),
+			ArchivableTargetProfilesByBundleID: bundleIDProfileMap,
+		}
+	}
+
+	// TODO: UI test targets are not supported yet
+
+	return assetsByDistributionType, nil
+
+}
+
+func (m *Manager) installManualCodeSigningAssets(certificates []certificateutil.CertificateInfoModel) ([]certificateutil.CertificateInfoModel, []profileutil.ProvisioningProfileInfoModel, error) {
+	m.logger.Printf("Installing %d certificate(s):", len(certificates))
+	for _, cert := range certificates {
+		m.logger.Printf("- %s", cert.String())
+		// Empty passphrase provided, as already parsed certificate + private key
+		if err := m.assetInstaller.InstallCertificate(cert); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	profiles, err := m.fallbackProfileDownloader.GetProfiles()
 	if err != nil {
-		return fmt.Errorf("failed to fetch profiles: %w", err)
+		return certificates, nil, fmt.Errorf("failed to fetch profiles: %w", err)
 	}
 
-	m.logger.Printf("Installing manual profiles:")
+	m.logger.Printf("Installing %d profile(s)...", len(profiles))
+	var installedProfiles []profileutil.ProvisioningProfileInfoModel
 	for _, profile := range profiles {
-		m.logger.Printf("%s", profile.Info.String(certificates...))
-
+		m.logger.Printf("- UUID: %s, Name: %s, Export type: %s, Team: %s, Expiry: %s", profile.Info.UUID, profile.Info.Name, profile.Info.ExportType, profile.Info.TeamID, profile.Info.ExpirationDate)
 		if err := m.assetInstaller.InstallProfile(profile.Profile); err != nil {
-			return fmt.Errorf("failed to install profile: %w", err)
+			return certificates, installedProfiles, fmt.Errorf("failed to install profile: %w", err)
 		}
+
+		installedProfiles = append(installedProfiles, profile.Info)
 	}
 
-	return nil
+	return certificates, installedProfiles, nil
 }
