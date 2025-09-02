@@ -404,7 +404,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	if opts.CodesignManager != nil {
 		s.logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
 
-		xcodebuildAuthParams, err := opts.CodesignManager.PrepareCodesigning()
+		xcodebuildAuthParams, _, err := opts.CodesignManager.PrepareCodesigning()
 		if err != nil {
 			return RunResult{}, fmt.Errorf("failed to manage code signing: %s", err)
 		}

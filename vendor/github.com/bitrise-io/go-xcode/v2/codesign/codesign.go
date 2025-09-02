@@ -145,7 +145,7 @@ type AssetWriter interface {
 
 // PrepareCodesigning selects a suitable code signing strategy based on the step and project configuration,
 // then downloads code signing assets (profiles, certificates) and registers test devices if needed
-func (m *Manager) PrepareCodesigning() (*devportalservice.APIKeyConnection, error) {
+func (m *Manager) PrepareCodesigning() (*devportalservice.APIKeyConnection, map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
 	strategy, reason, err := m.selectCodeSigningStrategy(m.appleAuthCredentials)
 	if err != nil {
 		m.logger.Warnf("%s", err)
@@ -161,41 +161,42 @@ func (m *Manager) PrepareCodesigning() (*devportalservice.APIKeyConnection, erro
 			m.logger.TInfof("Downloading certificates...")
 			certificates, err := m.downloadCertificates()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if err := m.validateCertificatesForXcodeManagedSigning(certificates); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			m.logger.Println()
 			m.logger.TInfof("Installing certificates...")
 			if err := m.installCertificates(certificates); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			needsTestDevices := autocodesign.DistributionTypeRequiresDeviceList([]autocodesign.DistributionType{m.opts.ExportMethod})
 			if needsTestDevices && m.opts.RegisterTestDevices && len(m.bitriseTestDevices) != 0 {
 				if err := m.registerTestDevices(m.appleAuthCredentials, m.bitriseTestDevices); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 
-			return m.appleAuthCredentials.APIKey, nil
+			return m.appleAuthCredentials.APIKey, nil, nil
 		}
 	case codeSigningBitriseAPIKey, codeSigningBitriseAppleID:
 		{
 			m.logger.Println()
 			m.logger.Infof("Code signing asset management by Bitrise")
 			m.logger.Printf("Reason: %s", reason)
-			if err := m.prepareCodeSigningWithBitrise(m.appleAuthCredentials, m.bitriseTestDevices); err != nil {
-				return nil, err
+			codesigningAssets, err := m.prepareCodeSigningWithBitrise(m.appleAuthCredentials, m.bitriseTestDevices)
+			if err != nil {
+				return nil, nil, err
 			}
 
-			return nil, nil
+			return nil, codesigningAssets, nil
 		}
 	default:
-		return nil, fmt.Errorf("unknown code sign strategy")
+		return nil, nil, fmt.Errorf("unknown code sign strategy")
 	}
 }
 
@@ -375,24 +376,24 @@ func (m *Manager) registerTestDevices(credentials devportalservice.Credentials, 
 	return nil
 }
 
-func (m *Manager) prepareCodeSigningWithBitrise(credentials devportalservice.Credentials, testDevices []devportalservice.TestDevice) error {
+func (m *Manager) prepareCodeSigningWithBitrise(credentials devportalservice.Credentials, testDevices []devportalservice.TestDevice) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
 	fmt.Println()
 	m.logger.TDebugf("Analyzing project")
 	appLayout, err := m.detailsProvider.GetAppLayout(m.opts.SignUITests)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Println()
 	m.logger.TDebugf("Downloading certificates")
 	certs, err := m.downloadCertificates()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	typeToLocalCerts, err := autocodesign.GetValidLocalCertificates(certs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var testDevicesToRegister []devportalservice.TestDevice
@@ -403,7 +404,7 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials devportalservice.Cre
 	codesignAssetsByDistributionType, autoCodesignErr := m.prepareAutomaticAssets(credentials, appLayout, typeToLocalCerts, testDevicesToRegister)
 	if autoCodesignErr != nil {
 		if !m.fallbackProfileDownloader.IsAvailable() {
-			return autoCodesignErr
+			return nil, autoCodesignErr
 		}
 
 		m.logger.Println()
@@ -415,17 +416,17 @@ func (m *Manager) prepareCodeSigningWithBitrise(credentials devportalservice.Cre
 		if err != nil {
 			m.logger.Println()
 			m.logger.Warnf("Manual code signing failed: %s", err)
-			return autoCodesignErr
+			return nil, autoCodesignErr
 		}
 	}
 
 	if m.assetWriter != nil {
 		if err := m.assetWriter.ForceCodesignAssets(m.opts.ExportMethod, codesignAssetsByDistributionType); err != nil {
-			return fmt.Errorf("failed to force codesign settings: %s", err)
+			return nil, fmt.Errorf("failed to force codesign settings: %s", err)
 		}
 	}
 
-	return nil
+	return codesignAssetsByDistributionType, nil
 }
 
 func (m *Manager) prepareAutomaticAssets(credentials devportalservice.Credentials, appLayout autocodesign.AppLayout, typeToLocalCerts autocodesign.LocalCertificates, testDevicesToRegister []devportalservice.TestDevice) (map[autocodesign.DistributionType]autocodesign.AppCodesignAssets, error) {
@@ -517,7 +518,37 @@ func (m *Manager) createCodeSignAssetMap(appLayout autocodesign.AppLayout, certi
 		}
 	}
 
-	// TODO: UI test targets are not supported yet
+	if len(appLayout.UITestTargetBundleIDs) > 0 && m.opts.ExportMethod == autocodesign.Development {
+		// Capabilities are not supported for UITest targets.
+		// Xcode managed signing uses Wildcard Provisioning Profiles for UITest target signing.
+
+		uiTestTargetBundleIDEntitlementsMap := map[string]plistutil.PlistData{}
+		for _, bundleID := range appLayout.UITestTargetBundleIDs {
+			// UITest targets do not have entitlements, so we use an empty plist.
+			uiTestTargetBundleIDEntitlementsMap[bundleID] = plistutil.PlistData{}
+		}
+
+		uiTestSigningAssets, err := provider.DetermineCodesignGroup(certificates, profiles, nil, uiTestTargetBundleIDEntitlementsMap, exportoptions.Method(autocodesign.Development), m.opts.TeamID, true)
+		if err != nil || uiTestSigningAssets == nil {
+			if err == nil {
+				err = errors.New("no signing assets found for UITest targets")
+			}
+			return nil, fmt.Errorf("failed to determine codesign group for UITest targets: %w", err)
+		}
+
+		bundleIDProfileInfoMap := uiTestSigningAssets.BundleIDProfileMap()
+		bundleIDProfileMap := map[string]autocodesign.Profile{}
+		for bundleID, profileInfo := range bundleIDProfileInfoMap {
+			signingProfile, err := m.profileConverter.ProfileInfoToProfile(profileInfo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert profile info: %w", err)
+			}
+			bundleIDProfileMap[bundleID] = signingProfile
+		}
+
+		developmentAssets := assetsByDistributionType[autocodesign.Development]
+		developmentAssets.UITestTargetProfilesByBundleID = bundleIDProfileMap
+	}
 
 	return assetsByDistributionType, nil
 
