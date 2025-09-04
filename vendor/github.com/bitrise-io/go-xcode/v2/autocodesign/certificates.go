@@ -122,10 +122,9 @@ func matchLocalToAPICertificates(client DevPortalClient, localCertificates []cer
 			log.Warnf("Certificate (%s) not found on Developer Portal: %s", localCert, err)
 			continue
 		}
+
 		cert.CertificateInfo = localCert
-
 		log.Debugf("Certificate (%s) found with ID: %s", localCert, cert.ID)
-
 		matchingCertificates = append(matchingCertificates, cert)
 	}
 
@@ -156,7 +155,7 @@ func filterCertificates(certificates []certificateutil.CertificateInfoModel, cer
 	for _, certificate := range certificates {
 		if certificateType == appstoreconnect.IOSDistribution && isDistributionCertificate(certificate) {
 			filteredCertificates = append(filteredCertificates, certificate)
-		} else if certificateType == appstoreconnect.IOSDevelopment && !isDistributionCertificate(certificate) {
+		} else if certificateType == appstoreconnect.IOSDevelopment && isDevelopmentCertificate(certificate) {
 			filteredCertificates = append(filteredCertificates, certificate)
 		}
 	}
@@ -176,6 +175,12 @@ func filterCertificates(certificates []certificateutil.CertificateInfoModel, cer
 	log.Debugf("Valid certificates with type %s\n%s ", certificateType, certsToString(filteredCertificates))
 
 	return filteredCertificates
+}
+
+func isDevelopmentCertificate(cert certificateutil.CertificateInfoModel) bool {
+	return strings.HasPrefix(strings.ToLower(cert.CommonName), strings.ToLower("Apple Development")) ||
+		strings.HasPrefix(strings.ToLower(cert.CommonName), strings.ToLower("iPhone Developer")) ||
+		strings.HasPrefix(strings.ToLower(cert.CommonName), strings.ToLower("iOS Developer"))
 }
 
 func isDistributionCertificate(cert certificateutil.CertificateInfoModel) bool {

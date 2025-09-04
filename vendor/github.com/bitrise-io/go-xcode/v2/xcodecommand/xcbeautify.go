@@ -7,14 +7,18 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/v2/errorfinder"
+	"github.com/bitrise-io/go-xcode/v2/loginterceptor"
 	version "github.com/hashicorp/go-version"
 )
 
-const xcbeautify = "xcbeautify"
+const (
+	xcbeautify = "xcbeautify"
+)
 
 // XcbeautifyRunner is a xcodebuild runner that uses xcbeautify as log formatter
 type XcbeautifyRunner struct {
@@ -36,13 +40,21 @@ func (c *XcbeautifyRunner) Run(workDir string, xcodebuildArgs []string, xcbeauti
 		buildOutBuffer         bytes.Buffer
 		pipeReader, pipeWriter = io.Pipe()
 		buildOutWriter         = io.MultiWriter(&buildOutBuffer, pipeWriter)
+		prefixRegexp           = regexp.MustCompile(prefix)
+		interceptor            = loginterceptor.NewPrefixInterceptor(prefixRegexp, os.Stdout, buildOutWriter, c.logger)
 	)
+
+	defer func() {
+		if err := interceptor.Close(); err != nil {
+			c.logger.Warnf("Failed to close log interceptor, error: %s", err)
+		}
+	}()
 
 	// For parallel and concurrent destination testing, it helps to use unbuffered I/O for stdout and to redirect stderr to stdout.
 	// NSUnbufferedIO=YES xcodebuild [args] 2>&1 | xcbeautify
 	buildCmd := c.commandFactory.Create("xcodebuild", xcodebuildArgs, &command.Opts{
-		Stdout:      buildOutWriter,
-		Stderr:      buildOutWriter,
+		Stdout:      interceptor,
+		Stderr:      interceptor,
 		Env:         unbufferedIOEnv,
 		Dir:         workDir,
 		ErrorFinder: errorfinder.FindXcodebuildErrors,
