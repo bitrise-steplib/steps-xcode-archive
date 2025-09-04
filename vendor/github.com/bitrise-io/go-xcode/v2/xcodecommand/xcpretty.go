@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 
 	"github.com/bitrise-io/go-steputils/v2/ruby"
 	"github.com/bitrise-io/go-utils/v2/command"
@@ -13,6 +14,11 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/v2/errorfinder"
+	"github.com/bitrise-io/go-xcode/v2/loginterceptor"
+)
+
+const (
+	prefix = `^\[Bitrise.*\].*`
 )
 
 // XcprettyCommandRunner is an xcodebuild command runner that uses xcpretty as log formatter
@@ -46,13 +52,21 @@ func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcp
 		pipeReader, pipeWriter = io.Pipe()
 		buildOutWriter         = io.MultiWriter(&buildOutBuffer, pipeWriter)
 		prettyOutWriter        = os.Stdout
+		prefixRegexp           = regexp.MustCompile(prefix)
+		interceptor            = loginterceptor.NewPrefixInterceptor(prefixRegexp, os.Stdout, buildOutWriter, c.logger)
 	)
+
+	defer func() {
+		if err := interceptor.Close(); err != nil {
+			c.logger.Warnf("Failed to close log interceptor, error: %s", err)
+		}
+	}()
 
 	c.cleanOutputFile(xcprettyArgs)
 
 	buildCmd := c.commandFactory.Create("xcodebuild", xcodebuildArgs, &command.Opts{
-		Stdout:      buildOutWriter,
-		Stderr:      buildOutWriter,
+		Stdout:      interceptor,
+		Stderr:      interceptor,
 		Env:         unbufferedIOEnv,
 		Dir:         workDir,
 		ErrorFinder: errorfinder.FindXcodebuildErrors,
