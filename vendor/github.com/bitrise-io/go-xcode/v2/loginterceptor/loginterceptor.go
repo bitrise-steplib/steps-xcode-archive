@@ -13,8 +13,8 @@ import (
 // both writers. Partial writes without newline are buffered until a newline.
 type PrefixInterceptor struct {
 	prefixRegexp *regexp.Regexp
-	intercepted  io.Writer
-	target       io.Writer
+	intercepted  *NonBlockingWriter
+	target       *NonBlockingWriter
 	logger       log.Logger
 
 	// internal pipe and goroutine to scan and route
@@ -31,8 +31,8 @@ func NewPrefixInterceptor(prefixRegexp *regexp.Regexp, intercepted, target io.Wr
 	pipeReader, pipeWriter := io.Pipe()
 	interceptor := &PrefixInterceptor{
 		prefixRegexp:   prefixRegexp,
-		intercepted:    intercepted,
-		target:         target,
+		intercepted:    NewNonBlockingWriter(intercepted, logger),
+		target:         NewNonBlockingWriter(target, logger),
 		logger:         logger,
 		internalReader: pipeReader,
 		internalWriter: pipeWriter,
@@ -55,18 +55,12 @@ func (i *PrefixInterceptor) Close() error {
 }
 
 func (i *PrefixInterceptor) closeAfterRun() {
-	// Close writers if able
-	if interceptedCloser, ok := i.intercepted.(io.Closer); ok {
-		if err := interceptedCloser.Close(); err != nil {
-			i.logger.Errorf("closing intercepted writer: %v", err)
-		}
+	if err := i.intercepted.Close(); err != nil {
+		i.logger.Errorf("intercepted writer: %v", err)
 	}
-	if originalCloser, ok := i.target.(io.Closer); ok {
-		if err := originalCloser.Close(); err != nil {
-			i.logger.Errorf("closing original writer: %v", err)
-		}
+	if err := i.target.Close(); err != nil {
+		i.logger.Errorf("target writer: %v", err)
 	}
-
 	if err := i.internalReader.Close(); err != nil {
 		i.logger.Errorf("internal reader: %v", err)
 	}
@@ -102,5 +96,55 @@ func (i *PrefixInterceptor) run() {
 	// handle any scanner error
 	if err := scanner.Err(); err != nil {
 		i.logger.Errorf("router scanner error: %v\n", err)
+	}
+}
+
+// NonBlockingWriter is an io.Writer that writes to a wrapped io.Writer in a non-blocking way.
+type NonBlockingWriter struct {
+	channel chan []byte
+	wrapped io.Writer
+	logger  log.Logger
+}
+
+// NewNonBlockingWriter creates a new NonBlockingWriter.
+func NewNonBlockingWriter(w io.Writer, logger log.Logger) *NonBlockingWriter {
+	writer := &NonBlockingWriter{
+		channel: make(chan []byte, 10000), // buffered channel to avoid blocking
+		wrapped: w,
+		logger:  logger,
+	}
+	go writer.Run()
+	return writer
+}
+
+// Write implements io.Writer. It writes into an internal pipe which the interceptor goroutine consumes.
+func (i *NonBlockingWriter) Write(p []byte) (int, error) {
+	select {
+	case i.channel <- p:
+		return len(p), nil
+	default:
+		i.logger.Debugf("buffer full, dropping log")
+		return 0, nil
+	}
+}
+
+// Close stops the interceptor and closes the pipe.
+func (i *NonBlockingWriter) Close() error {
+	close(i.channel)
+	return nil
+}
+
+// Run consumes the channel and writes to the wrapped writer.
+func (i *NonBlockingWriter) Run() {
+	for msg := range i.channel {
+		if _, err := i.wrapped.Write(msg); err != nil {
+			i.logger.Errorf("NonBlockingWriter: wrapped writer error: %v", err)
+		}
+	}
+
+	if closer, ok := i.wrapped.(io.Closer); ok {
+		if err := closer.Close(); err != nil {
+			i.logger.Errorf("NonBlockingWriter: closing wrapped writer: %v", err)
+		}
 	}
 }

@@ -283,7 +283,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 
 	c.tracker.TrackAPIRequest(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, duration)
 
-
 	if v != nil {
 		decErr := json.NewDecoder(resp.Body).Decode(v)
 		if decErr == io.EOF {
