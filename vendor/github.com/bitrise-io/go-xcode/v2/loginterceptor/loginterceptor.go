@@ -2,7 +2,6 @@ package loginterceptor
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"regexp"
 	"sync"
@@ -110,7 +109,7 @@ type NonBlockingWriter struct {
 // NewNonBlockingWriter creates a new NonBlockingWriter.
 func NewNonBlockingWriter(w io.Writer, logger log.Logger) *NonBlockingWriter {
 	writer := &NonBlockingWriter{
-		channel: make(chan []byte, 100), // buffered channel to avoid blocking
+		channel: make(chan []byte, 10000), // buffered channel to avoid blocking
 		wrapped: w,
 		logger:  logger,
 	}
@@ -124,7 +123,8 @@ func (i *NonBlockingWriter) Write(p []byte) (int, error) {
 	case i.channel <- p:
 		return len(p), nil
 	default:
-		return 0, fmt.Errorf("buffer full, dropping log")
+		i.logger.Debugf("buffer full, dropping log")
+		return 0, nil
 	}
 }
 
