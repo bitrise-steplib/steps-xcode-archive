@@ -25,7 +25,8 @@ func runArchiveCommandWithRetry(xcodeCommandRunner xcodecommand.Runner, logForma
 
 func runArchiveCommand(xcodeCommandRunner xcodecommand.Runner, logFormatter string, archiveCmd *xcodebuild.CommandBuilder, logger log.Logger) (string, error) {
 	output, err := xcodeCommandRunner.Run("", archiveCmd.CommandArgs(), []string{})
-	logger.Infof("Command output: %+v", output)
+	logger.Infof("Command output len: %d", len(output.RawOut))
+	logger.Infof("Command output exitcode %d", output.ExitCode)
 	//if logFormatter == XcodebuildTool || err != nil {
 	printLastLinesOfXcodebuildLog(logger, string(output.RawOut), err == nil)
 	//}

@@ -895,6 +895,9 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 		}
 	}
 
+	s.logger.Infof("Running command...")
+	s.logger.Println()
+
 	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, s.logFormatter, archiveCmd, swiftPackagesPath, s.logger)
 	out.XcodebuildArchiveLog = xcodebuildLog
 	if err != nil {
