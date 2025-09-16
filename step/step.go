@@ -901,12 +901,16 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 		return out, fmt.Errorf("failed to archive the project: %w", err)
 	}
 
+	s.logger.Donef("Archive successfully created at path: %s", archivePth)
+
 	// Ensure xcarchive exists
 	if exist, err := v1pathutil.IsPathExists(archivePth); err != nil {
 		return out, fmt.Errorf("failed to check if archive exist, error: %s", err)
 	} else if !exist {
 		return out, fmt.Errorf("no archive generated at: %s", archivePth)
 	}
+
+	s.logger.TInfof("Parsing the archive at: %s", archivePth)
 
 	archive, err := xcarchive.NewIosArchive(archivePth)
 	if err != nil {
