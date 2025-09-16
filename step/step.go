@@ -898,6 +898,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 	xcodebuildLog, err := runArchiveCommandWithRetry(s.xcodeCommandRunner, s.logFormatter, archiveCmd, swiftPackagesPath, s.logger)
 	out.XcodebuildArchiveLog = xcodebuildLog
 	if err != nil {
+		s.logger.Warnf("command failed: %s", err)
 		return out, fmt.Errorf("failed to archive the project: %w", err)
 	}
 
