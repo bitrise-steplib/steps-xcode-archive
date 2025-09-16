@@ -454,6 +454,10 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 
 	out.Archive = archiveOut.Archive
 
+	if !opts.DestinationPlatform.canExportIPA() {
+		return out, nil
+	}
+
 	IPAExportOpts := xcodeIPAExportOpts{
 		XcodeMajorVersion: opts.XcodeMajorVersion,
 		XcodeAuthOptions:  authOptions,

@@ -178,3 +178,14 @@ func getPlatform(buildSettings serialized.Object) (Platform, error) {
 		return "", fmt.Errorf("unkown SDKROOT: %s", sdk)
 	}
 }
+
+func (p Platform) canExportIPA() bool {
+	switch p {
+	case iOS, tvOS, watchOS, visionOS:
+		return true
+	case osX, iOSSimulator, watchOSSimulator, tvOSSimulator:
+		return false
+	default:
+		return false
+	}
+}
