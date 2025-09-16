@@ -201,7 +201,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	}
 
 	var err error
-	if config.DestinationPlatform, err = parsePlatform(config.Platform); err != nil {
+	if config.DestinationPlatform, err = ParsePlatform(config.Platform); err != nil {
 		return Config{}, fmt.Errorf("issue with input Platform: %w", err)
 	}
 
