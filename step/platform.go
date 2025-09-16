@@ -21,6 +21,11 @@ const (
 	tvOS           Platform = "tvOS"
 	watchOS        Platform = "watchOS"
 	visionOS       Platform = "visionOS"
+
+	// Not permitted on this steps UI, but may come from build-for-simulator
+	iOSSimulator     Platform = "generic/platform=iOS Simulator"
+	watchOSSimulator Platform = "generic/platform=watchOS Simulator"
+	tvOSSimulator    Platform = "generic/platform=tvOS Simulator"
 )
 
 func parsePlatform(platform string) (Platform, error) {
@@ -35,6 +40,12 @@ func parsePlatform(platform string) (Platform, error) {
 		return watchOS, nil
 	case "visionos":
 		return visionOS, nil
+	case "generic/platform=iOS Simulator":
+		return iOSSimulator, nil
+	case "generic/platform=watchOS Simulator":
+		return watchOSSimulator, nil
+	case "generic/platform=tvOS Simulator":
+		return tvOSSimulator, nil
 	default:
 		return "", fmt.Errorf("unknown platform: %s", platform)
 	}
