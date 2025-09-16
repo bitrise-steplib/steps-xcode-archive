@@ -40,11 +40,11 @@ func parsePlatform(platform string) (Platform, error) {
 		return watchOS, nil
 	case "visionos":
 		return visionOS, nil
-	case "generic/platform=iOS Simulator":
+	case "generic/platform=ios simulator":
 		return iOSSimulator, nil
-	case "generic/platform=watchOS Simulator":
+	case "generic/platform=watchos simulator":
 		return watchOSSimulator, nil
-	case "generic/platform=tvOS Simulator":
+	case "generic/platform=tvos simulator":
 		return tvOSSimulator, nil
 	default:
 		return "", fmt.Errorf("unknown platform: %s", platform)
@@ -168,6 +168,12 @@ func getPlatform(buildSettings serialized.Object) (Platform, error) {
 	case strings.HasPrefix(sdk, "xros"):
 		// visionOS SDK is called xros (as of Xcode 15.2), but the platform is called visionOS (e.g. in the destination specifier)
 		return visionOS, nil
+	case strings.HasPrefix(sdk, "iphonesimulator"):
+		return iOSSimulator, nil
+	case strings.HasPrefix(sdk, "watchsimulator"):
+		return watchOSSimulator, nil
+	case strings.HasPrefix(sdk, "appletvsimulator"):
+		return tvOSSimulator, nil
 	default:
 		return "", fmt.Errorf("unkown SDKROOT: %s", sdk)
 	}
