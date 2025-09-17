@@ -21,9 +21,14 @@ const (
 	tvOS           Platform = "tvOS"
 	watchOS        Platform = "watchOS"
 	visionOS       Platform = "visionOS"
+
+	// Not permitted on this steps UI, but may come from build-for-simulator
+	iOSSimulator     Platform = "iOS Simulator"
+	watchOSSimulator Platform = "watchOS Simulator"
+	tvOSSimulator    Platform = "tvOS Simulator"
 )
 
-func parsePlatform(platform string) (Platform, error) {
+func ParsePlatform(platform string) (Platform, error) {
 	switch strings.ToLower(platform) {
 	case "detect":
 		return detectPlatform, nil
@@ -35,6 +40,12 @@ func parsePlatform(platform string) (Platform, error) {
 		return watchOS, nil
 	case "visionos":
 		return visionOS, nil
+	case "ios simulator":
+		return iOSSimulator, nil
+	case "watchos simulator":
+		return watchOSSimulator, nil
+	case "tvos simulator":
+		return tvOSSimulator, nil
 	default:
 		return "", fmt.Errorf("unknown platform: %s", platform)
 	}
@@ -157,7 +168,24 @@ func getPlatform(buildSettings serialized.Object) (Platform, error) {
 	case strings.HasPrefix(sdk, "xros"):
 		// visionOS SDK is called xros (as of Xcode 15.2), but the platform is called visionOS (e.g. in the destination specifier)
 		return visionOS, nil
+	case strings.HasPrefix(sdk, "iphonesimulator"):
+		return iOSSimulator, nil
+	case strings.HasPrefix(sdk, "watchsimulator"):
+		return watchOSSimulator, nil
+	case strings.HasPrefix(sdk, "appletvsimulator"):
+		return tvOSSimulator, nil
 	default:
 		return "", fmt.Errorf("unkown SDKROOT: %s", sdk)
+	}
+}
+
+func (p Platform) canExportIPA() bool {
+	switch p {
+	case iOS, tvOS, watchOS, visionOS:
+		return true
+	case osX, iOSSimulator, watchOSSimulator, tvOSSimulator:
+		return false
+	default:
+		return false
 	}
 }

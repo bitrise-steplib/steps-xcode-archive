@@ -3,6 +3,7 @@ package xcarchive
 import (
 	"errors"
 	"fmt"
+	"log"
 	"path/filepath"
 
 	"github.com/bitrise-io/go-utils/v2/command"
@@ -48,20 +49,27 @@ func NewIosBaseApplication(path string) (IosBaseApplication, error) {
 		infoPlist = plist
 	}
 
-	var provisioningProfile profileutil.ProvisioningProfileInfoModel
-	{
+	profileNotFoundErr := fmt.Errorf("profile not exists at: %s", filepath.Join(path, "embedded.mobileprovision"))
+	var provisioningProfileCreator = func() (profileutil.ProvisioningProfileInfoModel, error) {
 		provisioningProfilePath := filepath.Join(path, "embedded.mobileprovision")
 		if exist, err := pathChecker.IsPathExists(provisioningProfilePath); err != nil {
-			return IosBaseApplication{}, fmt.Errorf("failed to check if profile exists at: %s, error: %s", provisioningProfilePath, err)
+			return profileutil.ProvisioningProfileInfoModel{}, fmt.Errorf("failed to check if profile exists at: %s, error: %s", provisioningProfilePath, err)
 		} else if !exist {
-			return IosBaseApplication{}, fmt.Errorf("profile not exists at: %s", provisioningProfilePath)
+			return profileutil.ProvisioningProfileInfoModel{}, profileNotFoundErr
 		}
 
 		profile, err := profileutil.NewProvisioningProfileInfoFromFile(provisioningProfilePath)
 		if err != nil {
-			return IosBaseApplication{}, err
+			return profileutil.ProvisioningProfileInfoModel{}, err
 		}
-		provisioningProfile = profile
+
+		return profile, nil
+	}
+	provisioningProfile, err := provisioningProfileCreator()
+	if err != nil && err != profileNotFoundErr {
+		return IosBaseApplication{}, err
+	} else if err == profileNotFoundErr {
+		log.Printf("No embedded.mobileprovision found for app at: %s", path)
 	}
 
 	executable := executableNameFromInfoPlist(infoPlist)
