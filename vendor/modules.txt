@@ -55,7 +55,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/serialized
 github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.68
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.69
 ## explicit; go 1.22
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
@@ -73,7 +73,7 @@ github.com/bitrise-io/go-xcode/v2/codesign
 github.com/bitrise-io/go-xcode/v2/devportalservice
 github.com/bitrise-io/go-xcode/v2/errorfinder
 github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator
-github.com/bitrise-io/go-xcode/v2/loginterceptor
+github.com/bitrise-io/go-xcode/v2/logio
 github.com/bitrise-io/go-xcode/v2/xcarchive
 github.com/bitrise-io/go-xcode/v2/xcconfig
 github.com/bitrise-io/go-xcode/v2/xcodecache
@@ -85,6 +85,9 @@ github.com/davecgh/go-spew/spew
 # github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
 ## explicit
 github.com/fullsailor/pkcs7
+# github.com/globocom/go-buffer/v2 v2.0.0
+## explicit; go 1.13
+github.com/globocom/go-buffer/v2
 # github.com/gofrs/uuid/v5 v5.2.0
 ## explicit; go 1.19
 github.com/gofrs/uuid/v5
