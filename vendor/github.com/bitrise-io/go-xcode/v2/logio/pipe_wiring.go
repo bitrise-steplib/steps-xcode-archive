@@ -45,7 +45,7 @@ func SetupPipeWiring(filter *regexp.Regexp) *PipeWiring {
 	// Add a buffer before stdout
 	bufferedStdout := NewSink(os.Stdout)
 	// Add a buffer before tool input
-	xcbuildLogs := NewSink(toolPipeW)
+	xcbuildLogs := NewSink(io.MultiWriter(&rawXcbuild, toolPipeW))
 	// Create a filter for [Bitrise ...] prefixes
 	bitrisePrefixFilter := NewPrefixFilter(
 		filter,
@@ -53,13 +53,10 @@ func SetupPipeWiring(filter *regexp.Regexp) *PipeWiring {
 		xcbuildLogs,
 	)
 
-	// Send raw xcbuild out to raw out and filter
-	rawInputDuplication := io.MultiWriter(&rawXcbuild, bitrisePrefixFilter)
-
 	return &PipeWiring{
 		XcbuildRawout: rawXcbuild,
-		XcbuildStdout: rawInputDuplication,
-		XcbuildStderr: rawInputDuplication,
+		XcbuildStdout: bitrisePrefixFilter,
+		XcbuildStderr: bitrisePrefixFilter,
 		ToolStdin:     toolPipeR,
 		ToolStdout:    os.Stdout,
 		ToolStderr:    os.Stderr,
