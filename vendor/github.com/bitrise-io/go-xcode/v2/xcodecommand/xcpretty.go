@@ -59,12 +59,16 @@ func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcp
 	})
 
 	defer func() {
-		if err := loggingIO.Close(); err != nil {
+		if err := loggingIO.CloseToolInput(); err != nil {
 			c.logger.Warnf("logging IO failure, error: %s", err)
 		}
 
 		if err := prettyCmd.Wait(); err != nil {
-			c.logger.Warnf("xcpretty command failed: %s", err)
+			c.logger.Warnf("xcbeautify command failed: %s", err)
+		}
+
+		if err := loggingIO.CloseFilter(); err != nil {
+			c.logger.Warnf("logging IO failure, error: %s", err)
 		}
 	}()
 

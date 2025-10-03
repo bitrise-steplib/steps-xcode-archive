@@ -2,8 +2,6 @@ package logio
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"regexp"
@@ -21,15 +19,18 @@ type PipeWiring struct {
 	ToolStdout    io.WriteCloser
 	ToolStderr    io.WriteCloser
 
-	closer func() error
+	toolPipeW *io.PipeWriter
+	filter    *PrefixFilter
 }
 
-// Close closes the PipeWiring instances that needs to be closing as part of this instance.
-//
-// In reality it can only close the filter and the tool input as everything else is
-// managed by a command or the os.
-func (i *PipeWiring) Close() error {
-	return i.closer()
+// CloseToolInput...
+func (p *PipeWiring) CloseToolInput() error {
+	return p.toolPipeW.Close()
+}
+
+// CloseFilter...
+func (p *PipeWiring) CloseFilter() error {
+	return p.filter.Close()
 }
 
 // SetupPipeWiring creates a new PipeWiring instance that contains the usual
@@ -62,30 +63,8 @@ func SetupPipeWiring(filter *regexp.Regexp) *PipeWiring {
 		ToolStdin:     toolPipeR,
 		ToolStdout:    os.Stdout,
 		ToolStderr:    os.Stderr,
-		closer: func() error {
-			// XcbuildRawout - no need to close
-			// XcbuildStdout - Multiwriter, meaning we need to close the subwriters
-			// XcbuildStderr - Multiwriter, meaning we need to close the subwriters
-			// ToolStdout - We are not closing stdout
-			// ToolSterr - We are not closing stderr
 
-			var errStr string
-
-			if err := bitrisePrefixFilter.Close(); err != nil {
-				errStr += fmt.Sprintf("failed to close log filter, error: %s", err.Error())
-			}
-			if err := toolPipeW.Close(); err != nil {
-				if len(errStr) > 0 {
-					errStr += ", "
-				}
-				errStr += fmt.Sprintf("failed to close xcodebuild-xcpretty pipe, error: %s", err.Error())
-			}
-
-			if len(errStr) > 0 {
-				return errors.New(errStr)
-			}
-
-			return nil
-		},
+		toolPipeW: toolPipeW,
+		filter:    bitrisePrefixFilter,
 	}
 }
