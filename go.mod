@@ -9,7 +9,7 @@ require (
 	github.com/bitrise-io/go-utils v1.0.14
 	github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.23
 	github.com/bitrise-io/go-xcode v1.3.0
-	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.69
+	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.68
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -22,7 +22,6 @@ require (
 	github.com/bitrise-io/go-steputils v1.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa // indirect
-	github.com/globocom/go-buffer/v2 v2.0.0 // indirect
 	github.com/gofrs/uuid/v5 v5.2.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
