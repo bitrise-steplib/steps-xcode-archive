@@ -33,6 +33,7 @@ func (p *PipeWiring) CloseToolInput() error {
 // CloseFilter...
 func (p *PipeWiring) CloseFilter() error {
 	err := p.filter.Close()
+	<-p.filter.Done()
 	_ = p.xcbuildLogs.Close()
 	_ = p.bufferedStdout.Close()
 
