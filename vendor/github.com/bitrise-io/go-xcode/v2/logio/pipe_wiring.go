@@ -19,8 +19,10 @@ type PipeWiring struct {
 	ToolStdout    io.WriteCloser
 	ToolStderr    io.WriteCloser
 
-	toolPipeW *io.PipeWriter
-	filter    *PrefixFilter
+	toolPipeW      *io.PipeWriter
+	bufferedStdout *Sink
+	xcbuildLogs    *Sink
+	filter         *PrefixFilter
 }
 
 // CloseToolInput...
@@ -30,7 +32,11 @@ func (p *PipeWiring) CloseToolInput() error {
 
 // CloseFilter...
 func (p *PipeWiring) CloseFilter() error {
-	return p.filter.Close()
+	err := p.filter.Close()
+	_ = p.xcbuildLogs.Close()
+	_ = p.bufferedStdout.Close()
+
+	return err
 }
 
 // SetupPipeWiring creates a new PipeWiring instance that contains the usual
@@ -61,7 +67,9 @@ func SetupPipeWiring(filter *regexp.Regexp) *PipeWiring {
 		ToolStdout:    os.Stdout,
 		ToolStderr:    os.Stderr,
 
-		toolPipeW: toolPipeW,
-		filter:    bitrisePrefixFilter,
+		toolPipeW:      toolPipeW,
+		bufferedStdout: bufferedStdout,
+		xcbuildLogs:    xcbuildLogs,
+		filter:         bitrisePrefixFilter,
 	}
 }
