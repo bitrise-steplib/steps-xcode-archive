@@ -12,7 +12,7 @@ import (
 // users responsibility to choose between this and manual hooking of the in/outputs.
 // It also provides a convenient Close() method that only closes things that can/should be closed.
 type PipeWiring struct {
-	XcbuildRawout bytes.Buffer
+	XcbuildRawout *bytes.Buffer
 	XcbuildStdout io.Writer
 	XcbuildStderr io.Writer
 	ToolStdin     io.ReadCloser
@@ -21,20 +21,16 @@ type PipeWiring struct {
 
 	toolPipeW      *io.PipeWriter
 	bufferedStdout *Sink
-	xcbuildLogs    *Sink
+	toolInSink     *Sink
 	filter         *PrefixFilter
 }
 
-// CloseToolInput...
-func (p *PipeWiring) CloseToolInput() error {
-	return p.toolPipeW.Close()
-}
-
-// CloseFilter...
-func (p *PipeWiring) CloseFilter() error {
+// Close ...
+func (p *PipeWiring) Close() error {
 	err := p.filter.Close()
 	<-p.filter.Done()
-	_ = p.xcbuildLogs.Close()
+	_ = p.toolInSink.Close()
+	_ = p.toolPipeW.Close()
 	_ = p.bufferedStdout.Close()
 
 	return err
@@ -45,14 +41,15 @@ func (p *PipeWiring) CloseFilter() error {
 // using a logging filter.
 func SetupPipeWiring(filter *regexp.Regexp) *PipeWiring {
 	// Create a buffer to store raw xcbuild output
-	var rawXcbuild bytes.Buffer
+	rawXcbuild := bytes.NewBuffer(nil)
 	// Pipe filtered logs to tool
 	toolPipeR, toolPipeW := io.Pipe()
 
 	// Add a buffer before stdout
 	bufferedStdout := NewSink(os.Stdout)
 	// Add a buffer before tool input
-	xcbuildLogs := NewSink(io.MultiWriter(&rawXcbuild, toolPipeW))
+	toolInSink := NewSink(toolPipeW)
+	xcbuildLogs := io.MultiWriter(rawXcbuild, toolInSink)
 	// Create a filter for [Bitrise ...] prefixes
 	bitrisePrefixFilter := NewPrefixFilter(
 		filter,
@@ -70,7 +67,7 @@ func SetupPipeWiring(filter *regexp.Regexp) *PipeWiring {
 
 		toolPipeW:      toolPipeW,
 		bufferedStdout: bufferedStdout,
-		xcbuildLogs:    xcbuildLogs,
+		toolInSink:     toolInSink,
 		filter:         bitrisePrefixFilter,
 	}
 }

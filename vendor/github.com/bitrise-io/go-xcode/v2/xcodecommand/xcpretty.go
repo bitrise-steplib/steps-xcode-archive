@@ -59,11 +59,7 @@ func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcp
 	})
 
 	defer func() {
-		if err := loggingIO.CloseFilter(); err != nil {
-			c.logger.Warnf("logging IO failure, error: %s", err)
-		}
-
-		if err := loggingIO.CloseToolInput(); err != nil {
+		if err := loggingIO.Close(); err != nil {
 			c.logger.Warnf("logging IO failure, error: %s", err)
 		}
 

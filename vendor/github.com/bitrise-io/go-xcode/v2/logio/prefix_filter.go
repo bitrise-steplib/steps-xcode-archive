@@ -20,7 +20,7 @@ type PrefixFilter struct {
 	pipeW       *io.PipeWriter
 
 	Matching *Sink
-	Filtered *Sink
+	Filtered io.Writer
 
 	// closing
 	closeOnce sync.Once
@@ -48,7 +48,7 @@ func (p *PrefixFilter) ScannerError() <-chan error { return p.scannerError }
 // NewPrefixFilter returns a new PrefixFilter. Writes are based on line prefix.
 //
 // Note: Callers are responsible for closing intercepted and target writers that implement io.Closer
-func NewPrefixFilter(prefixRegexp *regexp.Regexp, matching, filtered *Sink) *PrefixFilter {
+func NewPrefixFilter(prefixRegexp *regexp.Regexp, matching *Sink, filtered io.Writer) *PrefixFilter {
 	// This is the backing field of the bufio.ReadWriter
 	pipeR, pipeW := io.Pipe()
 	messageLost := make(chan error, 1)
