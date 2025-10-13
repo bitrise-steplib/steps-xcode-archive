@@ -2,9 +2,11 @@ package logio
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"regexp"
+	"sync"
 )
 
 // PipeWiring is a helper struct to define the setup and binding of tools and
@@ -23,17 +25,29 @@ type PipeWiring struct {
 	bufferedStdout *Sink
 	toolInSink     *Sink
 	filter         *PrefixFilter
+
+	closeFilterOnce sync.Once
+}
+
+// CloseFilter closes the filter and waits for it to finish
+func (p *PipeWiring) CloseFilter() error {
+	err := error(nil)
+	p.closeFilterOnce.Do(func() {
+		err = p.filter.Close()
+		<-p.filter.Done()
+
+	})
+	return err
 }
 
 // Close ...
 func (p *PipeWiring) Close() error {
-	err := p.filter.Close()
-	<-p.filter.Done()
-	_ = p.toolInSink.Close()
-	_ = p.toolPipeW.Close()
-	_ = p.bufferedStdout.Close()
+	filterErr := p.CloseFilter()
+	toolSinkErr := p.toolInSink.Close()
+	pipeWErr := p.toolPipeW.Close()
+	bufferedStdoutErr := p.bufferedStdout.Close()
 
-	return err
+	return errors.Join(filterErr, toolSinkErr, pipeWErr, bufferedStdoutErr)
 }
 
 // SetupPipeWiring creates a new PipeWiring instance that contains the usual
@@ -69,5 +83,7 @@ func SetupPipeWiring(filter *regexp.Regexp) *PipeWiring {
 		bufferedStdout: bufferedStdout,
 		toolInSink:     toolInSink,
 		filter:         bitrisePrefixFilter,
+
+		closeFilterOnce: sync.Once{},
 	}
 }

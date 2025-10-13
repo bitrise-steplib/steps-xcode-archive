@@ -58,6 +58,16 @@ func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcp
 		Stderr: loggingIO.ToolStderr,
 	})
 
+	defer func() {
+		if err := loggingIO.Close(); err != nil {
+			c.logger.Warnf("logging IO failure, error: %s", err)
+		}
+
+		if err := prettyCmd.Wait(); err != nil {
+			c.logger.Warnf("xcpretty command failed: %s", err)
+		}
+	}()
+
 	c.logger.TPrintf("$ set -o pipefail && %s | %s", buildCmd.PrintableCommandArgs(), prettyCmd.PrintableCommandArgs())
 
 	err := buildCmd.Start()
@@ -78,12 +88,9 @@ func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcp
 		}
 	}
 
-	if err := loggingIO.Close(); err != nil {
+	// Closing the filter to ensure all output is flushed and processed
+	if err := loggingIO.CloseFilter(); err != nil {
 		c.logger.Warnf("logging IO failure, error: %s", err)
-	}
-
-	if err := prettyCmd.Wait(); err != nil {
-		c.logger.Warnf("xcbeautify command failed: %s", err)
 	}
 
 	return Output{
