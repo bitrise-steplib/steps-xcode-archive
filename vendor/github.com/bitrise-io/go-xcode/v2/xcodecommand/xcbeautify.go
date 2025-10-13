@@ -52,16 +52,6 @@ func (c *XcbeautifyRunner) Run(workDir string, xcodebuildArgs []string, xcbeauti
 		Env:    unbufferedIOEnv,
 	})
 
-	defer func() {
-		if err := loggingIO.Close(); err != nil {
-			c.logger.Warnf("logging IO failure, error: %s", err)
-		}
-
-		if err := beautifyCmd.Wait(); err != nil {
-			c.logger.Warnf("xcbeautify command failed: %s", err)
-		}
-	}()
-
 	c.logger.TPrintf("$ set -o pipefail && %s | %s", buildCmd.PrintableCommandArgs(), beautifyCmd.PrintableCommandArgs())
 
 	err := buildCmd.Start()
@@ -80,6 +70,14 @@ func (c *XcbeautifyRunner) Run(workDir string, xcodebuildArgs []string, xcbeauti
 		if errors.As(err, &exerr) {
 			exitCode = exerr.ExitCode()
 		}
+	}
+
+	if err := loggingIO.Close(); err != nil {
+		c.logger.Warnf("logging IO failure, error: %s", err)
+	}
+
+	if err := beautifyCmd.Wait(); err != nil {
+		c.logger.Warnf("xcbeautify command failed: %s", err)
 	}
 
 	return Output{
