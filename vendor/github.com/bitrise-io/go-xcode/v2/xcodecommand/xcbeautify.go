@@ -1,18 +1,15 @@
 package xcodecommand
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"os/exec"
 	"regexp"
 
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/v2/errorfinder"
-	"github.com/bitrise-io/go-xcode/v2/loginterceptor"
+	"github.com/bitrise-io/go-xcode/v2/logio"
 	version "github.com/hashicorp/go-version"
 )
 
@@ -36,40 +33,28 @@ func NewXcbeautifyRunner(logger log.Logger, commandFactory command.Factory) Runn
 
 // Run runs xcodebuild using xcbeautify as an output formatter
 func (c *XcbeautifyRunner) Run(workDir string, xcodebuildArgs []string, xcbeautifyArgs []string) (Output, error) {
-	var (
-		buildOutBuffer         bytes.Buffer
-		pipeReader, pipeWriter = io.Pipe()
-		buildOutWriter         = io.MultiWriter(&buildOutBuffer, pipeWriter)
-		prefixRegexp           = regexp.MustCompile(prefix)
-		interceptor            = loginterceptor.NewPrefixInterceptor(prefixRegexp, os.Stdout, buildOutWriter, c.logger)
-	)
-
-	defer func() {
-		if err := interceptor.Close(); err != nil {
-			c.logger.Warnf("Failed to close log interceptor, error: %s", err)
-		}
-	}()
+	loggingIO := logio.SetupPipeWiring(regexp.MustCompile(`^\[Bitrise.*\].*`))
 
 	// For parallel and concurrent destination testing, it helps to use unbuffered I/O for stdout and to redirect stderr to stdout.
 	// NSUnbufferedIO=YES xcodebuild [args] 2>&1 | xcbeautify
 	buildCmd := c.commandFactory.Create("xcodebuild", xcodebuildArgs, &command.Opts{
-		Stdout:      interceptor,
-		Stderr:      interceptor,
+		Stdout:      loggingIO.XcbuildStdout,
+		Stderr:      loggingIO.XcbuildStderr,
 		Env:         unbufferedIOEnv,
 		Dir:         workDir,
 		ErrorFinder: errorfinder.FindXcodebuildErrors,
 	})
 
 	beautifyCmd := c.commandFactory.Create(xcbeautify, xcbeautifyArgs, &command.Opts{
-		Stdin:  pipeReader,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Stdin:  loggingIO.ToolStdin,
+		Stdout: loggingIO.ToolStdout,
+		Stderr: loggingIO.ToolStderr,
 		Env:    unbufferedIOEnv,
 	})
 
 	defer func() {
-		if err := pipeWriter.Close(); err != nil {
-			c.logger.Warnf("Failed to close xcodebuild-xcbeautify pipe: %s", err)
+		if err := loggingIO.Close(); err != nil {
+			c.logger.Warnf("logging IO failure, error: %s", err)
 		}
 
 		if err := beautifyCmd.Wait(); err != nil {
@@ -97,8 +82,13 @@ func (c *XcbeautifyRunner) Run(workDir string, xcodebuildArgs []string, xcbeauti
 		}
 	}
 
+	// Closing the filter to ensure all output is flushed and processed
+	if err := loggingIO.CloseFilter(); err != nil {
+		c.logger.Warnf("logging IO failure, error: %s", err)
+	}
+
 	return Output{
-		RawOut:   buildOutBuffer.Bytes(),
+		RawOut:   loggingIO.XcbuildRawout.Bytes(),
 		ExitCode: exitCode,
 	}, err
 }
