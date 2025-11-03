@@ -132,6 +132,7 @@ type Inputs struct {
 // Config ...
 type Config struct {
 	Inputs
+	Logger                      log.Logger
 	DestinationPlatform         Platform
 	XcodeMajorVersion           int
 	XcodebuildAdditionalOptions []string

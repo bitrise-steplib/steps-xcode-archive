@@ -30,7 +30,7 @@ func run() int {
 		return 1
 	}
 
-	archiver, err := createXcodebuildArchiver(logger, config.LogFormatter)
+	archiver, err := createXcodebuildArchiver(config.Logger, config.LogFormatter)
 	if err != nil {
 		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
 		return 1
