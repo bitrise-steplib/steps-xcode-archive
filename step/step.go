@@ -201,6 +201,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	if config.VerboseLog {
 		logv1.SetEnableDebugLog(true)
 	}
+	config.Logger = s.logger
 
 	var err error
 	if config.DestinationPlatform, err = parsePlatform(config.Platform); err != nil {
