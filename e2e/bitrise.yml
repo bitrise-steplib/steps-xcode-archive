@@ -273,15 +273,16 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
-  test_apple_id:
-    description: Running Apple ID tests on a single stack to avoid 503 Service Temporarily Unavailable issue.
-    steps:
-    - bitrise-run:
-        run_if: |-
-          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
-        inputs:
-        - workflow_id: utility_test_apple_id
-        - bitrise_config_path: ./e2e/bitrise.yml
+  # Disabled due to `Completed SIRP authentication with status of 409`
+  # test_apple_id:
+  #   description: Running Apple ID tests on a single stack to avoid 503 Service Temporarily Unavailable issue.
+  #   steps:
+  #   - bitrise-run:
+  #       run_if: |-
+  #         {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+  #       inputs:
+  #       - workflow_id: utility_test_apple_id
+  #       - bitrise_config_path: ./e2e/bitrise.yml
 
   utility_test_apple_id:
     envs:
