@@ -86,6 +86,16 @@ func (p Project) MainTargetBundleID() (string, error) {
 	return bundleID, nil
 }
 
+func (p Project) ReadSchemeBuildSettingString(key string) (string, error) {
+	target := p.projHelper.MainTarget.Name
+	value, err := p.projHelper.buildSettingForKey(target, p.projHelper.Configuration, key)
+	if err != nil {
+		return "", fmt.Errorf("failed to read build setting (%s) for the target (%s): %s", key, target, err)
+	}
+
+	return value, nil
+}
+
 // GetAppLayout ...
 func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error) {
 	p.logger.Printf("Configuration: %s", p.projHelper.Configuration)

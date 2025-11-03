@@ -37,6 +37,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
+	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -133,6 +134,7 @@ type Inputs struct {
 type Config struct {
 	Inputs
 	Logger                      log.Logger
+	ProjectManager              projectmanager.Project
 	DestinationPlatform         Platform
 	XcodeMajorVersion           int
 	XcodebuildAdditionalOptions []string
@@ -293,8 +295,20 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		}
 	}
 
+	project, err := projectmanager.NewProject(projectmanager.InitParams{
+		Logger:                 s.logger,
+		ProjectOrWorkspacePath: config.ProjectPath,
+		SchemeName:             config.Scheme,
+		ConfigurationName:      config.Configuration,
+		IsDebug:                config.IsDebugWorkspaceProjectHelper,
+	})
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to open project or workspace: %w", err)
+	}
+	config.ProjectManager = project
+
 	if config.CodeSigningAuthSource != codeSignSourceOff {
-		codesignManager, err := s.createCodesignManager(config)
+		codesignManager, err := s.createCodesignManager(config, project)
 		if err != nil {
 			return Config{}, fmt.Errorf("failed to prepare automatic code signing: %w", err)
 		}
@@ -325,6 +339,7 @@ func (s *XcodebuildArchiver) EnsureDependencies() {
 // RunOpts ...
 type RunOpts struct {
 	// Shared
+	ProjectManager      projectmanager.Project
 	ProjectPath         string
 	Scheme              string
 	DestinationPlatform Platform
@@ -387,15 +402,11 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	if opts.ArtifactName == "" {
 		s.logger.Infof("Looking for artifact name as field is empty")
 
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
-		cmdModel.SetScheme(opts.Scheme)
-		cmdModel.SetConfiguration(opts.Configuration)
-		settings, err := cmdModel.RunAndReturnSettings()
-		if err != nil {
-			return out, fmt.Errorf("failed to read build settings: %w", err)
+		productName, err := opts.ProjectManager.ReadSchemeBuildSettingString("PRODUCT_NAME")
+		if err != nil && !serialized.IsKeyNotFoundError(err) {
+			return out, fmt.Errorf("failed to read product name build setting: %w", err)
 		}
-		productName, err := settings.String("PRODUCT_NAME")
-		if err != nil || productName == "" {
+		if productName == "" {
 			s.logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
 			productName = opts.Scheme
 		}
@@ -700,7 +711,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	return nil
 }
 
-func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (codesign.Manager, error) {
+func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, project projectmanager.Project) (codesign.Manager, error) {
 	var authType codesign.AuthType
 	switch config.CodeSigningAuthSource {
 	case codeSignSourceAppleID:
@@ -759,19 +770,6 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		IsVerboseLog:               config.VerboseLog,
 	}
 
-	project, err := projectmanager.NewProject(projectmanager.InitParams{
-		Logger:                 s.logger,
-		ProjectOrWorkspacePath: config.ProjectPath,
-		SchemeName:             config.Scheme,
-		ConfigurationName:      config.Configuration,
-		IsDebug:                config.IsDebugWorkspaceProjectHelper,
-	})
-	if err != nil {
-		return codesign.Manager{}, err
-	}
-
-	client := retry.NewHTTPClient().StandardClient()
-
 	var testDevices []devportalservice.TestDevice
 	if config.TestDeviceListPath != "" {
 		testDevices, err = devportalservice.ParseTestDevicesFromFile(config.TestDeviceListPath, time.Now())
@@ -782,6 +780,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		testDevices = serviceConnection.TestDevices
 	}
 
+	client := retry.NewHTTPClient().StandardClient()
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,

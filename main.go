@@ -99,6 +99,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 
 func createRunOptions(config step.Config) step.RunOpts {
 	return step.RunOpts{
+		ProjectManager:      config.ProjectManager,
 		ProjectPath:         config.ProjectPath,
 		Scheme:              config.Scheme,
 		DestinationPlatform: config.DestinationPlatform,

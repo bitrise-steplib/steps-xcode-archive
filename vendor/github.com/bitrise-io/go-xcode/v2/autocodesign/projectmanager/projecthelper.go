@@ -446,8 +446,17 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 }
 
 func (p *ProjectHelper) targetEntitlements(name, config, bundleID string) (autocodesign.Entitlements, error) {
-	entitlements, err := p.XcProj.TargetCodeSignEntitlements(name, config)
-	if err != nil && !serialized.IsKeyNotFoundError(err) {
+	codeSignEntitlementsPth, err := p.buildSettingPathForKey(name, config, "CODE_SIGN_ENTITLEMENTS")
+	if err != nil {
+		if serialized.IsKeyNotFoundError(err) {
+			p.Logger.Debugf("buildSettings: Target (%s) does not have CODE_SIGN_ENTITLEMENTS in build settings", name)
+			return autocodesign.Entitlements{}, nil
+		}
+		return nil, err
+	}
+
+	entitlements, _, err := xcodeproj.ReadPlistFile(codeSignEntitlementsPth)
+	if err != nil {
 		return nil, err
 	}
 

@@ -16,6 +16,10 @@ require (
 	howett.net/plist v1.0.1
 )
 
+// override go-xcode v2
+replace github.com/bitrise-io/go-xcode/v2 => /Users/lpusok/Develop/go/src/github.com/bitrise-steplib/go-xcode
+
+
 require (
 	cel.dev/expr v0.16.1 // indirect
 	cloud.google.com/go v0.116.0 // indirect
