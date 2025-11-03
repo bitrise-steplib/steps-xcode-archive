@@ -300,6 +300,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	project, err := projectmanager.NewProject(projectmanager.InitParams{
 		Logger:                 s.logger,
 		ProjectOrWorkspacePath: config.ProjectPath,
+		BuildAction:            projectmanager.BuildActionArchive,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,
 		IsDebug:                config.IsDebugWorkspaceProjectHelper,

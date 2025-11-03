@@ -27,6 +27,7 @@ type Factory struct {
 type InitParams struct {
 	Logger                 log.Logger
 	ProjectOrWorkspacePath string
+	BuildAction            BuildAction
 	SchemeName             string
 	ConfigurationName      string
 	IsDebug                bool
@@ -47,7 +48,10 @@ func NewProject(params InitParams) (Project, error) {
 	if params.Logger == nil {
 		panic("Logger must be provided")
 	}
-	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.Logger, params.SchemeName, params.ConfigurationName, params.IsDebug)
+	if params.BuildAction == "" {
+		panic("BuildAction must be provided")
+	}
+	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.Logger, params.SchemeName, params.BuildAction, params.ConfigurationName, params.IsDebug)
 	if err != nil {
 		return Project{}, err
 	}
@@ -94,7 +98,7 @@ func (p Project) ReadSchemeBuildSettingString(key string) (string, error) {
 	target := p.projHelper.MainTarget.Name
 	value, err := p.projHelper.buildSettingForKey(target, p.projHelper.Configuration, key)
 	if err != nil {
-		return "", fmt.Errorf("failed to read build setting (%s) for the target (%s): %s", key, target, err)
+		return "", fmt.Errorf("failed to read build setting `%s` for the target `%s`: %s", key, target, err)
 	}
 
 	return value, nil
