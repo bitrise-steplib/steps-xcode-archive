@@ -621,7 +621,7 @@ workflows:
 
             /usr/bin/unzip $BITRISE_XCARCHIVE_ZIP_PATH -d ./_tmp
 
-            archive_path="./_tmp/ios-simple-objcTests.xcarchive"
+            archive_path="./_tmp/iosSimpleCustomArtifactName.xcarchive"
             infoplist_path="$archive_path/Info.plist"
             if [[ ! -f "$infoplist_path" ]]; then
               echo "$infoplist_path does not exist."
