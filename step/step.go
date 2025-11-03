@@ -758,6 +758,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 	}
 
 	project, err := projectmanager.NewProject(projectmanager.InitParams{
+		Logger:                 s.logger,
 		ProjectOrWorkspacePath: config.ProjectPath,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,

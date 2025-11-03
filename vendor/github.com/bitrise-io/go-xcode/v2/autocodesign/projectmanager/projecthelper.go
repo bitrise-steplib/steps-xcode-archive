@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/fileutil"
-	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/xcodeproject/schemeint"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
@@ -28,6 +28,7 @@ type buildSettings struct {
 
 // ProjectHelper ...
 type ProjectHelper struct {
+	Logger                    log.Logger
 	MainTarget                xcodeproj.Target
 	DependentTargets          []xcodeproj.Target
 	UITestTargets             []xcodeproj.Target
@@ -42,7 +43,7 @@ type ProjectHelper struct {
 // NewProjectHelper checks the provided project or workspace and generate a ProjectHelper with the provided scheme and configuration
 // Previously in the ruby version the initialize method did the same
 // It returns a new ProjectHelper, whose Configuration field contains is the selected configuration (even when configurationName parameter is empty)
-func NewProjectHelper(projOrWSPath, schemeName, configurationName string, isDebug bool) (*ProjectHelper, error) {
+func NewProjectHelper(projOrWSPath string, logger log.Logger, schemeName, configurationName string, isDebug bool) (*ProjectHelper, error) {
 	if exits, err := pathutil.IsPathExists(projOrWSPath); err != nil {
 		return nil, err
 	} else if !exits {
@@ -52,12 +53,12 @@ func NewProjectHelper(projOrWSPath, schemeName, configurationName string, isDebu
 	// Get the project and scheme of the provided .xcodeproj or .xcworkspace
 	// It is important to keep the returned scheme, as it can be located under the .xcworkspace and not the .xcodeproj.
 	// Fetching the scheme from the project based on name is not possible later.
-	xcproj, scheme, err := findBuiltProject(projOrWSPath, schemeName)
+	xcproj, scheme, err := findBuiltProject(logger, projOrWSPath, schemeName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find build project: %s", err)
 	}
 
-	mainTarget, err := mainTargetOfScheme(xcproj, scheme)
+	mainTarget, err := mainTargetOfScheme(logger, xcproj, scheme)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find the main target of the scheme (%s): %s", schemeName, err)
 	}
@@ -76,7 +77,7 @@ func NewProjectHelper(projOrWSPath, schemeName, configurationName string, isDebu
 		}
 	}
 
-	conf, err := configuration(configurationName, scheme, xcproj)
+	conf, err := configuration(logger, configurationName, scheme, xcproj)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +95,7 @@ func NewProjectHelper(projOrWSPath, schemeName, configurationName string, isDebu
 	}
 
 	return &ProjectHelper{
+		Logger:                    logger,
 		MainTarget:                mainTarget,
 		DependentTargets:          dependentTargets,
 		UITestTargets:             uiTestTargets,
@@ -168,9 +170,9 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 	for _, target := range p.XcProj.Proj.Targets {
 		currentTeamID, err := p.targetTeamID(target.Name, config)
 		if err != nil {
-			log.Debugf("%", err)
+			p.Logger.Debugf("%", err)
 		} else {
-			log.Debugf("Target (%s) build settings/DEVELOPMENT_TEAM Team ID: %s", target.Name, currentTeamID)
+			p.Logger.Debugf("Target (%s) build settings/DEVELOPMENT_TEAM Team ID: %s", target.Name, currentTeamID)
 		}
 
 		if currentTeamID == "" {
@@ -178,7 +180,7 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 			if err != nil {
 				// Skip projects not using target attributes
 				if serialized.IsKeyNotFoundError(err) {
-					log.Debugf("Target (%s) does not have TargetAttributes: No Team ID found.", target.Name)
+					p.Logger.Debugf("Target (%s) does not have TargetAttributes: No Team ID found.", target.Name)
 					continue
 				}
 
@@ -190,10 +192,10 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 				return "", fmt.Errorf("failed to parse development team for target (%s): %s", target.ID, err)
 			}
 
-			log.Debugf("Target (%s) DevelopmentTeam attribute: %s", target.Name, targetAttributesTeamID)
+			p.Logger.Debugf("Target (%s) DevelopmentTeam attribute: %s", target.Name, targetAttributesTeamID)
 
 			if targetAttributesTeamID == "" {
-				log.Debugf("Target (%s): No Team ID found.", target.Name)
+				p.Logger.Debugf("Target (%s): No Team ID found.", target.Name)
 				continue
 			}
 
@@ -206,7 +208,7 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 		}
 
 		if teamID != currentTeamID {
-			log.Warnf("Target (%s) Team ID (%s) does not match to the already registered team ID: %s\nThis causes build issue like: `Embedded binary is not signed with the same certificate as the parent app. Verify the embedded binary target's code sign settings match the parent app's.`", target.Name, currentTeamID, teamID)
+			p.Logger.Warnf("Target (%s) Team ID (%s) does not match to the already registered team ID: %s\nThis causes build issue like: `Embedded binary is not signed with the same certificate as the parent app. Verify the embedded binary target's code sign settings match the parent app's.`", target.Name, currentTeamID, teamID)
 			teamID = ""
 			break
 		}
@@ -218,7 +220,7 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 func (p *ProjectHelper) targetTeamID(targetName, config string) (string, error) {
 	devTeam, err := p.buildSettingForKey(targetName, config, "DEVELOPMENT_TEAM")
 	if serialized.IsKeyNotFoundError(err) {
-		log.Debugf("Target (%s) does not have DEVELOPMENT_TEAM in build settings", targetName)
+		p.Logger.Debugf("Target (%s) does not have DEVELOPMENT_TEAM in build settings", targetName)
 		return "", nil
 	}
 	return devTeam, err
@@ -240,14 +242,14 @@ func (p *ProjectHelper) fetchBuildSettings(targetName, conf string, customOption
 		// In debug mode, also fetch project build settings to compare values
 		projectSettings, err := p.XcProj.TargetBuildSettings(targetName, conf, customOptions...)
 		if err != nil {
-			log.Errorf("Failed to fetch build settings from project for target (%s): %s", targetName, err)
+			p.Logger.Errorf("Failed to fetch build settings from project for target (%s): %s", targetName, err)
 		}
 
 		return []buildSettings{wsSettings, buildSettings{settings: projectSettings, basePath: p.XcProj.Path}}, nil
 	}
 
-	log.Warnf("Failed to fetch build settings from workspace for target (%s): %s", targetName, err)
-	log.Printf("Falling back to project build settings")
+	p.Logger.Warnf("Failed to fetch build settings from workspace for target (%s): %s", targetName, err)
+	p.Logger.Printf("Falling back to project build settings")
 	settings, err = p.XcProj.TargetBuildSettings(targetName, conf, customOptions...)
 	return []buildSettings{{settings: settings, basePath: p.XcProj.Path}}, err
 }
@@ -257,7 +259,7 @@ func (p *ProjectHelper) cachedBuildSettings(targetName, conf string, customOptio
 	if ok {
 		confCache, ok := targetCache[conf]
 		if ok {
-			log.Debugf("buildSettings: Using cached settings for target='%s'", targetName)
+			p.Logger.Debugf("buildSettings: Using cached settings for target='%s'", targetName)
 			return []buildSettings{confCache}, nil
 		}
 	}
@@ -294,14 +296,14 @@ func (p *ProjectHelper) targetBuildSettings(targetName, conf string) (serialized
 		return settingsList[0].settings, nil
 	}
 
-	log.Debugf("Workspace target build settings: %+v", settingsList[0])
-	log.Debugf("Project target build settings: %+v", settingsList[1])
+	p.Logger.Debugf("Workspace target build settings: %+v", settingsList[0])
+	p.Logger.Debugf("Project target build settings: %+v", settingsList[1])
 	if p.IsDebugProjectBasedLookup {
-		log.Debugf("Multiple build settings found for target (%s), returning the project one", targetName)
+		p.Logger.Debugf("Multiple build settings found for target (%s), returning the project one", targetName)
 		return settingsList[1].settings, nil
 	}
 
-	log.Debugf("Multiple build settings found for target (%s), returning the workspace one", targetName)
+	p.Logger.Debugf("Multiple build settings found for target (%s), returning the workspace one", targetName)
 	return settingsList[0].settings, nil
 }
 
@@ -328,13 +330,13 @@ func (p *ProjectHelper) buildSettingForKey(targetName, conf string, key string, 
 	projectSettings := settingsList[1].settings
 	projectValue, err := projectSettings.String(key)
 	if err != nil {
-		log.Errorf("Failed to fetch project build setting for key (%s): %s", key, err)
+		p.Logger.Errorf("Failed to fetch project build setting for key (%s): %s", key, err)
 	}
 
 	if projectValue != wsValue {
-		log.Errorf("Conflicting values for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
+		p.Logger.Errorf("Conflicting values for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
 	} else {
-		log.Debugf("Matching values for workspace and project build setting %s: '%s'", key, wsValue)
+		p.Logger.Debugf("Matching values for workspace and project build setting %s: '%s'", key, wsValue)
 	}
 
 	// Return alternate value to be consistent with old project based target build setting fetch
@@ -376,9 +378,9 @@ func (p *ProjectHelper) buildSettingPathForKey(targetName, conf string, key stri
 	}
 
 	if projectValue != wsValue {
-		log.Errorf("Conflicting paths for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
+		p.Logger.Errorf("Conflicting paths for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
 	} else {
-		log.Debugf("Matching paths for workspace and project build setting %s: '%s'", key, wsValue)
+		p.Logger.Debugf("Matching paths for workspace and project build setting %s: '%s'", key, wsValue)
 	}
 
 	return projectValue, nil
@@ -398,7 +400,7 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 		return bundleID, nil
 	}
 
-	log.Debugf("PRODUCT_BUNDLE_IDENTIFIER env not found in 'xcodebuild -showBuildSettings -project %s -target %s -configuration %s command's output, checking the Info.plist file's CFBundleIdentifier property...", p.XcProj.Path, name, conf)
+	p.Logger.Debugf("PRODUCT_BUNDLE_IDENTIFIER env not found in 'xcodebuild -showBuildSettings -project %s -target %s -configuration %s command's output, checking the Info.plist file's CFBundleIdentifier property...", p.XcProj.Path, name, conf)
 
 	infoPlistAbsPath, err := p.buildSettingPathForKey(name, conf, "INFOPLIST_FILE")
 	if err != nil {
@@ -428,7 +430,7 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 		return bundleID, nil
 	}
 
-	log.Debugf("CFBundleIdentifier defined with variable: %s, trying to resolve it...", bundleID)
+	p.Logger.Debugf("CFBundleIdentifier defined with variable: %s, trying to resolve it...", bundleID)
 
 	settings, err := p.targetBuildSettings(name, conf)
 	if err != nil {
@@ -439,7 +441,7 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 		return "", fmt.Errorf("failed to resolve bundle ID: %s", err)
 	}
 
-	log.Debugf("resolved CFBundleIdentifier: %s", resolved)
+	p.Logger.Debugf("resolved CFBundleIdentifier: %s", resolved)
 
 	return resolved, nil
 }
@@ -450,7 +452,7 @@ func (p *ProjectHelper) targetEntitlements(name, config, bundleID string) (autoc
 		return nil, err
 	}
 
-	return resolveEntitlementVariables(autocodesign.Entitlements(entitlements), bundleID)
+	return resolveEntitlementVariables(p.Logger, autocodesign.Entitlements(entitlements), bundleID)
 }
 
 // IsSigningManagedAutomatically checks the "Automatically manage signing" checkbox in Xcode
@@ -460,7 +462,7 @@ func (p *ProjectHelper) IsSigningManagedAutomatically() (bool, error) {
 	codeSignStyle, err := p.buildSettingForKey(targetName, p.Configuration, "CODE_SIGN_STYLE")
 	if err != nil {
 		if errors.As(err, &serialized.KeyNotFoundError{}) {
-			log.Debugf("setting CODE_SIGN_STYLE unspecified for target (%s), defaulting to `Manual`", targetName)
+			p.Logger.Debugf("setting CODE_SIGN_STYLE unspecified for target (%s), defaulting to `Manual`", targetName)
 
 			return false, nil
 		}
@@ -475,7 +477,7 @@ func (p *ProjectHelper) IsSigningManagedAutomatically() (bool, error) {
 // Entitlement values can contain variables, for example: `iCloud.$(CFBundleIdentifier)`.
 // Expanding iCloud Container values only, as they are compared to the profile values later.
 // Expand CFBundleIdentifier variable only, other variables are not yet supported.
-func resolveEntitlementVariables(entitlements autocodesign.Entitlements, bundleID string) (autocodesign.Entitlements, error) {
+func resolveEntitlementVariables(logger log.Logger, entitlements autocodesign.Entitlements, bundleID string) (autocodesign.Entitlements, error) {
 	containers, err := entitlements.ICloudContainers()
 	if err != nil {
 		return nil, err
@@ -490,7 +492,7 @@ func resolveEntitlementVariables(entitlements autocodesign.Entitlements, bundleI
 		if strings.ContainsRune(container, '$') {
 			expanded, err := expandTargetSetting(container, serialized.Object{"CFBundleIdentifier": bundleID})
 			if err != nil {
-				log.Warnf("Ignoring iCloud container ID (%s) as can not expand variable: %v", container, err)
+				logger.Warnf("Ignoring iCloud container ID (%s) as can not expand variable: %v", container, err)
 				continue
 			}
 
@@ -531,7 +533,7 @@ func expandTargetSetting(value string, buildSettings serialized.Object) (string,
 	return prefix + envValue + suffix, nil
 }
 
-func configuration(configurationName string, scheme xcscheme.Scheme, xcproj xcodeproj.XcodeProj) (string, error) {
+func configuration(logger log.Logger, configurationName string, scheme xcscheme.Scheme, xcproj xcodeproj.XcodeProj) (string, error) {
 	defaultConfiguration := scheme.ArchiveAction.BuildConfiguration
 	var configuration string
 	if configurationName == "" || configurationName == defaultConfiguration {
@@ -546,7 +548,7 @@ func configuration(configurationName string, scheme xcscheme.Scheme, xcproj xcod
 				return "", fmt.Errorf("build configuration (%s) not defined for target: (%s)", configurationName, target.Name)
 			}
 		}
-		log.Warnf("Using user defined build configuration: %s instead of the scheme's default one: %s.\nMake sure you use the same configuration in further steps.", configurationName, defaultConfiguration)
+		logger.Warnf("Using user defined build configuration: %s instead of the scheme's default one: %s.\nMake sure you use the same configuration in further steps.", configurationName, defaultConfiguration)
 		configuration = configurationName
 	}
 
@@ -554,8 +556,8 @@ func configuration(configurationName string, scheme xcscheme.Scheme, xcproj xcod
 }
 
 // mainTargetOfScheme return the main target
-func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcodeproj.Target, error) {
-	log.Debugf("Searching %d for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
+func mainTargetOfScheme(logger log.Logger, proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcodeproj.Target, error) {
+	logger.Debugf("Searching %d for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
 
 	var blueIdent string
 	for _, entry := range scheme.BuildAction.BuildActionEntries {
@@ -565,7 +567,7 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcode
 		}
 	}
 
-	log.Debugf("Searching %d targets for: %s", len(proj.Proj.Targets), blueIdent)
+	logger.Debugf("Searching %d targets for: %s", len(proj.Proj.Targets), blueIdent)
 
 	// Search for the main target
 	for _, t := range proj.Proj.Targets {
@@ -579,8 +581,8 @@ func mainTargetOfScheme(proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcode
 
 // findBuiltProject returns the Xcode project which will be built for the provided scheme, plus the scheme.
 // The scheme is returned as it could be found under the .xcworkspace, and opening based on name from the XcodeProj would fail.
-func findBuiltProject(pth, schemeName string) (xcodeproj.XcodeProj, xcscheme.Scheme, error) {
-	log.TInfof("Locating built project for xcode project: %s, scheme: %s", pth, schemeName)
+func findBuiltProject(logger log.Logger, pth, schemeName string) (xcodeproj.XcodeProj, xcscheme.Scheme, error) {
+	logger.TInfof("Locating built project for xcode project: %s, scheme: %s", pth, schemeName)
 
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {
@@ -602,7 +604,7 @@ func findBuiltProject(pth, schemeName string) (xcodeproj.XcodeProj, xcscheme.Sch
 		return xcodeproj.XcodeProj{}, xcscheme.Scheme{}, err
 	}
 
-	log.TInfof("Located built project for scheme: %s", schemeName)
+	logger.TInfof("Located built project for scheme: %s", schemeName)
 
 	return xcodeProj, *scheme, nil
 }

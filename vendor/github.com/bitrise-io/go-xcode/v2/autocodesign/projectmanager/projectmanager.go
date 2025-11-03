@@ -8,12 +8,13 @@ package projectmanager
 import (
 	"fmt"
 
-	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 )
 
 // Project ...
 type Project struct {
+	logger     log.Logger
 	projHelper ProjectHelper
 }
 
@@ -24,6 +25,7 @@ type Factory struct {
 
 // InitParams ...
 type InitParams struct {
+	Logger                 log.Logger
 	ProjectOrWorkspacePath string
 	SchemeName             string
 	ConfigurationName      string
@@ -42,13 +44,17 @@ func (f *Factory) Create() (Project, error) {
 
 // NewProject ...
 func NewProject(params InitParams) (Project, error) {
-	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.SchemeName, params.ConfigurationName, params.IsDebug)
+	if params.Logger == nil {
+		panic("Logger must be provided")
+	}
+	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.Logger, params.SchemeName, params.ConfigurationName, params.IsDebug)
 	if err != nil {
 		return Project{}, err
 	}
 
 	return Project{
 		projHelper: *projectHelper,
+		logger:     params.Logger,
 	}, nil
 }
 
@@ -65,7 +71,7 @@ func (p Project) Platform() (autocodesign.Platform, error) {
 		return "", fmt.Errorf("failed to read project platform: %s", err)
 	}
 
-	log.Debugf("Platform: %s", platform)
+	p.logger.Debugf("Platform: %s", platform)
 
 	return platform, nil
 }
@@ -82,18 +88,18 @@ func (p Project) MainTargetBundleID() (string, error) {
 
 // GetAppLayout ...
 func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error) {
-	log.Printf("Configuration: %s", p.projHelper.Configuration)
+	p.logger.Printf("Configuration: %s", p.projHelper.Configuration)
 
 	platform, err := p.projHelper.Platform(p.projHelper.Configuration)
 	if err != nil {
 		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project platform: %s", err)
 	}
 
-	log.Debugf("Platform: %s", platform)
+	p.logger.Debugf("Platform: %s", platform)
 
-	log.Printf("Application and App Extension targets:")
+	p.logger.Printf("Application and App Extension targets:")
 	for _, target := range p.projHelper.ArchivableTargets() {
-		log.Printf("- %s", target.Name)
+		p.logger.Printf("- %s", target.Name)
 	}
 
 	archivableTargetBundleIDToEntitlements, err := p.projHelper.ArchivableTargetBundleIDToEntitlements()
@@ -102,15 +108,15 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 	}
 
 	if ok, entitlement, bundleID := CanGenerateProfileWithEntitlements(archivableTargetBundleIDToEntitlements); !ok {
-		log.Errorf("Can not create profile with unsupported entitlement (%s) for the bundle ID %s, due to App Store Connect API limitations.", entitlement, bundleID)
+		p.logger.Errorf("Can not create profile with unsupported entitlement (%s) for the bundle ID %s, due to App Store Connect API limitations.", entitlement, bundleID)
 		return autocodesign.AppLayout{}, fmt.Errorf("please generate provisioning profile manually on Apple Developer Portal and use the Certificate and profile installer Step instead")
 	}
 
 	var uiTestTargetBundleIDs []string
 	if uiTestTargets {
-		log.Printf("UITest targets:")
+		p.logger.Printf("UITest targets:")
 		for _, target := range p.projHelper.UITestTargets {
-			log.Printf("- %s", target.Name)
+			p.logger.Printf("- %s", target.Name)
 		}
 
 		uiTestTargetBundleIDs, err = p.projHelper.UITestTargetBundleIDs()
@@ -132,11 +138,11 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 	var archivableTargetsCounter = 0
 
 	fmt.Println()
-	log.TInfof("Apply Bitrise managed codesigning on the executable targets (up to: %d targets)", len(archivableTargets))
+	p.logger.TInfof("Apply Bitrise managed codesigning on the executable targets (up to: %d targets)", len(archivableTargets))
 
 	for _, target := range archivableTargets {
 		fmt.Println()
-		log.Infof("  Target: %s", target.Name)
+		p.logger.Infof("  Target: %s", target.Name)
 
 		forceCodesignDistribution := distribution
 		if _, isDevelopmentAvailable := codesignAssetsByDistributionType[autocodesign.Development]; isDevelopmentAvailable {
@@ -158,9 +164,9 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 			return fmt.Errorf("no profile ensured for the bundleID %s", targetBundleID)
 		}
 
-		log.Printf("  development Team: %s(%s)", codesignAssets.Certificate.TeamName, teamID)
-		log.Printf("  provisioning Profile: %s", profile.Attributes().Name)
-		log.Printf("  certificate: %s", codesignAssets.Certificate.CommonName)
+		p.logger.Printf("  development Team: %s(%s)", codesignAssets.Certificate.TeamName, teamID)
+		p.logger.Printf("  provisioning Profile: %s", profile.Attributes().Name)
+		p.logger.Printf("  certificate: %s", codesignAssets.Certificate.CommonName)
 
 		if err := p.projHelper.XcProj.ForceCodeSign(p.projHelper.Configuration, target.Name, teamID, codesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
 			return fmt.Errorf("failed to apply code sign settings for target (%s): %s", target.Name, err)
@@ -169,16 +175,16 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 		archivableTargetsCounter++
 	}
 
-	log.TInfof("Applied Bitrise managed codesigning on up to %d targets", archivableTargetsCounter)
+	p.logger.TInfof("Applied Bitrise managed codesigning on up to %d targets", archivableTargetsCounter)
 
 	devCodesignAssets, isDevelopmentAvailable := codesignAssetsByDistributionType[autocodesign.Development]
 	if isDevelopmentAvailable && len(devCodesignAssets.UITestTargetProfilesByBundleID) != 0 {
 		fmt.Println()
-		log.TInfof("Apply Bitrise managed codesigning on the UITest targets (%d)", len(p.projHelper.UITestTargets))
+		p.logger.TInfof("Apply Bitrise managed codesigning on the UITest targets (%d)", len(p.projHelper.UITestTargets))
 
 		for _, uiTestTarget := range p.projHelper.UITestTargets {
 			fmt.Println()
-			log.Infof("  Target: %s", uiTestTarget.Name)
+			p.logger.Infof("  Target: %s", uiTestTarget.Name)
 
 			teamID := devCodesignAssets.Certificate.TeamID
 
@@ -191,9 +197,9 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 				return fmt.Errorf("no profile ensured for the bundleID %s", targetBundleID)
 			}
 
-			log.Printf("  development Team: %s(%s)", devCodesignAssets.Certificate.TeamName, teamID)
-			log.Printf("  provisioning Profile: %s", profile.Attributes().Name)
-			log.Printf("  certificate: %s", devCodesignAssets.Certificate.CommonName)
+			p.logger.Printf("  development Team: %s(%s)", devCodesignAssets.Certificate.TeamName, teamID)
+			p.logger.Printf("  provisioning Profile: %s", profile.Attributes().Name)
+			p.logger.Printf("  certificate: %s", devCodesignAssets.Certificate.CommonName)
 
 			for _, c := range uiTestTarget.BuildConfigurationList.BuildConfigurations {
 				if err := p.projHelper.XcProj.ForceCodeSign(c.Name, uiTestTarget.Name, teamID, devCodesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
@@ -207,7 +213,7 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 		return fmt.Errorf("failed to save project: %s", err)
 	}
 
-	log.Debugf("Xcode project saved.")
+	p.logger.Debugf("Xcode project saved.")
 
 	return nil
 }
