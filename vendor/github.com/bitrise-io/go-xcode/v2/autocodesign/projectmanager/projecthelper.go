@@ -564,15 +564,32 @@ func configuration(logger log.Logger, configurationName string, scheme xcscheme.
 }
 
 // mainTargetOfScheme return the main target
+/*
+	archiveEntry, ok := scheme.AppBuildActionEntry()
+	if !ok {
+		return nil, fmt.Errorf("archivable entry not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
+	}
+
+	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
+	if !ok {
+		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
+	}
+*/
 func mainTargetOfScheme(logger log.Logger, proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcodeproj.Target, error) {
-	logger.Debugf("buildSettings: Searching %d for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
+	logger.Debugf("Searching %d for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
 
 	var blueIdent string
 	for _, entry := range scheme.BuildAction.BuildActionEntries {
+		// if entry.BuildForArchiving != "YES" {
+		// 	continue
+		// }
 		if entry.BuildableReference.IsAppReference() {
 			blueIdent = entry.BuildableReference.BlueprintIdentifier
 			break
 		}
+	}
+	if blueIdent == "" {
+		return xcodeproj.Target{}, fmt.Errorf("failed to find the scheme's (%v) main target blueprint identifier", scheme)
 	}
 
 	logger.Debugf("buildSettings: Searching %d targets for: %s", len(proj.Proj.Targets), blueIdent)
@@ -590,7 +607,7 @@ func mainTargetOfScheme(logger log.Logger, proj xcodeproj.XcodeProj, scheme xcsc
 // findBuiltProject returns the Xcode project which will be built for the provided scheme, plus the scheme.
 // The scheme is returned as it could be found under the .xcworkspace, and opening based on name from the XcodeProj would fail.
 func findBuiltProject(logger log.Logger, pth, schemeName string) (xcodeproj.XcodeProj, xcscheme.Scheme, error) {
-	logger.TInfof("buildSettings: Locating built project for xcode project: %s, scheme: %s", pth, schemeName)
+	logger.TInfof("Locating built project for Xcode project: %s, scheme: %s", pth, schemeName)
 
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {

@@ -295,6 +295,8 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		}
 	}
 
+	// Open Xcode project
+	s.logger.TInfof("Opening Xcode project at path: %s for scheme: %s", config.ProjectPath, config.Scheme)
 	project, err := projectmanager.NewProject(projectmanager.InitParams{
 		Logger:                 s.logger,
 		ProjectOrWorkspacePath: config.ProjectPath,
@@ -303,7 +305,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		IsDebug:                config.IsDebugWorkspaceProjectHelper,
 	})
 	if err != nil {
-		return Config{}, fmt.Errorf("failed to open project or workspace: %w", err)
+		return Config{}, fmt.Errorf("failed to open Project or Workspace: %w", err)
 	}
 	config.ProjectManager = project
 
@@ -447,6 +449,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	s.logger.Println()
 
 	archiveOpts := xcodeArchiveOpts{
+		ProjectManager:      opts.ProjectManager,
 		ProjectPath:         opts.ProjectPath,
 		Scheme:              opts.Scheme,
 		DestinationPlatform: opts.DestinationPlatform,
@@ -797,6 +800,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, proj
 }
 
 type xcodeArchiveOpts struct {
+	ProjectManager      projectmanager.Project
 	ProjectPath         string
 	Scheme              string
 	DestinationPlatform Platform
@@ -819,38 +823,21 @@ type xcodeArchiveResult struct {
 
 func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveResult, error) {
 	out := xcodeArchiveResult{}
-
-	// Open Xcode project
-	s.logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
-
-	xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
-	if err != nil {
-		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
-	}
-
-	s.logger.TInfof("Reading xcode project")
-
 	if opts.DestinationPlatform == detectPlatform {
 		s.logger.TInfof("Platform is set to 'automatic', detecting platform from the project.")
 		s.logger.TWarnf("Define the platform step input manually to avoid this phase in the future.")
-		platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
+		platform, err := BuildableTargetPlatform(s.logger, opts.ProjectManager)
 		if err != nil {
 			return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 		}
 		opts.DestinationPlatform = platform
 	}
 
-	s.logger.TInfof("Reading main target")
-
-	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
-	if err != nil {
-		return out, fmt.Errorf("failed to read main application target: %s", err)
-	}
-	if mainTarget.ProductType == exportoptionsgenerator.AppClipProductType {
-		return out, fmt.Errorf(`Selected scheme: '%s' targets an App Clip target (%s),
+	if opts.ProjectManager.IsMainTargetProductTypeAppClip() {
+		return out, fmt.Errorf(`Selected scheme: '%s' targets an App Clip target.
 'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.
 Please select a scheme targeting an Application target to archive and export the main Application
-and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.Scheme, mainTarget.Name)
+and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.Scheme)
 	}
 
 	// Create the Archive with Xcode Command Line tools

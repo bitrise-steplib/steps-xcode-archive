@@ -76,6 +76,10 @@ func (p Project) Platform() (autocodesign.Platform, error) {
 	return platform, nil
 }
 
+func (p Project) IsMainTargetProductTypeAppClip() bool {
+	return p.projHelper.MainTarget.IsAppClipProduct()
+}
+
 // MainTargetBundleID ...
 func (p Project) MainTargetBundleID() (string, error) {
 	bundleID, err := p.projHelper.TargetBundleID(p.projHelper.MainTarget.Name, p.projHelper.Configuration)
