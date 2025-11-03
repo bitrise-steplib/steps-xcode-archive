@@ -9,7 +9,7 @@ require (
 	github.com/bitrise-io/go-utils v1.0.14
 	github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.23
 	github.com/bitrise-io/go-xcode v1.3.1
-	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.70.0.20251103151518-73ea52acfb62
+	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.70.0.20251103155019-bcb86c9a2305
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v3 v3.0.1

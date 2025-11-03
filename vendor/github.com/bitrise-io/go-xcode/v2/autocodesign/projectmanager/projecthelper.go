@@ -37,7 +37,7 @@ type ProjectHelper struct {
 	Configuration             string
 	IsDebugProjectBasedLookup bool
 
-	buildSettingsCache map[string]map[string]buildSettings // target/config/buildSettings
+	buildSettingsCache map[string]map[string][]buildSettings // target/config/buildSettings
 }
 
 // NewProjectHelper checks the provided project or workspace and generate a ProjectHelper with the provided scheme and configuration
@@ -260,7 +260,7 @@ func (p *ProjectHelper) cachedBuildSettings(targetName, conf string, customOptio
 		confCache, ok := targetCache[conf]
 		if ok {
 			p.Logger.Debugf("buildSettings: Using cached settings for target='%s'", targetName)
-			return []buildSettings{confCache}, nil
+			return confCache, nil
 		}
 	}
 
@@ -270,12 +270,12 @@ func (p *ProjectHelper) cachedBuildSettings(targetName, conf string, customOptio
 	}
 
 	if targetCache == nil {
-		targetCache = map[string]buildSettings{}
+		targetCache = map[string][]buildSettings{}
 	}
-	targetCache[conf] = settingsList[0]
+	targetCache[conf] = settingsList
 
 	if p.buildSettingsCache == nil {
-		p.buildSettingsCache = map[string]map[string]buildSettings{}
+		p.buildSettingsCache = map[string]map[string][]buildSettings{}
 	}
 	p.buildSettingsCache[targetName] = targetCache
 
