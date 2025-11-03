@@ -1,7 +1,10 @@
 package xcodecommand
 
 import (
+	"bytes"
 	"errors"
+	"io"
+	"os"
 	"os/exec"
 	"regexp"
 
@@ -11,7 +14,11 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/v2/errorfinder"
-	"github.com/bitrise-io/go-xcode/v2/logio"
+	"github.com/bitrise-io/go-xcode/v2/loginterceptor"
+)
+
+const (
+	prefix = `^\[Bitrise.*\].*`
 )
 
 // XcprettyCommandRunner is an xcodebuild command runner that uses xcpretty as log formatter
@@ -40,27 +47,41 @@ func NewXcprettyCommandRunner(logger log.Logger, commandFactory command.Factory,
 
 // Run runs xcodebuild using xcpretty as a log formatter
 func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcprettyArgs []string) (Output, error) {
-	loggingIO := logio.SetupPipeWiring(regexp.MustCompile(`^\[Bitrise.*\].*`))
+	var (
+		buildOutBuffer         bytes.Buffer
+		pipeReader, pipeWriter = io.Pipe()
+		buildOutWriter         = io.MultiWriter(&buildOutBuffer, pipeWriter)
+		prettyOutWriter        = os.Stdout
+		prefixRegexp           = regexp.MustCompile(prefix)
+		interceptor            = loginterceptor.NewPrefixInterceptor(prefixRegexp, os.Stdout, buildOutWriter, c.logger)
+	)
+
+	defer func() {
+		if err := interceptor.Close(); err != nil {
+			c.logger.Warnf("Failed to close log interceptor, error: %s", err)
+		}
+	}()
 
 	c.cleanOutputFile(xcprettyArgs)
 
 	buildCmd := c.commandFactory.Create("xcodebuild", xcodebuildArgs, &command.Opts{
-		Stdout:      loggingIO.XcbuildStdout,
-		Stderr:      loggingIO.XcbuildStderr,
+		Stdout:      interceptor,
+		Stderr:      interceptor,
 		Env:         unbufferedIOEnv,
 		Dir:         workDir,
 		ErrorFinder: errorfinder.FindXcodebuildErrors,
 	})
 
 	prettyCmd := c.commandFactory.Create("xcpretty", xcprettyArgs, &command.Opts{
-		Stdin:  loggingIO.ToolStdin,
-		Stdout: loggingIO.ToolStdout,
-		Stderr: loggingIO.ToolStderr,
+		Stdin:  pipeReader,
+		Stdout: prettyOutWriter,
+		Stderr: prettyOutWriter,
 	})
 
 	defer func() {
-		if err := loggingIO.Close(); err != nil {
-			c.logger.Warnf("logging IO failure, error: %s", err)
+		// Close the pipe to xcpretty first, otherwise xcpretty will not exit
+		if err := pipeWriter.Close(); err != nil {
+			c.logger.Warnf("Failed to close xcodebuild-xcpretty pipe: %s", err)
 		}
 
 		if err := prettyCmd.Wait(); err != nil {
@@ -88,13 +109,8 @@ func (c *XcprettyCommandRunner) Run(workDir string, xcodebuildArgs []string, xcp
 		}
 	}
 
-	// Closing the filter to ensure all output is flushed and processed
-	if err := loggingIO.CloseFilter(); err != nil {
-		c.logger.Warnf("logging IO failure, error: %s", err)
-	}
-
 	return Output{
-		RawOut:   loggingIO.XcbuildRawout.Bytes(),
+		RawOut:   buildOutBuffer.Bytes(),
 		ExitCode: exitCode,
 	}, err
 }

@@ -121,7 +121,8 @@ type Inputs struct {
 	APIKeyEnterpriseAccount bool            `env:"api_key_enterprise_account,opt[yes,no]"`
 
 	// Debugging
-	VerboseLog bool `env:"verbose_log,opt[yes,no]"`
+	VerboseLog                    bool `env:"verbose_log,opt[yes,no]"`
+	IsDebugWorkspaceProjectHelper bool `env:"debug_workspace_targets,opt[yes,no]"`
 
 	// Hidden inputs
 	BuildURL      string          `env:"BITRISE_BUILD_URL"`
@@ -760,6 +761,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		ProjectOrWorkspacePath: config.ProjectPath,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,
+		IsDebug:                config.IsDebugWorkspaceProjectHelper,
 	})
 	if err != nil {
 		return codesign.Manager{}, err

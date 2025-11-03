@@ -27,6 +27,7 @@ type InitParams struct {
 	ProjectOrWorkspacePath string
 	SchemeName             string
 	ConfigurationName      string
+	IsDebug                bool
 }
 
 // NewFactory ...
@@ -41,7 +42,7 @@ func (f *Factory) Create() (Project, error) {
 
 // NewProject ...
 func NewProject(params InitParams) (Project, error) {
-	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.SchemeName, params.ConfigurationName)
+	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.SchemeName, params.ConfigurationName, params.IsDebug)
 	if err != nil {
 		return Project{}, err
 	}

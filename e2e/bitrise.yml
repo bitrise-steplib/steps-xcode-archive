@@ -121,6 +121,7 @@ workflows:
         - verbose_log: "yes"
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+        - debug_workspace_targets: "yes"
 
   test_manual_signing:
     description: Tests the case when automatic code signing is disabled and the certificate installer step is used to set up code signing assets
@@ -183,6 +184,7 @@ workflows:
         - verbose_log: "yes"
         - keychain_path: $BITRISE_KEYCHAIN_PATH
         - keychain_password: $BITRISE_KEYCHAIN_PASSWORD
+        - debug_workspace_targets: "yes"
 
   test_api_key_signing_manual_fallback_on_error:
     description: |-
@@ -537,6 +539,7 @@ workflows:
         - api_key_path: $API_KEY_PATH
         - api_key_id: $API_KEY_ID
         - api_key_issuer_id: $API_KEY_ISSUER_ID
+        - debug_workspace_targets: "yes"
 
   _check_outputs:
     steps:
