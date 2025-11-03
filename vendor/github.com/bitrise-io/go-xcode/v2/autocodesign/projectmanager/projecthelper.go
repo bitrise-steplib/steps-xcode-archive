@@ -170,9 +170,9 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 	for _, target := range p.XcProj.Proj.Targets {
 		currentTeamID, err := p.targetTeamID(target.Name, config)
 		if err != nil {
-			p.Logger.Debugf("%", err)
+			p.Logger.Debugf("buildSettings: %", err)
 		} else {
-			p.Logger.Debugf("Target (%s) build settings/DEVELOPMENT_TEAM Team ID: %s", target.Name, currentTeamID)
+			p.Logger.Debugf("buildSettings: Target (%s) build settings/DEVELOPMENT_TEAM Team ID: %s", target.Name, currentTeamID)
 		}
 
 		if currentTeamID == "" {
@@ -180,7 +180,7 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 			if err != nil {
 				// Skip projects not using target attributes
 				if serialized.IsKeyNotFoundError(err) {
-					p.Logger.Debugf("Target (%s) does not have TargetAttributes: No Team ID found.", target.Name)
+					p.Logger.Debugf("buildSettings: Target (%s) does not have TargetAttributes: No Team ID found.", target.Name)
 					continue
 				}
 
@@ -192,10 +192,10 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 				return "", fmt.Errorf("failed to parse development team for target (%s): %s", target.ID, err)
 			}
 
-			p.Logger.Debugf("Target (%s) DevelopmentTeam attribute: %s", target.Name, targetAttributesTeamID)
+			p.Logger.Debugf("buildSettings: Target (%s) DevelopmentTeam attribute: %s", target.Name, targetAttributesTeamID)
 
 			if targetAttributesTeamID == "" {
-				p.Logger.Debugf("Target (%s): No Team ID found.", target.Name)
+				p.Logger.Debugf("buildSettings: Target (%s): No Team ID found.", target.Name)
 				continue
 			}
 
@@ -208,7 +208,7 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 		}
 
 		if teamID != currentTeamID {
-			p.Logger.Warnf("Target (%s) Team ID (%s) does not match to the already registered team ID: %s\nThis causes build issue like: `Embedded binary is not signed with the same certificate as the parent app. Verify the embedded binary target's code sign settings match the parent app's.`", target.Name, currentTeamID, teamID)
+			p.Logger.Warnf("buildSettings: Target (%s) Team ID (%s) does not match to the already registered team ID: %s\nThis causes build issue like: `Embedded binary is not signed with the same certificate as the parent app. Verify the embedded binary target's code sign settings match the parent app's.`", target.Name, currentTeamID, teamID)
 			teamID = ""
 			break
 		}
@@ -220,7 +220,7 @@ func (p *ProjectHelper) ProjectTeamID(config string) (string, error) {
 func (p *ProjectHelper) targetTeamID(targetName, config string) (string, error) {
 	devTeam, err := p.buildSettingForKey(targetName, config, "DEVELOPMENT_TEAM")
 	if serialized.IsKeyNotFoundError(err) {
-		p.Logger.Debugf("Target (%s) does not have DEVELOPMENT_TEAM in build settings", targetName)
+		p.Logger.Debugf("buildSettings: Target (%s) does not have DEVELOPMENT_TEAM in build settings", targetName)
 		return "", nil
 	}
 	return devTeam, err
@@ -242,14 +242,14 @@ func (p *ProjectHelper) fetchBuildSettings(targetName, conf string, customOption
 		// In debug mode, also fetch project build settings to compare values
 		projectSettings, err := p.XcProj.TargetBuildSettings(targetName, conf, customOptions...)
 		if err != nil {
-			p.Logger.Errorf("Failed to fetch build settings from project for target (%s): %s", targetName, err)
+			p.Logger.Errorf("buildSettings: Failed to fetch build settings from project for target (%s): %s", targetName, err)
 		}
 
-		return []buildSettings{wsSettings, buildSettings{settings: projectSettings, basePath: p.XcProj.Path}}, nil
+		return []buildSettings{wsSettings, {settings: projectSettings, basePath: p.XcProj.Path}}, nil
 	}
 
-	p.Logger.Warnf("Failed to fetch build settings from workspace for target (%s): %s", targetName, err)
-	p.Logger.Printf("Falling back to project build settings")
+	p.Logger.Warnf("buildSettings: Failed to fetch build settings from workspace for target (%s): %s", targetName, err)
+	p.Logger.Printf("buildSettings: Falling back to project build settings")
 	settings, err = p.XcProj.TargetBuildSettings(targetName, conf, customOptions...)
 	return []buildSettings{{settings: settings, basePath: p.XcProj.Path}}, err
 }
@@ -296,15 +296,10 @@ func (p *ProjectHelper) targetBuildSettings(targetName, conf string) (serialized
 		return settingsList[0].settings, nil
 	}
 
-	p.Logger.Debugf("Workspace target build settings: %+v", settingsList[0])
-	p.Logger.Debugf("Project target build settings: %+v", settingsList[1])
-	if p.IsDebugProjectBasedLookup {
-		p.Logger.Debugf("Multiple build settings found for target (%s), returning the project one", targetName)
-		return settingsList[1].settings, nil
-	}
-
-	p.Logger.Debugf("Multiple build settings found for target (%s), returning the workspace one", targetName)
-	return settingsList[0].settings, nil
+	p.Logger.Debugf("buildSettings: Workspace target build settings: %+v", settingsList[0])
+	p.Logger.Debugf("buildSettings: Project target build settings: %+v", settingsList[1])
+	p.Logger.Debugf("buildSettings: Multiple build settings found for target (%s), returning the project one", targetName)
+	return settingsList[1].settings, nil
 }
 
 func (p *ProjectHelper) buildSettingForKey(targetName, conf string, key string, customOptions ...string) (string, error) {
@@ -330,17 +325,20 @@ func (p *ProjectHelper) buildSettingForKey(targetName, conf string, key string, 
 	projectSettings := settingsList[1].settings
 	projectValue, err := projectSettings.String(key)
 	if err != nil {
-		p.Logger.Errorf("Failed to fetch project build setting for key (%s): %s", key, err)
+		p.Logger.Errorf("buildSettings: Failed to fetch project build setting for key (%s): %s", key, err)
+		p.Logger.Printf("buildSettings: Returning workspace value for key (%s): %s", key, wsValue)
+		return wsValue, nil
 	}
 
 	if projectValue != wsValue {
-		p.Logger.Errorf("Conflicting values for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
-	} else {
-		p.Logger.Debugf("Matching values for workspace and project build setting %s: '%s'", key, wsValue)
+		p.Logger.Errorf("buildSettings: Conflicting values for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
+		// Return alternate value to be consistent with old project based target build setting fetch
+		p.Logger.Printf("buildSettings: Returning project value for key (%s): %s", key, projectValue)
+		return projectValue, nil
 	}
+	p.Logger.Debugf("buildSettings: Matching values for workspace and project build setting %s: '%s'", key, wsValue)
 
-	// Return alternate value to be consistent with old project based target build setting fetch
-	return projectValue, err
+	return wsValue, err
 }
 
 func (p *ProjectHelper) buildSettingPathForKey(targetName, conf string, key string, customOptions ...string) (string, error) {
@@ -378,12 +376,13 @@ func (p *ProjectHelper) buildSettingPathForKey(targetName, conf string, key stri
 	}
 
 	if projectValue != wsValue {
-		p.Logger.Errorf("Conflicting paths for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
-	} else {
-		p.Logger.Debugf("Matching paths for workspace and project build setting %s: '%s'", key, wsValue)
+		p.Logger.Errorf("buildSettings: Conflicting paths for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
+		p.Logger.Printf("buildSettings: Returning project path for key (%s): %s", key, projectValue)
+		return projectValue, nil
 	}
 
-	return projectValue, nil
+	p.Logger.Debugf("buildSettings: Matching paths for workspace and project build setting %s: '%s'", key, wsValue)
+	return wsValue, nil
 }
 
 // TargetBundleID returns the target bundle ID
@@ -400,7 +399,7 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 		return bundleID, nil
 	}
 
-	p.Logger.Debugf("PRODUCT_BUNDLE_IDENTIFIER env not found in 'xcodebuild -showBuildSettings -project %s -target %s -configuration %s command's output, checking the Info.plist file's CFBundleIdentifier property...", p.XcProj.Path, name, conf)
+	p.Logger.Debugf("buildSettings: PRODUCT_BUNDLE_IDENTIFIER env not found in 'xcodebuild -showBuildSettings -project %s -target %s -configuration %s command's output, checking the Info.plist file's CFBundleIdentifier property...", p.XcProj.Path, name, conf)
 
 	infoPlistAbsPath, err := p.buildSettingPathForKey(name, conf, "INFOPLIST_FILE")
 	if err != nil {
@@ -430,7 +429,7 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 		return bundleID, nil
 	}
 
-	p.Logger.Debugf("CFBundleIdentifier defined with variable: %s, trying to resolve it...", bundleID)
+	p.Logger.Debugf("buildSettings: CFBundleIdentifier defined with variable: %s, trying to resolve it...", bundleID)
 
 	settings, err := p.targetBuildSettings(name, conf)
 	if err != nil {
@@ -441,7 +440,7 @@ func (p *ProjectHelper) TargetBundleID(name, conf string) (string, error) {
 		return "", fmt.Errorf("failed to resolve bundle ID: %s", err)
 	}
 
-	p.Logger.Debugf("resolved CFBundleIdentifier: %s", resolved)
+	p.Logger.Debugf("buildSettings: resolved CFBundleIdentifier: %s", resolved)
 
 	return resolved, nil
 }
@@ -492,7 +491,7 @@ func resolveEntitlementVariables(logger log.Logger, entitlements autocodesign.En
 		if strings.ContainsRune(container, '$') {
 			expanded, err := expandTargetSetting(container, serialized.Object{"CFBundleIdentifier": bundleID})
 			if err != nil {
-				logger.Warnf("Ignoring iCloud container ID (%s) as can not expand variable: %v", container, err)
+				logger.Warnf("buildSettings: Ignoring iCloud container ID (%s) as can not expand variable: %v", container, err)
 				continue
 			}
 
@@ -548,7 +547,7 @@ func configuration(logger log.Logger, configurationName string, scheme xcscheme.
 				return "", fmt.Errorf("build configuration (%s) not defined for target: (%s)", configurationName, target.Name)
 			}
 		}
-		logger.Warnf("Using user defined build configuration: %s instead of the scheme's default one: %s.\nMake sure you use the same configuration in further steps.", configurationName, defaultConfiguration)
+		logger.Warnf("buildSettings: Using user defined build configuration: %s instead of the scheme's default one: %s.\nMake sure you use the same configuration in further steps.", configurationName, defaultConfiguration)
 		configuration = configurationName
 	}
 
@@ -557,7 +556,7 @@ func configuration(logger log.Logger, configurationName string, scheme xcscheme.
 
 // mainTargetOfScheme return the main target
 func mainTargetOfScheme(logger log.Logger, proj xcodeproj.XcodeProj, scheme xcscheme.Scheme) (xcodeproj.Target, error) {
-	logger.Debugf("Searching %d for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
+	logger.Debugf("buildSettings: Searching %d for scheme main target: %s", len(scheme.BuildAction.BuildActionEntries), scheme.Name)
 
 	var blueIdent string
 	for _, entry := range scheme.BuildAction.BuildActionEntries {
@@ -567,7 +566,7 @@ func mainTargetOfScheme(logger log.Logger, proj xcodeproj.XcodeProj, scheme xcsc
 		}
 	}
 
-	logger.Debugf("Searching %d targets for: %s", len(proj.Proj.Targets), blueIdent)
+	logger.Debugf("buildSettings: Searching %d targets for: %s", len(proj.Proj.Targets), blueIdent)
 
 	// Search for the main target
 	for _, t := range proj.Proj.Targets {
@@ -582,7 +581,7 @@ func mainTargetOfScheme(logger log.Logger, proj xcodeproj.XcodeProj, scheme xcsc
 // findBuiltProject returns the Xcode project which will be built for the provided scheme, plus the scheme.
 // The scheme is returned as it could be found under the .xcworkspace, and opening based on name from the XcodeProj would fail.
 func findBuiltProject(logger log.Logger, pth, schemeName string) (xcodeproj.XcodeProj, xcscheme.Scheme, error) {
-	logger.TInfof("Locating built project for xcode project: %s, scheme: %s", pth, schemeName)
+	logger.TInfof("buildSettings: Locating built project for xcode project: %s, scheme: %s", pth, schemeName)
 
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {
