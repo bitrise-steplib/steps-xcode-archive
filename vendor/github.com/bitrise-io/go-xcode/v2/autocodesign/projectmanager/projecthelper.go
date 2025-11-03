@@ -28,13 +28,13 @@ type buildSettings struct {
 
 // ProjectHelper ...
 type ProjectHelper struct {
-	MainTarget       xcodeproj.Target
-	DependentTargets []xcodeproj.Target
-	UITestTargets    []xcodeproj.Target
-	XcWorkspace      *xcworkspace.Workspace // nil if working with standalone project
-	XcProj           xcodeproj.XcodeProj
-	Configuration    string
-	IsDebug          bool
+	MainTarget                xcodeproj.Target
+	DependentTargets          []xcodeproj.Target
+	UITestTargets             []xcodeproj.Target
+	XcWorkspace               *xcworkspace.Workspace // nil if working with standalone project
+	XcProj                    xcodeproj.XcodeProj
+	Configuration             string
+	IsDebugProjectBasedLookup bool
 
 	buildSettingsCache map[string]map[string]buildSettings // target/config/buildSettings
 }
@@ -94,13 +94,13 @@ func NewProjectHelper(projOrWSPath, schemeName, configurationName string, isDebu
 	}
 
 	return &ProjectHelper{
-		MainTarget:       mainTarget,
-		DependentTargets: dependentTargets,
-		UITestTargets:    uiTestTargets,
-		XcWorkspace:      workspace,
-		XcProj:           xcproj,
-		Configuration:    conf,
-		IsDebug:          isDebug,
+		MainTarget:                mainTarget,
+		DependentTargets:          dependentTargets,
+		UITestTargets:             uiTestTargets,
+		XcWorkspace:               workspace,
+		XcProj:                    xcproj,
+		Configuration:             conf,
+		IsDebugProjectBasedLookup: isDebug,
 	}, nil
 }
 
@@ -224,123 +224,164 @@ func (p *ProjectHelper) targetTeamID(targetName, config string) (string, error) 
 	return devTeam, err
 }
 
-func (p *ProjectHelper) fetchBuildSettings(targetName, conf string, customOptions ...string) ([]serialized.Object, string, error) {
+func (p *ProjectHelper) fetchBuildSettings(targetName, conf string, customOptions ...string) ([]buildSettings, error) {
 	if p.XcWorkspace == nil {
 		settings, err := p.XcProj.TargetBuildSettings(targetName, conf, customOptions...)
-		return []serialized.Object{settings}, p.XcProj.Path, err
+		return []buildSettings{{settings: settings, basePath: p.XcProj.Path}}, err
 	}
 
 	settings, err := p.XcWorkspace.SchemeBuildSettings(targetName, conf, customOptions...)
 	if err == nil {
-		if !p.IsDebug {
-			return []serialized.Object{settings}, p.XcWorkspace.Path, nil
+		wsSettings := buildSettings{settings: settings, basePath: p.XcWorkspace.Path}
+		if !p.IsDebugProjectBasedLookup {
+			return []buildSettings{wsSettings}, nil
 		}
 
 		// In debug mode, also fetch project build settings to compare values
-		settingsList := []serialized.Object{settings}
 		projectSettings, err := p.XcProj.TargetBuildSettings(targetName, conf, customOptions...)
-		if err == nil {
-			settingsList = append(settingsList, projectSettings)
+		if err != nil {
+			log.Errorf("Failed to fetch build settings from project for target (%s): %s", targetName, err)
 		}
 
-		return settingsList, p.XcWorkspace.Path, nil
+		return []buildSettings{wsSettings, buildSettings{settings: projectSettings, basePath: p.XcProj.Path}}, nil
 	}
 
 	log.Warnf("Failed to fetch build settings from workspace for target (%s): %s", targetName, err)
 	log.Printf("Falling back to project build settings")
 	settings, err = p.XcProj.TargetBuildSettings(targetName, conf, customOptions...)
-	return []serialized.Object{settings}, p.XcProj.Path, err
+	return []buildSettings{{settings: settings, basePath: p.XcProj.Path}}, err
 }
 
-func (p *ProjectHelper) cachedBuildSettings(targetName, conf string, customOptions ...string) ([]serialized.Object, string, error) {
+func (p *ProjectHelper) cachedBuildSettings(targetName, conf string, customOptions ...string) ([]buildSettings, error) {
 	targetCache, ok := p.buildSettingsCache[targetName]
 	if ok {
 		confCache, ok := targetCache[conf]
 		if ok {
 			log.Debugf("buildSettings: Using cached settings for target='%s'", targetName)
-			return []serialized.Object{confCache.settings}, confCache.basePath, nil
+			return []buildSettings{confCache}, nil
 		}
 	}
 
-	settingsList, basePath, err := p.fetchBuildSettings(targetName, conf, customOptions...)
+	settingsList, err := p.fetchBuildSettings(targetName, conf, customOptions...)
 	if err != nil {
-		return settingsList, basePath, err
+		return settingsList, err
 	}
 
-	settings := settingsList[0]
 	if targetCache == nil {
 		targetCache = map[string]buildSettings{}
 	}
-	targetCache[conf] = buildSettings{
-		settings: settings,
-		basePath: basePath,
-	}
+	targetCache[conf] = settingsList[0]
 
 	if p.buildSettingsCache == nil {
 		p.buildSettingsCache = map[string]map[string]buildSettings{}
 	}
 	p.buildSettingsCache[targetName] = targetCache
 
-	return settingsList, basePath, nil
+	return settingsList, nil
 }
 
 func (p *ProjectHelper) targetBuildSettings(targetName, conf string) (serialized.Object, error) {
-	settingsList, basePath, err := p.cachedBuildSettings(targetName, conf)
+	settingsList, err := p.cachedBuildSettings(targetName, conf)
 	if err != nil {
+		var basePath string
+		if len(settingsList) > 0 {
+			basePath = settingsList[0].basePath
+		}
 		return nil, fmt.Errorf("failed to fetch target (%s) build settings for project (%s): %s", targetName, basePath, err)
 	}
 
-	return settingsList[0], nil
+	if len(settingsList) == 1 {
+		return settingsList[0].settings, nil
+	}
+
+	log.Debugf("Workspace target build settings: %+v", settingsList[0])
+	log.Debugf("Project target build settings: %+v", settingsList[1])
+	if p.IsDebugProjectBasedLookup {
+		log.Debugf("Multiple build settings found for target (%s), returning the project one", targetName)
+		return settingsList[1].settings, nil
+	}
+
+	log.Debugf("Multiple build settings found for target (%s), returning the workspace one", targetName)
+	return settingsList[0].settings, nil
 }
 
 func (p *ProjectHelper) buildSettingForKey(targetName, conf string, key string, customOptions ...string) (string, error) {
-	settingsList, basePath, err := p.cachedBuildSettings(targetName, conf, customOptions...)
+	settingsList, err := p.cachedBuildSettings(targetName, conf, customOptions...)
 	if err != nil {
+		var basePath string
+		if len(settingsList) > 0 {
+			basePath = settingsList[0].basePath
+		}
 		return "", fmt.Errorf("failed to fetch target (%s) build settings for project (%s): %s", targetName, basePath, err)
 	}
 
-	settings := settingsList[0]
-	value, err := settings.String(key)
+	wsSettings := settingsList[0].settings
+	wsValue, err := wsSettings.String(key)
 	if err != nil {
-		return value, err
+		return wsValue, err
 	}
 
 	if len(settingsList) == 1 {
-		return value, nil
+		return wsValue, nil
 	}
 
-	alternate := settingsList[1]
-	alternateValue, err := alternate.String(key)
+	projectSettings := settingsList[1].settings
+	projectValue, err := projectSettings.String(key)
 	if err != nil {
 		log.Errorf("Failed to fetch project build setting for key (%s): %s", key, err)
 	}
 
-	if alternateValue != value {
-		log.Errorf("Conflicting values for build setting %s: '%s' (workspace) vs '%s' (project)", key, value, alternateValue)
+	if projectValue != wsValue {
+		log.Errorf("Conflicting values for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
 	} else {
-		log.Debugf("Matching values for workspace and project build setting %s: '%s'", key, value)
+		log.Debugf("Matching values for workspace and project build setting %s: '%s'", key, wsValue)
 	}
 
-	return value, err
+	// Return alternate value to be consistent with old project based target build setting fetch
+	return projectValue, err
 }
 
 func (p *ProjectHelper) buildSettingPathForKey(targetName, conf string, key string, customOptions ...string) (string, error) {
-	settingsList, basePath, err := p.cachedBuildSettings(targetName, conf, customOptions...)
+	settingsList, err := p.cachedBuildSettings(targetName, conf, customOptions...)
 	if err != nil {
-		return "", err
+		var basePath string
+		if len(settingsList) > 0 {
+			basePath = settingsList[0].basePath
+		}
+		return "", fmt.Errorf("failed to fetch target (%s) build settings for project (%s): %s", targetName, basePath, err)
 	}
 
-	settings := settingsList[0]
-	value, err := settings.String(key)
+	wsSettings := settingsList[0]
+	wsValue, err := wsSettings.settings.String(key)
 	if err != nil {
-		return value, err
+		return wsValue, err
 	}
 
-	if pathutil.IsRelativePath(value) {
-		value = filepath.Join(path.Dir(basePath), value)
+	if pathutil.IsRelativePath(wsValue) {
+		wsValue = filepath.Join(path.Dir(wsSettings.basePath), wsValue)
 	}
 
-	return value, nil
+	if len(settingsList) == 1 {
+		return wsValue, nil
+	}
+
+	projectSettings := settingsList[1]
+	projectValue, err := projectSettings.settings.String(key)
+	if err != nil {
+		return projectValue, err
+	}
+
+	if pathutil.IsRelativePath(projectValue) {
+		projectValue = filepath.Join(path.Dir(projectSettings.basePath), projectValue)
+	}
+
+	if projectValue != wsValue {
+		log.Errorf("Conflicting paths for build setting %s: '%s' (workspace) vs '%s' (project)", key, wsValue, projectValue)
+	} else {
+		log.Debugf("Matching paths for workspace and project build setting %s: '%s'", key, wsValue)
+	}
+
+	return projectValue, nil
 }
 
 // TargetBundleID returns the target bundle ID
