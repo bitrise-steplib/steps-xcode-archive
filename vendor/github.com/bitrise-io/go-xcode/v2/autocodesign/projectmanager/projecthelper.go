@@ -21,12 +21,16 @@ import (
 	"howett.net/plist"
 )
 
+// BuildAction is the type of build action to be performed on the scheme.
 type BuildAction string
 
 const (
+	// BuildActionArchive is the archive build action.
 	BuildActionArchive BuildAction = "archive"
-	BuildActionBuild   BuildAction = "build"
-	BuildActionTest    BuildAction = "test"
+	// BuildActionBuild is the build build action.
+	BuildActionBuild BuildAction = "build"
+	// BuildActionTest is the test build action.
+	BuildActionTest BuildAction = "test"
 )
 
 type buildSettings struct {
@@ -453,7 +457,7 @@ func (p *ProjectHelper) targetEntitlements(name, config, bundleID string) (autoc
 	if err != nil {
 		if serialized.IsKeyNotFoundError(err) {
 			p.Logger.Debugf("buildSettings: Target (%s) does not have CODE_SIGN_ENTITLEMENTS in build settings", name)
-			return autocodesign.Entitlements{}, nil
+			return nil, nil
 		}
 		return nil, err
 	}

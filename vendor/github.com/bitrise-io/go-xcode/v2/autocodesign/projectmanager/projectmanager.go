@@ -80,11 +80,12 @@ func (p Project) Platform() (autocodesign.Platform, error) {
 	return platform, nil
 }
 
+// IsMainTargetProductTypeAppClip returns true if the main target is of App Clip product type
 func (p Project) IsMainTargetProductTypeAppClip() bool {
 	return p.projHelper.MainTarget.IsAppClipProduct()
 }
 
-// MainTargetBundleID ...
+// MainTargetBundleID returns the bundle ID of the main target
 func (p Project) MainTargetBundleID() (string, error) {
 	bundleID, err := p.projHelper.TargetBundleID(p.projHelper.MainTarget.Name, p.projHelper.Configuration)
 	if err != nil {
@@ -94,6 +95,7 @@ func (p Project) MainTargetBundleID() (string, error) {
 	return bundleID, nil
 }
 
+// ReadSchemeBuildSettingString reads a build setting (for example SDKROOT) from the workspace (if available) or project.
 func (p Project) ReadSchemeBuildSettingString(key string) (string, error) {
 	target := p.projHelper.MainTarget.Name
 	value, err := p.projHelper.buildSettingForKey(target, p.projHelper.Configuration, key)

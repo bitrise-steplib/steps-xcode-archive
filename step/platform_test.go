@@ -14,8 +14,8 @@ type MockBuildSettingsProvider struct {
 }
 
 // TargetBuildSettings ...
-func (m *MockBuildSettingsProvider) ReadSchemeBuildSettingString(key string, customOptions ...string) (string, error) {
-	args := m.Called(key, customOptions)
+func (m *MockBuildSettingsProvider) ReadSchemeBuildSettingString(key string) (string, error) {
+	args := m.Called(key)
 	return args.Get(0).(string), args.Error(1)
 }
 
@@ -46,7 +46,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			provider := &MockBuildSettingsProvider{}
 			provider.
-				On("TargetBuildSettings", mock.AnythingOfType("*xcodeproj.XcodeProj"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+				On("ReadSchemeBuildSettingString", mock.AnythingOfType("string")).
 				Return(tt.settings, nil)
 
 			got, err := BuildableTargetPlatform(log.NewLogger(), provider)
