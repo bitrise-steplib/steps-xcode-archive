@@ -20,7 +20,8 @@ type Project struct {
 
 // Factory ...
 type Factory struct {
-	params InitParams
+	logger      log.Logger
+	buildAction BuildAction
 }
 
 // InitParams ...
@@ -34,23 +35,17 @@ type InitParams struct {
 }
 
 // NewFactory ...
-func NewFactory(params InitParams) Factory {
-	return Factory{params: params}
+func NewFactory(logger log.Logger, buildAction BuildAction) Factory {
+	return Factory{logger: logger, buildAction: buildAction}
 }
 
 // Create ...
-func (f *Factory) Create() (Project, error) {
-	return NewProject(f.params)
+func (f *Factory) Create(params InitParams) (Project, error) {
+	return NewProject(params)
 }
 
 // NewProject ...
 func NewProject(params InitParams) (Project, error) {
-	if params.Logger == nil {
-		panic("Logger must be provided")
-	}
-	if params.BuildAction == "" {
-		panic("BuildAction must be provided")
-	}
 	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.Logger, params.SchemeName, params.BuildAction, params.ConfigurationName, params.IsDebug)
 	if err != nil {
 		return Project{}, err
