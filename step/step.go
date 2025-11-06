@@ -122,8 +122,7 @@ type Inputs struct {
 	APIKeyEnterpriseAccount bool            `env:"api_key_enterprise_account,opt[yes,no]"`
 
 	// Debugging
-	VerboseLog                    bool `env:"verbose_log,opt[yes,no]"`
-	IsDebugWorkspaceProjectHelper bool `env:"debug_workspace_targets,opt[yes,no]"`
+	VerboseLog bool `env:"verbose_log,opt[yes,no]"`
 
 	// Hidden inputs
 	BuildURL      string          `env:"BITRISE_BUILD_URL"`
@@ -146,6 +145,7 @@ type XcodebuildArchiveConfigParser struct {
 	xcodeVersionReader xcodeversion.Reader
 	fileManager        fileutil.FileManager
 	cmdFactory         command.Factory
+	projectFactory     projectmanager.Factory
 	logger             log.Logger
 }
 
@@ -162,12 +162,13 @@ type XcodebuildArchiver struct {
 	cmdFactory         command.Factory
 }
 
-func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
+func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, projectFactory projectmanager.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
 	return XcodebuildArchiveConfigParser{
 		stepInputParser:    stepInputParser,
 		xcodeVersionReader: xcodeVersionReader,
 		fileManager:        fileManager,
 		cmdFactory:         cmdFactory,
+		projectFactory:     projectFactory,
 		logger:             logger,
 	}
 }
@@ -297,13 +298,10 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 
 	// Open Xcode project
 	s.logger.TInfof("Opening Xcode project at path: %s for scheme: %s", config.ProjectPath, config.Scheme)
-	project, err := projectmanager.NewProject(projectmanager.InitParams{
-		Logger:                 s.logger,
+	project, err := s.projectFactory.Create(projectmanager.InitParams{
 		ProjectOrWorkspacePath: config.ProjectPath,
-		BuildAction:            projectmanager.BuildActionArchive,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,
-		IsDebug:                config.IsDebugWorkspaceProjectHelper,
 	})
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to open Project or Workspace: %w", err)

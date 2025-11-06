@@ -509,16 +509,6 @@ inputs:
     - "no"
     is_required: true
 
-- debug_workspace_targets: "no"
-  opts:
-    category: Debugging
-    title: Enable debugging for workspace based target resolution
-    summary: If this input is set, the Step will do more debug logging when resolving targets in workspaces.
-    value_options:
-    - "yes"
-    - "no"
-    is_required: true
-
 outputs:
 - BITRISE_IPA_PATH:
   opts:

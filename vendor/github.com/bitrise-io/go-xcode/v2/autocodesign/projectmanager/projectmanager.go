@@ -8,6 +8,7 @@ package projectmanager
 import (
 	"fmt"
 
+	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 )
@@ -21,39 +22,39 @@ type Project struct {
 // Factory ...
 type Factory struct {
 	logger      log.Logger
+	envRepo     env.Repository
 	buildAction BuildAction
 }
 
 // InitParams ...
 type InitParams struct {
-	Logger                 log.Logger
 	ProjectOrWorkspacePath string
-	BuildAction            BuildAction
 	SchemeName             string
 	ConfigurationName      string
-	IsDebug                bool
+	AdditionalOptions      []string
 }
 
 // NewFactory ...
-func NewFactory(logger log.Logger, buildAction BuildAction) Factory {
+func NewFactory(logger log.Logger, envRepo env.Repository, buildAction BuildAction) Factory {
 	return Factory{logger: logger, buildAction: buildAction}
 }
 
 // Create ...
 func (f *Factory) Create(params InitParams) (Project, error) {
-	return NewProject(params)
-}
+	isCompatibilityModeValue := f.envRepo.Get("BITRISEIO_INTERNAL_XCODE_SHOWBUILDSETTINGS_COMPAT_MODE")
+	isCompatMode := isCompatibilityModeValue == "true"
+	if isCompatMode {
+		f.logger.Warnf("buildSettings: Compatibility Mode is enabled")
+	}
 
-// NewProject ...
-func NewProject(params InitParams) (Project, error) {
-	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, params.Logger, params.SchemeName, params.BuildAction, params.ConfigurationName, params.IsDebug)
+	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, f.logger, params.SchemeName, f.buildAction, params.ConfigurationName, params.AdditionalOptions, isCompatMode)
 	if err != nil {
 		return Project{}, err
 	}
 
 	return Project{
 		projHelper: *projectHelper,
-		logger:     params.Logger,
+		logger:     f.logger,
 	}, nil
 }
 
@@ -67,7 +68,7 @@ func (p Project) IsSigningManagedAutomatically() (bool, error) {
 func (p Project) Platform() (autocodesign.Platform, error) {
 	platform, err := p.projHelper.Platform(p.projHelper.Configuration)
 	if err != nil {
-		return "", fmt.Errorf("failed to read project platform: %s", err)
+		return "", fmt.Errorf("failed to read project platform: %w", err)
 	}
 
 	p.logger.Debugf("Platform: %s", platform)
@@ -84,7 +85,7 @@ func (p Project) IsMainTargetProductTypeAppClip() bool {
 func (p Project) MainTargetBundleID() (string, error) {
 	bundleID, err := p.projHelper.TargetBundleID(p.projHelper.MainTarget.Name, p.projHelper.Configuration)
 	if err != nil {
-		return "", fmt.Errorf("failed to read bundle ID for the main target: %s", err)
+		return "", fmt.Errorf("failed to read bundle ID for the main target: %w", err)
 	}
 
 	return bundleID, nil
@@ -95,7 +96,7 @@ func (p Project) ReadSchemeBuildSettingString(key string) (string, error) {
 	target := p.projHelper.MainTarget.Name
 	value, err := p.projHelper.buildSettingForKey(target, p.projHelper.Configuration, key)
 	if err != nil {
-		return "", fmt.Errorf("failed to read build setting `%s` for the target `%s`: %s", key, target, err)
+		return "", fmt.Errorf("failed to read build setting `%s`: %w", key, err)
 	}
 
 	return value, nil
@@ -107,7 +108,7 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 
 	platform, err := p.projHelper.Platform(p.projHelper.Configuration)
 	if err != nil {
-		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project platform: %s", err)
+		return autocodesign.AppLayout{}, fmt.Errorf("failed to read project platform: %w", err)
 	}
 
 	p.logger.Debugf("Platform: %s", platform)
@@ -119,7 +120,7 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 
 	archivableTargetBundleIDToEntitlements, err := p.projHelper.ArchivableTargetBundleIDToEntitlements()
 	if err != nil {
-		return autocodesign.AppLayout{}, fmt.Errorf("failed to read archivable targets' entitlements: %s", err)
+		return autocodesign.AppLayout{}, fmt.Errorf("failed to read archivable targets' entitlements: %w", err)
 	}
 
 	if ok, entitlement, bundleID := CanGenerateProfileWithEntitlements(archivableTargetBundleIDToEntitlements); !ok {
@@ -136,7 +137,7 @@ func (p Project) GetAppLayout(uiTestTargets bool) (autocodesign.AppLayout, error
 
 		uiTestTargetBundleIDs, err = p.projHelper.UITestTargetBundleIDs()
 		if err != nil {
-			return autocodesign.AppLayout{}, fmt.Errorf("failed to read UITest targets' entitlements: %s", err)
+			return autocodesign.AppLayout{}, fmt.Errorf("failed to read UITest targets' entitlements: %w", err)
 		}
 	}
 
@@ -184,7 +185,7 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 		p.logger.Printf("  certificate: %s", codesignAssets.Certificate.CommonName)
 
 		if err := p.projHelper.XcProj.ForceCodeSign(p.projHelper.Configuration, target.Name, teamID, codesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
-			return fmt.Errorf("failed to apply code sign settings for target (%s): %s", target.Name, err)
+			return fmt.Errorf("failed to apply code sign settings for target (%s): %w", target.Name, err)
 		}
 
 		archivableTargetsCounter++
@@ -218,14 +219,14 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 
 			for _, c := range uiTestTarget.BuildConfigurationList.BuildConfigurations {
 				if err := p.projHelper.XcProj.ForceCodeSign(c.Name, uiTestTarget.Name, teamID, devCodesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
-					return fmt.Errorf("failed to apply code sign settings for target (%s): %s", uiTestTarget.Name, err)
+					return fmt.Errorf("failed to apply code sign settings for target (%s): %w", uiTestTarget.Name, err)
 				}
 			}
 		}
 	}
 
 	if err := p.projHelper.XcProj.Save(); err != nil {
-		return fmt.Errorf("failed to save project: %s", err)
+		return fmt.Errorf("failed to save project: %w", err)
 	}
 
 	p.logger.Debugf("Xcode project saved.")
