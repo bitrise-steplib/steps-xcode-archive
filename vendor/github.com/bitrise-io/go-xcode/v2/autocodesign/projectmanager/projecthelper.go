@@ -248,18 +248,14 @@ func (p *ProjectHelper) fetchBuildSettings(targetName, conf string) ([]buildSett
 		settings, wsErr = p.XcWorkspace.SchemeBuildSettings(targetName, conf, p.additionalXcodebuildOptions...)
 		if wsErr == nil {
 			settingsList = append(settingsList, buildSettings{settings: settings, basePath: p.XcWorkspace.Path})
-		} else {
-			wsErr = fmt.Errorf("failed to fetch build settings for target `%s` (project `%s`): %w", targetName, p.XcWorkspace.Name, wsErr)
+			if !p.isCompatMode { // Fall back to project if workspace failed or compatibility mode is on
+				return settingsList, nil
+			}
 		}
 	}
 
-	if !p.isCompatMode {
-		return settingsList, wsErr
-	}
-	// In debug mode, also fetch project build settings to compare values
-
 	if wsErr != nil {
-		p.logger.Warnf("buildSettings: %s", targetName, wsErr)
+		p.logger.Warnf("buildSettings: failed to fetch build settings for target `%s` (project `%s`): %w", targetName, p.XcWorkspace.Name, wsErr)
 		p.logger.Printf("buildSettings: Falling back to project build settings")
 	}
 
