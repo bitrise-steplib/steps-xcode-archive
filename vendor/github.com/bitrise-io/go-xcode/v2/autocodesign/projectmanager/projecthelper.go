@@ -244,7 +244,8 @@ func (p *ProjectHelper) fetchBuildSettings(targetName, conf string) ([]buildSett
 	var settingsList []buildSettings
 	var wsErr error
 	if p.XcWorkspace != nil { // workspace available
-		settings, wsErr := p.XcWorkspace.SchemeBuildSettings(targetName, conf, p.additionalXcodebuildOptions...)
+		var settings serialized.Object
+		settings, wsErr = p.XcWorkspace.SchemeBuildSettings(targetName, conf, p.additionalXcodebuildOptions...)
 		if wsErr == nil {
 			settingsList = append(settingsList, buildSettings{settings: settings, basePath: p.XcWorkspace.Path})
 		} else {

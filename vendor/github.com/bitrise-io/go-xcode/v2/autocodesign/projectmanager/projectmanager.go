@@ -28,10 +28,10 @@ type Factory struct {
 
 // InitParams ...
 type InitParams struct {
-	ProjectOrWorkspacePath string
-	SchemeName             string
-	ConfigurationName      string
-	AdditionalOptions      []string
+	ProjectOrWorkspacePath                       string
+	SchemeName                                   string
+	ConfigurationName                            string
+	AdditionalXcodebuildShowbuildsettingsOptions []string
 }
 
 // NewFactory ...
@@ -47,7 +47,7 @@ func (f *Factory) Create(params InitParams) (Project, error) {
 		f.logger.Warnf("buildSettings: Compatibility Mode is enabled")
 	}
 
-	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, f.logger, params.SchemeName, f.buildAction, params.ConfigurationName, params.AdditionalOptions, isCompatMode)
+	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, f.logger, params.SchemeName, f.buildAction, params.ConfigurationName, params.AdditionalXcodebuildShowbuildsettingsOptions, isCompatMode)
 	if err != nil {
 		return Project{}, err
 	}
