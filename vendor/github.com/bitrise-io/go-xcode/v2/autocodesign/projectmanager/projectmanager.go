@@ -36,7 +36,7 @@ type InitParams struct {
 
 // NewFactory ...
 func NewFactory(logger log.Logger, envRepo env.Repository, buildAction BuildAction) Factory {
-	return Factory{logger: logger, buildAction: buildAction}
+	return Factory{logger: logger, envRepo: envRepo, buildAction: buildAction}
 }
 
 // Create ...
