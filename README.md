@@ -154,7 +154,6 @@ Build a development IPA with custom xcconfig file path:
 | `api_key_issuer_id` | Private key issuer ID used for App Store Connect authentication. This overrides the Bitrise-managed API connection, only set this input if you want to control the API connection on a step-level. Most of the time it's easier to set up the connection on the App Settings page on Bitrise. This input only takes effect if the other two connection override inputs are set too (`api_key_path`, `api_key_id`). |  |  |
 | `api_key_enterprise_account` | Indicates if the account is an enterprise type. This overrides the Bitrise-managed API connection, only set this input if you know you have an enterprise account. | required | `no` |
 | `verbose_log` | If this input is set, the Step will print additional logs for debugging. | required | `no` |
-| `debug_workspace_targets` | If this input is set, the Step will do more debug logging when resolving targets in workspaces. | required | `no` |
 </details>
 
 <details>
