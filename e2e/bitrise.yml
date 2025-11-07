@@ -273,7 +273,6 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
-  Disabled due to `Completed SIRP authentication with status of 409`
   test_apple_id:
     description: Running Apple ID tests on a single stack to avoid 503 Service Temporarily Unavailable issue.
     steps:

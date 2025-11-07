@@ -40,23 +40,12 @@ type BuildSettingProvider interface {
 	ReadSchemeBuildSettingString(key string) (string, error)
 }
 
-func BuildableTargetPlatform(
-	logger log.Logger,
-	project BuildSettingProvider,
-	addititonalOptions ...string,
-) (Platform, error) {
-	logger.Printf("Finding platform type")
-	sdkValue, err := project.ReadSchemeBuildSettingString("SDKROOT")
+func BuildableTargetPlatform(logger log.Logger, project BuildSettingProvider) (Platform, error) {
+	sdk, err := project.ReadSchemeBuildSettingString("SDKROOT")
 	if err != nil {
 		return "", fmt.Errorf("failed to read SDKROOT build setting: %w", err)
 	}
 
-	platform, err := getPlatform(sdkValue)
-	logger.Printf("Platform type: %s", platform)
-	return platform, err
-}
-
-func getPlatform(sdk string) (Platform, error) {
 	/*
 		Xcode help:
 		Base SDK (SDKROOT)

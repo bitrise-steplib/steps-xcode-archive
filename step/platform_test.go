@@ -22,52 +22,18 @@ func (m *MockBuildSettingsProvider) ReadSchemeBuildSettingString(key string) (st
 func TestBuildableTargetPlatform(t *testing.T) {
 	tests := []struct {
 		name        string
-		settings    string
+		sdk         string
 		settingsErr error
 		want        Platform
 		wantErr     bool
 	}{
 		{
-			name:        "SDKROOT build settings not defined in the project, but showBuildSettings returns it",
-			settings:    "iphoneos",
-			settingsErr: nil,
-			want:        iOS,
-			wantErr:     false,
-		},
-		{
 			name:        "fails if showBuildSettings does not return SDKROOT",
-			settings:    "",
-			settingsErr: serialized.NewKeyNotFoundError("SDKROOT", serialized.Object(map[string]interface{}{})),
+			sdk:         "",
+			settingsErr: serialized.NewKeyNotFoundError("SDKROOT", serialized.Object(map[string]any{})),
 			want:        Platform(""),
 			wantErr:     true,
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			provider := &MockBuildSettingsProvider{}
-			provider.
-				On("ReadSchemeBuildSettingString", mock.AnythingOfType("string")).
-				Return(tt.settings, nil)
-
-			got, err := BuildableTargetPlatform(log.NewLogger(), provider)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("BuildableTargetPlatform() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			provider.AssertExpectations(t)
-			require.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func Test_getPlatform(t *testing.T) {
-	tests := []struct {
-		name    string
-		sdk     string
-		want    Platform
-		wantErr bool
-	}{
 		{
 			name:    "iOS",
 			sdk:     "iphoneos",
@@ -125,11 +91,18 @@ func Test_getPlatform(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getPlatform(tt.sdk)
+			provider := &MockBuildSettingsProvider{}
+			provider.
+				On("ReadSchemeBuildSettingString", mock.AnythingOfType("string")).
+				Return(tt.sdk, nil)
+
+			got, err := BuildableTargetPlatform(log.NewLogger(), provider)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getPlatform() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("BuildableTargetPlatform() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
+			provider.AssertExpectations(t)
 			require.Equal(t, tt.want, got)
 		})
 	}

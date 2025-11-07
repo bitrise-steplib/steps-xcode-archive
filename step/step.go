@@ -829,6 +829,7 @@ func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveRes
 		if err != nil {
 			return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 		}
+		s.logger.Printf("Platform type: %s", platform)
 		opts.DestinationPlatform = platform
 	}
 
