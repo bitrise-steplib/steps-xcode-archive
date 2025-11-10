@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/colorstring"
@@ -29,6 +30,24 @@ func generateAdditionalOptions(platform string, customOptions []string) []string
 	}
 
 	return options
+}
+
+func filterSPMAdditionalOptions(xcodebuildAdditionalOptions []string) []string {
+	var knownSPMFlags = []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-skipPackageUpdates", "-disableAutomaticPackageResolution", "-onlyUsePackageVersionsFromResolvedFile"}
+	var knownSPMParams = []string{"-clonedSourcePackagesDirPath"}
+
+	filteredShowbuildsettingsOptions := []string{}
+	for i, option := range xcodebuildAdditionalOptions {
+		if slices.Contains(knownSPMFlags, option) {
+			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option)
+			continue
+		}
+		if slices.Contains(knownSPMParams, option) && i+1 < len(xcodebuildAdditionalOptions) {
+			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option, xcodebuildAdditionalOptions[i+1])
+		}
+	}
+
+	return filteredShowbuildsettingsOptions
 }
 
 func determineExportMethod(desiredExportMethod string, archiveExportMethod exportoptions.Method, logger log.Logger) (exportoptions.Method, error) {

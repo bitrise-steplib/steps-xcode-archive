@@ -74,3 +74,28 @@ func Test_findIDEDistrubutionLogsPath(t *testing.T) {
 		})
 	}
 }
+
+func Test_filterSPMAdditionalOptions(t *testing.T) {
+	tests := []struct {
+		name                        string
+		xcodebuildAdditionalOptions []string
+		want                        []string
+	}{
+		{
+			name:                        "no SPM options",
+			xcodebuildAdditionalOptions: []string{"-scheme", "MyScheme", "-configuration", "Release"},
+			want:                        []string{},
+		},
+		{
+			name:                        "with SPM flags",
+			xcodebuildAdditionalOptions: []string{"-scheme", "MyScheme", "-skipPackagePluginValidation", "-skipMacroValidation", "-clonedSourcePackagesDirPath", "/path/to/packages"},
+			want:                        []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-clonedSourcePackagesDirPath", "/path/to/packages"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := filterSPMAdditionalOptions(tt.xcodebuildAdditionalOptions)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
