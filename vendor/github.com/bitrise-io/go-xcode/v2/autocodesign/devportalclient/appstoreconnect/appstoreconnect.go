@@ -73,8 +73,23 @@ type Client struct {
 }
 
 // NewRetryableHTTPClient create a new http client with retry settings.
-func NewRetryableHTTPClient() *http.Client {
+func NewRetryableHTTPClient(tracker Tracker) *http.Client {
 	client := retry.NewHTTPClient()
+
+	trackingTransport := newTrackingRoundTripper(client.HTTPClient.Transport, tracker)
+	client.HTTPClient.Transport = trackingTransport
+
+	// RequestLogHook is called before each retry (attemptNum > 0 for retries, 0 for initial request).
+	// We mark retry attempts in the request context so RoundTrip can track which attempts are retries.
+	// We use pointer dereference (*req = *...) to modify the request in-place because RequestLogHook
+	// doesn't return a value - it modifies the request through side effects. This updates the request's
+	// context field, which will be present when RoundTrip is called immediately after.
+	client.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, attemptNum int) {
+		if attemptNum > 0 {
+			*req = *trackingTransport.markAsRetry(req)
+		}
+	}
+
 	client.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
 			log.Debugf("Received HTTP 401 (Unauthorized), retrying request...")
@@ -115,6 +130,7 @@ func NewRetryableHTTPClient() *http.Client {
 
 		return shouldRetry, err
 	}
+
 	return client.StandardClient()
 }
 
@@ -245,8 +261,6 @@ func (c *Client) Debugf(format string, v ...interface{}) {
 
 // Do ...
 func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
-	startTime := time.Now()
-
 	c.Debugf("Request:")
 	if c.EnableDebugLogs {
 		if err := httputil.PrintRequest(req); err != nil {
@@ -255,7 +269,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	}
 
 	resp, err := c.client.Do(req)
-	duration := time.Since(startTime)
 
 	c.Debugf("Response:")
 	if c.EnableDebugLogs {
@@ -276,12 +289,9 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	}()
 
 	if err := checkResponse(resp); err != nil {
-		c.tracker.TrackAPIRequest(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, duration)
 		c.tracker.TrackAPIError(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, err.Error())
 		return resp, err
 	}
-
-	c.tracker.TrackAPIRequest(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, duration)
 
 	if v != nil {
 		decErr := json.NewDecoder(resp.Body).Decode(v)

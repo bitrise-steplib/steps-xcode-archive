@@ -12,6 +12,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
+	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-steplib/steps-xcode-archive/step"
@@ -30,7 +31,7 @@ func run() int {
 		return 1
 	}
 
-	archiver, err := createXcodebuildArchiver(logger, config.LogFormatter)
+	archiver, err := createXcodebuildArchiver(config.Logger, config.LogFormatter)
 	if err != nil {
 		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
 		return 1
@@ -61,9 +62,10 @@ func createConfigParser(logger log.Logger) step.XcodebuildArchiveConfigParser {
 	inputParser := stepconf.NewInputParser(envRepository)
 	fileManager := fileutil.NewFileManager()
 	cmdFactory := command.NewFactory(envRepository)
+	projectFactory := projectmanager.NewFactory(logger, envRepository, projectmanager.BuildActionArchive)
 	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
 
-	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, cmdFactory, logger)
+	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, cmdFactory, projectFactory, logger)
 }
 
 func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.XcodebuildArchiver, error) {
@@ -99,6 +101,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 
 func createRunOptions(config step.Config) step.RunOpts {
 	return step.RunOpts{
+		ProjectManager:      config.ProjectManager,
 		ProjectPath:         config.ProjectPath,
 		Scheme:              config.Scheme,
 		DestinationPlatform: config.DestinationPlatform,

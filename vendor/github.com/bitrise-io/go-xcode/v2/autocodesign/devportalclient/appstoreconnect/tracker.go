@@ -9,8 +9,8 @@ import (
 
 // Tracker defines the interface for tracking App Store Connect API usage and errors.
 type Tracker interface {
-	// TrackAPIRequest tracks one completed API request (even if it failed)
-	TrackAPIRequest(method, host, endpoint string, statusCode int, duration time.Duration)
+	// TrackAPIRequest tracks one HTTP request+response. This is called for each individual attempt in case of automatic retries.
+	TrackAPIRequest(method, host, endpoint string, statusCode int, duration time.Duration, isRetry bool)
 
 	// TrackAPIError tracks a failed API request with error details
 	TrackAPIError(method, host, endpoint string, statusCode int, errorMessage string)
@@ -23,7 +23,7 @@ type Tracker interface {
 type NoOpAnalyticsTracker struct{}
 
 // TrackAPIRequest ...
-func (n NoOpAnalyticsTracker) TrackAPIRequest(method, host, endpoint string, statusCode int, duration time.Duration) {
+func (n NoOpAnalyticsTracker) TrackAPIRequest(method, host, endpoint string, statusCode int, duration time.Duration, isRetry bool) {
 }
 
 // TrackAPIError ...
@@ -48,7 +48,7 @@ func NewDefaultTracker(tracker analytics.Tracker, envRepo env.Repository) *Defau
 }
 
 // TrackAPIRequest ...
-func (d *DefaultTracker) TrackAPIRequest(method, host, endpoint string, statusCode int, duration time.Duration) {
+func (d *DefaultTracker) TrackAPIRequest(method, host, endpoint string, statusCode int, duration time.Duration, isRetry bool) {
 	d.tracker.Enqueue("step_appstoreconnect_request", analytics.Properties{
 		"build_slug":        d.envRepo.Get("BITRISE_BUILD_SLUG"),
 		"step_execution_id": d.envRepo.Get("BITRISE_STEP_EXECUTION_ID"),
@@ -57,6 +57,7 @@ func (d *DefaultTracker) TrackAPIRequest(method, host, endpoint string, statusCo
 		"endpoint":          endpoint,
 		"status_code":       statusCode,
 		"duration_ms":       duration.Truncate(time.Millisecond).Milliseconds(),
+		"is_retry":          isRetry,
 	})
 }
 

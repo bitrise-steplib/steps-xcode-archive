@@ -8,6 +8,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
@@ -60,6 +61,31 @@ func (w Workspace) SchemeBuildSettings(scheme, configuration string, customOptio
 	log.TDebugf("Fetched %s scheme build settings", scheme)
 
 	return object, err
+}
+
+// SchemeCodeSignEntitlements returns the code sign entitlements for a scheme and configuration
+func (w Workspace) SchemeCodeSignEntitlements(scheme, configuration string, customOptions ...string) (serialized.Object, error) {
+	buildSettings, err := w.SchemeBuildSettings(scheme, configuration, customOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	entitlementsPath, err := buildSettings.String("CODE_SIGN_ENTITLEMENTS")
+	if err != nil {
+		return nil, err
+	}
+
+	if pathutil.IsRelativePath(entitlementsPath) {
+		entitlementsPath = filepath.Join(filepath.Dir(w.Path), entitlementsPath)
+	}
+
+	entitlements, _, err := xcodeproj.ReadPlistFile(entitlementsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	log.TDebugf("Fetched %s scheme code sign entitlements", scheme)
+	return entitlements, nil
 }
 
 // FileLocations ...
