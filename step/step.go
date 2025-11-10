@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -297,12 +296,9 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		}
 	}
 
-	var spmAdditionalOptions = []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-skipPackageUpdates", "-disableAutomaticPackageResolution", "-onlyUsePackageVersionsFromResolvedFile"}
-	var filteredShowbuildsettingsOptions []string
-	for _, option := range config.XcodebuildAdditionalOptions {
-		if slices.Contains(spmAdditionalOptions, option) {
-			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option)
-		}
+	showbuildSettingsAdditionalOptions := filterSPMAdditionalOptions(config.XcodebuildAdditionalOptions)
+	if len(showbuildSettingsAdditionalOptions) != len(config.XcodebuildAdditionalOptions) {
+		s.logger.Printf("Some xcodebuild additional options are filtered out when reading build settings. Options used: %s", strings.Join(showbuildSettingsAdditionalOptions, " "))
 	}
 
 	// Open Xcode project
@@ -311,7 +307,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		ProjectOrWorkspacePath: config.ProjectPath,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,
-		AdditionalXcodebuildShowbuildsettingsOptions: filteredShowbuildsettingsOptions,
+		AdditionalXcodebuildShowbuildsettingsOptions: showbuildSettingsAdditionalOptions,
 	})
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to open Project or Workspace: %w", err)
