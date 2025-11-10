@@ -77,7 +77,7 @@ func (f Factory) Create(credentials devportalservice.Credentials, teamID string)
 	var devportalClient autocodesign.DevPortalClient
 	tracker := appstoreconnect.NewDefaultTracker(analytics.NewDefaultTracker(f.logger), env.NewRepository())
 	if credentials.APIKey != nil {
-		httpClient := appstoreconnect.NewRetryableHTTPClient()
+		httpClient := appstoreconnect.NewRetryableHTTPClient(tracker)
 		client := appstoreconnect.NewClient(
 			httpClient,
 			credentials.APIKey.KeyID,

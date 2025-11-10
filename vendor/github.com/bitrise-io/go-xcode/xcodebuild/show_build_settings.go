@@ -96,6 +96,9 @@ func (c ShowBuildSettingsCommandModel) PrintableCmd() string {
 	return command.PrintableCommandArgs(false, cmdSlice)
 }
 
+// parseBuildSettings parses xcodebuild -showBuildSettings output into a map of build settings.
+// When using multi-target schemes, the output may contain multiple entries for the same key.
+// In this case, the first occurrence of each key is used, which corresponds to the main target.
 func parseBuildSettings(out string) (serialized.Object, error) {
 	settings := serialized.Object{}
 
@@ -122,7 +125,10 @@ func parseBuildSettings(out string) (serialized.Object, error) {
 				value := strings.TrimSpace(strings.Join(split[1:], "="))
 				value = strings.Trim(value, `"`)
 
-				settings[key] = value
+				// Use the first occurrence of each key (the main target in case of multi-target schemes)
+				if _, exists := settings[key]; !exists {
+					settings[key] = value
+				}
 			}
 
 			buffer.Reset()

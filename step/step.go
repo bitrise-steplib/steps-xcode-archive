@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
+	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -131,6 +133,8 @@ type Inputs struct {
 // Config ...
 type Config struct {
 	Inputs
+	Logger                      log.Logger
+	ProjectManager              projectmanager.Project
 	DestinationPlatform         Platform
 	XcodeMajorVersion           int
 	XcodebuildAdditionalOptions []string
@@ -142,6 +146,7 @@ type XcodebuildArchiveConfigParser struct {
 	xcodeVersionReader xcodeversion.Reader
 	fileManager        fileutil.FileManager
 	cmdFactory         command.Factory
+	projectFactory     projectmanager.Factory
 	logger             log.Logger
 }
 
@@ -158,12 +163,13 @@ type XcodebuildArchiver struct {
 	cmdFactory         command.Factory
 }
 
-func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
+func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, projectFactory projectmanager.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
 	return XcodebuildArchiveConfigParser{
 		stepInputParser:    stepInputParser,
 		xcodeVersionReader: xcodeVersionReader,
 		fileManager:        fileManager,
 		cmdFactory:         cmdFactory,
+		projectFactory:     projectFactory,
 		logger:             logger,
 	}
 }
@@ -199,6 +205,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	if config.VerboseLog {
 		logv1.SetEnableDebugLog(true)
 	}
+	config.Logger = s.logger
 
 	var err error
 	if config.DestinationPlatform, err = parsePlatform(config.Platform); err != nil {
@@ -290,8 +297,29 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		}
 	}
 
+	var spmAdditionalOptions = []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-skipPackageUpdates", "-disableAutomaticPackageResolution", "-onlyUsePackageVersionsFromResolvedFile"}
+	var filteredShowbuildsettingsOptions []string
+	for _, option := range config.XcodebuildAdditionalOptions {
+		if slices.Contains(spmAdditionalOptions, option) {
+			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option)
+		}
+	}
+
+	// Open Xcode project
+	s.logger.TInfof("Opening Xcode project at path: %s for scheme: %s", config.ProjectPath, config.Scheme)
+	project, err := s.projectFactory.Create(projectmanager.InitParams{
+		ProjectOrWorkspacePath: config.ProjectPath,
+		SchemeName:             config.Scheme,
+		ConfigurationName:      config.Configuration,
+		AdditionalXcodebuildShowbuildsettingsOptions: filteredShowbuildsettingsOptions,
+	})
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to open Project or Workspace: %w", err)
+	}
+	config.ProjectManager = project
+
 	if config.CodeSigningAuthSource != codeSignSourceOff {
-		codesignManager, err := s.createCodesignManager(config)
+		codesignManager, err := s.createCodesignManager(config, project)
 		if err != nil {
 			return Config{}, fmt.Errorf("failed to prepare automatic code signing: %w", err)
 		}
@@ -322,6 +350,7 @@ func (s *XcodebuildArchiver) EnsureDependencies() {
 // RunOpts ...
 type RunOpts struct {
 	// Shared
+	ProjectManager      projectmanager.Project
 	ProjectPath         string
 	Scheme              string
 	DestinationPlatform Platform
@@ -384,15 +413,11 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	if opts.ArtifactName == "" {
 		s.logger.Infof("Looking for artifact name as field is empty")
 
-		cmdModel := xcodebuild.NewShowBuildSettingsCommand(opts.ProjectPath)
-		cmdModel.SetScheme(opts.Scheme)
-		cmdModel.SetConfiguration(opts.Configuration)
-		settings, err := cmdModel.RunAndReturnSettings()
-		if err != nil {
-			return out, fmt.Errorf("failed to read build settings: %w", err)
+		productName, err := opts.ProjectManager.ReadSchemeBuildSettingString("PRODUCT_NAME")
+		if err != nil && !serialized.IsKeyNotFoundError(err) {
+			return out, fmt.Errorf("failed to read product name build setting: %w", err)
 		}
-		productName, err := settings.String("PRODUCT_NAME")
-		if err != nil || productName == "" {
+		if productName == "" {
 			s.logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
 			productName = opts.Scheme
 		}
@@ -433,6 +458,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	s.logger.Println()
 
 	archiveOpts := xcodeArchiveOpts{
+		ProjectManager:      opts.ProjectManager,
 		ProjectPath:         opts.ProjectPath,
 		Scheme:              opts.Scheme,
 		DestinationPlatform: opts.DestinationPlatform,
@@ -697,7 +723,7 @@ func (s XcodebuildArchiver) ExportOutput(opts ExportOpts) error {
 	return nil
 }
 
-func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (codesign.Manager, error) {
+func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, project projectmanager.Project) (codesign.Manager, error) {
 	var authType codesign.AuthType
 	switch config.CodeSigningAuthSource {
 	case codeSignSourceAppleID:
@@ -756,17 +782,6 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		IsVerboseLog:               config.VerboseLog,
 	}
 
-	project, err := projectmanager.NewProject(projectmanager.InitParams{
-		ProjectOrWorkspacePath: config.ProjectPath,
-		SchemeName:             config.Scheme,
-		ConfigurationName:      config.Configuration,
-	})
-	if err != nil {
-		return codesign.Manager{}, err
-	}
-
-	client := retry.NewHTTPClient().StandardClient()
-
 	var testDevices []devportalservice.TestDevice
 	if config.TestDeviceListPath != "" {
 		testDevices, err = devportalservice.ParseTestDevicesFromFile(config.TestDeviceListPath, time.Now())
@@ -777,6 +792,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 		testDevices = serviceConnection.TestDevices
 	}
 
+	client := retry.NewHTTPClient().StandardClient()
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
@@ -793,6 +809,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config) (cod
 }
 
 type xcodeArchiveOpts struct {
+	ProjectManager      projectmanager.Project
 	ProjectPath         string
 	Scheme              string
 	DestinationPlatform Platform
@@ -815,38 +832,22 @@ type xcodeArchiveResult struct {
 
 func (s XcodebuildArchiver) xcodeArchive(opts xcodeArchiveOpts) (xcodeArchiveResult, error) {
 	out := xcodeArchiveResult{}
-
-	// Open Xcode project
-	s.logger.TInfof("Opening xcode project at path: %s for scheme: %s", opts.ProjectPath, opts.Scheme)
-
-	xcodeProj, scheme, configuration, err := OpenArchivableProject(opts.ProjectPath, opts.Scheme, opts.Configuration)
-	if err != nil {
-		return out, fmt.Errorf("failed to open project: %s: %s", opts.ProjectPath, err)
-	}
-
-	s.logger.TInfof("Reading xcode project")
-
 	if opts.DestinationPlatform == detectPlatform {
 		s.logger.TInfof("Platform is set to 'automatic', detecting platform from the project.")
 		s.logger.TWarnf("Define the platform step input manually to avoid this phase in the future.")
-		platform, err := BuildableTargetPlatform(xcodeProj, scheme, configuration, opts.AdditionalOptions, XcodeBuild{}, s.logger)
+		platform, err := BuildableTargetPlatform(s.logger, opts.ProjectManager)
 		if err != nil {
 			return out, fmt.Errorf("failed to read project platform: %s: %s", opts.ProjectPath, err)
 		}
+		s.logger.Printf("Platform type: %s", platform)
 		opts.DestinationPlatform = platform
 	}
 
-	s.logger.TInfof("Reading main target")
-
-	mainTarget, err := exportoptionsgenerator.ArchivableApplicationTarget(xcodeProj, scheme)
-	if err != nil {
-		return out, fmt.Errorf("failed to read main application target: %s", err)
-	}
-	if mainTarget.ProductType == exportoptionsgenerator.AppClipProductType {
-		return out, fmt.Errorf(`Selected scheme: '%s' targets an App Clip target (%s),
+	if opts.ProjectManager.IsMainTargetProductTypeAppClip() {
+		return out, fmt.Errorf(`Selected scheme: '%s' targets an App Clip target.
 'Xcode Archive & Export for iOS' step is intended to archive the project using a scheme targeting an Application target.
 Please select a scheme targeting an Application target to archive and export the main Application
-and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.Scheme, mainTarget.Name)
+and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.Scheme)
 	}
 
 	// Create the Archive with Xcode Command Line tools

@@ -6,10 +6,6 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/v2/log"
-	"github.com/bitrise-io/go-xcode/xcodeproject/schemeint"
-	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 )
 
 type Platform string
@@ -40,80 +36,16 @@ func parsePlatform(platform string) (Platform, error) {
 	}
 }
 
-func OpenArchivableProject(pth, schemeName, configurationName string) (*xcodeproj.XcodeProj, *xcscheme.Scheme, string, error) {
-	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
+type BuildSettingProvider interface {
+	ReadSchemeBuildSettingString(key string) (string, error)
+}
+
+func BuildableTargetPlatform(logger log.Logger, project BuildSettingProvider) (Platform, error) {
+	sdk, err := project.ReadSchemeBuildSettingString("SDKROOT")
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("could not get scheme (%s) from path (%s): %s", schemeName, pth, err)
-	}
-	if configurationName == "" {
-		configurationName = scheme.ArchiveAction.BuildConfiguration
+		return "", fmt.Errorf("failed to read SDKROOT build setting: %w", err)
 	}
 
-	if configurationName == "" {
-		return nil, nil, "", fmt.Errorf("no configuration provided nor default defined for the scheme's (%s) archive action", schemeName)
-	}
-
-	archiveEntry, ok := scheme.AppBuildActionEntry()
-	if !ok {
-		return nil, nil, "", fmt.Errorf("archivable entry not found")
-	}
-
-	projectPth, err := archiveEntry.BuildableReference.ReferencedContainerAbsPath(filepath.Dir(schemeContainerDir))
-	if err != nil {
-		return nil, nil, "", err
-	}
-
-	xcodeProj, err := xcodeproj.Open(projectPth)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return &xcodeProj, scheme, configurationName, nil
-}
-
-type TargetBuildSettingsProvider interface {
-	TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error)
-}
-
-type XcodeBuild struct {
-}
-
-func (x XcodeBuild) TargetBuildSettings(xcodeProj *xcodeproj.XcodeProj, target, configuration string, customOptions ...string) (serialized.Object, error) {
-	return xcodeProj.TargetBuildSettings(target, configuration, customOptions...)
-}
-
-func BuildableTargetPlatform(
-	xcodeProj *xcodeproj.XcodeProj,
-	scheme *xcscheme.Scheme,
-	configurationName string,
-	additionalOptions []string,
-	provider TargetBuildSettingsProvider,
-	logger log.Logger,
-) (Platform, error) {
-	logger.Printf("Finding platform type")
-
-	archiveEntry, ok := scheme.AppBuildActionEntry()
-	if !ok {
-		return "", fmt.Errorf("archivable entry not found in project: %s, scheme: %s", xcodeProj.Path, scheme.Name)
-	}
-
-	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
-	if !ok {
-		return "", fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
-	}
-
-	settings, err := provider.TargetBuildSettings(xcodeProj, mainTarget.Name, configurationName, additionalOptions...)
-	if err != nil {
-		return "", fmt.Errorf("failed to get target (%s) build settings: %s", mainTarget.Name, err)
-	}
-
-	platform, err := getPlatform(settings)
-
-	logger.Printf("Platform type: %s", platform)
-
-	return platform, err
-}
-
-func getPlatform(buildSettings serialized.Object) (Platform, error) {
 	/*
 		Xcode help:
 		Base SDK (SDKROOT)
@@ -135,11 +67,6 @@ func getPlatform(buildSettings serialized.Object) (Platform, error) {
 		- appletvos
 		- watchos
 	*/
-	sdk, err := buildSettings.String("SDKROOT")
-	if err != nil {
-		return "", fmt.Errorf("failed to get SDKROOT: %s", err)
-	}
-
 	sdk = strings.ToLower(sdk)
 	if filepath.Ext(sdk) == ".sdk" {
 		sdk = filepath.Base(sdk)

@@ -17,6 +17,8 @@ app:
   - BITFALL_APPSTORECONNECT_API_KEY_URL: $BITFALL_APPSTORECONNECT_API_KEY_URL
   - BITFALL_APPSTORECONNECT_API_KEY_ID: $BITFALL_APPSTORECONNECT_API_KEY_ID
   - BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID: $BITFALL_APPSTORECONNECT_API_KEY_ISSUER_ID
+  # Internal env to enable Xcode build settings compatibility mode
+  - BITRISEIO_INTERNAL_XCODE_SHOWBUILDSETTINGS_COMPAT_MODE: "true"
 
 workflows:
   # Disabled known bad visonOS test
@@ -618,7 +620,7 @@ workflows:
 
             /usr/bin/unzip $BITRISE_XCARCHIVE_ZIP_PATH -d ./_tmp
 
-            archive_path="./_tmp/ios-simple-objcTests.xcarchive"
+            archive_path="./_tmp/iosSimpleCustomArtifactName.xcarchive"
             infoplist_path="$archive_path/Info.plist"
             if [[ ! -f "$infoplist_path" ]]; then
               echo "$infoplist_path does not exist."
