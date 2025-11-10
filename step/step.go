@@ -302,7 +302,6 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		ProjectOrWorkspacePath: config.ProjectPath,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,
-		AdditionalXcodebuildShowbuildsettingsOptions: config.XcodebuildAdditionalOptions,
 	})
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to open Project or Workspace: %w", err)
