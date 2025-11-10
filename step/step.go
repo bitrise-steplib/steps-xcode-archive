@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -296,12 +297,21 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		}
 	}
 
+	var spmAdditionalOptions = []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-skipPackageUpdates", "-disableAutomaticPackageResolution", "-onlyUsePackageVersionsFromResolvedFile"}
+	var filteredShowBuildSettingsOptions []string
+	for _, option := range config.XcodebuildAdditionalOptions {
+		if slices.Contains(spmAdditionalOptions, option) {
+			filteredShowBuildSettingsOptions = append(filteredShowBuildSettingsOptions, option)
+		}
+	}
+
 	// Open Xcode project
 	s.logger.TInfof("Opening Xcode project at path: %s for scheme: %s", config.ProjectPath, config.Scheme)
 	project, err := s.projectFactory.Create(projectmanager.InitParams{
 		ProjectOrWorkspacePath: config.ProjectPath,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,
+		AdditionalXcodebuildShowbuildsettingsOptions: filteredShowBuildSettingsOptions,
 	})
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to open Project or Workspace: %w", err)
