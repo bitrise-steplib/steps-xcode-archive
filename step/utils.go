@@ -44,6 +44,11 @@ func filterSPMAdditionalOptions(xcodebuildAdditionalOptions []string) []string {
 		}
 		if slices.Contains(knownSPMParams, option) && i+1 < len(xcodebuildAdditionalOptions) {
 			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option, xcodebuildAdditionalOptions[i+1])
+			continue
+		}
+		if strings.Contains(option, "=") { // Append build setting overrides, example: BUNDLE_IDENTIFIER=io.bitrise.sample
+			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option)
+			continue
 		}
 	}
 
