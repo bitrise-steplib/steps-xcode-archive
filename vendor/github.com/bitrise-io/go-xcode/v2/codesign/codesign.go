@@ -8,7 +8,6 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
@@ -17,6 +16,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
 	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 )
 

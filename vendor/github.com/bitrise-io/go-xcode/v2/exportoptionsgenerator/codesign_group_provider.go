@@ -5,8 +5,8 @@ import (
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/export"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
 )
 
 // CodeSignGroupProvider ...
@@ -65,7 +65,7 @@ func (g codeSignGroupProvider) DetermineCodesignGroup(certificates []certificate
 	if len(bundleIDEntitlementsMap) > 0 {
 		g.logger.Warnf("Filtering CodeSignInfo groups for target capabilities")
 
-		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
+		codeSignGroups = export.FilterSelectableCodeSignGroups(codeSignGroups, export.CreateEntitlementsSelectableCodeSignGroupFilter(convertToV1PlistData(bundleIDEntitlementsMap)))
 
 		g.logger.Debugf("\nGroups after filtering for target capabilities:")
 		for _, group := range codeSignGroups {

@@ -3,7 +3,7 @@ package exportoptionsgenerator
 import (
 	"fmt"
 
-	"github.com/bitrise-io/go-xcode/plistutil"
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
