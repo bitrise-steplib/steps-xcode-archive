@@ -233,8 +233,8 @@ workflows:
       This should use the Xcode mechanism on Xcode13+.
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta
-    - TEST_APP_BRANCH: master
-    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
+    - TEST_APP_BRANCH: workspace
+    - BITRISE_PROJECT_PATH: Fruta.xcworkspace
     - BITRISE_SCHEME: Fruta iOS
     - DESTINATION: detect
     - CODE_SIGNING_METHOD: api-key
@@ -260,8 +260,8 @@ workflows:
     description: Test API key based signing on a project where code signing is not managed automatically
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Fruta
-    - TEST_APP_BRANCH: manual-signing
-    - BITRISE_PROJECT_PATH: Fruta.xcodeproj
+    - TEST_APP_BRANCH: workspace-manual-signing
+    - BITRISE_PROJECT_PATH: Fruta.xcworkspace
     - BITRISE_SCHEME: Fruta iOS
     - DESTINATION: detect
     - CODE_SIGNING_METHOD: api-key
