@@ -7,8 +7,8 @@ import (
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
 )
 
 type macosBaseApplication struct {
@@ -37,7 +37,7 @@ func newMacosBaseApplication(path string) (macosBaseApplication, error) {
 		} else if !exist {
 			return macosBaseApplication{}, fmt.Errorf("Info.plist not exists at: %s", infoPlistPath)
 		}
-		plist, err := plistutil.NewPlistDataFromFile(infoPlistPath)
+		plist, err := newPlistDataFromFile(infoPlistPath)
 		if err != nil {
 			return macosBaseApplication{}, err
 		}
@@ -144,7 +144,7 @@ func NewMacosArchive(path string) (MacosArchive, error) {
 		} else if !exist {
 			return MacosArchive{}, fmt.Errorf("Info.plist not exists at: %s", infoPlistPath)
 		}
-		plist, err := plistutil.NewPlistDataFromFile(infoPlistPath)
+		plist, err := newPlistDataFromFile(infoPlistPath)
 		if err != nil {
 			return MacosArchive{}, err
 		}

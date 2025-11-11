@@ -79,7 +79,7 @@ github.com/bitrise-io/go-xcode/xcodeproject/serialized
 github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
 github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
 github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.72.0.20251107144339-d084b7635d6d
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.73.0.20251111122942-604ddd2286d1
 ## explicit; go 1.22
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
@@ -98,6 +98,7 @@ github.com/bitrise-io/go-xcode/v2/devportalservice
 github.com/bitrise-io/go-xcode/v2/errorfinder
 github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator
 github.com/bitrise-io/go-xcode/v2/logio
+github.com/bitrise-io/go-xcode/v2/plistutil
 github.com/bitrise-io/go-xcode/v2/xcarchive
 github.com/bitrise-io/go-xcode/v2/xcconfig
 github.com/bitrise-io/go-xcode/v2/xcodecache

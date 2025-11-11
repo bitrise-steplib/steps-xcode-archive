@@ -8,9 +8,9 @@ import (
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/plistutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
 )
 
 // IosBaseApplication ...
@@ -41,7 +41,7 @@ func NewIosBaseApplication(path string) (IosBaseApplication, error) {
 		} else if !exist {
 			return IosBaseApplication{}, fmt.Errorf("Info.plist not exists at: %s", infoPlistPath)
 		}
-		plist, err := plistutil.NewPlistDataFromFile(infoPlistPath)
+		plist, err := newPlistDataFromFile(infoPlistPath)
 		if err != nil {
 			return IosBaseApplication{}, err
 		}
@@ -240,7 +240,7 @@ func NewIosArchive(path string) (IosArchive, error) {
 		} else if !exist {
 			return IosArchive{}, fmt.Errorf("Info.plist not exists at: %s", infoPlistPath)
 		}
-		plist, err := plistutil.NewPlistDataFromFile(infoPlistPath)
+		plist, err := newPlistDataFromFile(infoPlistPath)
 		if err != nil {
 			return IosArchive{}, err
 		}

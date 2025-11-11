@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/bitrise-io/go-plist"
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
@@ -17,7 +18,6 @@ import (
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
 	"github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace"
-	"howett.net/plist"
 )
 
 // BuildAction is the type of build action to be performed on the scheme.
@@ -247,7 +247,9 @@ func (p *ProjectHelper) fetchBuildSettings(targetName, conf string) ([]buildSett
 		var settings serialized.Object
 		settings, wsErr = p.XcWorkspace.SchemeBuildSettings(targetName, conf, p.additionalXcodebuildOptions...)
 		if wsErr == nil {
-			settingsList = append(settingsList, buildSettings{settings: settings, basePath: p.XcWorkspace.Path})
+			// Settings like INFOPLIST_FILE and CODE_SIGN_ENTITLEMENTS are project-relative
+			// https://developer.apple.com/documentation/xcode/build-settings-reference#Infoplist-File
+			settingsList = append(settingsList, buildSettings{settings: settings, basePath: p.XcProj.Path})
 			if !p.isCompatMode { // Fall back to project if workspace failed or compatibility mode is on
 				return settingsList, nil
 			}

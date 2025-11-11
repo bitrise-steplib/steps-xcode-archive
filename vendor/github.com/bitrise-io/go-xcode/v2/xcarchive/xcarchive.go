@@ -5,7 +5,6 @@ import (
 
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/plistutil"
 )
 
 // ArchiveReader ...
@@ -28,7 +27,7 @@ func (r ArchiveReader) IsMacOS(archPath string) (bool, error) {
 	r.logger.Debugf("Checking archive is MacOS or iOS")
 	infoPlistPath := filepath.Join(archPath, "Info.plist")
 
-	plist, err := plistutil.NewPlistDataFromFile(infoPlistPath)
+	plist, err := newPlistDataFromFile(infoPlistPath)
 	if err != nil {
 		return false, err
 	}
