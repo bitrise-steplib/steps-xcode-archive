@@ -45,7 +45,7 @@ func run() int {
 	if err != nil {
 		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", err)))
 		exitCode = 1
-		// don't return as step outputs needs to be exported even in case of failure (for example the xcodebuild logs)
+		// ddon't return as step outputs needs to be exported even in case of failure (for example the xcodebuild logs)
 	}
 
 	exportOpts := createExportOptions(config, result)
