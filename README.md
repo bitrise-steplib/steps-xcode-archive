@@ -44,7 +44,7 @@ Under **Automatic code signing**:
 
 If you want to set the Apple service connection credentials on the step-level (instead of using the one configured in the App Settings), use the Step inputs in the **App Store Connect connection override** category. Note that this only works if **Automatic code signing method** is set to `api-key`.
 
-Under **IPA export configuration**:
+Under **IPA export configuration**: 
 1. **Developer Portal team**: Add the Developer Portal team's name to use for this export. This input defaults to the team used to build the archive.
 2. **Rebuild from bitcode**: For non-App Store exports, should Xcode re-compile the app from bitcode?
 3. **Include bitcode**: For App Store exports, should the package include bitcode?
