@@ -217,17 +217,17 @@ workflows:
   #   - _check_outputs
   #   - _check_exported_artifacts
 
-  test_api_key_signing_managed:
-    description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
-    steps:
-    - bitrise-run:
-        run_if: |-
-          {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
-        inputs:
-        - workflow_id: utility_test_api_key_signing_managed
-        - bitrise_config_path: ./e2e/bitrise.yml
+  # test_api_key_signing_managed:
+  #   description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
+  #   steps:
+  #   - bitrise-run:
+  #       run_if: |-
+  #         {{ or (enveq "IS_LATEST_STACK_XCODE" "true") (not .IsCI) }}
+  #       inputs:
+  #       - workflow_id: utility_test_api_key_signing_managed
+  #       - bitrise_config_path: ./e2e/bitrise.yml
 
-  utility_test_api_key_signing_managed:
+  test_api_key_signing_managed:
     description: |
       Tests API key based code signing on a project with automatically managed signing.
       This should use the Xcode mechanism on Xcode13+.
