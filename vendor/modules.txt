@@ -52,8 +52,7 @@ github.com/bitrise-io/go-utils/pretty
 github.com/bitrise-io/go-utils/progress
 github.com/bitrise-io/go-utils/retry
 github.com/bitrise-io/go-utils/sliceutil
-github.com/bitrise-io/go-utils/stringutil
-# github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.23
+# github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.27.0.20260129102536-53756279aaa1
 ## explicit; go 1.17
 github.com/bitrise-io/go-utils/v2/analytics
 github.com/bitrise-io/go-utils/v2/command
@@ -64,6 +63,7 @@ github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/log/colorstring
 github.com/bitrise-io/go-utils/v2/pathutil
 github.com/bitrise-io/go-utils/v2/retryhttp
+github.com/bitrise-io/go-utils/v2/stringutil
 # github.com/bitrise-io/go-xcode v1.3.1
 ## explicit; go 1.20
 github.com/bitrise-io/go-xcode/certificateutil
