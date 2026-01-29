@@ -7,7 +7,7 @@ toolchain go1.23.5
 require (
 	github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.37
 	github.com/bitrise-io/go-utils v1.0.14
-	github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.23
+	github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.27.0.20260129102536-53756279aaa1
 	github.com/bitrise-io/go-xcode v1.3.1
 	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.75
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
