@@ -13,8 +13,8 @@ github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.27.0.20260129102536-53756279aaa1 
 github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.27.0.20260129102536-53756279aaa1/go.mod h1:3XUplo0dOWc3DqT2XA2SeHToDSg7+j1y1HTHibT2H68=
 github.com/bitrise-io/go-xcode v1.3.1 h1:ioLPHQ+XnSafCpnFJl+d9+qdfIr0Z55yQRlEA66/XxI=
 github.com/bitrise-io/go-xcode v1.3.1/go.mod h1:9OwsvrhZ4A2JxHVoEY7CPcABAKA+OE7FQqFfBfvbFuY=
-github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.75 h1:xAquzFgkNgSU0CGy81TF7Ersj/RCfk6bjA7kcDv3DmU=
-github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.75/go.mod h1:scECcZ0bVvY9CBtFARfHbm2P9U4ilUBURFRUpKaE7jU=
+github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.75.0.20260129113404-8512ed1213be h1:N3PiFqiS5IFbxfphsLlc+EXVN7bAKOPuho2RL+K5YqU=
+github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.75.0.20260129113404-8512ed1213be/go.mod h1:PfPc4IoPbB125DH/Yt5RyMEKSr5BRACLX+E9kSC1+ck=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
