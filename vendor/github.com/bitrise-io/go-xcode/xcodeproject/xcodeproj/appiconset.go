@@ -60,7 +60,7 @@ func appIconSetPaths(project Proj, projectPath string, objects serialized.Object
 			}
 			appIcons = append(appIcons, appIconSetPaths...)
 		}
-		targetToAppIcons[target.ID] = sliceutil.UniqueStringSlice(appIcons)
+		targetToAppIcons[target.ID] = sliceutil.Unique(appIcons)
 	}
 
 	return targetToAppIcons, nil
