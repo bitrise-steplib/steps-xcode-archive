@@ -2,10 +2,10 @@ package localcodesignasset
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 )
@@ -69,7 +69,7 @@ func hasMatchingLocalCertificates(profile profileutil.ProvisioningProfileInfoMod
 	}
 
 	for _, serial := range localCertificateSerials {
-		if !sliceutil.IsStringInSlice(serial, profileCertificateSerials) {
+		if !slices.Contains(profileCertificateSerials, serial) {
 			return false
 		}
 	}

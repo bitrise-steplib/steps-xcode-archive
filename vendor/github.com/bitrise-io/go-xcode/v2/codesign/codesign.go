@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/retry"
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/profileutil"
@@ -69,7 +70,8 @@ type Manager struct {
 	detailsProvider DetailsProvider
 	assetWriter     AssetWriter
 
-	logger log.Logger
+	logger  log.Logger
+	sleeper retry.Sleeper
 }
 
 // NewManagerWithArchive creates a codesign manager, which reads the code signing asset requirements from an XCArchive file.
@@ -98,6 +100,7 @@ func NewManagerWithArchive(
 		profileConverter:          profileConverter,
 		detailsProvider:           archive,
 		logger:                    logger,
+		sleeper:                   retry.DefaultSleeper{},
 	}
 }
 
@@ -128,6 +131,7 @@ func NewManagerWithProject(
 		detailsProvider:           project,
 		assetWriter:               project,
 		logger:                    logger,
+		sleeper:                   retry.DefaultSleeper{},
 	}
 }
 
@@ -439,7 +443,7 @@ func (m *Manager) prepareAutomaticAssets(credentials devportalservice.Credential
 		return nil, fmt.Errorf("Developer Portal client login failed: %w", err)
 	}
 
-	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.assetInstaller, m.localCodeSignAssetManager)
+	manager := autocodesign.NewCodesignAssetManager(devPortalClient, m.assetInstaller, m.localCodeSignAssetManager, m.logger, m.sleeper)
 
 	codesignAssets, err := manager.EnsureCodesignAssets(appLayout, autocodesign.CodesignAssetsOpts{
 		DistributionType:        m.opts.ExportMethod,

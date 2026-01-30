@@ -3,9 +3,9 @@ package autocodesign
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
@@ -177,8 +177,8 @@ func (e Entitlements) iCloudServices() (iCloudDocuments, iCloudKit, keyValueStor
 	}
 
 	if len(iCloudServices) > 0 {
-		iCloudDocuments = sliceutil.IsStringInSlice("CloudDocuments", iCloudServices)
-		iCloudKit = sliceutil.IsStringInSlice("CloudKit", iCloudServices)
+		iCloudDocuments = slices.Contains(iCloudServices, "CloudDocuments")
+		iCloudKit = slices.Contains(iCloudServices, "CloudKit")
 	}
 	return
 }

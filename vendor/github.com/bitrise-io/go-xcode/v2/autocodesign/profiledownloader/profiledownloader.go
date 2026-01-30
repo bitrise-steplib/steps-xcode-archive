@@ -3,26 +3,34 @@ package profiledownloader
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"io"
 	"time"
 
-	"github.com/bitrise-io/go-steputils/input"
-	"github.com/bitrise-io/go-utils/filedownloader"
+	"github.com/bitrise-io/go-steputils/v2/stepconf"
+	"github.com/bitrise-io/go-utils/v2/filedownloader"
+	"github.com/bitrise-io/go-utils/v2/fileutil"
+	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/localcodesignasset"
 )
 
 type downloader struct {
-	urls   []string
-	client *http.Client
+	urls         []string
+	logger       log.Logger
+	fileProvider stepconf.FileProvider
 }
 
 // New returns an implementation that can download from remote, local file paths
-func New(profileURLs []string, client *http.Client) autocodesign.ProfileProvider {
+func New(profileURLs []string, logger log.Logger) autocodesign.ProfileProvider {
+	fileDownloader := filedownloader.NewDownloader(logger)
+	fileProvider := stepconf.NewFileProvider(fileDownloader, fileutil.NewFileManager(), pathutil.NewPathProvider(), pathutil.NewPathModifier())
+
 	return downloader{
-		urls:   profileURLs,
-		client: client,
+		urls:         profileURLs,
+		logger:       logger,
+		fileProvider: fileProvider,
 	}
 }
 
@@ -39,13 +47,21 @@ func (d downloader) GetProfiles() ([]autocodesign.LocalProfile, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		downloader := filedownloader.NewWithContext(ctx, d.client)
-		fileProvider := input.NewFileProvider(downloader)
-
-		content, err := fileProvider.Contents(url)
+		contentReader, err := d.fileProvider.Contents(ctx, url)
 		if err != nil {
 			return nil, err
-		} else if content == nil {
+		}
+		defer func() {
+			if err := contentReader.Close(); err != nil {
+				d.logger.Warnf("Failed to close profile reader: %s", err)
+			}
+		}()
+
+		content, err := io.ReadAll(contentReader)
+		if err != nil {
+			return nil, err
+		}
+		if len(content) == 0 {
 			return nil, fmt.Errorf("profile (%s) is empty", url)
 		}
 

@@ -14,7 +14,6 @@ import (
 	v1fileutil "github.com/bitrise-io/go-utils/fileutil"
 	logv1 "github.com/bitrise-io/go-utils/log"
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
@@ -788,14 +787,13 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, proj
 		testDevices = serviceConnection.TestDevices
 	}
 
-	client := retry.NewHTTPClient().StandardClient()
 	return codesign.NewManagerWithProject(
 		opts,
 		appleAuthCredentials,
 		testDevices,
 		devPortalClientFactory,
-		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, client),
-		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, client),
+		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, s.logger),
+		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, s.logger),
 		codesignasset.NewWriter(codesignConfig.Keychain),
 		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		localcodesignasset.NewProvisioningProfileConverter(),

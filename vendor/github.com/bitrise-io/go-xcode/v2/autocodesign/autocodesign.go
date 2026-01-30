@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/retry"
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
@@ -151,14 +152,18 @@ type codesignAssetManager struct {
 	devPortalClient           DevPortalClient
 	assetWriter               AssetWriter
 	localCodeSignAssetManager LocalCodeSignAssetManager
+	logger                    log.Logger
+	sleeper                   retry.Sleeper
 }
 
 // NewCodesignAssetManager ...
-func NewCodesignAssetManager(devPortalClient DevPortalClient, assetWriter AssetWriter, localCodeSignAssetManager LocalCodeSignAssetManager) CodesignAssetManager {
+func NewCodesignAssetManager(devPortalClient DevPortalClient, assetWriter AssetWriter, localCodeSignAssetManager LocalCodeSignAssetManager, logger log.Logger, sleeper retry.Sleeper) CodesignAssetManager {
 	return codesignAssetManager{
 		devPortalClient:           devPortalClient,
 		assetWriter:               assetWriter,
 		localCodeSignAssetManager: localCodeSignAssetManager,
+		logger:                    logger,
+		sleeper:                   sleeper,
 	}
 }
 
@@ -201,9 +206,9 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 		printExistingCodesignAssets(localCodesignAssets, distrType)
 		if localCodesignAssets != nil {
 			// Did not check if selected certificate is installed yet
-			fmt.Println()
-			log.Infof("Installing certificate")
-			log.Printf("certificate: %s", localCodesignAssets.Certificate.CommonName)
+			m.logger.Println()
+			m.logger.Infof("Installing certificate")
+			m.logger.Printf("certificate: %s", localCodesignAssets.Certificate.CommonName)
 			if err := m.assetWriter.InstallCertificate(localCodesignAssets.Certificate); err != nil {
 				return nil, fmt.Errorf("failed to install certificate: %w", err)
 			}
@@ -214,23 +219,23 @@ func (m codesignAssetManager) EnsureCodesignAssets(appLayout AppLayout, opts Cod
 			printMissingCodeSignAssets(missingAppLayout)
 
 			// Ensure Profiles
-			newCodesignAssets, err := ensureProfiles(m.devPortalClient, distrType, certsByType, *missingAppLayout, devPortalDeviceIDs, devPortalDeviceUDIDs, opts.MinProfileValidityDays)
+			newCodesignAssets, err := ensureProfiles(m.logger, m.sleeper, m.devPortalClient, distrType, certsByType, *missingAppLayout, devPortalDeviceIDs, devPortalDeviceUDIDs, opts.MinProfileValidityDays)
 			if err != nil {
 				switch {
 				case errors.As(err, &ErrAppClipAppID{}):
-					log.Warnf("Can't create Application Identifier for App Clip targets.")
-					log.Warnf("Please generate the Application Identifier manually on Apple Developer Portal, after that the Step will continue working.")
+					m.logger.Warnf("Can't create Application Identifier for App Clip targets.")
+					m.logger.Warnf("Please generate the Application Identifier manually on Apple Developer Portal, after that the Step will continue working.")
 				case errors.As(err, &ErrAppClipAppIDWithAppleSigning{}):
-					log.Warnf("Can't manage Application Identifier for App Clip target with 'Sign In With Apple' capability.")
-					log.Warnf("Please configure Capabilities on Apple Developer Portal for App Clip target manually, after that the Step will continue working.")
+					m.logger.Warnf("Can't manage Application Identifier for App Clip target with 'Sign In With Apple' capability.")
+					m.logger.Warnf("Please configure Capabilities on Apple Developer Portal for App Clip target manually, after that the Step will continue working.")
 				}
 
 				return nil, fmt.Errorf("failed to ensure profiles: %w", err)
 			}
 
 			// Install new certificates and profiles
-			fmt.Println()
-			log.Infof("Installing certificates and profiles")
+			m.logger.Println()
+			m.logger.Infof("Installing certificates and profiles")
 			if err := m.assetWriter.Write(map[DistributionType]AppCodesignAssets{distrType: *newCodesignAssets}); err != nil {
 				return nil, fmt.Errorf("failed to install codesigning files: %w", err)
 			}

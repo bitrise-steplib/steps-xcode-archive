@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-utils/retry"
-	"github.com/bitrise-io/go-utils/sliceutil"
+	v1log "github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/retry"
 	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
@@ -24,23 +25,25 @@ func appIDName(bundleID string) string {
 	return prefix + "Bitrise " + r.Replace(bundleID)
 }
 
-func ensureProfiles(profileClient DevPortalClient, distrType DistributionType,
+func ensureProfiles(logger log.Logger, retrySleeper retry.Sleeper,
+	profileClient DevPortalClient, distrType DistributionType,
 	certsByType map[appstoreconnect.CertificateType][]Certificate, app AppLayout,
 	devPortalDeviceIDs DeviceIDs, devPortalDeviceUDIDs DeviceUDIDs, minProfileDaysValid int) (*AppCodesignAssets, error) {
 	// Ensure Profiles
 
 	bundleIDByBundleIDIdentifer := map[string]*appstoreconnect.BundleID{}
-
 	containersByBundleID := map[string][]string{}
 
 	profileManager := profileManager{
 		client:                      profileClient,
 		bundleIDByBundleIDIdentifer: bundleIDByBundleIDIdentifer,
 		containersByBundleID:        containersByBundleID,
+		logger:                      logger,
+		retrySleeper:                retrySleeper,
 	}
 
 	fmt.Println()
-	log.Infof("Checking %s provisioning profiles", distrType)
+	profileManager.logger.Infof("Checking %s provisioning profiles", distrType)
 
 	certificate, err := SelectCertificate(certsByType, distrType)
 	if err != nil {
@@ -126,11 +129,13 @@ type profileManager struct {
 	client                      DevPortalClient
 	bundleIDByBundleIDIdentifer map[string]*appstoreconnect.BundleID
 	containersByBundleID        map[string][]string
+	logger                      log.Logger
+	retrySleeper                retry.Sleeper
 }
 
 func (m profileManager) ensureBundleID(bundleIDIdentifier string, entitlements Entitlements) (*appstoreconnect.BundleID, error) {
 	fmt.Println()
-	log.Infof("  Searching for app ID for bundle ID: %s", bundleIDIdentifier)
+	m.logger.Infof("  Searching for app ID for bundle ID: %s", bundleIDIdentifier)
 
 	bundleID, ok := m.bundleIDByBundleIDIdentifer[bundleIDIdentifier]
 	if !ok {
@@ -146,7 +151,7 @@ func (m profileManager) ensureBundleID(bundleIDIdentifier string, entitlements E
 	}
 
 	if bundleID != nil {
-		log.Printf("  app ID found: %s", bundleID.Attributes.Name)
+		m.logger.Printf("  app ID found: %s", bundleID.Attributes.Name)
 
 		m.bundleIDByBundleIDIdentifer[bundleIDIdentifier] = bundleID
 
@@ -158,8 +163,8 @@ func (m profileManager) ensureBundleID(bundleIDIdentifier string, entitlements E
 					return nil, ErrAppClipAppIDWithAppleSigning{}
 				}
 
-				log.Warnf("  app ID capabilities invalid: %s", mErr.Reason)
-				log.Warnf("  app ID capabilities are not in sync with the project capabilities, synchronizing...")
+				m.logger.Warnf("  app ID capabilities invalid: %s", mErr.Reason)
+				m.logger.Warnf("  app ID capabilities are not in sync with the project capabilities, synchronizing...")
 				if err := m.client.SyncBundleID(*bundleID, entitlements); err != nil {
 					return nil, fmt.Errorf("failed to update bundle ID capabilities: %w", err)
 				}
@@ -170,13 +175,13 @@ func (m profileManager) ensureBundleID(bundleIDIdentifier string, entitlements E
 			return nil, fmt.Errorf("failed to validate bundle ID: %w", err)
 		}
 
-		log.Printf("  app ID capabilities are in sync with the project capabilities")
+		m.logger.Printf("  app ID capabilities are in sync with the project capabilities")
 
 		return bundleID, nil
 	}
 
 	// Create BundleID
-	log.Warnf("  app ID not found, generating...")
+	m.logger.Warnf("  app ID not found, generating...")
 
 	bundleID, err := m.client.CreateBundleID(bundleIDIdentifier, appIDName(bundleIDIdentifier))
 	if err != nil {
@@ -190,7 +195,7 @@ func (m profileManager) ensureBundleID(bundleIDIdentifier string, entitlements E
 
 	if len(containers) > 0 {
 		m.containersByBundleID[bundleIDIdentifier] = containers
-		log.Errorf("  app ID created but couldn't add iCloud containers: %v", containers)
+		m.logger.Errorf("  app ID created but couldn't add iCloud containers: %v", containers)
 	}
 
 	if err := m.client.SyncBundleID(*bundleID, entitlements); err != nil {
@@ -206,17 +211,17 @@ func (m profileManager) ensureProfileWithRetry(profileType appstoreconnect.Profi
 	var profile *Profile
 	// Accessing the same Apple Developer Portal team can cause race conditions (parallel CI runs for example).
 	// Between the time of finding and downloading a profile, it could have been deleted for example.
-	if err := retry.Times(5).Wait(10 * time.Second).TryWithAbort(func(attempt uint) (error, bool) {
+	if err := retry.Times(5).Wait(10 * time.Second).WithSleeper(m.retrySleeper).TryWithAbort(func(attempt uint) (error, bool) {
 		if attempt > 0 {
-			fmt.Println()
-			log.Printf("  Retrying profile preparation (attempt %d)", attempt)
+			m.logger.Println()
+			m.logger.Printf("  Retrying profile preparation (attempt %d)", attempt)
 		}
 
 		var err error
 		profile, err = m.ensureProfile(profileType, bundleIDIdentifier, entitlements, certIDs, deviceIDs, deviceUDIDs, minProfileDaysValid)
 		if err != nil {
 			if ok := errors.As(err, &ProfilesInconsistentError{}); ok {
-				log.Warnf("  %s", err)
+				m.logger.Warnf("  %s", err)
 				return err, false
 			}
 
@@ -233,10 +238,10 @@ func (m profileManager) ensureProfileWithRetry(profileType appstoreconnect.Profi
 
 func (m profileManager) ensureProfile(profileType appstoreconnect.ProfileType, bundleIDIdentifier string, entitlements Entitlements, certIDs, deviceIDs DeviceIDs, deviceUDIDs DeviceUDIDs, minProfileDaysValid int) (*Profile, error) {
 	fmt.Println()
-	log.Infof("  Checking bundle id: %s", bundleIDIdentifier)
-	log.Printf("  capabilities:")
+	m.logger.Infof("  Checking bundle id: %s", bundleIDIdentifier)
+	m.logger.Printf("  capabilities:")
 	for k, v := range entitlements {
-		log.Printf("  - %s: %v", k, v)
+		m.logger.Printf("  - %s: %v", k, v)
 	}
 
 	// Search for Bitrise managed Profile
@@ -247,28 +252,28 @@ func (m profileManager) ensureProfile(profileType appstoreconnect.ProfileType, b
 	}
 
 	if profile == nil {
-		log.Warnf("  profile does not exist, generating...")
+		m.logger.Warnf("  profile does not exist, generating...")
 	} else {
-		log.Printf("  Bitrise managed profile found: %s ID: %s UUID: %s Expiry: %s", profile.Attributes().Name, profile.ID(), profile.Attributes().UUID, time.Time(profile.Attributes().ExpirationDate))
+		m.logger.Printf("  Bitrise managed profile found: %s ID: %s UUID: %s Expiry: %s", profile.Attributes().Name, profile.ID(), profile.Attributes().UUID, time.Time(profile.Attributes().ExpirationDate))
 
 		if profile.Attributes().ProfileState == appstoreconnect.Active {
 			// Check if Bitrise managed Profile is sync with the project
 			err := checkProfile(m.client, profile, entitlements, deviceUDIDs, certIDs, minProfileDaysValid)
 			if err != nil {
 				if mErr, ok := err.(NonmatchingProfileError); ok {
-					log.Warnf("  the profile is not in sync with the project requirements (%s), regenerating ...", mErr.Reason)
+					m.logger.Warnf("  the profile is not in sync with the project requirements (%s), regenerating ...", mErr.Reason)
 				} else {
 					return nil, fmt.Errorf("failed to check if profile is valid: %w", err)
 				}
 			} else { // Profile matches
-				log.Donef("  profile is in sync with the project requirements")
+				m.logger.Donef("  profile is in sync with the project requirements")
 				return &profile, nil
 			}
 		}
 
 		if profile.Attributes().ProfileState == appstoreconnect.Invalid {
 			// If the profile's bundle id gets modified, the profile turns in Invalid state.
-			log.Warnf("  the profile state is invalid, regenerating ...")
+			m.logger.Warnf("  the profile state is invalid, regenerating ...")
 		}
 
 		if err := m.client.DeleteProfile(profile.ID()); err != nil {
@@ -284,14 +289,14 @@ func (m profileManager) ensureProfile(profileType appstoreconnect.ProfileType, b
 
 	// Create Bitrise managed Profile
 	fmt.Println()
-	log.Infof("  Creating profile for bundle id: %s", bundleID.Attributes.Name)
+	m.logger.Infof("  Creating profile for bundle id: %s", bundleID.Attributes.Name)
 
 	profile, err = m.client.CreateProfile(name, profileType, *bundleID, certIDs, deviceIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create profile: %w", err)
 	}
 
-	log.Donef("  profile created: %s", profile.Attributes().Name)
+	m.logger.Donef("  profile created: %s", profile.Attributes().Name)
 	return &profile, nil
 }
 
@@ -449,7 +454,7 @@ func FindMissingContainers(projectEnts, profileEnts Entitlements) ([]string, err
 
 func checkProfileCertificates(profileCertificateIDs []string, certificateIDs []string) error {
 	for _, id := range certificateIDs {
-		if !sliceutil.IsStringInSlice(id, profileCertificateIDs) {
+		if !slices.Contains(profileCertificateIDs, id) {
 			return NonmatchingProfileError{
 				Reason: fmt.Sprintf("certificate with ID (%s) not included in the profile", id),
 			}
@@ -484,7 +489,7 @@ func checkProfileDevices(profileDeviceIDs DeviceUDIDs, deviceUDIDs DeviceUDIDs) 
 	}
 
 	for _, UDID := range deviceUDIDs {
-		if !sliceutil.IsStringInSlice(normalizeDeviceUDID(UDID), normalizedProfileDeviceIDs) {
+		if !slices.Contains(normalizedProfileDeviceIDs, normalizeDeviceUDID(UDID)) {
 			return NonmatchingProfileError{
 				Reason: fmt.Sprintf("device with UDID (%s) not included in the profile", UDID),
 			}
@@ -538,15 +543,15 @@ func SelectCertificate(certsByType map[appstoreconnect.CertificateType][]Certifi
 	}
 
 	if len(certs) > 1 {
-		log.Warnf("Multiple certificates provided for distribution type: %s", distrType)
+		v1log.Warnf("Multiple certificates provided for distribution type: %s", distrType)
 		for _, c := range certs {
-			log.Warnf("- %s", c.CertificateInfo.CommonName)
+			v1log.Warnf("- %s", c.CertificateInfo.CommonName)
 		}
 	}
 
 	selectedCertificate := certs[0]
 
-	log.Warnf("Using certificate for %s distribution: %s", distrType, selectedCertificate.CertificateInfo.CommonName)
+	v1log.Warnf("Using certificate for %s distribution: %s", distrType, selectedCertificate.CertificateInfo.CommonName)
 
 	return &selectedCertificate, nil
 }
