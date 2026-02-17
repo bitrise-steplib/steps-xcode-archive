@@ -22,7 +22,7 @@ Before you start:
 Alternatively, you can upload certificates and profiles to Bitrise manually, then use the Certificate and Profile installer step before Xcode Archive
 - Make sure certificates are uploaded to Bitrise's **Code Signing** tab. The right provisioning profiles are automatically downloaded from Apple as part of the automatic code signing process.
 
-To configure the Step:
+To configure the Step:ss
 1. **Project path**: Add the path where the Xcode Project or Workspace is located.
 2. **Scheme**: Add the scheme name you wish to archive your project later.
 3. **Distribution method**: Select the method Xcode should sign your project: development, app-store, ad-hoc, or enterprise.
