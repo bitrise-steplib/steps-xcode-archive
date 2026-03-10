@@ -142,6 +142,7 @@ type Config struct {
 type XcodebuildArchiveConfigParser struct {
 	stepInputParser    stepconf.InputParser
 	xcodeVersionReader xcodeversion.Reader
+	pathChecker        pathutil.PathChecker
 	fileManager        fileutil.FileManager
 	cmdFactory         command.Factory
 	projectFactory     projectmanager.Factory
