@@ -794,7 +794,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, proj
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, s.logger),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, s.logger),
-		codesignasset.NewWriter(codesignConfig.Keychain),
+		codesignasset.NewWriter(s.logger, codesignConfig.Keychain, s.fileManager, int64(config.XcodeMajorVersion)),
 		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		localcodesignasset.NewProvisioningProfileConverter(),
 		project,
