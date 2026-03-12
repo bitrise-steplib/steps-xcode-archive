@@ -16,7 +16,6 @@ import (
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/command"
-	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
@@ -139,7 +138,6 @@ type Config struct {
 
 type XcodebuildArchiveConfigParser struct {
 	stepInputParser    stepconf.InputParser
-	envRepository      env.Repository
 	xcodeVersionReader xcodeversion.Reader
 	fileManager        fileutil.FileManager
 	cmdFactory         command.Factory
@@ -160,10 +158,9 @@ type XcodebuildArchiver struct {
 	cmdFactory         command.Factory
 }
 
-func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, envRepository env.Repository, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, projectFactory projectmanager.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
+func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, projectFactory projectmanager.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
 	return XcodebuildArchiveConfigParser{
 		stepInputParser:    stepInputParser,
-		envRepository:      envRepository,
 		xcodeVersionReader: xcodeVersionReader,
 		fileManager:        fileManager,
 		cmdFactory:         cmdFactory,
@@ -194,17 +191,10 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		return Config{}, fmt.Errorf("issue with input: %s", err)
 	}
 
-	// 	CacheLevel string `env:"cache_level,opt[none,swift_packages]"` // Deprecated
-	cacheVal := s.envRepository.Get("cache_level")
-	if strings.TrimSpace(cacheVal) != "" {
-		s.logger.Warnf("The cache_level Input (branch-based legacy caching) is deprecated, please use dedicated Key-based caching Steps and Build Cache instead.")
-	}
-
 	stepconf.Print(inputs)
 	s.logger.Println()
 
 	config := Config{Inputs: inputs}
-
 	s.logger.EnableDebugLog(config.VerboseLog)
 	if config.VerboseLog {
 		logv1.SetEnableDebugLog(true)

@@ -33,7 +33,7 @@ Under **xcodebuild configuration**:
 3. **Perform clean action**: If this input is set, a `clean` xcodebuild action will be performed besides the `archive` action.
 
 Under **Xcode build log formatting**:
-1. **Log formatter**: Defines how `xcodebuild` command's log is formatted. Available options are `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
+1. **Log formatter**: Defines how `xcodebuild` command's log is formatted. Available options are `xcbeautify`: The xcodebuild command's output will be beautified by xcbeautify. `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
 The raw xcodebuild log is exported in both cases.
 
 Under **Automatic code signing**:
