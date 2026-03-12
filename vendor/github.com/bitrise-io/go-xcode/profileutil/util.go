@@ -1,6 +1,8 @@
 package profileutil
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/bitrise-io/go-utils/fileutil"
@@ -11,17 +13,50 @@ import (
 // ProfileType ...
 type ProfileType string
 
-// ProfileTypeIos ...
-const ProfileTypeIos ProfileType = "ios"
+const (
+	// ProfileTypeIos ...
+	ProfileTypeIos ProfileType = "ios"
+	// ProfileTypeMacOs ...
+	ProfileTypeMacOs ProfileType = "osx"
+	// ProfileTypeTvOs ...
+	ProfileTypeTvOs ProfileType = "tvos"
+)
 
-// ProfileTypeMacOs ...
-const ProfileTypeMacOs ProfileType = "osx"
+const (
+	// IOSExtension is the iOS provisioning profile extension
+	IOSExtension = ".mobileprovision"
+	// MacExtension is the macOS provisioning profile extension
+	MacExtension = ".provisionprofile"
+)
 
-// ProfileTypeTvOs ...
-const ProfileTypeTvOs ProfileType = "tvos"
+// ProvisioningProfilesDirPath returns the provisioning profile directory path based on the Xcode major version.
+func ProvisioningProfilesDirPath(xcodeMajorVersion int64) (string, error) {
+	if xcodeMajorVersion >= 16 || xcodeMajorVersion == 0 { // return the modern path used by Xcode 16 and later
+		return ProvisioningProfilesDirModernPath()
+	}
 
-// ProvProfileSystemDirPath ...
-const ProvProfileSystemDirPath = "~/Library/MobileDevice/Provisioning Profiles"
+	return ProvisioningProfilesDirLegacyPath() // return the legacy path used by Xcode 15 and earlier
+}
+
+// ProvisioningProfilesDirModernPath is the absolute path used to store and look up provisioning profiles (used Xcode 16 and later)
+func ProvisioningProfilesDirModernPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	return filepath.Join(homeDir, "Library", "Developer", "Xcode", "UserData", "Provisioning Profiles"), nil
+}
+
+// ProvisioningProfilesDirLegacyPath is the absolute path used to store and look up provisioning profiles (used Xcode 15 and earlier)
+func ProvisioningProfilesDirLegacyPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	return filepath.Join(homeDir, "Library", "MobileDevice", "Provisioning Profiles"), nil
+}
 
 // ProvisioningProfileFromContent ...
 func ProvisioningProfileFromContent(content []byte) (*pkcs7.PKCS7, error) {
@@ -39,18 +74,7 @@ func ProvisioningProfileFromFile(pth string) (*pkcs7.PKCS7, error) {
 
 // InstalledProvisioningProfiles ...
 func InstalledProvisioningProfiles(profileType ProfileType) ([]*pkcs7.PKCS7, error) {
-	ext := ".mobileprovision"
-	if profileType == ProfileTypeMacOs {
-		ext = ".provisionprofile"
-	}
-
-	absProvProfileDirPath, err := pathutil.AbsPath(ProvProfileSystemDirPath)
-	if err != nil {
-		return nil, err
-	}
-
-	pattern := filepath.Join(pathutil.EscapeGlobPath(absProvProfileDirPath), "*"+ext)
-	pths, err := filepath.Glob(pattern)
+	pths, err := listAllProfiles(profileType)
 	if err != nil {
 		return nil, err
 	}
@@ -68,43 +92,57 @@ func InstalledProvisioningProfiles(profileType ProfileType) ([]*pkcs7.PKCS7, err
 
 // FindProvisioningProfile ...
 func FindProvisioningProfile(uuid string) (*pkcs7.PKCS7, string, error) {
-	{
-		iosProvisioningProfileExt := ".mobileprovision"
-		absProvProfileDirPath, err := pathutil.AbsPath(ProvProfileSystemDirPath)
-		if err != nil {
-			return nil, "", err
-		}
-
-		pth := filepath.Join(absProvProfileDirPath, uuid+iosProvisioningProfileExt)
-		if exist, err := pathutil.IsPathExists(pth); err != nil {
-			return nil, "", err
-		} else if exist {
-			profile, err := ProvisioningProfileFromFile(pth)
-			if err != nil {
-				return nil, "", err
-			}
-			return profile, pth, nil
-		}
+	paths, err := listProfiles(ProfileTypeIos, uuid)
+	if err != nil {
+		return nil, "", err
+	}
+	macOSPaths, err := listProfiles(ProfileTypeMacOs, uuid)
+	if err != nil {
+		return nil, "", err
 	}
 
-	{
-		macOsProvisioningProfileExt := ".provisionprofile"
-		absProvProfileDirPath, err := pathutil.AbsPath(ProvProfileSystemDirPath)
-		if err != nil {
-			return nil, "", err
-		}
-
-		pth := filepath.Join(absProvProfileDirPath, uuid+macOsProvisioningProfileExt)
-		if exist, err := pathutil.IsPathExists(pth); err != nil {
-			return nil, "", err
-		} else if exist {
-			profile, err := ProvisioningProfileFromFile(pth)
-			if err != nil {
-				return nil, "", err
-			}
-			return profile, pth, nil
-		}
+	paths = append(paths, macOSPaths...)
+	if len(paths) == 0 {
+		// ToDo return error of not found, keeping the nil return values for backward compatibility for now
+		return nil, "", nil
 	}
 
-	return nil, "", nil
+	profile, err := ProvisioningProfileFromFile(paths[0])
+	if err != nil {
+		return nil, "", err
+	}
+	return profile, paths[0], nil
+}
+
+func listAllProfiles(profileType ProfileType) ([]string, error) {
+	return listProfiles(profileType, "*")
+}
+
+func listProfiles(profileType ProfileType, uuid string) ([]string, error) {
+	ext := IOSExtension
+	if profileType == ProfileTypeMacOs {
+		ext = MacExtension
+	}
+
+	modernDirPath, err := ProvisioningProfilesDirModernPath()
+	if err != nil {
+		return nil, err
+	}
+	legacyDirPath, err := ProvisioningProfilesDirLegacyPath()
+	if err != nil {
+		return nil, err
+	}
+
+	var allProfilePaths []string
+	for _, dirPath := range []string{modernDirPath, legacyDirPath} {
+		pattern := filepath.Join(pathutil.EscapeGlobPath(dirPath), uuid+ext)
+		profilePaths, err := filepath.Glob(pattern)
+		if err != nil {
+			return nil, err
+		}
+
+		allProfilePaths = append(allProfilePaths, profilePaths...)
+	}
+
+	return allProfilePaths, nil
 }
