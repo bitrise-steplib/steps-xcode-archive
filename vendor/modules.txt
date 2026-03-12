@@ -47,7 +47,6 @@ github.com/bitrise-io/go-xcode/models
 github.com/bitrise-io/go-xcode/plistutil
 github.com/bitrise-io/go-xcode/profileutil
 github.com/bitrise-io/go-xcode/xcodebuild
-github.com/bitrise-io/go-xcode/xcodecache
 github.com/bitrise-io/go-xcode/xcodeproject/schemeint
 github.com/bitrise-io/go-xcode/xcodeproject/serialized
 github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj

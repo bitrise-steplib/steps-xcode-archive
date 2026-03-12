@@ -114,7 +114,6 @@ func createRunOptions(config step.Config) step.RunOpts {
 		PerformCleanAction:          config.PerformCleanAction,
 		XcconfigContent:             config.XcconfigContent,
 		XcodebuildAdditionalOptions: config.XcodebuildAdditionalOptions,
-		CacheLevel:                  config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
 		ExportMethod:                    config.ExportMethod,

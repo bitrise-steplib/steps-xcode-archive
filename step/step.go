@@ -111,9 +111,6 @@ type Inputs struct {
 	ExportAllDsyms bool   `env:"export_all_dsyms,opt[yes,no]"`
 	ArtifactName   string `env:"artifact_name"`
 
-	// Caching
-	CacheLevel string `env:"cache_level,opt[none,swift_packages]"`
-
 	// App Store Connect connection override
 	APIKeyPath              stepconf.Secret `env:"api_key_path"`
 	APIKeyID                string          `env:"api_key_id"`
@@ -198,7 +195,6 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	s.logger.Println()
 
 	config := Config{Inputs: inputs}
-
 	s.logger.EnableDebugLog(config.VerboseLog)
 	if config.VerboseLog {
 		logv1.SetEnableDebugLog(true)
@@ -360,7 +356,6 @@ type RunOpts struct {
 	PerformCleanAction          bool
 	XcconfigContent             string
 	XcodebuildAdditionalOptions []string
-	CacheLevel                  string
 
 	// IPA Export
 	CustomExportOptionsPlistContent string
@@ -465,7 +460,6 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		PerformCleanAction: opts.PerformCleanAction,
 		XcconfigContent:    opts.XcconfigContent,
 		AdditionalOptions:  opts.XcodebuildAdditionalOptions,
-		CacheLevel:         opts.CacheLevel,
 	}
 	archiveOut, err := s.xcodeArchive(archiveOpts)
 	out.XcodebuildArchiveLog = archiveOut.XcodebuildArchiveLog
@@ -815,8 +809,6 @@ type xcodeArchiveOpts struct {
 	PerformCleanAction bool
 	XcconfigContent    string
 	AdditionalOptions  []string
-
-	CacheLevel string
 }
 
 type xcodeArchiveResult struct {
@@ -917,13 +909,6 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 	s.logger.Printf("profile: %s (%s)", mainApplication.ProvisioningProfile.Name, mainApplication.ProvisioningProfile.UUID)
 	s.logger.Printf("export: %s", mainApplication.ProvisioningProfile.ExportType)
 	s.logger.Printf("xcode managed profile: %v", profileutil.IsXcodeManaged(mainApplication.ProvisioningProfile.Name))
-
-	// Cache swift PM
-	if opts.XcodeMajorVersion >= 11 && opts.CacheLevel == "swift_packages" {
-		if err := cache.NewSwiftPackageCache().CollectSwiftPackages(opts.ProjectPath); err != nil {
-			s.logger.Warnf("Failed to mark swift packages for caching, error: %s", err)
-		}
-	}
 
 	return out, nil
 }

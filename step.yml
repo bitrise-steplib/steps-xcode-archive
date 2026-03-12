@@ -27,7 +27,7 @@ description: |-
   3. **Perform clean action**: If this input is set, a `clean` xcodebuild action will be performed besides the `archive` action.
 
   Under **Xcode build log formatting**:
-  1. **Log formatter**: Defines how `xcodebuild` command's log is formatted. Available options are `xcpretty`: The xcodebuild command's output will be prettified by xcpretty. `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
+  1. **Log formatter**: Defines how `xcodebuild` command's log is formatted. Available options are `xcbeautify`: The xcodebuild command's output will be beautified by xcbeautify. `xcodebuild`: Only the last 20 lines of raw xcodebuild output will be visible in the build log.
   The raw xcodebuild log is exported in both cases.
 
   Under **Automatic code signing**:
@@ -50,11 +50,12 @@ description: |-
   2. **Export all dSYMs**: Export additional dSYM files besides the app dSYM file for Frameworks.
   3. **Override generated artifact names**:  This name is used as basename for the generated Xcode archive, app, `.ipa` and dSYM files. If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used. If Product Name is not specified, the Scheme will be used.
 
-  Under **Caching**:
-  1. **Enable collecting cache content**: Defines what cache content should be automatically collected. Available options are `none`: Disable collecting cache content and `swift_packages`: Collect Swift PM packages added to the Xcode project
-
   Under Debugging:
   1. **Verbose logging***: You can set this input to `yes` to produce more informative logs.
+
+  Caching:
+  - [Build Cache](https://docs.bitrise.io/en/bitrise-build-cache/build-cache-for-xcode/configuring-the-build-cache-for-xcode-in-the-bitrise-ci-environment.html)
+  - [Managing dependencies with SPM](https://docs.bitrise.io/en/bitrise-ci/dependencies-and-caching/ios-dependencies/managing-dependencies-with-spm.html)
 website: https://github.com/bitrise-steplib/steps-xcode-archive
 source_code_url: https://github.com/bitrise-steplib/steps-xcode-archive
 support_url: https://github.com/bitrise-steplib/steps-xcode-archive/issues
@@ -197,7 +198,7 @@ inputs:
 
 # xcodebuild log formatting
 
-- log_formatter: xcpretty
+- log_formatter: xcbeautify
   opts:
     category: xcodebuild log formatting
     title: Log formatter
@@ -431,25 +432,6 @@ inputs:
 
       If not specified, the Product Name (`PRODUCT_NAME`) Build settings value will be used.
       If Product Name is not specified, the Scheme will be used.
-
-# Caching
-
-- cache_level: swift_packages
-  opts:
-    category: Caching
-    title: Enable collecting cache content
-    summary: Defines what cache content should be automatically collected.
-    description: |-
-      Defines what cache content should be automatically collected.
-
-      Available options:
-
-      - `none`: Disable collecting cache content
-      - `swift_packages`: Collect Swift PM packages added to the Xcode project
-    value_options:
-    - none
-    - swift_packages
-    is_required: true
 
 # App Store Connect connection override
 

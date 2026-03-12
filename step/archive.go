@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/v2/log"
+	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
-	cache "github.com/bitrise-io/go-xcode/xcodecache"
 )
 
 func runArchiveCommandWithRetry(xcodeCommandRunner xcodecommand.Runner, logFormatter string, archiveCmd *xcodebuild.CommandBuilder, swiftPackagesPath string, logger log.Logger) (string, error) {
