@@ -65,7 +65,7 @@ func createConfigParser(logger log.Logger) step.XcodebuildArchiveConfigParser {
 	projectFactory := projectmanager.NewFactory(logger, envRepository, projectmanager.BuildActionArchive)
 	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
 
-	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, cmdFactory, projectFactory, logger)
+	return step.NewXcodeArchiveConfigParser(inputParser, envRepository, xcodeVersionReader, fileManager, cmdFactory, projectFactory, logger)
 }
 
 func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.XcodebuildArchiver, error) {
@@ -114,7 +114,6 @@ func createRunOptions(config step.Config) step.RunOpts {
 		PerformCleanAction:          config.PerformCleanAction,
 		XcconfigContent:             config.XcconfigContent,
 		XcodebuildAdditionalOptions: config.XcodebuildAdditionalOptions,
-		CacheLevel:                  config.CacheLevel,
 
 		CustomExportOptionsPlistContent: config.ExportOptionsPlistContent,
 		ExportMethod:                    config.ExportMethod,
