@@ -205,7 +205,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	if config.DestinationPlatform, err = parsePlatform(config.Platform); err != nil {
 		return Config{}, fmt.Errorf("issue with input Platform: %w", err)
 	}
-
+	// d
 	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)
 	if err != nil {
 		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
