@@ -244,10 +244,21 @@ func checkResponse(logger log.Logger, r *http.Response) error {
 		return nil
 	}
 
+	// example status 403:
+	// 	{
+	//   "errors" : [ {
+	//     "id" : "3a0fa779-6467-4031-8a0b-ed2347a382b4",
+	//     "status" : "403",
+	//     "code" : "FORBIDDEN_ERROR.PLA_NOT_ACCEPTED",
+	//     "title" : "Unable to process request - PLA Update available",
+	//     "detail" : "You currently don't have access to this membership resource. To resolve this issue, your team's Account Holder, Barnabas Birmacher, must agree to the latest Program License Agreement."
+	//   } ]
+	// }
+
 	errorResponse := &ErrorResponse{Response: r}
 	data, err := io.ReadAll(r.Body)
+	logger.Errorf("Response: (%s)", data)
 	if err == nil && data != nil {
-		logger.Errorf("Response: %s", data)
 		if err := json.Unmarshal(data, errorResponse); err != nil {
 			logger.Errorf("Failed to unmarshal response (%s): %s", string(data), err)
 		}
