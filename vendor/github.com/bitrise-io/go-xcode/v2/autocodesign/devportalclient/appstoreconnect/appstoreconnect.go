@@ -247,6 +247,7 @@ func checkResponse(logger log.Logger, r *http.Response) error {
 	errorResponse := &ErrorResponse{Response: r}
 	data, err := io.ReadAll(r.Body)
 	if err == nil && data != nil {
+		logger.Errorf("Response: %s", data)
 		if err := json.Unmarshal(data, errorResponse); err != nil {
 			logger.Errorf("Failed to unmarshal response (%s): %s", string(data), err)
 		}
