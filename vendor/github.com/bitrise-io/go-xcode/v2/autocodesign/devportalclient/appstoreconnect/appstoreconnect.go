@@ -258,7 +258,7 @@ func checkResponse(logger log.Logger, r *http.Response) error {
 	errorResponse := &ErrorResponse{Response: r}
 	data, err := io.ReadAll(r.Body)
 	logger.Errorf("Response: (%s)", data)
-	if err == nil && data != nil {
+	if err == nil {
 		if err := json.Unmarshal(data, errorResponse); err != nil {
 			logger.Errorf("Failed to unmarshal response (%s): %s", string(data), err)
 		}
@@ -303,7 +303,9 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	}()
 
 	if err := checkResponse(c.logger, resp); err != nil {
+		c.logger.Warnf("BE %w", err)
 		c.tracker.TrackAPIError(req.Method, req.URL.Host, req.URL.Path, resp.StatusCode, err.Error())
+		c.logger.Warnf("BEA %w", err)
 		return resp, err
 	}
 
