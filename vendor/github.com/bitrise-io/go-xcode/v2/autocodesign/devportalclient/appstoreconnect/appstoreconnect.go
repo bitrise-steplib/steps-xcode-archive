@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -96,15 +97,17 @@ func NewRetryableHTTPClient(logger log.Logger, tracker Tracker) *http.Client {
 			return true, nil
 		}
 
-		// if resp != nil && resp.StatusCode == http.StatusForbidden {
-		// 	var apiError *ErrorResponse
-		// 	if ok := errors.As(checkResponse(logger, resp), &apiError); ok {
-		// 		if apiError.IsRequiredAgreementMissingOrExpired() {
-		// 			logger.Warnf("Received error FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED (status 403), retrying request...")
-		// 			return true, nil
-		// 		}
-		// 	}
-		// }
+		if resp != nil && resp.StatusCode == http.StatusForbidden {
+			var apiError *ErrorResponse
+			respErr := checkResponse(logger, resp)
+			if ok := errors.As(respErr, &apiError); ok {
+				if apiError.IsRequiredAgreementMissingOrExpired() {
+					logger.Warnf("Received error FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED (status 403), retrying request...")
+					return true, nil
+				}
+			}
+			return false, respErr
+		}
 
 		if resp != nil && resp.StatusCode == http.StatusTooManyRequests {
 			message := "Received HTTP 429 Too Many Requests"
