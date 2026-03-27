@@ -601,7 +601,7 @@ func findBuiltProject(logger log.Logger, pth string, buildAction BuildAction, sc
 
 	scheme, schemeContainerDir, err := schemeint.Scheme(pth, schemeName)
 	if err != nil {
-		return xcodeproj.XcodeProj{}, *scheme, xcodeproj.Target{}, fmt.Errorf("could not get scheme `%s` from path (%s): %w", schemeName, pth, err)
+		return xcodeproj.XcodeProj{}, xcscheme.Scheme{}, xcodeproj.Target{}, fmt.Errorf("could not get scheme `%s` from path (%s): %w", schemeName, pth, err)
 	}
 
 	entry, err := getBuildActionEntryFromScheme(logger, scheme, buildAction)

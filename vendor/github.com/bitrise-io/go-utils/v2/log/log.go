@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-// Logger ...
+// Logger interface designed to provide only the necessary functionality used by our tooling.
+// The lack of in-line printing is intentional.
 type Logger interface {
 	Infof(format string, v ...interface{})
 	Warnf(format string, v ...interface{})
@@ -152,7 +153,9 @@ func (l *logger) TErrorf(format string, v ...interface{}) {
 
 // Println ...
 func (l *logger) Println() {
-	fmt.Println()
+	if _, err := fmt.Fprintln(l.stdout); err != nil {
+		fmt.Printf("failed to print newline: %s\n", err)
+	}
 }
 
 func (l *logger) timestampField() string {
@@ -180,6 +183,6 @@ func (l *logger) createLogMsg(severity Severity, withTime bool, format string, v
 func (l *logger) printf(severity Severity, withTime bool, format string, v ...interface{}) {
 	message := l.createLogMsg(severity, withTime, format, v...)
 	if _, err := fmt.Fprintln(l.stdout, message); err != nil {
-		fmt.Printf("failed to print message: %s, error: %s\n", message, err)
+		fmt.Printf("failed to print message: %s: %s\n", message, err)
 	}
 }

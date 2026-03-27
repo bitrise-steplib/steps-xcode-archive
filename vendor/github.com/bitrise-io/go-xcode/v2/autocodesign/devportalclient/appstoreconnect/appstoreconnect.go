@@ -99,12 +99,15 @@ func NewRetryableHTTPClient(logger log.Logger, tracker Tracker) *http.Client {
 
 		if resp != nil && resp.StatusCode == http.StatusForbidden {
 			var apiError *ErrorResponse
-			if ok := errors.As(checkResponse(logger, resp), &apiError); ok {
+			respErr := checkResponse(logger, resp)
+			if ok := errors.As(respErr, &apiError); ok {
 				if apiError.IsRequiredAgreementMissingOrExpired() {
 					logger.Warnf("Received error FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED (status 403), retrying request...")
 					return true, nil
 				}
 			}
+			// return error, otherwise response will be read twice and appear empty
+			return false, respErr
 		}
 
 		if resp != nil && resp.StatusCode == http.StatusTooManyRequests {

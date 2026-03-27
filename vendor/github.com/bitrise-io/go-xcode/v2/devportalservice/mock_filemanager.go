@@ -57,3 +57,24 @@ func (r *mockFileReader) WriteBytes(path string, value []byte) error {
 func (r *mockFileReader) FileSizeInBytes(pth string) (int64, error) {
 	panic("not implemented")
 }
+
+// CopyFile stub...
+func (r *mockFileReader) CopyFile(src, dst string, opts *fileutil.CopyOptions) error {
+	panic("implement me")
+}
+
+// CopyDir stub...
+func (r *mockFileReader) CopyDir(src, dst string, opts *fileutil.CopyOptions) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+// Lstat stub...
+func (r *mockFileReader) Lstat(path string) (os.FileInfo, error) {
+	panic("implement me")
+}
+
+// LastNLines stub...
+func (r *mockFileReader) LastNLines(s string, n int) string {
+	panic("implement me")
+}
