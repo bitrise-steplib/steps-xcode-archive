@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-steplib/steps-xcode-archive/step"
+	"github.com/bitrise-steplib/steps-xcode-archive/step/buildcache"
 )
 
 func main() {
@@ -77,12 +79,21 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 	cmdFactory := command.NewFactory(envRepository)
 	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
 
+	// Only the factory handed to the xcodecommand runner gets wrapped — codesign,
+	// project readers, and other cmdFactory consumers keep invoking binaries
+	// directly.
+	runnerCmdFactory := cmdFactory
+	if det := buildcache.Detect(context.Background(), logger); det.ReactNativeEnabled {
+		logger.Infof("Bitrise Build Cache: React Native cache active — wrapping xcodebuild with %s", det.CLIPath)
+		runnerCmdFactory = buildcache.NewWrappingCommandFactory(cmdFactory, det.CLIPath)
+	}
+
 	xcodeCommandRunner := xcodecommand.Runner(nil)
 	switch logFormatter {
 	case step.XcodebuildTool:
-		xcodeCommandRunner = xcodecommand.NewRawCommandRunner(logger, cmdFactory)
+		xcodeCommandRunner = xcodecommand.NewRawCommandRunner(logger, runnerCmdFactory)
 	case step.XcbeautifyTool:
-		xcodeCommandRunner = xcodecommand.NewXcbeautifyRunner(logger, cmdFactory)
+		xcodeCommandRunner = xcodecommand.NewXcbeautifyRunner(logger, runnerCmdFactory)
 	case step.XcprettyTool:
 		commandLocator := env.NewCommandLocator()
 		rubyComamndFactory, err := ruby.NewCommandFactory(cmdFactory, commandLocator)
@@ -91,12 +102,12 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 		}
 		rubyEnv := ruby.NewEnvironment(rubyComamndFactory, commandLocator, logger)
 
-		xcodeCommandRunner = xcodecommand.NewXcprettyCommandRunner(logger, cmdFactory, pathChecker, fileManager, rubyComamndFactory, rubyEnv)
+		xcodeCommandRunner = xcodecommand.NewXcprettyCommandRunner(logger, runnerCmdFactory, pathChecker, fileManager, rubyComamndFactory, rubyEnv)
 	default:
 		panic(fmt.Sprintf("Unknown log formatter: %s", logFormatter))
 	}
 
-	return step.NewXcodebuildArchiver(xcodeCommandRunner, logFormatter, xcodeVersionReader, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, logger), nil
+	return step.NewXcodebuildArchiverWithRunnerFactory(xcodeCommandRunner, logFormatter, xcodeVersionReader, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, runnerCmdFactory, logger), nil
 }
 
 func createRunOptions(config step.Config) step.RunOpts {

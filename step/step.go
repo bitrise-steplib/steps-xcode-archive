@@ -156,6 +156,10 @@ type XcodebuildArchiver struct {
 	fileManager        fileutil.FileManager
 	logger             log.Logger
 	cmdFactory         command.Factory
+	// xcodeRunnerCmdFactory is the factory used to (re)build xcodecommand runners.
+	// It matches cmdFactory for raw setups, or is wrapped with Bitrise Build Cache
+	// when RN cache activation was detected at main.go wiring time.
+	xcodeRunnerCmdFactory command.Factory
 }
 
 func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, projectFactory projectmanager.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
@@ -171,16 +175,26 @@ func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVers
 
 // NewXcodebuildArchiver ...
 func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, logFormatter string, xcodeVersionReader xcodeversion.Reader, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
+	return NewXcodebuildArchiverWithRunnerFactory(xcodecommandRunner, logFormatter, xcodeVersionReader, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, cmdFactory, logger)
+}
+
+// NewXcodebuildArchiverWithRunnerFactory is a variant of NewXcodebuildArchiver
+// that accepts a separate factory for xcodecommand.Runner construction. When
+// Bitrise Build Cache wraps xcodebuild, the runner factory is a wrapping
+// factory while cmdFactory remains unwrapped — so codesign / project reader
+// invocations stay unaffected.
+func NewXcodebuildArchiverWithRunnerFactory(xcodecommandRunner xcodecommand.Runner, logFormatter string, xcodeVersionReader xcodeversion.Reader, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory, xcodeRunnerCmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
 	return XcodebuildArchiver{
-		xcodeCommandRunner: xcodecommandRunner,
-		logFormatter:       logFormatter,
-		xcodeVersionReader: xcodeVersionReader,
-		pathProvider:       pathProvider,
-		pathChecker:        pathChecker,
-		pathModifier:       pathModifier,
-		fileManager:        fileManager,
-		logger:             logger,
-		cmdFactory:         cmdFactory,
+		xcodeCommandRunner:    xcodecommandRunner,
+		logFormatter:          logFormatter,
+		xcodeVersionReader:    xcodeVersionReader,
+		pathProvider:          pathProvider,
+		pathChecker:           pathChecker,
+		pathModifier:          pathModifier,
+		fileManager:           fileManager,
+		logger:                logger,
+		cmdFactory:            cmdFactory,
+		xcodeRunnerCmdFactory: xcodeRunnerCmdFactory,
 	}
 }
 
@@ -329,7 +343,7 @@ func (s *XcodebuildArchiver) EnsureDependencies() {
 		s.logger.Infof("Switching back to xcodebuild log formatter.")
 
 		s.logFormatter = XcodebuildTool
-		s.xcodeCommandRunner = xcodecommand.NewRawCommandRunner(s.logger, s.cmdFactory)
+		s.xcodeCommandRunner = xcodecommand.NewRawCommandRunner(s.logger, s.xcodeRunnerCmdFactory)
 		return
 	}
 
