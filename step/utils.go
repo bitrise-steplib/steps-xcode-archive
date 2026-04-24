@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-utils/colorstring"
-	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/bitrise-io/go-utils/stringutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/exportoptions"
@@ -20,7 +19,7 @@ func generateAdditionalOptions(platform string, customOptions []string) []string
 
 	var options []string
 	if len(customOptions) != 0 {
-		if !sliceutil.IsStringInSlice("-destination", customOptions) {
+		if !slices.Contains(customOptions, "-destination") {
 			options = append(options, destinationOptions...)
 		}
 

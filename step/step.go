@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	v1fileutil "github.com/bitrise-io/go-utils/fileutil"
 	logv1 "github.com/bitrise-io/go-utils/log"
 	v1pathutil "github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-io/go-utils/sliceutil"
+
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -228,7 +229,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	if strings.TrimSpace(config.XcconfigContent) == "" {
 		config.XcconfigContent = ""
 	}
-	if sliceutil.IsStringInSlice("-xcconfig", config.XcodebuildAdditionalOptions) &&
+	if slices.Contains(config.XcodebuildAdditionalOptions, "-xcconfig") &&
 		config.XcconfigContent != "" {
 		return Config{}, fmt.Errorf("`-xcconfig` option found in XcodebuildOptions (`xcodebuild_options`), please clear Build settings (xcconfig) (`xcconfig_content`) input as only one can be set")
 	}
