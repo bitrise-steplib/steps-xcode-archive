@@ -20,7 +20,6 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
@@ -30,6 +29,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/codesign"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
@@ -142,6 +142,7 @@ type XcodebuildArchiveConfigParser struct {
 	fileManager        fileutil.FileManager
 	cmdFactory         command.Factory
 	projectFactory     projectmanager.Factory
+	profileReader      profileutil.ProfileReader
 	logger             log.Logger
 }
 
@@ -156,26 +157,23 @@ type XcodebuildArchiver struct {
 	fileManager        fileutil.FileManager
 	logger             log.Logger
 	cmdFactory         command.Factory
+	profileReader      profileutil.ProfileReader
 	// xcodeRunnerCmdFactory is the factory used to (re)build xcodecommand runners.
 	// It matches cmdFactory for raw setups, or is wrapped with Bitrise Build Cache
 	// when RN cache activation was detected at main.go wiring time.
 	xcodeRunnerCmdFactory command.Factory
 }
 
-func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, projectFactory projectmanager.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
+func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, cmdFactory command.Factory, projectFactory projectmanager.Factory, profileReader profileutil.ProfileReader, logger log.Logger) XcodebuildArchiveConfigParser {
 	return XcodebuildArchiveConfigParser{
 		stepInputParser:    stepInputParser,
 		xcodeVersionReader: xcodeVersionReader,
 		fileManager:        fileManager,
 		cmdFactory:         cmdFactory,
 		projectFactory:     projectFactory,
+		profileReader:      profileReader,
 		logger:             logger,
 	}
-}
-
-// NewXcodebuildArchiver ...
-func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, logFormatter string, xcodeVersionReader xcodeversion.Reader, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
-	return NewXcodebuildArchiverWithRunnerFactory(xcodecommandRunner, logFormatter, xcodeVersionReader, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, cmdFactory, logger)
 }
 
 // NewXcodebuildArchiverWithRunnerFactory is a variant of NewXcodebuildArchiver
@@ -183,7 +181,7 @@ func NewXcodebuildArchiver(xcodecommandRunner xcodecommand.Runner, logFormatter 
 // Bitrise Build Cache wraps xcodebuild, the runner factory is a wrapping
 // factory while cmdFactory remains unwrapped — so codesign / project reader
 // invocations stay unaffected.
-func NewXcodebuildArchiverWithRunnerFactory(xcodecommandRunner xcodecommand.Runner, logFormatter string, xcodeVersionReader xcodeversion.Reader, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory, xcodeRunnerCmdFactory command.Factory, logger log.Logger) XcodebuildArchiver {
+func NewXcodebuildArchiverWithRunnerFactory(xcodecommandRunner xcodecommand.Runner, logFormatter string, xcodeVersionReader xcodeversion.Reader, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, fileManager fileutil.FileManager, cmdFactory, xcodeRunnerCmdFactory command.Factory, profileReader profileutil.ProfileReader, logger log.Logger) XcodebuildArchiver {
 	return XcodebuildArchiver{
 		xcodeCommandRunner:    xcodecommandRunner,
 		logFormatter:          logFormatter,
@@ -194,6 +192,7 @@ func NewXcodebuildArchiverWithRunnerFactory(xcodecommandRunner xcodecommand.Runn
 		fileManager:           fileManager,
 		logger:                logger,
 		cmdFactory:            cmdFactory,
+		profileReader:         profileReader,
 		xcodeRunnerCmdFactory: xcodeRunnerCmdFactory,
 	}
 }
@@ -802,7 +801,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, proj
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, s.logger),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, s.logger),
-		codesignasset.NewWriter(s.logger, codesignConfig.Keychain, s.fileManager, int64(config.XcodeMajorVersion)),
+		codesignasset.NewWriter(s.logger, codesignConfig.Keychain, s.fileManager, s.profileReader, int64(config.XcodeMajorVersion)),
 		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		localcodesignasset.NewProvisioningProfileConverter(),
 		project,

@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator/internal/codesigngroup"
 	"github.com/bitrise-io/go-xcode/v2/plistutil"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 )
 
@@ -39,10 +41,13 @@ type ExportOptionsGenerator struct {
 
 // New constructs a new ExportOptionsGenerator.
 func New(xcodeVersionReader xcodeversion.Reader, logger log.Logger) ExportOptionsGenerator {
+	pathProvider := pathutil.NewPathProvider()
+	profileReader := profileutil.NewProfileReader(logger, fileutil.NewFileManager(), pathutil.NewPathModifier(), pathutil.NewPathProvider())
+
 	return ExportOptionsGenerator{
 		xcodeVersionReader:    xcodeVersionReader,
-		certificateProvider:   LocalCodesignIdentityProvider{},
-		profileProvider:       LocalProvisioningProfileProvider{},
+		certificateProvider:   NewLocalCodesignIdentityProvider(),
+		profileProvider:       NewLocalProvisioningProfileProvider(profileReader, pathProvider, logger),
 		codeSignGroupProvider: NewCodeSignGroupProvider(logger),
 		logger:                logger,
 	}
