@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bitrise-io/bitrise-build-cache-cli/v2/pkg/reactnative/wrap"
 	"github.com/bitrise-io/go-steputils/v2/ruby"
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/v2/command"
@@ -17,7 +18,6 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-steplib/steps-xcode-archive/step"
-	"github.com/bitrise-steplib/steps-xcode-archive/step/buildcache"
 )
 
 func main() {
@@ -82,11 +82,11 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 	// Only the factory handed to the xcodecommand runner gets wrapped — codesign,
 	// project readers, and other cmdFactory consumers keep invoking binaries
 	// directly.
-	runnerCmdFactory := cmdFactory
-	if det := buildcache.Detect(context.Background(), logger); det.ReactNativeEnabled {
+	det := wrap.Detect(context.Background(), wrap.DetectParams{Logger: logger})
+	if det.ReactNativeEnabled {
 		logger.Infof("Bitrise Build Cache: React Native cache active — wrapping xcodebuild with %s", det.CLIPath)
-		runnerCmdFactory = buildcache.NewWrappingCommandFactory(cmdFactory, det.CLIPath)
 	}
+	runnerCmdFactory := wrap.NewWrappingCommandFactory(cmdFactory, det, "xcodebuild")
 
 	xcodeCommandRunner := xcodecommand.Runner(nil)
 	switch logFormatter {
