@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-io/go-utils/v2/log"
-	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 )
 
 // ProvisioningProfileProvider can list profile infos.
@@ -19,12 +19,23 @@ type ProvisioningProfileProvider interface {
 
 // LocalProvisioningProfileProvider ...
 type LocalProvisioningProfileProvider struct {
-	logger log.Logger
+	logger        log.Logger
+	pathProvider  pathutil.PathProvider
+	profileReader profileutil.ProfileReader
+}
+
+// NewLocalProvisioningProfileProvider ...
+func NewLocalProvisioningProfileProvider(profileReader profileutil.ProfileReader, pathProvider pathutil.PathProvider, logger log.Logger) LocalProvisioningProfileProvider {
+	return LocalProvisioningProfileProvider{
+		logger:        logger,
+		pathProvider:  pathProvider,
+		profileReader: profileReader,
+	}
 }
 
 // ListProvisioningProfiles ...
 func (p LocalProvisioningProfileProvider) ListProvisioningProfiles() ([]profileutil.ProvisioningProfileInfoModel, error) {
-	return profileutil.InstalledProvisioningProfileInfos(profileutil.ProfileTypeIos)
+	return p.profileReader.InstalledProvisioningProfileInfos(profileutil.ProfileTypeIos)
 }
 
 // GetDefaultProvisioningProfile ...
@@ -34,7 +45,7 @@ func (p LocalProvisioningProfileProvider) GetDefaultProvisioningProfile() (profi
 		return profileutil.ProvisioningProfileInfoModel{}, nil
 	}
 
-	tmpDir, err := pathutil.NormalizedOSTempDirPath("tmp_default_profile")
+	tmpDir, err := p.pathProvider.CreateTempDir("tmp_default_profile")
 	if err != nil {
 		return profileutil.ProvisioningProfileInfoModel{}, err
 	}
@@ -64,7 +75,7 @@ func (p LocalProvisioningProfileProvider) GetDefaultProvisioningProfile() (profi
 		return profileutil.ProvisioningProfileInfoModel{}, err
 	}
 
-	defaultProfile, err := profileutil.NewProvisioningProfileInfoFromFile(tmpDst)
+	defaultProfile, err := p.profileReader.ProvisioningProfileInfoFromFile(tmpDst)
 	if err != nil {
 		return profileutil.ProvisioningProfileInfoModel{}, err
 	}

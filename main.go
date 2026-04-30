@@ -14,6 +14,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/projectmanager"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-steplib/steps-xcode-archive/step"
@@ -66,8 +67,11 @@ func createConfigParser(logger log.Logger) step.XcodebuildArchiveConfigParser {
 	cmdFactory := command.NewFactory(envRepository)
 	projectFactory := projectmanager.NewFactory(logger, envRepository, projectmanager.BuildActionArchive)
 	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
+	pathModifier := pathutil.NewPathModifier()
+	pathProvider := pathutil.NewPathProvider()
+	profileReader := profileutil.NewProfileReader(logger, fileManager, pathModifier, pathProvider)
 
-	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, cmdFactory, projectFactory, logger)
+	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, cmdFactory, projectFactory, profileReader, logger)
 }
 
 func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.XcodebuildArchiver, error) {
@@ -78,6 +82,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 	fileManager := fileutil.NewFileManager()
 	cmdFactory := command.NewFactory(envRepository)
 	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
+	profileReader := profileutil.NewProfileReader(logger, fileManager, pathModifier, pathProvider)
 
 	// Only the factory handed to the xcodecommand runner gets wrapped — codesign,
 	// project readers, and other cmdFactory consumers keep invoking binaries
@@ -107,7 +112,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 		panic(fmt.Sprintf("Unknown log formatter: %s", logFormatter))
 	}
 
-	return step.NewXcodebuildArchiverWithRunnerFactory(xcodeCommandRunner, logFormatter, xcodeVersionReader, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, runnerCmdFactory, logger), nil
+	return step.NewXcodebuildArchiverWithRunnerFactory(xcodeCommandRunner, logFormatter, xcodeVersionReader, pathProvider, pathChecker, pathModifier, fileManager, cmdFactory, runnerCmdFactory, profileReader, logger), nil
 }
 
 func createRunOptions(config step.Config) step.RunOpts {
