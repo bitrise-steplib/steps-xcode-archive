@@ -2,30 +2,21 @@ package wrap
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"os/exec"
-	"time"
+
+	"github.com/bitrise-io/bitrise-build-cache-cli/v2/pkg/status"
 )
 
-const (
-	// OptOutEnv, when set to "0", skips detection entirely and returns a
-	// zero-value Detection. Killswitch for operators if the wrapper ever
-	// ships a regression — set BITRISE_BUILD_CACHE_RN_WRAP=0 on the affected
-	// build to force the no-wrap path without rolling back.
-	OptOutEnv = "BITRISE_BUILD_CACHE_RN_WRAP"
-
-	// DefaultLookupTimeout caps the `<cli> --version` reachability probe.
-	DefaultLookupTimeout = 2 * time.Second
-
-	// DefaultStatusTimeout caps the `<cli> status --feature=react-native` probe.
-	DefaultStatusTimeout = 5 * time.Second
-)
+// OptOutEnv, when set to "0", skips detection entirely and returns a
+// zero-value Detection. Killswitch for operators if the wrapper ever ships
+// a regression — set BITRISE_BUILD_CACHE_RN_WRAP=0 on the affected build to
+// force the no-wrap path without rolling back.
+const OptOutEnv = "BITRISE_BUILD_CACHE_RN_WRAP"
 
 // Detection describes the CLI's reachability and RN-cache activation state on
 // this machine. A zero-value Detection means "no wrapping should happen" —
-// either because the CLI is absent, unhealthy, or RN cache isn't activated.
+// either because the CLI is absent or RN cache isn't activated.
 type Detection struct {
 	// CLIPath is the absolute path of the bitrise-build-cache binary on PATH.
 	// Empty when the CLI is not installed (or the OptOutEnv killswitch is set).
@@ -45,34 +36,43 @@ type Logger interface {
 }
 
 // DetectParams configures Detect. The zero value uses production defaults
-// (real PATH lookup, real exec, the default timeouts) and a no-op logger.
+// (real PATH lookup, in-process status check via pkg/status) and a no-op
+// logger.
 type DetectParams struct {
-	// Logger receives a warn line if the CLI is found but its probe fails,
-	// and a debug line on each skip path. Nil → silent.
+	// Logger receives a debug line on each skip path. Nil → silent.
 	Logger Logger
 
 	// LookPath overrides exec.LookPath. Useful for tests.
 	LookPath func(file string) (string, error)
 
-	// CommandContext overrides exec.CommandContext. Useful for tests; signature
-	// matches the stdlib so tests can inject a fake binary.
-	CommandContext func(ctx context.Context, name string, args ...string) *exec.Cmd
-
-	// LookupTimeout caps the `<cli> --version` probe. Zero → DefaultLookupTimeout.
-	LookupTimeout time.Duration
-
-	// StatusTimeout caps the RN-status probe. Zero → DefaultStatusTimeout.
-	StatusTimeout time.Duration
+	// IsReactNativeEnabled overrides the in-process RN-activation check.
+	// Production default reads the activation marker via pkg/status. Useful
+	// for tests that want to drive the enabled/disabled branches without
+	// touching the filesystem.
+	IsReactNativeEnabled func() bool
 
 	// Getenv overrides os.Getenv. Useful for tests; nil → os.Getenv.
 	Getenv func(key string) string
 }
 
-// Detect probes the CLI on PATH and queries RN-enablement. Any failure
-// degrades to a zero-value Detection (with a warn log when applicable) — this
-// function never returns an error so callers can drop it straight into a
-// command-construction site without adding error-handling branches.
+// Detect probes the CLI on PATH and queries RN-enablement in-process via
+// pkg/status. Any failure degrades to a zero-value Detection (with a debug
+// log when applicable) — this function never returns an error so callers can
+// drop it straight into a command-construction site without adding
+// error-handling branches.
+//
+// In-process status check (rather than execing `<cli> status …`) is
+// deliberate: the wrap pkg is part of the CLI module, so the activation
+// marker reader is the same code the binary on PATH runs when versions
+// match. The activation-marker layout under pkg/status is treated as a
+// stable public contract for step binaries that pin older CLI versions —
+// see pkg/status for the format guarantees.
+//
+// ctx is accepted for API stability; the in-process check has no I/O to
+// cancel.
 func Detect(ctx context.Context, params DetectParams) Detection {
+	_ = ctx
+
 	getenv := params.Getenv
 	if getenv == nil {
 		getenv = os.Getenv
@@ -89,21 +89,6 @@ func Detect(ctx context.Context, params DetectParams) Detection {
 		lookPath = exec.LookPath
 	}
 
-	commandContext := params.CommandContext
-	if commandContext == nil {
-		commandContext = exec.CommandContext
-	}
-
-	lookupTimeout := params.LookupTimeout
-	if lookupTimeout <= 0 {
-		lookupTimeout = DefaultLookupTimeout
-	}
-
-	statusTimeout := params.StatusTimeout
-	if statusTimeout <= 0 {
-		statusTimeout = DefaultStatusTimeout
-	}
-
 	path, err := lookPath(CLIBinary)
 	if err != nil {
 		debug(params.Logger, "Bitrise Build Cache RN wrap: %s not on PATH, skipping (%v).", CLIBinary, err)
@@ -111,19 +96,12 @@ func Detect(ctx context.Context, params DetectParams) Detection {
 		return Detection{}
 	}
 
-	if err := probeCLI(ctx, commandContext, path, lookupTimeout); err != nil {
-		warn(params.Logger, "Bitrise Build Cache CLI found at %s but --version failed: %s. Skipping RN cache wrap.", path, err)
-
-		return Detection{}
+	isEnabled := params.IsReactNativeEnabled
+	if isEnabled == nil {
+		isEnabled = defaultRNEnabledChecker
 	}
 
-	enabled, err := queryRNEnabled(ctx, commandContext, path, statusTimeout)
-	if err != nil {
-		warn(params.Logger, "Bitrise Build Cache status probe failed (%s). Skipping RN cache wrap.", err)
-
-		return Detection{CLIPath: path}
-	}
-
+	enabled := isEnabled()
 	if !enabled {
 		debug(params.Logger, "Bitrise Build Cache RN wrap: CLI at %s reports react-native cache not activated, skipping wrap.", path)
 	}
@@ -134,42 +112,15 @@ func Detect(ctx context.Context, params DetectParams) Detection {
 	}
 }
 
-func probeCLI(ctx context.Context, commandContext func(context.Context, string, ...string) *exec.Cmd, path string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	if err := commandContext(ctx, path, "--version").Run(); err != nil {
-		return fmt.Errorf("run --version probe: %w", err)
+// defaultRNEnabledChecker queries pkg/status for the react-native feature.
+// Errors degrade to "disabled" so Detect never returns spurious enable.
+func defaultRNEnabledChecker() bool {
+	enabled, err := status.NewChecker(status.CheckerParams{}).IsEnabled(status.FeatureReactNative)
+	if err != nil {
+		return false
 	}
 
-	return nil
-}
-
-// queryRNEnabled calls `<cli> status --feature=react-native --quiet`. Exit 0
-// means enabled, exit 1 means disabled. Any other outcome is a probe failure.
-func queryRNEnabled(ctx context.Context, commandContext func(context.Context, string, ...string) *exec.Cmd, path string, timeout time.Duration) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	err := commandContext(ctx, path, "status", "--feature=react-native", "--quiet").Run()
-	if err == nil {
-		return true, nil
-	}
-
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-		return false, nil
-	}
-
-	return false, fmt.Errorf("run status probe: %w", err)
-}
-
-func warn(logger Logger, format string, args ...any) {
-	if logger == nil {
-		return
-	}
-
-	logger.Warnf(format, args...)
+	return enabled
 }
 
 func debug(logger Logger, format string, args ...any) {
