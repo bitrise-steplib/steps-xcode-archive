@@ -12,15 +12,15 @@ import (
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/pathutil"
-	"github.com/bitrise-io/go-utils/sliceutil"
+	"github.com/bitrise-io/go-utils/v2/sliceutil"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/retryhttp"
-	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/keychain"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 )
 
 // Input ...
@@ -163,8 +163,12 @@ func splitCertificatesAndPassphrases(certURLList string, certPassphraseList stri
 }
 
 // SplitAndClean ...
-func splitAndClean(list string, sep string, omitEmpty bool) (items []string) {
-	return sliceutil.CleanWhitespace(strings.Split(list, sep), omitEmpty)
+func splitAndClean(list string, sep string, omitEmpty bool) []string {
+	items := sliceutil.Map(strings.Split(list, sep), strings.TrimSpace)
+	if omitEmpty {
+		items = sliceutil.Filter(items, func(s string) bool { return len(s) > 0 })
+	}
+	return items
 }
 
 // parseFallbackProvisioningProfiles validates and expands profilesList.

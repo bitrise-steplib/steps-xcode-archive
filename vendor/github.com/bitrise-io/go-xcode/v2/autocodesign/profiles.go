@@ -11,8 +11,8 @@ import (
 	v1log "github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/retry"
-	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 )
 
@@ -386,12 +386,7 @@ func checkProfileEntitlements(client DevPortalClient, prof Profile, appEntitleme
 
 // ParseRawProfileDeviceUDIDs reads the device UDIDs from the provisioning profile.
 func ParseRawProfileDeviceUDIDs(profileContents []byte) (DeviceUDIDs, error) {
-	pkcs, err := profileutil.ProvisioningProfileFromContent(profileContents)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse pkcs7 from profile content: %s", err)
-	}
-
-	profile, err := profileutil.NewProvisioningProfileInfo(*pkcs)
+	profile, err := profileutil.NewProvisioningProfileInfoFromPKCS7Content(profileContents)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse profile info from pkcs7 content: %s", err)
 	}
@@ -401,12 +396,7 @@ func ParseRawProfileDeviceUDIDs(profileContents []byte) (DeviceUDIDs, error) {
 
 // ParseRawProfileEntitlements ...
 func ParseRawProfileEntitlements(profileContents []byte) (Entitlements, error) {
-	pkcs, err := profileutil.ProvisioningProfileFromContent(profileContents)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse pkcs7 from profile content: %s", err)
-	}
-
-	profile, err := profileutil.NewProvisioningProfileInfo(*pkcs)
+	profile, err := profileutil.NewProvisioningProfileInfoFromPKCS7Content(profileContents)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse profile info from pkcs7 content: %s", err)
 	}

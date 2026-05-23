@@ -6,9 +6,11 @@ import (
 
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
+	"github.com/bitrise-io/go-utils/v2/fileutil"
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/plistutil"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 )
 
 type macosBaseApplication struct {
@@ -25,9 +27,15 @@ func (app macosBaseApplication) BundleIdentifier() string {
 }
 
 func newMacosBaseApplication(path string) (macosBaseApplication, error) {
+	// TODO: wire in as a dep on the struct
+	logger := log.NewLogger()
+	fileManager := fileutil.NewFileManager()
+	pathModifier := pathutil.NewPathModifier()
+	pathProvider := pathutil.NewPathProvider()
 	pathChecker := pathutil.NewPathChecker()
 	envRepo := env.NewRepository()
 	cmdFactory := command.NewFactory(envRepo)
+	profileReader := profileutil.NewProfileReader(logger, fileManager, pathModifier, pathProvider)
 
 	var infoPlist plistutil.PlistData
 	{
@@ -50,7 +58,7 @@ func newMacosBaseApplication(path string) (macosBaseApplication, error) {
 		if exist, err := pathChecker.IsPathExists(provisioningProfilePath); err != nil {
 			return macosBaseApplication{}, fmt.Errorf("failed to check if profile exists at: %s, error: %s", provisioningProfilePath, err)
 		} else if exist {
-			profile, err := profileutil.NewProvisioningProfileInfoFromFile(provisioningProfilePath)
+			profile, err := profileReader.ProvisioningProfileInfoFromFile(provisioningProfilePath)
 			if err != nil {
 				return macosBaseApplication{}, err
 			}
