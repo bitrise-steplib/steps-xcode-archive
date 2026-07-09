@@ -120,7 +120,9 @@ func createRunOptions(config step.Config) step.RunOpts {
 		XcodeMajorVersion:   config.XcodeMajorVersion,
 		ArtifactName:        config.ArtifactName,
 
-		CodesignManager: config.CodesignManager,
+		CodesignManager:  config.CodesignManager,
+		KeychainPath:     config.KeychainPath,
+		KeychainPassword: config.KeychainPassword,
 
 		PerformCleanAction:          config.PerformCleanAction,
 		XcconfigContent:             config.XcconfigContent,
