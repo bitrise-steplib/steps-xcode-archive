@@ -404,33 +404,10 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 
 	s.logger.Println()
 
-	if opts.XcodeMajorVersion >= 11 {
-		s.logger.Infof("Running resolve Swift package dependencies")
-		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
-		// Specifying a scheme is required for workspaces
-		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		resolveDepsCmd.SetCustomOptions(opts.XcodebuildAdditionalOptions)
-		if err := resolveDepsCmd.Run(); err != nil {
-			s.logger.Warnf("%s", err)
-		}
-	}
-
-	if opts.ArtifactName == "" {
-		s.logger.Infof("Looking for artifact name as field is empty")
-
-		productName, err := opts.ProjectManager.ReadSchemeBuildSettingString("PRODUCT_NAME")
-		if err != nil && !serialized.IsKeyNotFoundError(err) {
-			return out, fmt.Errorf("failed to read product name build setting: %w", err)
-		}
-		if productName == "" {
-			s.logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
-			productName = opts.Scheme
-		}
-
-		opts.ArtifactName = productName
-	}
-	out.ArtifactName = opts.ArtifactName
-
+	// Prepare code signing assets (and unlock the keychain) before resolving Swift
+	// package dependencies. Resolving private SPM packages may require credentials
+	// stored in the keychain; if the keychain is still locked at that point the
+	// build can hang waiting for an interactive unlock prompt.
 	if opts.CodesignManager != nil {
 		s.logger.Infof("Preparing code signing assets (certificates, profiles) before Archive action")
 
@@ -461,6 +438,33 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		s.logger.Infof("Automatic code signing is disabled, skipped downloading code sign assets")
 	}
 	s.logger.Println()
+
+	if opts.XcodeMajorVersion >= 11 {
+		s.logger.Infof("Running resolve Swift package dependencies")
+		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
+		// Specifying a scheme is required for workspaces
+		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
+		resolveDepsCmd.SetCustomOptions(opts.XcodebuildAdditionalOptions)
+		if err := resolveDepsCmd.Run(); err != nil {
+			s.logger.Warnf("%s", err)
+		}
+	}
+
+	if opts.ArtifactName == "" {
+		s.logger.Infof("Looking for artifact name as field is empty")
+
+		productName, err := opts.ProjectManager.ReadSchemeBuildSettingString("PRODUCT_NAME")
+		if err != nil && !serialized.IsKeyNotFoundError(err) {
+			return out, fmt.Errorf("failed to read product name build setting: %w", err)
+		}
+		if productName == "" {
+			s.logger.Warnf("Product name not found in build settings, using scheme (%s) as artifact name", opts.Scheme)
+			productName = opts.Scheme
+		}
+
+		opts.ArtifactName = productName
+	}
+	out.ArtifactName = opts.ArtifactName
 
 	archiveOpts := xcodeArchiveOpts{
 		ProjectManager:      opts.ProjectManager,
