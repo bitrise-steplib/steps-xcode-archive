@@ -63,11 +63,14 @@ func createConfigParser(logger log.Logger) step.XcodebuildArchiveConfigParser {
 	envRepository := env.NewRepository()
 	inputParser := stepconf.NewInputParser(envRepository)
 	fileManager := fileutil.NewFileManager()
+	pathProvider := pathutil.NewPathProvider()
+	pathChecker := pathutil.NewPathChecker()
+	pathModifier := pathutil.NewPathModifier()
 	cmdFactory := command.NewFactory(envRepository)
 	projectFactory := projectmanager.NewFactory(logger, envRepository, projectmanager.BuildActionArchive)
 	xcodeVersionReader := xcodeversion.NewXcodeVersionProvider(cmdFactory)
 
-	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, cmdFactory, projectFactory, logger)
+	return step.NewXcodeArchiveConfigParser(inputParser, xcodeVersionReader, fileManager, pathProvider, pathChecker, pathModifier, cmdFactory, projectFactory, logger)
 }
 
 func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.XcodebuildArchiver, error) {

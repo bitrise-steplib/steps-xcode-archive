@@ -5,7 +5,6 @@ go 1.24.0
 require (
 	github.com/bitrise-io/bitrise-build-cache-cli/v2 v2.6.0
 	github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.50
-	github.com/bitrise-io/go-utils v1.0.15
 	github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.34
 	github.com/bitrise-io/go-xcode v1.3.3
 	github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.81
@@ -21,6 +20,7 @@ require (
 	github.com/bitrise-io/go-pkcs12 v0.1.0 // indirect
 	github.com/bitrise-io/go-plist v0.0.0-20210301100253-4b1a112ccd10 // indirect
 	github.com/bitrise-io/go-steputils v1.0.6 // indirect
+	github.com/bitrise-io/go-utils v1.0.15 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa // indirect
