@@ -304,7 +304,7 @@ workflows:
     description: Test API key based code signing on a project where code signing is not managed automatically and has special entitlements.
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: entitlements
+    - TEST_APP_BRANCH: bump-ios-deployment-target-15-entitlements
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - DESTINATION: detect
@@ -321,7 +321,7 @@ workflows:
     description: Test API key based code signing and app store export on a project where signing is managed automatically
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: automatic
+    - TEST_APP_BRANCH: bump-ios-deployment-target-15-automatic
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - DESTINATION: detect
@@ -348,7 +348,7 @@ workflows:
     description: Test Apple ID based code signing and app store export on a project where signing is managed automatically
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: automatic
+    - TEST_APP_BRANCH: bump-ios-deployment-target-15-automatic
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - DESTINATION: detect
@@ -365,7 +365,7 @@ workflows:
   test_cloudkit:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: cloudkit
+    - TEST_APP_BRANCH: bump-ios-deployment-target-15-cloudkit
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test-Prod
@@ -428,7 +428,7 @@ workflows:
       (Should use Bitrise-managed code signing assets).
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-multi-target.git
-    - TEST_APP_BRANCH: master
+    - TEST_APP_BRANCH: bump-ios-deployment-target-15-master
     - BITRISE_PROJECT_PATH: code-sign-test.xcodeproj
     - BITRISE_SCHEME: code-sign-test
     - DESTINATION: iOS
@@ -456,7 +456,7 @@ workflows:
   utility_test_workspace:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-samples/sample-apps-ios-workspace-swift.git
-    - TEST_APP_BRANCH: master
+    - TEST_APP_BRANCH: bump-ios-deployment-target-15-master
     - BITRISE_PROJECT_PATH: sample-apps-ios-workspace-swift.xcworkspace
     - BITRISE_SCHEME: sample-apps-ios-workspace-swift
     - DESTINATION: iOS
@@ -474,7 +474,7 @@ workflows:
   test_catalyst:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/CatalystSample.git
-    - TEST_APP_BRANCH: master
+    - TEST_APP_BRANCH: bump-ios-deployment-target-15-master
     - TEST_APP_COMMIT: ""
     - BITRISE_PROJECT_PATH: Catalyst Sample.xcodeproj
     - BITRISE_SCHEME: Catalyst Sample
