@@ -129,7 +129,10 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 
 	dependencyIDs, err := rawTarget.StringSlice("dependencies")
 	if err != nil {
-		return Target{}, err
+		if !serialized.IsKeyNotFoundError(err) {
+			return Target{}, err
+		}
+		dependencyIDs = []string{}
 	}
 
 	var dependencies []TargetDependency
@@ -168,7 +171,10 @@ func parseTarget(id string, objects serialized.Object) (Target, error) {
 
 	buildPhaseIDs, err := rawTarget.StringSlice("buildPhases")
 	if err != nil {
-		return Target{}, err
+		if !serialized.IsKeyNotFoundError(err) {
+			return Target{}, err
+		}
+		buildPhaseIDs = []string{}
 	}
 
 	return Target{
