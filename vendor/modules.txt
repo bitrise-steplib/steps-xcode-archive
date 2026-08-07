@@ -38,7 +38,6 @@ github.com/bitrise-io/go-utils/pathutil
 github.com/bitrise-io/go-utils/pretty
 github.com/bitrise-io/go-utils/progress
 github.com/bitrise-io/go-utils/sliceutil
-github.com/bitrise-io/go-utils/stringutil
 # github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.34
 ## explicit; go 1.21
 github.com/bitrise-io/go-utils/v2/analytics

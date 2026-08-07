@@ -7,9 +7,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/colorstring"
-	"github.com/bitrise-io/go-utils/stringutil"
+	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/log/colorstring"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 )
 
@@ -69,7 +69,7 @@ func determineExportMethod(desiredExportMethod string, archiveExportMethod expor
 	return exportMethod, nil
 }
 
-func printLastLinesOfXcodebuildLog(logger log.Logger, xcodebuildLog string, isXcodebuildSuccess bool) {
+func printLastLinesOfXcodebuildLog(logger log.Logger, fileManager fileutil.FileManager, xcodebuildLog string, isXcodebuildSuccess bool) {
 	const lastLinesMsg = "\nLast lines of the Xcode log:"
 	if isXcodebuildSuccess {
 		logger.Infof(lastLinesMsg)
@@ -77,7 +77,7 @@ func printLastLinesOfXcodebuildLog(logger log.Logger, xcodebuildLog string, isXc
 		logger.Infof(colorstring.Red(lastLinesMsg))
 	}
 
-	logger.Printf("%s", stringutil.LastNLines(xcodebuildLog, 20))
+	logger.Printf("%s", fileManager.LastNLines(xcodebuildLog, 20))
 	logger.Println()
 
 	if !isXcodebuildSuccess {
