@@ -2,12 +2,12 @@ package step
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
-	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/models"
 	"github.com/stretchr/testify/require"
@@ -68,7 +68,7 @@ func thisStepInputs(t *testing.T) map[string]string {
 	thisPackageDir := filepath.Dir(filename)
 	rootDir := filepath.Dir(thisPackageDir)
 	stepYMLPth := filepath.Join(rootDir, "step.yml")
-	b, err := fileutil.ReadBytesFromFile(stepYMLPth)
+	b, err := os.ReadFile(stepYMLPth)
 	require.NoError(t, err)
 
 	var s struct {
