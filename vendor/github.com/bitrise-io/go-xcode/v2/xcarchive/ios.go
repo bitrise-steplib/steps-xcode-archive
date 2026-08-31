@@ -83,6 +83,34 @@ type IosExtension struct {
 	IosBaseApplication
 }
 
+func findIosExtensionPaths(path string) ([]string, error) {
+	patterns := []string{
+		filepath.Join(escapeGlobPath(path), "PlugIns/*.appex"),
+		filepath.Join(escapeGlobPath(path), "PlugIns/*.extensionkitextension"),
+		filepath.Join(escapeGlobPath(path), "Extensions/*.appex"),
+		filepath.Join(escapeGlobPath(path), "Extensions/*.extensionkitextension"),
+	}
+
+	extensionPaths := []string{}
+	visited := map[string]struct{}{}
+
+	for _, pattern := range patterns {
+		pths, err := filepath.Glob(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search for extensions using pattern: %s, error: %s", pattern, err)
+		}
+		for _, pth := range pths {
+			if _, ok := visited[pth]; ok {
+				continue
+			}
+			visited[pth] = struct{}{}
+			extensionPaths = append(extensionPaths, pth)
+		}
+	}
+
+	return extensionPaths, nil
+}
+
 // NewIosExtension ...
 func NewIosExtension(path string) (IosExtension, error) {
 	baseApp, err := NewIosBaseApplication(path)
@@ -115,10 +143,9 @@ func NewIosWatchApplication(path string) (IosWatchApplication, error) {
 	}
 
 	extensions := []IosExtension{}
-	pattern := filepath.Join(escapeGlobPath(path), "PlugIns/*.appex")
-	pths, err := filepath.Glob(pattern)
+	pths, err := findIosExtensionPaths(path)
 	if err != nil {
-		return IosWatchApplication{}, fmt.Errorf("failed to search for watch application's extensions using pattern: %s, error: %s", pattern, err)
+		return IosWatchApplication{}, err
 	}
 	for _, pth := range pths {
 		extension, err := NewIosExtension(pth)
@@ -197,20 +224,17 @@ func NewIosApplication(path string) (IosApplication, error) {
 	}
 
 	extensions := []IosExtension{}
-	{
-		pattern := filepath.Join(escapeGlobPath(path), "PlugIns/*.appex")
-		pths, err := filepath.Glob(pattern)
+	pths, err := findIosExtensionPaths(path)
+	if err != nil {
+		return IosApplication{}, err
+	}
+	for _, pth := range pths {
+		extension, err := NewIosExtension(pth)
 		if err != nil {
-			return IosApplication{}, fmt.Errorf("failed to search for watch application's extensions using pattern: %s, error: %s", pattern, err)
+			return IosApplication{}, err
 		}
-		for _, pth := range pths {
-			extension, err := NewIosExtension(pth)
-			if err != nil {
-				return IosApplication{}, err
-			}
 
-			extensions = append(extensions, extension)
-		}
+		extensions = append(extensions, extension)
 	}
 
 	return IosApplication{
