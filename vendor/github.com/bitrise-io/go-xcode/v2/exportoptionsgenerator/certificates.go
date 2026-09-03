@@ -10,6 +10,11 @@ type CodesignIdentityProvider interface {
 // LocalCodesignIdentityProvider ...
 type LocalCodesignIdentityProvider struct{}
 
+// NewLocalCodesignIdentityProvider ...
+func NewLocalCodesignIdentityProvider() LocalCodesignIdentityProvider {
+	return LocalCodesignIdentityProvider{}
+}
+
 // ListCodesignIdentities ...
 func (p LocalCodesignIdentityProvider) ListCodesignIdentities() ([]certificateutil.CertificateInfoModel, error) {
 	certs, err := certificateutil.InstalledCodesigningCertificateInfos()

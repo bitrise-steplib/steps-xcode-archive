@@ -26,6 +26,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/codesign"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
+	profileutilv2 "github.com/bitrise-io/go-xcode/v2/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
@@ -808,7 +809,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, proj
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, s.logger),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, s.logger),
-		codesignasset.NewWriter(s.logger, codesignConfig.Keychain, s.fileManager, int64(config.XcodeMajorVersion)),
+		codesignasset.NewWriter(s.logger, codesignConfig.Keychain, s.fileManager, profileutilv2.NewProfileReader(s.logger, s.fileManager, s.pathModifier, s.pathProvider), int64(config.XcodeMajorVersion)),
 		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		localcodesignasset.NewProvisioningProfileConverter(),
 		project,

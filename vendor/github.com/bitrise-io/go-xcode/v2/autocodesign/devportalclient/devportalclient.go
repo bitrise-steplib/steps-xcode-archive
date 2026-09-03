@@ -2,6 +2,7 @@
 package devportalclient
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -47,7 +48,8 @@ func (f Factory) CreateBitriseConnection(buildURL, buildAPIToken string) (*devpo
 	connectionProvider := devportalservice.NewBitriseClient(f.logger, f.filemanager, retryhttp.NewClient(f.logger).StandardClient(), buildURL, buildAPIToken)
 	conn, err := connectionProvider.GetAppleDeveloperConnection()
 	if err != nil {
-		if networkErr, ok := err.(devportalservice.NetworkError); ok && networkErr.Status == http.StatusUnauthorized {
+		var networkErr devportalservice.NetworkError
+		if errors.As(err, &networkErr) && networkErr.Status == http.StatusUnauthorized {
 			f.logger.Println()
 			f.logger.Warnf("Unauthorized to query Bitrise Apple Service connection. This happens by design, with a public app's PR build, to protect secrets.")
 			return nil, err
@@ -92,7 +94,7 @@ func (f Factory) Create(credentials devportalservice.Credentials, teamID string)
 		devportalClient = appstoreconnectclient.NewAPIDevPortalClient(client)
 		f.logger.Debugf("App Store Connect API client created with base URL: %s", client.BaseURL)
 	} else if credentials.AppleID != nil {
-		cmdFactory, err := ruby.NewCommandFactory(command.NewFactory(envRepo), env.NewCommandLocator())
+		cmdFactory, err := ruby.NewCommandFactory(command.NewFactory(envRepo), env.NewCommandLocator(), f.logger)
 		if err != nil {
 			return nil, err
 		}
