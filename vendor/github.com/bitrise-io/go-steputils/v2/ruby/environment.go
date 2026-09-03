@@ -3,6 +3,7 @@ package ruby
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -23,7 +24,7 @@ const (
 type InstallType int8
 
 const (
-	// Unknown ...
+	// Unknown means that the Ruby install type could not be determined.
 	Unknown InstallType = iota
 	// SystemRuby ...
 	SystemRuby
@@ -36,6 +37,9 @@ const (
 	// ASDFRuby ...
 	ASDFRuby
 )
+
+// ErrRubyNotFound is returned when there is no ruby executable in the PATH.
+var ErrRubyNotFound = errors.New("ruby executable not found in PATH")
 
 // Environment ...
 type Environment interface {
@@ -60,15 +64,21 @@ func NewEnvironment(factory CommandFactory, cmdLocator env.CommandLocator, logge
 	}
 }
 
-// RubyInstallType returns which version manager was used for the ruby install
+// RubyInstallType returns which version manager was used for the ruby install.
+// It returns Unknown both when there is no ruby executable in the PATH and when ruby is installed
+// but its version manager is not recognised. Use NewCommandFactory to tell those cases apart.
 func (m environment) RubyInstallType() InstallType {
-	return rubyInstallType(m.cmdLocator)
+	installType, _ := rubyInstallType(m.cmdLocator)
+	return installType
 }
 
-func rubyInstallType(cmdLocator env.CommandLocator) InstallType {
+// rubyInstallType returns the version manager of the ruby install found in the PATH.
+// It returns an error wrapping ErrRubyNotFound if there is no ruby executable in the PATH, and
+// Unknown with no error if ruby is installed but its version manager is not recognised.
+func rubyInstallType(cmdLocator env.CommandLocator) (InstallType, error) {
 	pth, err := cmdLocator.LookPath("ruby")
 	if err != nil {
-		return Unknown
+		return Unknown, fmt.Errorf("%w: %w", ErrRubyNotFound, err)
 	}
 
 	installType := Unknown
@@ -86,7 +96,7 @@ func rubyInstallType(cmdLocator env.CommandLocator) InstallType {
 		installType = RbenvRuby
 	}
 
-	return installType
+	return installType, nil
 }
 
 // IsGemInstalled returns true if the specified gem version is installed

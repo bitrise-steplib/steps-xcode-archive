@@ -2,8 +2,8 @@ package codesigngroup
 
 import (
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/plistutil"
-	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 )
 
 // SelectableCodeSignGroupFilter ...

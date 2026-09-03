@@ -99,7 +99,7 @@ func createXcodebuildArchiver(logger log.Logger, logFormatter string) (step.Xcod
 		xcodeCommandRunner = xcodecommand.NewXcbeautifyRunner(logger, runnerCmdFactory)
 	case step.XcprettyTool:
 		commandLocator := env.NewCommandLocator()
-		rubyComamndFactory, err := ruby.NewCommandFactory(cmdFactory, commandLocator)
+		rubyComamndFactory, err := ruby.NewCommandFactory(cmdFactory, commandLocator, logger)
 		if err != nil {
 			return step.XcodebuildArchiver{}, fmt.Errorf("failed to install xcpretty: %s", err)
 		}
