@@ -295,6 +295,17 @@ workflows:
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
+    steps:
+    # Apple removed the olympus/v1/app/config endpoint spaceship calls for the login
+    # widget key, so a full sign in fails with "Service key is empty". Spaceship reads
+    # this file before calling that endpoint.
+    - script:
+        title: Set the Apple ID login widget key
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            printf '%s' 'e0b80c3bf78523bfe80974d320935bfa30add02e1bff88ec2166c6bd5a706c42' > /tmp/spaceship_itc_service_key.txt
     after_run:
     - _run
     - _check_outputs
@@ -357,6 +368,17 @@ workflows:
     - MIN_DAYS_PROFILE_VALID: 0
     - IPA_EXPORT_METHOD: app-store
     - LOG_FORMATTER: xcbeautify
+    steps:
+    # Apple removed the olympus/v1/app/config endpoint spaceship calls for the login
+    # widget key, so a full sign in fails with "Service key is empty". Spaceship reads
+    # this file before calling that endpoint.
+    - script:
+        title: Set the Apple ID login widget key
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            printf '%s' 'e0b80c3bf78523bfe80974d320935bfa30add02e1bff88ec2166c6bd5a706c42' > /tmp/spaceship_itc_service_key.txt
     after_run:
     - _run
     - _check_outputs
