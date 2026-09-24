@@ -16,7 +16,6 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient"
@@ -26,6 +25,7 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/codesign"
 	"github.com/bitrise-io/go-xcode/v2/devportalservice"
 	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 	"github.com/bitrise-io/go-xcode/v2/xcarchive"
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
@@ -141,6 +141,7 @@ type XcodebuildArchiveConfigParser struct {
 	pathModifier       pathutil.PathModifier
 	cmdFactory         command.Factory
 	projectFactory     projectmanager.Factory
+	profileReader      profileutil.ProfileReader
 	logger             log.Logger
 }
 
@@ -162,7 +163,7 @@ type XcodebuildArchiver struct {
 	outputExporter        outputExporter
 }
 
-func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, cmdFactory command.Factory, projectFactory projectmanager.Factory, logger log.Logger) XcodebuildArchiveConfigParser {
+func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVersionReader xcodeversion.Reader, fileManager fileutil.FileManager, pathProvider pathutil.PathProvider, pathChecker pathutil.PathChecker, pathModifier pathutil.PathModifier, cmdFactory command.Factory, projectFactory projectmanager.Factory, profileReader profileutil.ProfileReader, logger log.Logger) XcodebuildArchiveConfigParser {
 	return XcodebuildArchiveConfigParser{
 		stepInputParser:    stepInputParser,
 		xcodeVersionReader: xcodeVersionReader,
@@ -172,6 +173,7 @@ func NewXcodeArchiveConfigParser(stepInputParser stepconf.InputParser, xcodeVers
 		pathModifier:       pathModifier,
 		cmdFactory:         cmdFactory,
 		projectFactory:     projectFactory,
+		profileReader:      profileReader,
 		logger:             logger,
 	}
 }
@@ -808,7 +810,7 @@ func (s XcodebuildArchiveConfigParser) createCodesignManager(config Config, proj
 		devPortalClientFactory,
 		certdownloader.NewDownloader(codesignConfig.CertificatesAndPassphrases, s.logger),
 		profiledownloader.New(codesignConfig.FallbackProvisioningProfiles, s.logger),
-		codesignasset.NewWriter(s.logger, codesignConfig.Keychain, s.fileManager, int64(config.XcodeMajorVersion)),
+		codesignasset.NewWriter(s.logger, codesignConfig.Keychain, s.fileManager, s.profileReader, int64(config.XcodeMajorVersion)),
 		localcodesignasset.NewManager(localcodesignasset.NewProvisioningProfileProvider(), localcodesignasset.NewProvisioningProfileConverter()),
 		localcodesignasset.NewProvisioningProfileConverter(),
 		project,

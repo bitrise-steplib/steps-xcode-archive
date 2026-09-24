@@ -104,7 +104,11 @@ func privateKeyWithHeader(privateKey string) string {
 func (c *BitriseClient) readBytesFromFile(filepath string) ([]byte, error) {
 	reader, err := c.filemanager.OpenReaderIfExists(filepath)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
+	}
+	// OpenReaderIfExists absorbs the not exist error and returns a nil reader in that case.
+	if reader == nil {
+		return nil, fmt.Errorf("file does not exist at %s", filepath)
 	}
 
 	return io.ReadAll(reader)
@@ -121,7 +125,7 @@ func (c *BitriseClient) GetAppleDeveloperConnection() (*AppleDeveloperConnection
 		rawCreds, err = c.download()
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch authentication credentials: %v", err)
+		return nil, fmt.Errorf("failed to fetch authentication credentials: %w", err)
 	}
 
 	type data struct {

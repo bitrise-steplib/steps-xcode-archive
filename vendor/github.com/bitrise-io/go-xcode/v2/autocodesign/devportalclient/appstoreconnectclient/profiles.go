@@ -399,6 +399,11 @@ func (c *ProfileClient) SyncBundleID(bundleID appstoreconnect.BundleID, appEntit
 		ent := autocodesign.Entitlement{key: value}
 		cap, err := ent.Capability()
 		if err != nil {
+			if errors.Is(err, autocodesign.ErrUnknownEntitlementKey) {
+				c.client.Tracker().TrackUnknownEntitlement(key)
+				log.Warnf("Skipping unknown entitlement key %q while syncing bundle ID capabilities. If this is a recognised Apple entitlement that should be registered on App Store Connect, please report it to bitrise-io/go-xcode so it can be added to ServiceTypeByKey.", key)
+				continue
+			}
 			return err
 		}
 		if cap == nil {

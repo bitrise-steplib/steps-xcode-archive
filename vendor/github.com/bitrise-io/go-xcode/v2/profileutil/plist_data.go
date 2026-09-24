@@ -1,30 +1,41 @@
 package profileutil
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/plistutil"
-	"howett.net/plist"
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
 )
 
 // PlistData ...
 type PlistData plistutil.PlistData
 
-// NewPlistDataFromFile ...
-func NewPlistDataFromFile(provisioningProfilePth string) (PlistData, error) {
-	provisioningProfilePKCS7, err := ProvisioningProfileFromFile(provisioningProfilePth)
-	if err != nil {
-		return PlistData{}, err
+// GetProfileType ...
+func (profile PlistData) GetProfileType() (ProfileType, error) {
+	data := plistutil.PlistData(profile)
+	platforms, _ := data.GetStringArray("Platform")
+	if len(platforms) == 0 {
+		return "", fmt.Errorf("missing Platform array in profile")
 	}
 
-	var plistData plistutil.PlistData
-	if _, err := plist.Unmarshal(provisioningProfilePKCS7.Content, &plistData); err != nil {
-		return PlistData{}, err
+	platform := strings.ToLower(platforms[0])
+	var profileType ProfileType
+
+	switch platform {
+	case string(ProfileTypeIos):
+		profileType = ProfileTypeIos
+	case string(ProfileTypeMacOs):
+		profileType = ProfileTypeMacOs
+	case string(ProfileTypeTvOs):
+		profileType = ProfileTypeTvOs
+	default:
+		return "", fmt.Errorf("unknown platform type: %s", platform)
 	}
 
-	return PlistData(plistData), nil
+	return profileType, nil
 }
 
 // GetUUID ...
@@ -37,8 +48,8 @@ func (profile PlistData) GetUUID() string {
 // GetName ...
 func (profile PlistData) GetName() string {
 	data := plistutil.PlistData(profile)
-	uuid, _ := data.GetString("Name")
-	return uuid
+	name, _ := data.GetString("Name")
+	return name
 }
 
 // GetApplicationIdentifier ...
@@ -147,6 +158,24 @@ func (profile PlistData) GetDeveloperCertificates() [][]byte {
 	data := plistutil.PlistData(profile)
 	developerCertificates, _ := data.GetByteArrayArray("DeveloperCertificates")
 	return developerCertificates
+}
+
+// GetDeveloperCertificateInfo ...
+func (profile PlistData) GetDeveloperCertificateInfo() []certificateutil.CertificateInfoModel {
+	certificateBytesList := profile.GetDeveloperCertificates()
+
+	var certificateInfos []certificateutil.CertificateInfoModel
+	for _, certificateBytes := range certificateBytesList {
+		certificate, err := certificateutil.CertificateFromDERContent(certificateBytes)
+		if err != nil || certificate == nil {
+			continue
+		}
+
+		certificateInfo := certificateutil.NewCertificateInfo(*certificate, nil)
+		certificateInfos = append(certificateInfos, certificateInfo)
+	}
+
+	return certificateInfos
 }
 
 // GetTeamName ...

@@ -1,33 +1,14 @@
 package profileutil
 
 import (
-	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-io/go-xcode/plistutil"
+	"strings"
+
+	"github.com/bitrise-io/go-xcode/v2/plistutil"
 )
-
-// MatchTargetAndProfileEntitlements ...
-func MatchTargetAndProfileEntitlements(targetEntitlements plistutil.PlistData, profileEntitlements plistutil.PlistData, profileType ProfileType) []string {
-	missingEntitlements := []string{}
-
-	for key := range targetEntitlements {
-		_, known := KnownProfileCapabilitiesMap[profileType][key]
-		if !known {
-			continue
-		}
-		_, found := profileEntitlements[key]
-		if !found {
-			missingEntitlements = append(missingEntitlements, key)
-		}
-	}
-
-	log.Debugf("Found %v entitlements from %v target", len(missingEntitlements), len(targetEntitlements))
-
-	return missingEntitlements
-}
 
 // KnownProfileCapabilitiesMap ...
 var KnownProfileCapabilitiesMap = map[ProfileType]map[string]bool{
-	ProfileTypeMacOs: map[string]bool{
+	ProfileTypeMacOs: {
 		"com.apple.developer.networking.networkextension":                        true,
 		"com.apple.developer.icloud-container-environment":                       true,
 		"com.apple.developer.icloud-container-development-container-identifiers": true,
@@ -43,7 +24,7 @@ var KnownProfileCapabilitiesMap = map[ProfileType]map[string]bool{
 		"com.apple.developer.team-identifier":                                    true,
 		"com.apple.developer.maps":                                               true,
 	},
-	ProfileTypeIos: map[string]bool{
+	ProfileTypeIos: {
 		"com.apple.developer.in-app-payments":                 true,
 		"com.apple.security.application-groups":               true,
 		"com.apple.developer.default-data-protection":         true,
@@ -63,4 +44,42 @@ var KnownProfileCapabilitiesMap = map[ProfileType]map[string]bool{
 		"com.apple.developer.pass-type-identifiers":           true,
 		"com.apple.developer.icloud-container-identifiers":    true,
 	},
+}
+
+// IsXcodeManaged ...
+func IsXcodeManaged(profileName string) bool {
+	if strings.HasPrefix(profileName, "XC") {
+		return true
+	}
+	if strings.Contains(profileName, "Provisioning Profile") {
+		if strings.HasPrefix(profileName, "iOS Team") ||
+			strings.HasPrefix(profileName, "Mac Catalyst Team") ||
+			strings.HasPrefix(profileName, "tvOS Team") ||
+			strings.HasPrefix(profileName, "Mac Team") {
+			return true
+		}
+	}
+	return false
+}
+
+// MatchTargetAndProfileEntitlements ...
+func MatchTargetAndProfileEntitlements(targetEntitlements plistutil.PlistData, profileEntitlements plistutil.PlistData, profileType ProfileType) []string {
+	var missingEntitlements []string
+
+	for key := range targetEntitlements {
+		knownCapabilities, ok := KnownProfileCapabilitiesMap[profileType]
+		if !ok {
+			continue
+		}
+		_, known := knownCapabilities[key]
+		if !known {
+			continue
+		}
+		_, found := profileEntitlements[key]
+		if !found {
+			missingEntitlements = append(missingEntitlements, key)
+		}
+	}
+
+	return missingEntitlements
 }

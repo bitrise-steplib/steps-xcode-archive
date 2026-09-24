@@ -4,7 +4,7 @@ import (
 	"slices"
 
 	"github.com/bitrise-io/go-xcode/certificateutil"
-	"github.com/bitrise-io/go-xcode/profileutil"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
 	"github.com/ryanuber/go-glob"
 )
 
