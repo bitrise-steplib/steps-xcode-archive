@@ -2,6 +2,7 @@ package devportalservice
 
 import (
 	"io"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -60,6 +61,11 @@ func (r *mockFileReader) FileSizeInBytes(pth string) (int64, error) {
 
 // CopyFile stub...
 func (r *mockFileReader) CopyFile(src, dst string, opts *fileutil.CopyOptions) error {
+	panic("implement me")
+}
+
+// CopyFileFS stub...
+func (r *mockFileReader) CopyFileFS(fsys fs.FS, src, dst string, opts *fileutil.CopyOptions) error {
 	panic("implement me")
 }
 

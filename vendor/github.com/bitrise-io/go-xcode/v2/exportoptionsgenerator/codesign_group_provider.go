@@ -4,9 +4,10 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
-	"github.com/bitrise-io/go-xcode/profileutil"
-	codesigngroup "github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator/internal/codesigngroup"
+	"github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator/internal/codesigngroup"
 	"github.com/bitrise-io/go-xcode/v2/plistutil"
+	"github.com/bitrise-io/go-xcode/v2/profileutil"
+	"github.com/bitrise-io/go-xcode/v2/timeutil"
 )
 
 // CodeSignGroupProvider ...
@@ -49,7 +50,8 @@ func (g codeSignGroupProvider) DetermineCodesignGroup(certificates []certificate
 
 	g.logger.Debugf("Installed profiles:")
 	for _, profileInfo := range profiles {
-		g.logger.Debugf(profileInfo.String(certificates...))
+		profileStr := profileutil.NewProfilePrinter(g.logger, timeutil.DefaultTimeProvider{}).PrintableProfile(profileInfo, certificates...)
+		g.logger.Debugf(profileStr)
 	}
 
 	g.logger.Println()
@@ -65,7 +67,7 @@ func (g codeSignGroupProvider) DetermineCodesignGroup(certificates []certificate
 	if len(bundleIDEntitlementsMap) > 0 {
 		g.logger.Printf("Filtering code signing groups for target capabilities")
 
-		codeSignGroups = codesigngroup.Filter(codeSignGroups, codesigngroup.CreateEntitlementsSelectableCodeSignGroupFilter(convertToV1PlistData(bundleIDEntitlementsMap)))
+		codeSignGroups = codesigngroup.Filter(codeSignGroups, codesigngroup.CreateEntitlementsSelectableCodeSignGroupFilter(bundleIDEntitlementsMap))
 
 		g.logger.Debugf("\nGroups after filtering for target capabilities:")
 		g.logger.Debugf("%s", g.printer.ListToDebugString(codeSignGroups))

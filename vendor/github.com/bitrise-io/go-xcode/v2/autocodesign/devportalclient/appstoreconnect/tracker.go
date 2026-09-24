@@ -17,6 +17,11 @@ type Tracker interface {
 
 	// TrackAuthError tracks authentication-specific errors
 	TrackAuthError(errorMessage string)
+
+	// TrackUnknownEntitlement is fired when a project uses an entitlement key
+	// not in ServiceTypeByKey. Feeds alerting so we can register newly
+	// introduced Apple entitlements before they become customer-facing errors.
+	TrackUnknownEntitlement(key string)
 }
 
 // NoOpAnalyticsTracker is a dummy implementation used in tests.
@@ -32,6 +37,9 @@ func (n NoOpAnalyticsTracker) TrackAPIError(method, host, endpoint string, statu
 
 // TrackAuthError ...
 func (n NoOpAnalyticsTracker) TrackAuthError(errorMessage string) {}
+
+// TrackUnknownEntitlement ...
+func (n NoOpAnalyticsTracker) TrackUnknownEntitlement(key string) {}
 
 // DefaultTracker is the main implementation of Tracker
 type DefaultTracker struct {
@@ -80,5 +88,14 @@ func (d *DefaultTracker) TrackAuthError(errorMessage string) {
 		"build_slug":        d.envRepo.Get("BITRISE_BUILD_SLUG"),
 		"step_execution_id": d.envRepo.Get("BITRISE_STEP_EXECUTION_ID"),
 		"error_message":     errorMessage,
+	})
+}
+
+// TrackUnknownEntitlement ...
+func (d *DefaultTracker) TrackUnknownEntitlement(key string) {
+	d.tracker.Enqueue("step_appstoreconnect_unknown_entitlement", analytics.Properties{
+		"build_slug":        d.envRepo.Get("BITRISE_BUILD_SLUG"),
+		"step_execution_id": d.envRepo.Get("BITRISE_STEP_EXECUTION_ID"),
+		"entitlement_key":   key,
 	})
 }

@@ -169,6 +169,12 @@ func NewClient(httpClient HTTPClient, keyID, issuerID string, privateKey []byte,
 	return c
 }
 
+// Tracker exposes the underlying analytics tracker so packages built on top
+// of this client can emit domain-specific events (e.g. unknown entitlements).
+func (c *Client) Tracker() Tracker {
+	return c.tracker
+}
+
 // ensureSignedToken makes sure that the JWT auth token is not expired
 // and return a signed key
 func (c *Client) ensureSignedToken() (string, error) {
