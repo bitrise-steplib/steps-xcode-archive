@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -59,6 +60,11 @@ func (o Option) args() []string {
 
 // Options is an ordered list of xcodebuild arguments.
 type Options []Option
+
+// join renders the options as one command line fragment, for messages.
+func (opts Options) join() string {
+	return strings.Join(opts.Args(), " ")
+}
 
 // Args renders the options as xcodebuild arguments.
 func (opts Options) Args() []string {
@@ -129,13 +135,13 @@ func ParseAdditionalOptions(args []string) (Options, []Diagnostic) {
 		switch {
 		case strings.TrimSpace(arg) == "":
 			// "" (an env var that expanded to nothing): xcodebuild sees an unknown build action
-			malformed(arg, "is empty")
+			malformed(arg, "is empty. xcodebuild treats it as an unknown build action. Remove it.")
 		case strings.HasPrefix(arg, "-") && flagQuotedWithValue.MatchString(arg):
 			// "-destination generic/platform=iOS" as one argument: xcodebuild reads it as a user
 			// default named "destination generic/platform" and ignores it; the step's own
 			// -destination wins. Kept verbatim, as xcodebuild takes it.
 			opts = append(opts, Option{Kind: Unknown, Name: arg})
-			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is a flag quoted together with its value; xcodebuild reads it as a user default and ignores it; quote only the value", arg)})
+			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is a flag quoted together with its value. xcodebuild reads it as a user default and ignores it. Use %s instead.", arg, unquoteFlag(arg))})
 		case strings.HasPrefix(arg, "-"):
 			// -quiet | -destination id=SIM | -only-testing:AppTests | -UseModernBuildSystem=NO
 			opt, consumed, why := parseFlag(args[i:])
@@ -145,7 +151,8 @@ func ParseAdditionalOptions(args []string) (Options, []Diagnostic) {
 			}
 			if opt.Kind == UserDefault && upperCaseFlag.MatchString(opt.Name) {
 				// -ENABLE_BITCODE=NO: the user meant ENABLE_BITCODE=NO
-				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q looks like the build setting %s=%s written with a leading dash; xcodebuild accepts it as a user default and the setting never applies", arg, opt.Name[1:], opt.Value)})
+				setting := opt.Name[1:] + "=" + shellQuoted(opt.Value)
+				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q looks like the build setting %s with a leading dash. xcodebuild reads it as a user default and the setting never applies. Use %s instead.", arg, setting, setting)})
 			}
 			opts = append(opts, opt)
 			i += consumed - 1 // a flag with a value used two arguments
@@ -158,7 +165,7 @@ func ParseAdditionalOptions(args []string) (Options, []Diagnostic) {
 			opts = append(opts, Option{Kind: Action, Name: arg})
 		default:
 			// "Distribution" from an unquoted CODE_SIGN_IDENTITY=Apple Distribution
-			malformed(arg, "is not a -flag, -flag value, -flag:value, -key=value, NAME=value or a build action; xcodebuild treats it as an unknown build action")
+			malformed(arg, `is not a flag, a NAME=value build setting or a build action. xcodebuild treats it as an unknown build action. Quote a value with spaces, for example CODE_SIGN_IDENTITY="Apple Distribution", or remove it.`)
 		}
 	}
 
@@ -182,11 +189,11 @@ func parseFlag(args []string) (opt Option, consumed int, why string) {
 	}
 	if strings.ContainsAny(name, " \t") {
 		// "-sdk macosx" quoted as one argument: xcodebuild refuses it
-		return Option{}, 0, "contains whitespace: quote only the value, not the flag and the value together"
+		return Option{}, 0, fmt.Sprintf("is a flag quoted together with its value. xcodebuild refuses it. Use %s instead.", unquoteFlag(flag))
 	}
 	if !flagNamePattern.MatchString(name) {
 		// "-", "-=x"
-		return Option{}, 0, "is not a valid flag"
+		return Option{}, 0, "is not a valid flag. xcodebuild refuses it. Remove it."
 	}
 
 	switch {
@@ -196,14 +203,14 @@ func parseFlag(args []string) (opt Option, consumed int, why string) {
 	case len(name) < len(flag):
 		// -only-testing:AppTests; "-only-testing:" alone names no test
 		if value == "" {
-			return Option{}, 0, "is not a valid -flag:value option"
+			return Option{}, 0, "has no value after the colon. Add the value or remove the flag."
 		}
 		return Option{Kind: ColonOption, Name: name, Value: value}, 1, ""
 	case slices.Contains(freeFormValueFlags, flag):
 		// -destination platform=iOS Simulator,name=iPhone 15: the next argument is the value
 		// even though it looks like a build setting
 		if len(args) < 2 {
-			return Option{}, 0, "requires a value"
+			return Option{}, 0, "has no value. Add one or remove the flag."
 		}
 		return Option{Kind: ValueOption, Name: flag, Value: args[1]}, 2, ""
 	case len(args) > 1 && looksLikeValue(args[1]):
@@ -221,4 +228,20 @@ func looksLikeValue(arg string) bool {
 		!strings.HasPrefix(arg, "-") &&
 		!buildSettingPattern.MatchString(arg) &&
 		!slices.Contains(knownActions, arg)
+}
+
+// shellQuoted renders a value as it has to be written in xcodebuild_options.
+func shellQuoted(value string) string {
+	if strings.ContainsAny(value, " \t\"'") {
+		return strconv.Quote(value)
+	}
+	return value
+}
+
+// unquoteFlag turns "-destination 'generic/platform=iOS'" (one argument) into the form the
+// user meant: the flag, then the value quoted on its own.
+func unquoteFlag(arg string) string {
+	flag, value, _ := strings.Cut(arg, " ")
+	value = strings.Trim(strings.TrimSpace(value), "'\"")
+	return flag + " " + shellQuoted(value)
 }

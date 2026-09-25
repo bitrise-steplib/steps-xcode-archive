@@ -26,7 +26,7 @@ func merge(derived, user Options, policy actionPolicy) (Options, []Diagnostic) {
 		// derived "-collect-test-diagnostics never", user "-collect-test-diagnostics=on-failure":
 		// not a collision (user defaults key as "-name="), but xcodebuild ignores the "=" form.
 		if shadow, ok := userByKey[o.Key()+"="]; ok && (o.Kind == ValueOption || o.Kind == Switch) {
-			report(SuspiciousUserDefault, "%q is written as %q in the additional options: xcodebuild reads the \"=\" form as a user default and ignores it; use \"%s value\"", o, shadow[0], o.Name)
+			report(SuspiciousUserDefault, "%q is written with \"=\". xcodebuild reads it as a user default and ignores it, so the Step's %q stays. Use %s %s instead.", shadow[0], o, o.Name, shellQuoted(shadow[0].Value))
 		}
 
 		conflicting, ok := userByKey[o.Key()]
@@ -44,15 +44,15 @@ func merge(derived, user Options, policy actionPolicy) (Options, []Diagnostic) {
 			merged = append(merged, o)
 		case yields && slices.Equal(conflicting.Args(), o.args()):
 			// "-allowProvisioningUpdates" set by the step and again by the user -> once, with a note
-			report(RedundantOption, "%q is already set by %s; it can be removed from the additional options", o, policy.name)
+			report(RedundantOption, "%q is already set by the Step. Remove it.", o)
 		case yields:
 			// archive: "-destination generic/platform=iOS" + user "-destination generic/platform=tvOS" -> the user's
 			// analyze: "CODE_SIGNING_ALLOWED=NO" + user "CODE_SIGNING_ALLOWED=YES" -> the user's
-			report(Override, "%q replaced by additional option %s", o, conflicting)
+			report(Override, "%q replaces the Step's default %q.", conflicting.join(), o)
 		default:
 			// "-xcconfig /tmp/temp.xcconfig" + user "-xcconfig mine.xcconfig" -> both, and xcodebuild fails on it
 			merged = append(merged, o)
-			report(RepeatedOption, "%q is set by %s and again as additional option %s; xcodebuild refuses a repeated option", o, policy.name, conflicting)
+			report(RepeatedOption, "%q repeats %q, which the Step sets. xcodebuild refuses a repeated option. Remove it, or change the Step input instead.", conflicting.join(), o)
 		}
 	}
 

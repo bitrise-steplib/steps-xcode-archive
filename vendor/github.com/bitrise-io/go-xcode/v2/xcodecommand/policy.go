@@ -94,7 +94,7 @@ var (
 // stepInputFlags only work together with what a step derives from its own inputs. Passed
 // alone in the additional options they are reported, so the user reaches for the input.
 var stepInputFlags = map[string]string{
-	"-allowProvisioningUpdates": "cannot update provisioning on its own: xcodebuild needs the App Store Connect API key flags, which the step adds when its automatic code signing is enabled; use that instead",
+	"-allowProvisioningUpdates": "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead.",
 }
 
 // hintStepInputs reports user options from stepInputFlags that the command did not derive
@@ -117,11 +117,11 @@ func (s actionPolicy) check(opts Options) []Diagnostic {
 	for _, o := range opts {
 		switch o.Kind {
 		case Action:
-			diagnostics = append(diagnostics, Diagnostic{Kind: ActionInOptions, Message: fmt.Sprintf("%q is a build action, and %s sets its own actions", o.Name, s.name)})
+			diagnostics = append(diagnostics, Diagnostic{Kind: ActionInOptions, Message: fmt.Sprintf("%q is a build action. The %s command sets its own actions. Remove it.", o.Name, s.name)})
 		case Switch, ValueOption, ColonOption:
 			for _, r := range s.rejects {
 				if slices.Contains(r.flags, o.Name) {
-					diagnostics = append(diagnostics, Diagnostic{Kind: RejectedOption, Message: fmt.Sprintf("%q is not valid for %s: %s", o.String(), s.name, r.reason)})
+					diagnostics = append(diagnostics, Diagnostic{Kind: RejectedOption, Message: fmt.Sprintf("%q %s and is not valid for %s. Remove it.", o.String(), r.reason, s.name)})
 					break
 				}
 			}
