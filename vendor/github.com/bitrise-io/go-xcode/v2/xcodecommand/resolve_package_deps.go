@@ -17,5 +17,5 @@ func ResolvePackages(params ResolvePackagesParams) (Command, error) {
 	opts = appendValue(opts, "-configuration", params.Configuration)
 	opts = append(opts, Option{Kind: Switch, Name: "-resolvePackageDependencies"})
 
-	return assemble(opts, params.AdditionalOptions, resolvePackagesSpec, params.Validation)
+	return assemble(opts, params.AdditionalOptions, resolvePackagesPolicy, params.Validation)
 }

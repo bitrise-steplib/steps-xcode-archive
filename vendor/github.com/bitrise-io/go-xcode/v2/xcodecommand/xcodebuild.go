@@ -16,10 +16,10 @@ const (
 	ActionClean               = "clean"
 )
 
-var knownActions = map[string]bool{
-	ActionBuild: true, ActionBuildForTesting: true, ActionAnalyze: true, ActionArchive: true,
-	ActionTest: true, ActionTestWithoutBuilding: true, ActionDocBuild: true,
-	ActionInstallSrc: true, ActionInstall: true, ActionClean: true,
+var knownActions = []string{
+	ActionBuild, ActionBuildForTesting, ActionAnalyze, ActionArchive,
+	ActionTest, ActionTestWithoutBuilding, ActionDocBuild,
+	ActionInstallSrc, ActionInstall, ActionClean,
 }
 
 // Authentication is the App Store Connect API key for -allowProvisioningUpdates.

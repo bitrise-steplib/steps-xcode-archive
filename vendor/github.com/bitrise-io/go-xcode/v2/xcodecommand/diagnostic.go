@@ -12,6 +12,7 @@ const (
 	ActionInOptions                             // a build action; the command owns its action list
 	SuspiciousUserDefault                       // -NAME=value that looks like a build setting; xcodebuild ignores it silently
 	RepeatedOption                              // a value option set by the command and again by the user; xcodebuild refuses it
+	PreferStepInput                             // a flag that only works with what the step's inputs provide; use the input
 	Override                                    // informational: a default or build setting yielded to the user's
 	RedundantOption                             // informational: identical to what the command already sets
 )
