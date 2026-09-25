@@ -231,6 +231,10 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
 	}
+	// What the parser finds (a malformed option, a flag quoted with its value) is reported
+	// here, before the first xcodebuild call; each command later adds what its merge finds.
+	_, optionDiagnostics := xcodecommand.ParseAdditionalOptions(config.XcodebuildAdditionalOptions)
+	logXcodebuildOptionDiagnostics(s.logger, optionDiagnostics, nil)
 
 	if strings.TrimSpace(config.XcconfigContent) == "" {
 		config.XcconfigContent = ""
@@ -314,7 +318,11 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 
 	showbuildSettingsAdditionalOptions := filterSPMAdditionalOptions(config.XcodebuildAdditionalOptions)
 	if len(showbuildSettingsAdditionalOptions) != len(config.XcodebuildAdditionalOptions) {
-		s.logger.Printf("Some xcodebuild additional options are filtered out when reading build settings. Options used: %s", strings.Join(showbuildSettingsAdditionalOptions, " "))
+		used := strings.Join(showbuildSettingsAdditionalOptions, " ")
+		if used == "" {
+			used = "none"
+		}
+		s.logger.Printf("Reading build settings with the build settings and Swift package flags from xcodebuild_options only: %s", used)
 	}
 
 	// Open Xcode project
@@ -423,7 +431,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		if err != nil {
 			s.logger.Warnf("%s", err)
 		} else {
-			s.logXcodebuildOptionDiagnostics(resolveDepsCmd)
+			s.logXcodebuildOptionDiagnostics(resolveDepsCmd, opts.XcodebuildAdditionalOptions)
 			if err := s.resolvePackages(resolveDepsCmd); err != nil {
 				s.logger.Warnf("%s", err)
 			}
@@ -901,7 +909,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 	if err != nil {
 		return out, fmt.Errorf("failed to assemble the archive command: %w", err)
 	}
-	s.logXcodebuildOptionDiagnostics(archiveCmd)
+	s.logXcodebuildOptionDiagnostics(archiveCmd, opts.AdditionalOptions)
 
 	var swiftPackagesPath string
 	if opts.XcodeMajorVersion >= 11 {
@@ -1061,7 +1069,7 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 	if err != nil {
 		return out, fmt.Errorf("failed to assemble the export command: %w", err)
 	}
-	s.logXcodebuildOptionDiagnostics(exportCmd)
+	s.logXcodebuildOptionDiagnostics(exportCmd, nil)
 
 	s.logger.Println()
 	s.logger.Infof("Exporting IPA from the archive...")
@@ -1109,10 +1117,18 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	return out, nil
 }
 
-// logXcodebuildOptionDiagnostics reports what the library found in the xcodebuild_options input.
-func (s XcodebuildArchiver) logXcodebuildOptionDiagnostics(cmd xcodecommand.Command) {
-	for _, d := range cmd.Diagnostics() {
-		s.logger.Warnf("xcodebuild_options: %s", d)
+// logXcodebuildOptionDiagnostics reports what a command found in its xcodebuild_options,
+// except what ProcessInputs already reported when it parsed the same options.
+func (s XcodebuildArchiver) logXcodebuildOptionDiagnostics(cmd xcodecommand.Command, additionalOptions []string) {
+	_, reported := xcodecommand.ParseAdditionalOptions(additionalOptions)
+	logXcodebuildOptionDiagnostics(s.logger, cmd.Diagnostics(), reported)
+}
+
+func logXcodebuildOptionDiagnostics(logger log.Logger, diagnostics, reported []xcodecommand.Diagnostic) {
+	for _, d := range diagnostics {
+		if !slices.Contains(reported, d) {
+			logger.Warnf("xcodebuild_options: %s", d)
+		}
 	}
 }
 
