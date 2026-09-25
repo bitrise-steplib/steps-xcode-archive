@@ -27,8 +27,12 @@ type Option struct {
 	Value string
 }
 
-// Key identifies the option when merging: the flag, the build setting name or the action.
+// Key identifies the option when merging: the flag, the build setting name or the
+// action. A user default keys as "-name=", so -flag=value never collides with -flag value.
 func (o Option) Key() string {
+	if o.Kind == UserDefault {
+		return o.Name + "="
+	}
 	return o.Name
 }
 

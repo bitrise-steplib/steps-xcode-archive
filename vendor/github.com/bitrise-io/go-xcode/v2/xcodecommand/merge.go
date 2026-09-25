@@ -10,6 +10,7 @@ import (
 // A repeated value option is kept and reported (xcodebuild refuses it). A spec default,
 // a build setting (last wins in xcodebuild) or a switch (repeat is a no-op) yields to the
 // user's, an identical repeat is redundant. Appendable keys keep both. Actions never merge.
+// A user default that spells a derived flag with "=" is reported: xcodebuild ignores it.
 func merge(derived, user Options, spec actionSpec) (Options, []Diagnostic) {
 	userByKey := map[string]Options{}
 	for _, o := range user {
@@ -25,6 +26,9 @@ func merge(derived, user Options, spec actionSpec) (Options, []Diagnostic) {
 	}
 
 	for _, o := range derived {
+		if shadow, ok := userByKey[o.Key()+"="]; ok && (o.Kind == ValueOption || o.Kind == Switch) {
+			report(SuspiciousUserDefault, "%q is written as %q in the additional options: xcodebuild reads the \"=\" form as a user default and ignores it; use \"%s value\"", o, shadow[0], o.Name)
+		}
 		conflicting, ok := userByKey[o.Key()]
 		yields := spec.defaults[o.Key()] || o.Kind == Switch || o.Kind == BuildSetting
 		switch {
