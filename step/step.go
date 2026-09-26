@@ -233,8 +233,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 	}
 	// What the parser finds (a malformed option, a flag quoted with its value) is reported
 	// here, before the first xcodebuild call; each command later adds what its merge finds.
-	_, optionDiagnostics := xcodecommand.ParseAdditionalOptions(config.XcodebuildAdditionalOptions)
-	logXcodebuildOptionDiagnostics(s.logger, optionDiagnostics, nil)
+	logXcodebuildOptionDiagnostics(s.logger, xcodecommand.ParseAdditionalOptions(config.XcodebuildAdditionalOptions).Diagnostics(), nil)
 
 	if strings.TrimSpace(config.XcconfigContent) == "" {
 		config.XcconfigContent = ""
@@ -1120,7 +1119,7 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 // logXcodebuildOptionDiagnostics reports what a command found in its xcodebuild_options,
 // except what ProcessInputs already reported when it parsed the same options.
 func (s XcodebuildArchiver) logXcodebuildOptionDiagnostics(cmd xcodecommand.Command, additionalOptions []string) {
-	_, reported := xcodecommand.ParseAdditionalOptions(additionalOptions)
+	reported := xcodecommand.ParseAdditionalOptions(additionalOptions).Diagnostics()
 	logXcodebuildOptionDiagnostics(s.logger, cmd.Diagnostics(), reported)
 }
 

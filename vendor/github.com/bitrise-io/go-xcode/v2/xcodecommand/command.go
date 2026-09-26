@@ -33,14 +33,12 @@ func (c Command) Create(factory command.Factory, opts *command.Opts) command.Com
 	return factory.Create(toolName, c.Args(), opts)
 }
 
-// assemble parses, checks and merges the additional options over the derived ones.
+// assemble parses and merges the additional options over the derived ones, then lints
+// what the two decided.
 func assemble(derived Options, additional []string, policy actionPolicy, validation Validation) (Command, error) {
-	user, diagnostics := ParseAdditionalOptions(additional)
-	diagnostics = append(diagnostics, policy.check(user)...)
-
-	diagnostics = append(diagnostics, hintStepInputs(derived, user)...)
-	merged, mergeDiagnostics := merge(derived, user, policy)
-	diagnostics = append(diagnostics, mergeDiagnostics...)
+	user := ParseAdditionalOptions(additional)
+	merged, collisions := merge(derived, user, policy)
+	diagnostics := lint(user, derived, collisions, policy)
 	if validation == Fail {
 		if err := firstFailure(diagnostics); err != nil {
 			return Command{}, err

@@ -25,7 +25,7 @@ func filterSPMAdditionalOptions(xcodebuildAdditionalOptions []string) []string {
 		"-clonedSourcePackagesDirPath":            true,
 	}
 
-	options, _ := xcodecommand.ParseAdditionalOptions(xcodebuildAdditionalOptions)
+	options := xcodecommand.ParseAdditionalOptions(xcodebuildAdditionalOptions)
 	filtered := options.Filter(func(o xcodecommand.Option) bool {
 		return o.Kind == xcodecommand.BuildSetting || spmFlags[o.Name]
 	}).Args()

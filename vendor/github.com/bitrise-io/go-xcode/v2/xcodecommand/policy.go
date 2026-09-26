@@ -1,9 +1,6 @@
 package xcodecommand
 
-import (
-	"fmt"
-	"slices"
-)
+import "slices"
 
 // actionPolicy is a command's policy for additional options; anything not listed passes.
 type actionPolicy struct {
@@ -90,42 +87,3 @@ var (
 		rejects: []rejection{modeSwitching.except("-showBuildSettings"), testOnly},
 	}
 )
-
-// stepInputFlags only work together with what a step derives from its own inputs. Passed
-// alone in the additional options they are reported, so the user reaches for the input.
-var stepInputFlags = map[string]string{
-	"-allowProvisioningUpdates": "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead.",
-}
-
-// hintStepInputs reports user options from stepInputFlags that the command did not derive
-// itself. When it did, merge reports them as redundant instead.
-func hintStepInputs(derived, user Options) []Diagnostic {
-	var diagnostics []Diagnostic
-	for _, o := range user {
-		hint, ok := stepInputFlags[o.Key()]
-		if !ok || slices.ContainsFunc(derived, func(d Option) bool { return d.Key() == o.Key() }) {
-			continue
-		}
-		diagnostics = append(diagnostics, Diagnostic{Kind: PreferStepInput, Message: fmt.Sprintf("%q %s", o, hint)})
-	}
-	return diagnostics
-}
-
-// check reports the options the command refuses; build actions always are.
-func (s actionPolicy) check(opts Options) []Diagnostic {
-	var diagnostics []Diagnostic
-	for _, o := range opts {
-		switch o.Kind {
-		case Action:
-			diagnostics = append(diagnostics, Diagnostic{Kind: ActionInOptions, Message: fmt.Sprintf("%q is a build action. The %s command sets its own actions. Remove it.", o.Name, s.name)})
-		case Switch, ValueOption, ColonOption:
-			for _, r := range s.rejects {
-				if slices.Contains(r.flags, o.Name) {
-					diagnostics = append(diagnostics, Diagnostic{Kind: RejectedOption, Message: fmt.Sprintf("%q %s and is not valid for %s. Remove it.", o.String(), r.reason, s.name)})
-					break
-				}
-			}
-		}
-	}
-	return diagnostics
-}

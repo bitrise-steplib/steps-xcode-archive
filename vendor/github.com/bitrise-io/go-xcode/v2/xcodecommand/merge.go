@@ -1,12 +1,25 @@
 package xcodecommand
 
-import (
-	"fmt"
-	"slices"
+import "slices"
+
+// collision records what merge did with a derived option the user set too.
+type collision struct {
+	kind    collisionKind
+	derived Option
+	user    Options // the user's copies of the key, in order
+}
+
+type collisionKind int
+
+const (
+	redundant  collisionKind = iota // the derived copy is dropped; the user's is identical
+	overridden                      // the derived copy is dropped for the user's
+	repeated                        // both stay; xcodebuild refuses the repeat
 )
 
-// merge lays the user's options over the derived ones; the user's come last.
-func merge(derived, user Options, policy actionPolicy) (Options, []Diagnostic) {
+// merge lays the user's options over the derived ones; the user's come last. The
+// collisions say which derived options were dropped or left repeated, for the lint.
+func merge(derived, user Options, policy actionPolicy) (Options, []collision) {
 	// "-destination id=SIM -quiet" -> {"-destination": [-destination id=SIM], "-quiet": [-quiet]}
 	// Actions and unparsed leftovers stay out: they never replace a derived flag.
 	userByKey := map[string]Options{}
@@ -17,18 +30,9 @@ func merge(derived, user Options, policy actionPolicy) (Options, []Diagnostic) {
 	}
 
 	var merged Options
-	var diagnostics []Diagnostic
-	report := func(kind DiagnosticKind, format string, args ...any) {
-		diagnostics = append(diagnostics, Diagnostic{Kind: kind, Message: fmt.Sprintf(format, args...)})
-	}
+	var collisions []collision
 
 	for _, o := range derived {
-		// derived "-collect-test-diagnostics never", user "-collect-test-diagnostics=on-failure":
-		// not a collision (user defaults key as "-name="), but xcodebuild ignores the "=" form.
-		if shadow, ok := userByKey[o.Key()+"="]; ok && (o.Kind == ValueOption || o.Kind == Switch) {
-			report(SuspiciousUserDefault, "%q is written with \"=\". xcodebuild reads it as a user default and ignores it, so the Step's %q stays. Use %s %s instead.", shadow[0], o, o.Name, shellQuoted(shadow[0].Value))
-		}
-
 		conflicting, ok := userByKey[o.Key()]
 		// What gives way to the user's copy: a policy default (the archive -destination a step
 		// invents), a build setting (xcodebuild takes the last value), a switch (a repeat
@@ -43,18 +47,18 @@ func merge(derived, user Options, policy actionPolicy) (Options, []Diagnostic) {
 			// test: "-skip-testing:Flaky" from quarantine + "-skip-testing:Manual" from the user -> both
 			merged = append(merged, o)
 		case yields && slices.Equal(conflicting.Args(), o.args()):
-			// "-allowProvisioningUpdates" set by the step and again by the user -> once, with a note
-			report(RedundantOption, "%q is already set by the Step. Remove it.", o)
+			// "-allowProvisioningUpdates" set by the step and again by the user -> once
+			collisions = append(collisions, collision{redundant, o, conflicting})
 		case yields:
 			// archive: "-destination generic/platform=iOS" + user "-destination generic/platform=tvOS" -> the user's
 			// analyze: "CODE_SIGNING_ALLOWED=NO" + user "CODE_SIGNING_ALLOWED=YES" -> the user's
-			report(Override, "%q replaces the Step's default %q.", conflicting.join(), o)
+			collisions = append(collisions, collision{overridden, o, conflicting})
 		default:
 			// "-xcconfig /tmp/temp.xcconfig" + user "-xcconfig mine.xcconfig" -> both, and xcodebuild fails on it
 			merged = append(merged, o)
-			report(RepeatedOption, "%q repeats %q, which the Step sets. xcodebuild refuses a repeated option. Remove it, or change the Step input instead.", conflicting.join(), o)
+			collisions = append(collisions, collision{repeated, o, conflicting})
 		}
 	}
 
-	return append(merged, user...), diagnostics
+	return append(merged, user...), collisions
 }
