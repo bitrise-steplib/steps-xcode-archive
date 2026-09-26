@@ -85,13 +85,13 @@ func (opts Options) Diagnostics() []Diagnostic {
 	for _, o := range opts {
 		switch {
 		case o.Kind == Unknown && o.issue == quotedFlagWithValue:
-			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is a flag quoted together with its value. xcodebuild reads it as a user default and ignores it. Use %s instead.", o.Name, unquoteFlag(o.Name))})
+			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is a flag quoted together with its value. xcodebuild reads it as a user default and ignores it, so today's build runs without it. Remove it to keep that, or use %s to apply it.", o.Name, unquoteFlag(o.Name))})
 		case o.Kind == Unknown:
 			diagnostics = append(diagnostics, Diagnostic{Kind: MalformedOption, Message: fmt.Sprintf("%q %s", o.Name, malformedMessage(o))})
 		case o.Kind == UserDefault && upperCaseFlag.MatchString(o.Name):
 			// -ENABLE_BITCODE=NO: the user meant ENABLE_BITCODE=NO
 			setting := o.Name[1:] + "=" + shellQuoted(o.Value)
-			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q looks like the build setting %s with a leading dash. xcodebuild reads it as a user default and the setting never applies. Use %s instead.", o, setting, setting)})
+			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q looks like the build setting %s with a leading dash. xcodebuild reads it as a user default and ignores it, so today's build runs without it. Remove it to keep that, or use %s to apply it.", o, setting, setting)})
 		}
 	}
 	return diagnostics
@@ -161,7 +161,7 @@ func lintShadows(derived, user Options) []Diagnostic {
 		}
 		for _, u := range user {
 			if u.Kind == UserDefault && u.Name == o.Name {
-				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is written with \"=\". xcodebuild reads it as a user default and ignores it, so the Step's %q stays. Use %s %s instead.", u, o, o.Name, shellQuoted(u.Value))})
+				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is written with \"=\". xcodebuild reads it as a user default and ignores it, so today's build uses the Step's %q. Remove it to keep that, or use %s %s to apply it.", u, o, o.Name, shellQuoted(u.Value))})
 				break
 			}
 		}
