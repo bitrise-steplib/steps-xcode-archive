@@ -54,7 +54,7 @@ func (r testRunOptions) options() Options {
 func testRunPolicy(name string, extra ...rejection) actionPolicy {
 	return actionPolicy{
 		name:       name,
-		rejects:    append([]rejection{modeSwitching}, extra...),
+		rejections: append([]rejection{modeSwitching}, extra...),
 		defaults:   []string{"-collect-test-diagnostics"},
 		appendable: []string{"-only-testing", "-skip-testing", "-only-test-configuration", "-skip-test-configuration", "-destination", "-arch"},
 	}

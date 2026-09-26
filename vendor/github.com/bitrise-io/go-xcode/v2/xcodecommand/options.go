@@ -1,9 +1,12 @@
 package xcodecommand
 
 import (
+	"fmt"
 	"regexp"
 	"slices"
 	"strings"
+
+	shellquote "github.com/kballard/go-shellquote"
 )
 
 // Kind classifies one xcodebuild command line argument.
@@ -120,6 +123,16 @@ var freeFormValueFlags = []string{
 	"-project", "-workspace", "-xcconfig", "-archivePath",
 	"-derivedDataPath", "-resultBundlePath", "-clonedSourcePackagesDirPath",
 	"-packageCachePath", "-exportPath", "-exportOptionsPlist", "-xctestrun",
+}
+
+// SplitAdditionalOptions splits the xcodebuild_options input into arguments with POSIX
+// shell rules, as the steps always have: quotes group a value that contains spaces.
+func SplitAdditionalOptions(input string) ([]string, error) {
+	args, err := shellquote.Split(input)
+	if err != nil {
+		return nil, fmt.Errorf("xcodebuild_options %q cannot be split like a shell command line: %w", input, err)
+	}
+	return args, nil
 }
 
 // ParseAdditionalOptions turns shell-split xcodebuild arguments into typed Options.

@@ -5,7 +5,7 @@ import "slices"
 // actionPolicy is a command's policy for additional options; anything not listed passes.
 type actionPolicy struct {
 	name       string
-	rejects    []rejection
+	rejections []rejection
 	defaults   []string // derived keys the user's option replaces
 	appendable []string // repeatable keys where derived and user entries both stay
 }
@@ -14,6 +14,19 @@ type actionPolicy struct {
 type rejection struct {
 	flags  []string
 	reason string
+}
+
+// rejects says whether the command refuses the flag option o, and why.
+func (s actionPolicy) rejects(o Option) (rejection, bool) {
+	if o.Kind != Switch && o.Kind != ValueOption && o.Kind != ColonOption {
+		return rejection{}, false
+	}
+	for _, r := range s.rejections {
+		if slices.Contains(r.flags, o.Name) {
+			return r, true
+		}
+	}
+	return rejection{}, false
 }
 
 func (r rejection) except(flags ...string) rejection {
@@ -49,41 +62,41 @@ var (
 	// is repeatable.
 	archivePolicy = actionPolicy{
 		name:       ActionArchive,
-		rejects:    []rejection{modeSwitching, testOnly},
+		rejections: []rejection{modeSwitching, testOnly},
 		defaults:   []string{"-destination"},
 		appendable: []string{"-arch"},
 	}
 	buildPolicy = actionPolicy{
 		name:       ActionBuild,
-		rejects:    []rejection{modeSwitching, testOnly},
+		rejections: []rejection{modeSwitching, testOnly},
 		defaults:   []string{"-destination"},
 		appendable: []string{"-arch"},
 	}
 	analyzePolicy = actionPolicy{
 		name:       ActionAnalyze,
-		rejects:    []rejection{modeSwitching, testOnly},
+		rejections: []rejection{modeSwitching, testOnly},
 		defaults:   []string{"-destination", "-resultBundlePath"},
 		appendable: []string{"-arch"},
 	}
 	// build-for-testing takes the test selection flags, which it bakes into the xctestrun.
 	buildForTestingPolicy = actionPolicy{
 		name:       ActionBuildForTesting,
-		rejects:    []rejection{modeSwitching},
+		rejections: []rejection{modeSwitching},
 		defaults:   []string{"-destination"},
 		appendable: []string{"-arch"},
 	}
 	exportArchivePolicy = actionPolicy{
-		name:    "export archive",
-		rejects: []rejection{modeSwitching.except("-exportArchive"), testOnly},
+		name:       "export archive",
+		rejections: []rejection{modeSwitching.except("-exportArchive"), testOnly},
 	}
 	resolvePackagesPolicy = actionPolicy{
-		name:    "resolve packages",
-		rejects: []rejection{modeSwitching.except("-resolvePackageDependencies"), testOnly},
+		name:       "resolve packages",
+		rejections: []rejection{modeSwitching.except("-resolvePackageDependencies"), testOnly},
 	}
 	testPolicy                = testRunPolicy(ActionTest, withoutBuildingOnly)
 	testWithoutBuildingPolicy = testRunPolicy(ActionTestWithoutBuilding)
 	showBuildSettingsPolicy   = actionPolicy{
-		name:    "show build settings",
-		rejects: []rejection{modeSwitching.except("-showBuildSettings"), testOnly},
+		name:       "show build settings",
+		rejections: []rejection{modeSwitching.except("-showBuildSettings"), testOnly},
 	}
 )

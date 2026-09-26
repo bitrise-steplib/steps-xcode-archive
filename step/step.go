@@ -32,7 +32,6 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
-	"github.com/kballard/go-shellquote"
 )
 
 const (
@@ -227,12 +226,13 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		return Config{}, fmt.Errorf("issue with input Platform: %w", err)
 	}
 
-	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)
+	config.XcodebuildAdditionalOptions, err = xcodecommand.SplitAdditionalOptions(inputs.XcodebuildOptions)
 	if err != nil {
-		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
+		return Config{}, err
 	}
 	// What the parser finds (a malformed option, a flag quoted with its value) is reported
-	// here, before the first xcodebuild call; each command later adds what its merge finds.
+	// here, before the first xcodebuild call. What the archive command's merge finds is
+	// reported when it is assembled, after code signing decides on the API key flags.
 	logXcodebuildOptionDiagnostics(s.logger, xcodecommand.ParseAdditionalOptions(config.XcodebuildAdditionalOptions).Diagnostics(), nil)
 
 	if strings.TrimSpace(config.XcconfigContent) == "" {
@@ -429,11 +429,8 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		})
 		if err != nil {
 			s.logger.Warnf("%s", err)
-		} else {
-			s.logXcodebuildOptionDiagnostics(resolveDepsCmd, opts.XcodebuildAdditionalOptions)
-			if err := s.resolvePackages(resolveDepsCmd); err != nil {
-				s.logger.Warnf("%s", err)
-			}
+		} else if err := s.resolvePackages(resolveDepsCmd); err != nil {
+			s.logger.Warnf("%s", err)
 		}
 	}
 
