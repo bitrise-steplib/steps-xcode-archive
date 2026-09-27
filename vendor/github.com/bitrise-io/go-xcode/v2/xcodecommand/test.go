@@ -29,7 +29,7 @@ func Test(params TestParams) (Command, error) {
 	opts = appendValue(opts, "-destination", params.Destination)
 	opts = appendValue(opts, "-testPlan", params.TestPlan)
 	opts = appendValue(opts, "-xcconfig", params.XCConfigPath)
-	opts = append(opts, testRunOptions{
+	run, err := testRunOptions{
 		resultBundlePath:               params.ResultBundlePath,
 		repetitionMode:                 params.TestRepetitionMode,
 		maximumRepetitions:             params.MaximumTestRepetitions,
@@ -37,7 +37,11 @@ func Test(params TestParams) (Command, error) {
 		onlyTesting:                    params.OnlyTesting,
 		skipTesting:                    params.SkipTesting,
 		collectTestDiagnostics:         params.CollectTestDiagnostics,
-	}.options()...)
+	}.options()
+	if err != nil {
+		return Command{}, err
+	}
+	opts = append(opts, run...)
 
 	return assemble(opts, params.AdditionalOptions, testPolicy, params.Validation)
 }

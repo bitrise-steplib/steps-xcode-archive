@@ -38,8 +38,9 @@ func (r rejection) except(flags ...string) rejection {
 
 var (
 	// The flags of `xcodebuild -help` (Xcode 26.5 and 27.0) that make it do something other
-	// than the command. -json turns a build into a silent no-op (exit 0, nothing built) and
-	// -showBuildSettings output into JSON the settings reader cannot parse.
+	// than the command. -json turns a build or archive into a silent no-op (exit 0, nothing
+	// built); on -showBuildSettings it switches the output to JSON, which the text-parsing
+	// build settings readers cannot read.
 	modeSwitching = rejection{
 		reason: "It switches xcodebuild into another mode, so the command does not run as the Step expects.",
 		flags: []string{

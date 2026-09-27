@@ -68,7 +68,7 @@ func lint(user, derived Options, collisions []collision, policy actionPolicy) []
 	var diagnostics []Diagnostic
 	diagnostics = append(diagnostics, user.Diagnostics()...)
 	diagnostics = append(diagnostics, lintPolicy(user, policy)...)
-	diagnostics = append(diagnostics, lintStepInputs(derived, user)...)
+	diagnostics = append(diagnostics, lintStepInputs(derived, user, policy.name)...)
 	diagnostics = append(diagnostics, lintShadows(derived, user)...)
 	diagnostics = append(diagnostics, lintCollisions(collisions)...)
 	return diagnostics
@@ -130,22 +130,37 @@ func lintPolicy(user Options, policy actionPolicy) []Diagnostic {
 	return diagnostics
 }
 
-// stepInputFlags only work together with what a step derives from its own inputs. Passed
-// alone in the additional options they are reported, so the user reaches for the input.
-var stepInputFlags = map[string]string{
-	"-allowProvisioningUpdates": "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead.",
+// stepInput is a flag a Step input sets: passed in the additional options instead, it is
+// reported so the user reaches for the input.
+type stepInput struct {
+	hint     string
+	commands []string // the commands whose Steps have the input; empty means all
+}
+
+var testRunCommands = []string{ActionTest, ActionTestWithoutBuilding}
+
+const testRepetitionHint = "is set by the Step's test repetition inputs (test_repetition_mode, maximum_test_repetitions, relaunch_tests_for_each_repetition). Remove it and set those inputs instead."
+
+var stepInputFlags = map[string]stepInput{
+	"-allowProvisioningUpdates": {hint: "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead."},
+	// xcode-test and xcode-test-without-building render these from their inputs.
+	"-test-iterations":                  {hint: testRepetitionHint, commands: testRunCommands},
+	"-retry-tests-on-failure":           {hint: testRepetitionHint, commands: testRunCommands},
+	"-run-tests-until-failure":          {hint: testRepetitionHint, commands: testRunCommands},
+	"-test-repetition-relaunch-enabled": {hint: testRepetitionHint, commands: testRunCommands},
 }
 
 // lintStepInputs reports user options from stepInputFlags that the command did not derive
-// itself. When it did, the merge reports them as redundant instead.
-func lintStepInputs(derived, user Options) []Diagnostic {
+// itself. When it did, the merge reports them as redundant or repeated instead.
+func lintStepInputs(derived, user Options, command string) []Diagnostic {
 	var diagnostics []Diagnostic
 	for _, o := range user {
-		hint, ok := stepInputFlags[o.Key()]
-		if !ok || slices.ContainsFunc(derived, func(d Option) bool { return d.Key() == o.Key() }) {
+		input, ok := stepInputFlags[o.Key()]
+		if !ok || (len(input.commands) > 0 && !slices.Contains(input.commands, command)) ||
+			slices.ContainsFunc(derived, func(d Option) bool { return d.Key() == o.Key() }) {
 			continue
 		}
-		diagnostics = append(diagnostics, Diagnostic{Kind: PreferStepInput, Message: fmt.Sprintf("%q %s", o, hint)})
+		diagnostics = append(diagnostics, Diagnostic{Kind: PreferStepInput, Message: fmt.Sprintf("%q %s", o, input.hint)})
 	}
 	return diagnostics
 }
@@ -160,10 +175,17 @@ func lintShadows(derived, user Options) []Diagnostic {
 			continue
 		}
 		for _, u := range user {
-			if u.Kind == UserDefault && u.Name == o.Name {
-				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is written with \"=\". xcodebuild reads it as a user default and ignores it, so today's build uses the Step's %q. Remove it to keep that, or use %s %s to apply it.", u, o, o.Name, shellQuoted(u.Value))})
-				break
+			if u.Kind != UserDefault || u.Name != o.Name {
+				continue
 			}
+			if o.Kind == Switch {
+				// -allowProvisioningUpdates=YES next to the Step's -allowProvisioningUpdates: a
+				// switch takes no value, so "-flag YES" would make YES an unknown build action.
+				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is written with \"=\". xcodebuild reads it as a user default and ignores it, and the Step already sets %q. Remove it.", u, o)})
+			} else {
+				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is written with \"=\". xcodebuild reads it as a user default and ignores it, so today's build uses the Step's %q. Remove it to keep that, or use %s %s to apply it.", u, o, o.Name, shellQuoted(u.Value))})
+			}
+			break
 		}
 	}
 	return diagnostics

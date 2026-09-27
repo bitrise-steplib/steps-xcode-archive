@@ -21,7 +21,7 @@ func TestWithoutBuilding(params TestWithoutBuildingParams) (Command, error) {
 	opts := Options{{Kind: Action, Name: ActionTestWithoutBuilding}}
 	opts = appendValue(opts, "-xctestrun", params.XCTestRun)
 	opts = appendValue(opts, "-destination", params.Destination)
-	opts = append(opts, testRunOptions{
+	run, err := testRunOptions{
 		resultBundlePath:               params.ResultBundlePath,
 		repetitionMode:                 params.TestRepetitionMode,
 		maximumRepetitions:             params.MaximumTestRepetitions,
@@ -29,7 +29,11 @@ func TestWithoutBuilding(params TestWithoutBuildingParams) (Command, error) {
 		onlyTesting:                    params.OnlyTesting,
 		skipTesting:                    params.SkipTesting,
 		collectTestDiagnostics:         params.CollectTestDiagnostics,
-	}.options()...)
+	}.options()
+	if err != nil {
+		return Command{}, err
+	}
+	opts = append(opts, run...)
 
 	return assemble(opts, params.AdditionalOptions, testWithoutBuildingPolicy, params.Validation)
 }
