@@ -37,24 +37,45 @@ func (r rejection) except(flags ...string) rejection {
 }
 
 var (
+	// The flags of `xcodebuild -help` (Xcode 26.5 and 27.0) that make it do something other
+	// than the command. -json turns a build into a silent no-op (exit 0, nothing built) and
+	// -showBuildSettings output into JSON the settings reader cannot parse.
 	modeSwitching = rejection{
-		reason: "switches xcodebuild into another mode",
+		reason: "It switches xcodebuild into another mode, so the command does not run as the Step expects.",
 		flags: []string{
-			"-exportArchive", "-showBuildSettings", "-resolvePackageDependencies", "-list", "-version",
-			"-showsdks", "-showdestinations", "-showTestPlans", "-create-xcframework", "-usage", "-help",
+			"-exportArchive", "-exportNotarizedApp", "-showBuildSettings", "-showBuildSettingsForIndex",
+			"-resolvePackageDependencies", "-list", "-version", "-showsdks", "-showdestinations", "-showTestPlans",
+			"-create-xcframework", "-exportLocalizations", "-importLocalizations", "-find-executable", "-find-library",
+			"-convert-project", "-json", "-usage", "-help", "-license", "-checkFirstLaunchStatus", "-runFirstLaunch",
+			"-downloadPlatform", "-downloadAllPlatforms", "-importPlatform", "-prepareDeviceSupport",
+			"-downloadComponent", "-importComponent", "-deleteComponent", "-showComponent",
 		},
 	}
+	// Test flags xcodebuild refuses outside a test action ("only supported when testing",
+	// or "Cannot use -xctestrun with ... -scheme"), verified on build and archive.
+	testOnlyRefused = rejection{
+		reason: "It applies to test actions only, and xcodebuild refuses it here.",
+		flags:  []string{"-testPlan", "-xctestrun", "-testLanguage", "-testRegion", "-testProductsPath", "-enableCodeCoverage"},
+	}
+	// Test flags xcodebuild accepts and ignores outside a test action.
 	testOnly = rejection{
-		reason: "applies to test actions only",
+		reason: "It applies to test actions only.",
 		flags: []string{
-			"-testPlan", "-xctestrun", "-only-testing", "-skip-testing", "-only-test-configuration",
-			"-skip-test-configuration", "-test-iterations", "-run-tests-until-failure", "-retry-tests-on-failure",
-			"-test-repetition-relaunch-enabled", "-parallel-testing-enabled", "-parallel-testing-worker-count",
-			"-collect-test-diagnostics", "-testLanguage", "-testRegion",
+			"-only-testing", "-skip-testing", "-only-test-configuration", "-skip-test-configuration",
+			"-test-iterations", "-run-tests-until-failure", "-retry-tests-on-failure", "-test-repetition-relaunch-enabled",
+			"-parallel-testing-enabled", "-parallel-testing-worker-count", "-maximum-parallel-testing-workers",
 			"-maximum-concurrent-test-device-destinations", "-maximum-concurrent-test-simulator-destinations",
+			"-collect-test-diagnostics", "-enablePerformanceTestsDiagnostics", "-test-timeouts-enabled",
+			"-default-test-execution-time-allowance", "-maximum-test-execution-time-allowance",
+			"-enumerate-tests", "-test-enumeration-style", "-test-enumeration-format", "-test-enumeration-output-path",
 		},
 	}
-	withoutBuildingOnly = rejection{flags: []string{"-xctestrun"}, reason: "applies to test-without-building only"}
+	// On a test run, -enumerate-tests lists the tests and runs none, and the command succeeds.
+	listsTests = rejection{reason: "It makes xcodebuild list the tests instead of running them.", flags: []string{"-enumerate-tests"}}
+	// test refuses -xctestrun next to its -scheme; test-without-building refuses -testPlan
+	// next to its -xctestrun (the xctestrun already carries its test plan).
+	withoutBuildingOnly = rejection{reason: "It applies to test-without-building only, and xcodebuild refuses it next to -scheme.", flags: []string{"-xctestrun"}}
+	withXCTestRun       = rejection{reason: "The xctestrun already selects the test plan, and xcodebuild refuses it next to -xctestrun.", flags: []string{"-testPlan"}}
 )
 
 var (
@@ -62,19 +83,19 @@ var (
 	// is repeatable.
 	archivePolicy = actionPolicy{
 		name:       ActionArchive,
-		rejections: []rejection{modeSwitching, testOnly},
+		rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
 		defaults:   []string{"-destination"},
 		appendable: []string{"-arch"},
 	}
 	buildPolicy = actionPolicy{
 		name:       ActionBuild,
-		rejections: []rejection{modeSwitching, testOnly},
+		rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
 		defaults:   []string{"-destination"},
 		appendable: []string{"-arch"},
 	}
 	analyzePolicy = actionPolicy{
 		name:       ActionAnalyze,
-		rejections: []rejection{modeSwitching, testOnly},
+		rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
 		defaults:   []string{"-destination", "-resultBundlePath"},
 		appendable: []string{"-arch"},
 	}
@@ -87,16 +108,16 @@ var (
 	}
 	exportArchivePolicy = actionPolicy{
 		name:       "export archive",
-		rejections: []rejection{modeSwitching.except("-exportArchive"), testOnly},
+		rejections: []rejection{modeSwitching.except("-exportArchive"), testOnlyRefused, testOnly},
 	}
 	resolvePackagesPolicy = actionPolicy{
 		name:       "resolve packages",
-		rejections: []rejection{modeSwitching.except("-resolvePackageDependencies"), testOnly},
+		rejections: []rejection{modeSwitching.except("-resolvePackageDependencies"), testOnlyRefused, testOnly},
 	}
-	testPolicy                = testRunPolicy(ActionTest, withoutBuildingOnly)
-	testWithoutBuildingPolicy = testRunPolicy(ActionTestWithoutBuilding)
+	testPolicy                = testRunPolicy(ActionTest, listsTests, withoutBuildingOnly)
+	testWithoutBuildingPolicy = testRunPolicy(ActionTestWithoutBuilding, listsTests, withXCTestRun)
 	showBuildSettingsPolicy   = actionPolicy{
 		name:       "show build settings",
-		rejections: []rejection{modeSwitching.except("-showBuildSettings"), testOnly},
+		rejections: []rejection{modeSwitching.except("-showBuildSettings"), testOnlyRefused, testOnly},
 	}
 )

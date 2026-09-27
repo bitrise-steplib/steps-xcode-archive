@@ -122,7 +122,8 @@ var freeFormValueFlags = []string{
 	"-testPlan", "-only-test-configuration", "-skip-test-configuration",
 	"-project", "-workspace", "-xcconfig", "-archivePath",
 	"-derivedDataPath", "-resultBundlePath", "-clonedSourcePackagesDirPath",
-	"-packageCachePath", "-exportPath", "-exportOptionsPlist", "-xctestrun",
+	"-packageCachePath", "-exportPath", "-exportOptionsPlist", "-xctestrun", "-testProductsPath",
+	"-resultStreamPath", "-localizationPath", "-importPath", "-codesizeProfileOutputDir", "-test-enumeration-output-path",
 }
 
 // SplitAdditionalOptions splits the xcodebuild_options input into arguments with POSIX
