@@ -4,54 +4,36 @@ import (
 	"bufio"
 	"fmt"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/log/colorstring"
 	"github.com/bitrise-io/go-xcode/exportoptions"
+	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 )
 
-func generateAdditionalOptions(platform string, customOptions []string) []string {
-	destination := "generic/platform=" + platform
-	destinationOptions := []string{"-destination", destination}
-
-	var options []string
-	if len(customOptions) != 0 {
-		if !slices.Contains(customOptions, "-destination") {
-			options = append(options, destinationOptions...)
-		}
-
-		options = append(options, customOptions...)
-	} else {
-		options = append(options, destinationOptions...)
-	}
-
-	return options
-}
-
+// filterSPMAdditionalOptions narrows the xcodebuild_options input to what -showBuildSettings
+// accepts: the Swift package flags and build setting overrides.
 func filterSPMAdditionalOptions(xcodebuildAdditionalOptions []string) []string {
-	var knownSPMFlags = []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-skipPackageUpdates", "-disableAutomaticPackageResolution", "-onlyUsePackageVersionsFromResolvedFile"}
-	var knownSPMParams = []string{"-clonedSourcePackagesDirPath"}
-
-	filteredShowbuildsettingsOptions := []string{}
-	for i, option := range xcodebuildAdditionalOptions {
-		if slices.Contains(knownSPMFlags, option) {
-			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option)
-			continue
-		}
-		if slices.Contains(knownSPMParams, option) && i+1 < len(xcodebuildAdditionalOptions) {
-			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option, xcodebuildAdditionalOptions[i+1])
-			continue
-		}
-		if strings.Contains(option, "=") { // Append build setting overrides, example: BUNDLE_IDENTIFIER=io.bitrise.sample
-			filteredShowbuildsettingsOptions = append(filteredShowbuildsettingsOptions, option)
-			continue
-		}
+	spmFlags := map[string]bool{
+		"-skipPackagePluginValidation":            true,
+		"-skipMacroValidation":                    true,
+		"-skipPackageUpdates":                     true,
+		"-disableAutomaticPackageResolution":      true,
+		"-onlyUsePackageVersionsFromResolvedFile": true,
+		"-clonedSourcePackagesDirPath":            true,
 	}
 
-	return filteredShowbuildsettingsOptions
+	options := xcodecommand.ParseAdditionalOptions(xcodebuildAdditionalOptions)
+	filtered := options.Filter(func(o xcodecommand.Option) bool {
+		return o.Kind == xcodecommand.BuildSetting || spmFlags[o.Name]
+	}).Args()
+	if filtered == nil {
+		return []string{}
+	}
+
+	return filtered
 }
 
 func determineExportMethod(desiredExportMethod string, archiveExportMethod exportoptions.Method, logger log.Logger) (exportoptions.Method, error) {

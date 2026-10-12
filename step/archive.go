@@ -9,10 +9,9 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
-	"github.com/bitrise-io/go-xcode/xcodebuild"
 )
 
-func runArchiveCommandWithRetry(xcodeCommandRunner xcodecommand.Runner, logFormatter string, archiveCmd *xcodebuild.CommandBuilder, swiftPackagesPath string, logger log.Logger, fileManager fileutil.FileManager) (string, error) {
+func runArchiveCommandWithRetry(xcodeCommandRunner xcodecommand.Runner, logFormatter string, archiveCmd xcodecommand.Command, swiftPackagesPath string, logger log.Logger, fileManager fileutil.FileManager) (string, error) {
 	output, err := runArchiveCommand(xcodeCommandRunner, logFormatter, archiveCmd, logger, fileManager)
 	if err != nil && swiftPackagesPath != "" && strings.Contains(output, cache.SwiftPackagesStateInvalid) {
 		logger.Warnf("Archive failed, swift packages cache is in an invalid state, error: %s", err)
@@ -24,8 +23,8 @@ func runArchiveCommandWithRetry(xcodeCommandRunner xcodecommand.Runner, logForma
 	return output, err
 }
 
-func runArchiveCommand(xcodeCommandRunner xcodecommand.Runner, logFormatter string, archiveCmd *xcodebuild.CommandBuilder, logger log.Logger, fileManager fileutil.FileManager) (string, error) {
-	output, err := xcodeCommandRunner.Run("", archiveCmd.CommandArgs(), []string{})
+func runArchiveCommand(xcodeCommandRunner xcodecommand.Runner, logFormatter string, archiveCmd xcodecommand.Command, logger log.Logger, fileManager fileutil.FileManager) (string, error) {
+	output, err := xcodeCommandRunner.Run("", archiveCmd.Args(), []string{})
 	if logFormatter == XcodebuildTool || err != nil {
 		printLastLinesOfXcodebuildLog(logger, fileManager, string(output.RawOut), err == nil)
 	}
