@@ -31,11 +31,6 @@ func TestWithoutBuilding(params TestWithoutBuildingParams) (Command, error) {
 	case params.XCTestRun == "" && params.Scheme == "":
 		return Command{}, errors.New("test-without-building needs an xctestrun or a scheme")
 	}
-	policy := testWithoutBuildingPolicy
-	if params.XCTestRun == "" {
-		policy = testWithoutBuildingSchemePolicy
-	}
-
 	// -xctestrun App.xctestrun: test-without-building -xctestrun App.xctestrun -destination ...
 	// a scheme, as test renders it: -project App.xcodeproj -scheme App test-without-building ...
 	opts := containerOptions(params.ProjectPath)
@@ -58,10 +53,7 @@ func TestWithoutBuilding(params TestWithoutBuildingParams) (Command, error) {
 	}
 	opts = append(opts, run...)
 
-	return assemble(opts, params.AdditionalOptions, policy)
+	return assemble(opts, params.AdditionalOptions, testWithoutBuildingPolicy)
 }
 
-var (
-	testWithoutBuildingPolicy       = testRunPolicy(ActionTestWithoutBuilding, listsTests, withXCTestRun)
-	testWithoutBuildingSchemePolicy = testRunPolicy(ActionTestWithoutBuilding, listsTests, withScheme)
-)
+var testWithoutBuildingPolicy = testRunPolicy(ActionTestWithoutBuilding, listsTests)

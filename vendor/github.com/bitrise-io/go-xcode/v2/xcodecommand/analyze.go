@@ -33,7 +33,7 @@ func Analyze(params AnalyzeParams) (Command, error) {
 
 var analyzePolicy = actionPolicy{
 	name:       ActionAnalyze,
-	rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
+	rejections: []rejection{modeSwitching, silentLog, testOnly},
 	defaults:   []string{"-destination", "-resultBundlePath"},
 	appendable: []string{"-arch"},
 }

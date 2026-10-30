@@ -33,10 +33,10 @@ func BuildForTesting(params BuildForTestingParams) (Command, error) {
 }
 
 // build-for-testing takes the test selection flags, which it bakes into the xctestrun, and
-// writes -testProductsPath; -xctestrun is an input of test-without-building.
+// writes -testProductsPath. xcodebuild refuses -xctestrun next to its -scheme by itself.
 var buildForTestingPolicy = actionPolicy{
 	name:       ActionBuildForTesting,
-	rejections: []rejection{modeSwitching, withoutBuildingOnly},
+	rejections: []rejection{modeSwitching, silentLog},
 	defaults:   []string{"-destination"},
 	appendable: []string{"-arch"},
 }

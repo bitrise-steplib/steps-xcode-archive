@@ -23,5 +23,5 @@ func ExportArchive(params ExportArchiveParams) (Command, error) {
 
 var exportArchivePolicy = actionPolicy{
 	name:       "export archive",
-	rejections: []rejection{modeSwitching.except("-exportArchive"), testOnlyRefused, testOnly},
+	rejections: []rejection{modeSwitching.except("-exportArchive"), silentLog, testOnly},
 }

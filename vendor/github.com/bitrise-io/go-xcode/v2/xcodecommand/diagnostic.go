@@ -18,27 +18,24 @@ type DiagnosticKind int
 
 // Diagnostic kinds.
 const (
-	MalformedOption       DiagnosticKind = iota // unclassifiable argument, passed through; xcodebuild rejects it
-	RejectedOption                              // switches xcodebuild's mode or belongs to another action
+	MissingValue          DiagnosticKind = iota // a value flag with no value; xcodebuild takes the next flag as its value
+	RejectedOption                              // a mode switch, or a flag of another action; xcodebuild ignores it here
 	ActionInOptions                             // a build action; the command owns its action list
-	SuspiciousUserDefault                       // -NAME=value that looks like a build setting; xcodebuild ignores it silently
-	RepeatedOption                              // a value option set by the command and again by the user; xcodebuild refuses it
-	PreferStepInput                             // a flag that only works with what the step's inputs provide; use the input
+	SuspiciousUserDefault                       // a -name=value xcodebuild reads as a user default and ignores: a build setting with a dash, a flag quoted with its value, a flag written with "="
+	PreferStepInput                             // a flag a Step input renders; use the input
 	Override                                    // informational: a default or build setting yielded to the user's
 	RedundantOption                             // informational: identical to what the command already sets
 )
 
-// Informational says whether the kind is a note rather than a problem: the command line
-// does what the user meant. A step logs the rest as warnings, or fails on them.
-func (k DiagnosticKind) Informational() bool {
-	return k == Override || k == RedundantOption
-}
-
-// Diagnostic is one finding about the additional options, for the step log.
+// Diagnostic is one finding about the additional options, for the step log. It is
+// informational when the command line does what the user meant: a note. Otherwise
+// xcodebuild accepts the option and does something other than meant: a warning. What
+// xcodebuild refuses is not reported; the build fails on it with xcodebuild's message.
 type Diagnostic struct {
-	Kind    DiagnosticKind
-	Option  Option // the user's option the finding is about
-	Message string
+	Kind          DiagnosticKind
+	Option        Option // the user's option the finding is about
+	Message       string
+	Informational bool
 }
 
 func (d Diagnostic) String() string {
@@ -47,24 +44,29 @@ func (d Diagnostic) String() string {
 
 // report is a Diagnostic about o with a formatted message.
 func report(kind DiagnosticKind, o Option, format string, args ...any) Diagnostic {
-	return Diagnostic{Kind: kind, Option: o, Message: fmt.Sprintf(format, args...)}
+	informational := kind == Override || kind == RedundantOption
+	return Diagnostic{Kind: kind, Option: o, Message: fmt.Sprintf(format, args...), Informational: informational}
 }
 
 // -ENABLE_BITCODE, -MARKETING_VERSION: a build setting typed with a dash, which
 // xcodebuild accepts as a user default and silently ignores. Not -IDEFoo.
 var upperCaseFlag = regexp.MustCompile(`^-[A-Z][A-Z0-9_]*$`)
 
-// Diagnostics reports what the parser could not read and what xcodebuild would silently
-// ignore, each with its fix. A step logs these when it reads its inputs, before its first
-// xcodebuild call; a Command reports only its own findings.
+// Diagnostics reports what xcodebuild silently does with an option other than what the user
+// meant, each with its fix. An argument xcodebuild refuses gets no line: the build fails on
+// it with xcodebuild's own message. A step logs these when it reads its inputs, before its
+// first xcodebuild call; a Command reports only its own findings.
 func (opts Options) Diagnostics() []Diagnostic {
 	var diagnostics []Diagnostic
 	for _, o := range opts {
 		switch {
-		case o.Kind == Unknown && o.issue == quotedFlagWithValue:
-			diagnostics = append(diagnostics, report(SuspiciousUserDefault, o, "%q is a flag quoted together with its value. xcodebuild reads it as a user default and ignores it, so it has no effect. Use %s to apply it, or remove it.", o.Name, unquoteFlag(o.Name)))
-		case o.Kind == Unknown:
-			diagnostics = append(diagnostics, report(MalformedOption, o, "%q %s", o.Name, malformedMessage(o)))
+		case o.Kind == UserDefault && strings.IndexFunc(o.Name, unicode.IsSpace) >= 0:
+			// "-destination generic/platform=iOS" as one argument: a user default named
+			// "destination generic/platform", which xcodebuild ignores
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, o, "%q is a flag quoted together with its value. xcodebuild reads it as a user default and ignores it, so it has no effect. Use %s to apply it, or remove it.", o, unquoteFlag(o.String())))
+		case o.tookFlag:
+			// -derivedDataPath -quiet: xcodebuild takes -quiet as the path and the switch is lost
+			diagnostics = append(diagnostics, report(MissingValue, o, "%q has no value, so xcodebuild takes %q as its value and that flag does not apply. Add a value, or remove it.", o.Name, o.Value))
 		case o.Kind == UserDefault && upperCaseFlag.MatchString(o.Name):
 			// -ENABLE_BITCODE=NO: the user meant ENABLE_BITCODE=NO
 			setting := o.Name[1:] + "=" + shellQuoted(o.Value)
@@ -72,23 +74,6 @@ func (opts Options) Diagnostics() []Diagnostic {
 		}
 	}
 	return diagnostics
-}
-
-func malformedMessage(o Option) string {
-	switch o.issue {
-	case emptyArgument:
-		return "is empty. xcodebuild treats it as an unknown build action. Remove it."
-	case quotedFlag:
-		return fmt.Sprintf("is a flag quoted together with its value. xcodebuild refuses it. Use %s instead.", unquoteFlag(o.Name))
-	case invalidFlag:
-		return "is not a valid flag. xcodebuild refuses it. Remove it."
-	case colonWithoutValue:
-		return "has no value after the colon. xcodebuild refuses it. Add the value, or remove it."
-	case missingValue:
-		return "has no value. xcodebuild refuses it. Add one, or remove it."
-	default:
-		return `is not a flag, a NAME=value build setting or a build action. xcodebuild treats it as an unknown build action. Quote a value with spaces, for example CODE_SIGN_IDENTITY="Apple Distribution", or remove it.`
-	}
 }
 
 // lint reports what the command found in the user's options: per option, what its policy
@@ -122,9 +107,10 @@ func (p actionPolicy) refusal(o Option) (Diagnostic, bool) {
 // stepInput is a flag a Step input sets: passed in the additional options instead, it is
 // reported so the user reaches for the input.
 type stepInput struct {
-	hint      string
-	commands  []string // the commands whose Steps have the input; empty means all
-	satisfied []string // value flags that, all set by the user too, make the flag work without the input
+	hint          string
+	commands      []string // the commands whose Steps have the input; empty means all
+	satisfied     []string // value flags that, all set by the user too, make the flag work without the input
+	informational bool     // the flag works as given; the input is only the tidier place for it
 }
 
 // appliesTo says whether the command's Step has the input.
@@ -138,14 +124,15 @@ const testRepetitionHint = "belongs to the Step's test repetition inputs (test_r
 
 var stepInputFlags = map[string]stepInput{
 	"-allowProvisioningUpdates": {
-		hint:      "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead.",
+		hint:      "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead. See https://docs.bitrise.io/en/code-signing/ios-code-signing/managing-ios-code-signing-files---automatic-provisioning.html",
 		satisfied: []string{"-authenticationKeyPath", "-authenticationKeyID", "-authenticationKeyIssuerID"},
 	},
-	// xcode-test and xcode-test-without-building render these from their inputs.
-	"-test-iterations":                  {hint: testRepetitionHint, commands: testRunCommands},
-	"-retry-tests-on-failure":           {hint: testRepetitionHint, commands: testRunCommands},
-	"-run-tests-until-failure":          {hint: testRepetitionHint, commands: testRunCommands},
-	"-test-repetition-relaunch-enabled": {hint: testRepetitionHint, commands: testRunCommands},
+	// xcode-test and xcode-test-without-building render these from their inputs. Passed in
+	// the options they work the same, so the hint is a note.
+	"-test-iterations":                  {hint: testRepetitionHint, commands: testRunCommands, informational: true},
+	"-retry-tests-on-failure":           {hint: testRepetitionHint, commands: testRunCommands, informational: true},
+	"-run-tests-until-failure":          {hint: testRepetitionHint, commands: testRunCommands, informational: true},
+	"-test-repetition-relaunch-enabled": {hint: testRepetitionHint, commands: testRunCommands, informational: true},
 }
 
 // setsAll says whether opts gives every one of the value flags a value. It is false for
@@ -198,85 +185,74 @@ func (opts Options) byFlag() []flagGroup {
 const ignoredUserDefault = "%q is written with \"=\". xcodebuild reads it as a user default and ignores it, "
 
 // findings says what became of a flag the user set: what the merge did with the Step's
-// copy, then each "-flag=value" the flag shadows, then whether a Step input should set it
-// instead. Every fact is in the group, so no rule needs another pass.
+// copy, then each "-flag=value" form of it, then whether a Step input should set it
+// instead. A copy xcodebuild refuses gets no line, since the build fails on it with
+// xcodebuild's own message: a repeated value option ("may only be provided once"), a
+// value given to a switch as "-quiet YES" (an unknown build action) or "-quiet:YES" (an
+// invalid option). Every fact is in the group, so no rule needs another pass.
 func (g flagGroup) findings(all Options, policy actionPolicy) []Diagnostic {
 	if len(g.user) == 0 {
 		return nil
 	}
 	var diagnostics []Diagnostic
 
-	// same: the user's copies that key as the Step's; a "-flag=value" keys apart and shadows
-	var step Option
-	var same Options
-	if len(g.step) > 0 {
-		step = g.step[0]
-		same = g.user.Filter(func(o Option) bool { return o.key() == step.key() })
-	}
-	// the switch on the command line, the user's own or the Step's, for a value given to it
-	sw, hasSwitch := g.all().last(func(o Option) bool { return o.Kind == Switch })
-	switch {
-	case hasSwitch && slices.ContainsFunc(g.user, valued):
-		// "-allowProvisioningUpdates YES", "-allowProvisioningUpdates:YES", "-allowProvisioningUpdates=YES"
-		for _, u := range g.user.Filter(valued) {
-			diagnostics = append(diagnostics, valuedSwitch(u, sw))
-		}
-	case len(same) > 0 && step.dropped && same.allEqual(step):
-		diagnostics = append(diagnostics, report(RedundantOption, same[0], "%q is already set by the Step. Remove it.", step))
-	case len(same) > 0 && step.dropped:
-		diagnostics = append(diagnostics, report(Override, same[0], "%q replaces the Step's default %q.", same.join(), step))
-	case len(same) > 0 && !slices.Contains(policy.appendable, g.name):
-		diagnostics = append(diagnostics, report(RepeatedOption, same[0], "%s is managed by the Step. %q conflicts with its %q: xcodebuild accepts the flag only once. Remove it.", g.name, same.join(), step))
-	}
-
-	if !hasSwitch {
-		// "-destination=x": xcodebuild ignores the "=" form; the message names what the build uses instead
-		applied, found := g.all().last(func(o Option) bool { return o.Kind == ValueOption && !o.dropped })
-		for _, u := range g.user.Filter(func(o Option) bool { return o.Kind == UserDefault }) {
-			switch {
-			case found && applied.user:
-				// -destination generic/platform=tvOS -destination=generic/platform=watchOS
-				diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses your %q instead. Change that one to %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
-			case found:
-				diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses the Step's %q instead. Use %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
-			case slices.Contains(freeFormValueFlags, u.Name):
-				// -destination=generic/platform=iOS with no -destination anywhere
-				diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"so it has no effect. Use %s %s to apply it, or remove it.", u, u.Name, shellQuoted(u.Value)))
-			}
+	// The Step's copy yielded to the user's copies of the same form: identical ones are
+	// redundant, a different one overrides it. A copy of another form ("-quiet YES" next to
+	// the Step's -quiet) is one xcodebuild refuses.
+	if len(g.step) > 0 && g.step[0].dropped {
+		step := g.step[0]
+		same := g.user.Filter(func(o Option) bool { return o.Kind == step.Kind && o.key() == step.key() })
+		switch {
+		case len(same) == 0:
+		case same.allEqual(step):
+			diagnostics = append(diagnostics, report(RedundantOption, same[0], "%q is already set by the Step. Remove it.", step))
+		default:
+			diagnostics = append(diagnostics, report(Override, same[0], "%q replaces the Step's default %q.", same.join(), step))
 		}
 	}
 
+	// "-flag=value": xcodebuild reads it as a user default and ignores it. A switch in the
+	// group, the Step's or the user's, says the flag takes no value; otherwise the message
+	// names the value the build uses instead.
+	sw, isSwitch := g.all().last(func(o Option) bool { return o.Kind == Switch })
+	applied, found := g.all().last(func(o Option) bool { return o.Kind == ValueOption && !o.dropped })
+	for _, u := range g.user.Filter(func(o Option) bool { return o.Kind == UserDefault }) {
+		switch {
+		case isSwitch:
+			// -allowProvisioningUpdates=YES next to the Step's -allowProvisioningUpdates; -quiet -quiet=YES
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, "%q gives a value to %s, which takes none, so xcodebuild reads it as a user default and ignores it. %s. Remove it.", u, sw.Name, alreadySet(sw)))
+		case found && applied.user:
+			// -destination generic/platform=tvOS -destination=generic/platform=watchOS
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses your %q instead. Change that one to %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
+		case found:
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses the Step's %q instead. Use %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
+		case slices.Contains(freeFormValueFlags, u.Name):
+			// -destination=generic/platform=iOS with no -destination anywhere
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"so it has no effect. Use %s %s to apply it, or remove it.", u, u.Name, shellQuoted(u.Value)))
+		}
+	}
+
+	// A flag a Step input renders, passed here instead: -allowProvisioningUpdates without the
+	// Step's API key flags, or the user's own.
 	if in, ok := stepInputFlags[g.name]; ok && in.appliesTo(policy.name) && len(g.step) == 0 && !setsAll(all, in.satisfied) {
-		// -allowProvisioningUpdates without the Step's API key flags, or the user's own
 		for _, u := range g.user {
 			if u.key() == g.name {
-				diagnostics = append(diagnostics, report(PreferStepInput, u, "%q %s", u, in.hint))
+				d := report(PreferStepInput, u, "%q %s", u, in.hint)
+				d.Informational = in.informational
+				diagnostics = append(diagnostics, d)
 			}
 		}
 	}
 	return diagnostics
 }
 
-// valuedSwitch reports u, a value given to sw, a switch the command line has. How
-// xcodebuild reads the value depends on how it is written.
-func valuedSwitch(u, sw Option) Diagnostic {
-	kind, effect := MalformedOption, fmt.Sprintf("xcodebuild reads %q as a build action and fails", u.Value)
-	switch u.Kind {
-	case UserDefault:
-		// -allowProvisioningUpdates=YES
-		kind, effect = SuspiciousUserDefault, "xcodebuild reads it as a user default and ignores it"
-	case ColonOption:
-		// -allowProvisioningUpdates:YES
-		effect = "xcodebuild refuses it as an invalid option"
-	}
-	set := fmt.Sprintf("The Step already sets %s", sw)
+// alreadySet says who set the switch sw, for a message about a value given to it.
+func alreadySet(sw Option) string {
 	if sw.user {
-		set = fmt.Sprintf("%s is already set", sw)
+		return fmt.Sprintf("%s is already set", sw)
 	}
-	return report(kind, u, "%q gives a value to %s, which takes none, so %s. %s. Remove it.", u, sw, effect, set)
+	return fmt.Sprintf("The Step already sets %s", sw)
 }
-
-func valued(o Option) bool { return o.Kind != Switch }
 
 // all is the group in command line order: the Step's copies, then the user's.
 func (g flagGroup) all() Options {

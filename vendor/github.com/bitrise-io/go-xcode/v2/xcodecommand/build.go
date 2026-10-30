@@ -40,7 +40,7 @@ func appendCodeSigningAllowed(opts Options, disable bool) Options {
 
 var buildPolicy = actionPolicy{
 	name:       ActionBuild,
-	rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
+	rejections: []rejection{modeSwitching, silentLog, testOnly},
 	defaults:   []string{"-destination"},
 	appendable: []string{"-arch"},
 }

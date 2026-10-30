@@ -42,5 +42,5 @@ func ResolvePackages(params ResolvePackagesParams) (Command, error) {
 
 var resolvePackagesPolicy = actionPolicy{
 	name:       "resolve packages",
-	rejections: []rejection{modeSwitching.except("-resolvePackageDependencies"), testOnlyRefused, testOnly},
+	rejections: []rejection{modeSwitching.except("-resolvePackageDependencies"), silentLog, testOnly},
 }

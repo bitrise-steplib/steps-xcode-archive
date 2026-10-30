@@ -1115,10 +1115,16 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 }
 
 // logOptionDiagnostics reports findings about the xcodebuild_options input: the parser's
-// when the inputs are read, a command's when it is assembled.
+// when the inputs are read, a command's when it is assembled. A finding is a note when the
+// command line does what the user meant, and a warning when xcodebuild accepts the option
+// and does something else with it.
 func logOptionDiagnostics(logger log.Logger, diagnostics []xcodecommand.Diagnostic) {
 	for _, d := range diagnostics {
-		logger.Warnf("xcodebuild_options: %s", d)
+		if d.Informational {
+			logger.Infof("xcodebuild_options: %s", d)
+		} else {
+			logger.Warnf("xcodebuild_options: %s", d)
+		}
 	}
 }
 

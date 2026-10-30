@@ -38,27 +38,28 @@ func (r rejection) except(flags ...string) rejection {
 
 var (
 	// The flags of `xcodebuild -help` (Xcode 26.5 and 27.0) that make it do something other
-	// than the command. -json turns a build or archive into a silent no-op (exit 0, nothing
-	// built); on -showBuildSettings it switches the output to JSON, which the text-parsing
-	// build settings readers cannot read.
+	// than the command: -showBuildSettings prints the settings and builds nothing, -list
+	// lists the schemes, and so on. xcodebuild accepts each next to a build action.
 	modeSwitching = rejection{
 		reason: "It switches xcodebuild to another task instead.",
 		flags: []string{
 			"-exportArchive", "-exportNotarizedApp", "-showBuildSettings", "-showBuildSettingsForIndex",
 			"-resolvePackageDependencies", "-list", "-version", "-showsdks", "-showdestinations", "-showTestPlans",
 			"-create-xcframework", "-exportLocalizations", "-importLocalizations", "-find-executable", "-find-library",
-			"-convert-project", "-json", "-usage", "-help", "-license", "-checkFirstLaunchStatus", "-runFirstLaunch",
+			"-convert-project", "-usage", "-help", "-license", "-checkFirstLaunchStatus", "-runFirstLaunch",
 			"-downloadPlatform", "-downloadAllPlatforms", "-importPlatform", "-prepareDeviceSupport",
 			"-downloadComponent", "-importComponent", "-deleteComponent", "-showComponent",
 		},
 	}
-	// Test flags xcodebuild refuses outside a test action ("only supported when testing",
-	// or "Cannot use -xctestrun with ... -scheme"), verified on build and archive.
-	testOnlyRefused = rejection{
-		reason: "It applies to test actions only, and xcodebuild refuses it here.",
-		flags:  []string{"-testPlan", "-xctestrun", "-testLanguage", "-testRegion", "-testProductsPath", "-enableCodeCoverage"},
-	}
-	// Test flags xcodebuild accepts and ignores outside a test action.
+	// -json next to a build action builds, but the build log is gone: of 811 lines only the
+	// 16 compiler diagnostics remain (Xcode 26.5 and 27.0). On -showBuildSettings it turns
+	// the output into JSON, which the Steps' text-parsing settings readers cannot read.
+	silentLog = rejection{reason: "It turns off xcodebuild's build log: only compiler diagnostics are printed.", flags: []string{"-json"}}
+	// Test flags xcodebuild accepts and ignores outside a test action (verified on archive,
+	// Xcode 26.5 and 27.0). The test flags it refuses there (-testPlan, -enableCodeCoverage,
+	// -testLanguage, -testRegion, -testProductsPath: "only supported when testing"; -xctestrun
+	// next to -scheme, and -scheme, -project, -workspace or -testProductsPath next to
+	// -xctestrun) need no line: the build fails on them with xcodebuild's own message.
 	testOnly = rejection{
 		reason: "It applies to test actions only, and xcodebuild ignores it here.",
 		flags: []string{
@@ -73,11 +74,4 @@ var (
 	}
 	// On a test run, -enumerate-tests lists the tests and runs none, and the command succeeds.
 	listsTests = rejection{reason: "It makes xcodebuild list the tests instead of running them.", flags: []string{"-enumerate-tests"}}
-	// xcodebuild refuses -xctestrun next to -project, -workspace or -scheme, which test and
-	// build-for-testing always pass. test-without-building runs an xctestrun, which already
-	// names what to test, so it refuses those flags, -testPlan and -testProductsPath ("Cannot
-	// specify both -xctestrun and -testProductsPath"); or a scheme, so it refuses -xctestrun.
-	withoutBuildingOnly = rejection{reason: "It applies to test-without-building only, and xcodebuild refuses it next to -scheme.", flags: []string{"-xctestrun"}}
-	withXCTestRun       = rejection{reason: "The xctestrun already names what to test, and xcodebuild refuses it next to -xctestrun.", flags: []string{"-testPlan", "-scheme", "-project", "-workspace", "-testProductsPath"}}
-	withScheme          = rejection{reason: "The Step tests a scheme, and xcodebuild refuses it next to -scheme.", flags: []string{"-xctestrun"}}
 )

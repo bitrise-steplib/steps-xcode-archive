@@ -45,4 +45,4 @@ func Test(params TestParams) (Command, error) {
 	return assemble(opts, params.AdditionalOptions, testPolicy)
 }
 
-var testPolicy = testRunPolicy(ActionTest, listsTests, withoutBuildingOnly)
+var testPolicy = testRunPolicy(ActionTest, listsTests)
