@@ -18,9 +18,9 @@ type ResolvePackagesParams struct {
 //
 // A step resolves packages as a preparation for its main command and passes it the same
 // xcodebuild_options. Options that do not apply to resolution (build actions, test-only
-// and mode-switching flags, anything unparseable) are left out, and the Command reports no
-// diagnostics: the options still reach the main command, which reports any that are wrong
-// there, once.
+// and mode-switching flags, anything unparseable) are left out, and the Command reports
+// them in one informational line: the options still reach the main command, which reports
+// any that are wrong there.
 func ResolvePackages(params ResolvePackagesParams) (Command, error) {
 	if filepath.Ext(filepath.Clean(params.ProjectPath)) == xcworkspaceExtension && params.Scheme == "" {
 		// xcodebuild: "If you specify a workspace then you must also specify a scheme."
@@ -32,12 +32,24 @@ func ResolvePackages(params ResolvePackagesParams) (Command, error) {
 	opts = append(opts, Option{Kind: Switch, Name: "-resolvePackageDependencies"})
 
 	// clean archive -test-iterations 2 -skipMacroValidation FOO=1 -> -skipMacroValidation FOO=1
-	user := params.AdditionalOptions.Filter(func(o Option) bool {
+	applies := func(o Option) bool {
 		_, rejected := resolvePackagesPolicy.rejects(o)
 		return o.Kind != Action && o.Kind != Unknown && !rejected
-	})
+	}
+	user := params.AdditionalOptions.Filter(applies)
+	cmd := Command{args: merge(opts, user, resolvePackagesPolicy).Args()}
+	if leftOut := params.AdditionalOptions.Filter(func(o Option) bool { return !applies(o) }); len(leftOut) > 0 {
+		cmd.diagnostics = []Diagnostic{report(LeftOut, leftOut[0], "%s left out of package resolution; the Step's main command gets %s.", leftOut.quoted(), pluralOf(len(leftOut), "it", "them"))}
+	}
+	return cmd, nil
+}
 
-	return Command{args: merge(opts, user, resolvePackagesPolicy).Args()}, nil
+// pluralOf picks the word for n of something.
+func pluralOf(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
 
 var resolvePackagesPolicy = actionPolicy{

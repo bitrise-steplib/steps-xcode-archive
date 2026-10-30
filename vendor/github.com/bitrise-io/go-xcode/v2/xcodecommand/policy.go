@@ -10,13 +10,15 @@ type actionPolicy struct {
 	appendable []string // repeatable keys where derived and user entries both stay
 }
 
-// rejection is a group of flags a command refuses, with the reason for all of them.
+// rejection is a set of flags a command refuses for one shared reason. An option naming
+// any one of the flags is rejected; the reason is what its message says.
 type rejection struct {
-	flags  []string
+	flags  []string // any one of these
 	reason string
 }
 
-// rejects says whether the command refuses the flag option o, and why.
+// rejects says whether the command refuses the flag option o, that is whether o names a
+// flag of one of its rejections, and returns that rejection for its reason.
 func (s actionPolicy) rejects(o Option) (rejection, bool) {
 	if o.Kind != Switch && o.Kind != ValueOption && o.Kind != ColonOption {
 		return rejection{}, false

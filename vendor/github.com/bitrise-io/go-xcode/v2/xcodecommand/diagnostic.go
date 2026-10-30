@@ -25,6 +25,7 @@ const (
 	PreferStepInput                             // a flag a Step input renders; use the input
 	Override                                    // informational: a default or build setting yielded to the user's
 	RedundantOption                             // informational: identical to what the command already sets
+	LeftOut                                     // informational: options a preparatory command leaves out; the Step's main command gets them
 )
 
 // Diagnostic is one finding about the additional options, for the step log. It is
@@ -44,7 +45,7 @@ func (d Diagnostic) String() string {
 
 // report is a Diagnostic about o with a formatted message.
 func report(kind DiagnosticKind, o Option, format string, args ...any) Diagnostic {
-	informational := kind == Override || kind == RedundantOption
+	informational := kind == Override || kind == RedundantOption || kind == LeftOut
 	return Diagnostic{Kind: kind, Option: o, Message: fmt.Sprintf(format, args...), Informational: informational}
 }
 
@@ -277,6 +278,15 @@ func (opts Options) allEqual(o Option) bool {
 // join renders the options as one command line fragment, for messages.
 func (opts Options) join() string {
 	return strings.Join(opts.Args(), " ")
+}
+
+// quoted renders each option quoted, comma-separated, for a message about several.
+func (opts Options) quoted() string {
+	var parts []string
+	for _, o := range opts {
+		parts = append(parts, fmt.Sprintf("%q", o.String()))
+	}
+	return strings.Join(parts, ", ")
 }
 
 // shellQuoted renders a value as it has to be written in xcodebuild_options: the inverse

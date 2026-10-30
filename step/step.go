@@ -1133,6 +1133,7 @@ func (s XcodebuildArchiver) resolvePackages(cmd xcodecommand.Command) error {
 	c := cmd.Create(s.cmdFactory, &command.Opts{Stdout: os.Stdout, Stderr: os.Stderr})
 
 	s.logger.TPrintf("Resolving package dependencies...")
+	logOptionDiagnostics(s.logger, cmd.Diagnostics())
 	s.logger.TDonef("$ %s", c.PrintableCommandArgs())
 	if err := c.Run(); err != nil {
 		return fmt.Errorf("failed to resolve package dependencies: %w", err)
