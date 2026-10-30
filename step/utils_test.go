@@ -4,42 +4,9 @@ import (
 	"testing"
 
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/stretchr/testify/require"
 )
-
-func Test_generateAdditionalOptions(t *testing.T) {
-	tests := []struct {
-		name          string
-		platform      string
-		customOptions []string
-		want          []string
-	}{
-		{
-			name:     "no custom options",
-			platform: "iOS",
-			want:     []string{"-destination", "generic/platform=iOS"},
-		},
-		{
-			name:          "custom opts",
-			platform:      "iOS",
-			customOptions: []string{"-scmProvider", "system"},
-			want:          []string{"-destination", "generic/platform=iOS", "-scmProvider", "system"},
-		},
-		{
-			name:          "custom opts with destination",
-			platform:      "iOS",
-			customOptions: []string{"-scmProvider", "system", "-destination", "generic/platform=iOS"},
-			want:          []string{"-scmProvider", "system", "-destination", "generic/platform=iOS"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := generateAdditionalOptions(tt.platform, tt.customOptions)
-
-			require.Equal(t, tt.want, got)
-		})
-	}
-}
 
 func Test_findIDEDistrubutionLogsPath(t *testing.T) {
 	tests := []struct {
@@ -77,25 +44,25 @@ func Test_findIDEDistrubutionLogsPath(t *testing.T) {
 
 func Test_filterSPMAdditionalOptions(t *testing.T) {
 	tests := []struct {
-		name                        string
-		xcodebuildAdditionalOptions []string
-		want                        []string
+		name              string
+		xcodebuildOptions string
+		want              []string
 	}{
 		{
-			name:                        "no SPM options",
-			xcodebuildAdditionalOptions: []string{"-scheme", "MyScheme", "-configuration", "Release"},
-			want:                        []string{},
+			name:              "no SPM options",
+			xcodebuildOptions: "-scheme MyScheme -configuration Release",
 		},
 		{
-			name:                        "with SPM flags",
-			xcodebuildAdditionalOptions: []string{"-scheme", "MyScheme", "-skipPackagePluginValidation", "-skipMacroValidation", "-clonedSourcePackagesDirPath", "/path/to/packages"},
-			want:                        []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-clonedSourcePackagesDirPath", "/path/to/packages"},
+			name:              "with SPM flags",
+			xcodebuildOptions: "-scheme MyScheme -skipPackagePluginValidation -skipMacroValidation -clonedSourcePackagesDirPath /path/to/packages",
+			want:              []string{"-skipPackagePluginValidation", "-skipMacroValidation", "-clonedSourcePackagesDirPath", "/path/to/packages"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := filterSPMAdditionalOptions(tt.xcodebuildAdditionalOptions)
-			require.Equal(t, tt.want, got)
+			opts, err := xcodecommand.ParseOptions(tt.xcodebuildOptions)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, filterSPMAdditionalOptions(opts).Args())
 		})
 	}
 }

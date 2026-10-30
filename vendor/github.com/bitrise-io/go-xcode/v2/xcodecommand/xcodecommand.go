@@ -1,3 +1,11 @@
+// Package xcodecommand assembles and runs xcodebuild commands.
+//
+// One params struct per action (ArchiveParams, BuildParams, ...) renders into a Command;
+// zero-valued fields are omitted. A step's additional options are parsed once
+// (ParseOptions), checked against the action and laid over the derived flags; what the
+// parser finds surfaces as Options.Diagnostics, what the command finds as
+// Command.Diagnostics, each a note (informational) or a warning. Runner and its
+// implementations run the assembled arguments through xcodebuild, xcpretty or xcbeautify.
 package xcodecommand
 
 import (

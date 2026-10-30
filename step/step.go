@@ -31,9 +31,7 @@ import (
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
-	"github.com/bitrise-io/go-xcode/xcodebuild"
 	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
-	"github.com/kballard/go-shellquote"
 )
 
 const (
@@ -128,7 +126,7 @@ type Config struct {
 	ProjectManager              projectmanager.Project
 	DestinationPlatform         Platform
 	XcodeMajorVersion           int
-	XcodebuildAdditionalOptions []string
+	XcodebuildAdditionalOptions xcodecommand.Options
 	CodesignManager             *codesign.Manager // nil if automatic code signing is "off"
 }
 
@@ -228,16 +226,21 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		return Config{}, fmt.Errorf("issue with input Platform: %w", err)
 	}
 
-	config.XcodebuildAdditionalOptions, err = shellquote.Split(inputs.XcodebuildOptions)
+	config.XcodebuildAdditionalOptions, err = xcodecommand.ParseOptions(inputs.XcodebuildOptions)
 	if err != nil {
-		return Config{}, fmt.Errorf("provided XcodebuildOptions (%s) are not valid CLI parameters: %s", inputs.XcodebuildOptions, err)
+		return Config{}, err
 	}
+	// The parser's findings are reported here, before the first xcodebuild call. The archive
+	// command's are reported when it is assembled, after code signing decides on the API key flags.
+	logOptionDiagnostics(s.logger, config.XcodebuildAdditionalOptions.Diagnostics())
 
 	if strings.TrimSpace(config.XcconfigContent) == "" {
 		config.XcconfigContent = ""
 	}
-	if slices.Contains(config.XcodebuildAdditionalOptions, "-xcconfig") &&
-		config.XcconfigContent != "" {
+	hasXcconfig := slices.ContainsFunc(config.XcodebuildAdditionalOptions, func(o xcodecommand.Option) bool {
+		return o.Kind == xcodecommand.ValueOption && o.Name == "-xcconfig"
+	})
+	if hasXcconfig && config.XcconfigContent != "" {
 		return Config{}, fmt.Errorf("`-xcconfig` option found in XcodebuildOptions (`xcodebuild_options`), please clear Build settings (xcconfig) (`xcconfig_content`) input as only one can be set")
 	}
 
@@ -315,7 +318,11 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 
 	showbuildSettingsAdditionalOptions := filterSPMAdditionalOptions(config.XcodebuildAdditionalOptions)
 	if len(showbuildSettingsAdditionalOptions) != len(config.XcodebuildAdditionalOptions) {
-		s.logger.Printf("Some xcodebuild additional options are filtered out when reading build settings. Options used: %s", strings.Join(showbuildSettingsAdditionalOptions, " "))
+		used := strings.Join(showbuildSettingsAdditionalOptions.Args(), " ")
+		if used == "" {
+			used = "none"
+		}
+		s.logger.Printf("Reading build settings with the build settings and Swift package flags from xcodebuild_options only: %s", used)
 	}
 
 	// Open Xcode project
@@ -324,7 +331,7 @@ func (s XcodebuildArchiveConfigParser) ProcessInputs() (Config, error) {
 		ProjectOrWorkspacePath: config.ProjectPath,
 		SchemeName:             config.Scheme,
 		ConfigurationName:      config.Configuration,
-		AdditionalXcodebuildShowbuildsettingsOptions: showbuildSettingsAdditionalOptions,
+		AdditionalXcodebuildShowbuildsettingsOptions: showbuildSettingsAdditionalOptions.Args(),
 	})
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to open Project or Workspace: %w", err)
@@ -377,7 +384,7 @@ type RunOpts struct {
 	// Archive
 	PerformCleanAction          bool
 	XcconfigContent             string
-	XcodebuildAdditionalOptions []string
+	XcodebuildAdditionalOptions xcodecommand.Options
 
 	// IPA Export
 	CustomExportOptionsPlistContent string
@@ -406,7 +413,7 @@ type RunResult struct {
 func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 	var (
 		out         = RunResult{}
-		authOptions *xcodebuild.AuthenticationParams
+		authOptions *xcodecommand.Authentication
 	)
 
 	s.logger.Println()
@@ -415,9 +422,15 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		s.logger.Infof("Running resolve Swift package dependencies")
 		// Resolve Swift package dependencies, so running -showBuildSettings later is faster later
 		// Specifying a scheme is required for workspaces
-		resolveDepsCmd := xcodebuild.NewResolvePackagesCommandModel(opts.ProjectPath, opts.Scheme, opts.Configuration)
-		resolveDepsCmd.SetCustomOptions(opts.XcodebuildAdditionalOptions)
-		if err := resolveDepsCmd.Run(); err != nil {
+		resolveDepsCmd, err := xcodecommand.ResolvePackages(xcodecommand.ResolvePackagesParams{
+			ProjectPath:       opts.ProjectPath,
+			Scheme:            opts.Scheme,
+			Configuration:     opts.Configuration,
+			AdditionalOptions: opts.XcodebuildAdditionalOptions,
+		})
+		if err != nil {
+			s.logger.Warnf("%s", err)
+		} else if err := s.resolvePackages(resolveDepsCmd); err != nil {
 			s.logger.Warnf("%s", err)
 		}
 	}
@@ -458,10 +471,10 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 				}
 			}()
 
-			authOptions = &xcodebuild.AuthenticationParams{
-				KeyID:     xcodebuildAuthParams.KeyID,
-				IsssuerID: xcodebuildAuthParams.IssuerID,
-				KeyPath:   privateKey,
+			authOptions = &xcodecommand.Authentication{
+				KeyID:    xcodebuildAuthParams.KeyID,
+				IssuerID: xcodebuildAuthParams.IssuerID,
+				KeyPath:  privateKey,
 			}
 		}
 	} else {
@@ -826,11 +839,11 @@ type xcodeArchiveOpts struct {
 	Configuration       string
 	XcodeMajorVersion   int
 	ArtifactName        string
-	XcodeAuthOptions    *xcodebuild.AuthenticationParams
+	XcodeAuthOptions    *xcodecommand.Authentication
 
 	PerformCleanAction bool
 	XcconfigContent    string
-	AdditionalOptions  []string
+	AdditionalOptions  xcodecommand.Options
 }
 
 type xcodeArchiveResult struct {
@@ -862,24 +875,14 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 	s.logger.Println()
 	s.logger.TInfof("Creating the Archive ...")
 
-	var actions []string
-	if opts.PerformCleanAction {
-		actions = []string{"clean", "archive"}
-	} else {
-		actions = []string{"archive"}
-	}
-
-	archiveCmd := xcodebuild.NewCommandBuilder(opts.ProjectPath, actions...)
-	archiveCmd.SetScheme(opts.Scheme)
-	archiveCmd.SetConfiguration(opts.Configuration)
-
+	var xcconfigPath string
 	if opts.XcconfigContent != "" {
 		xcconfigWriter := xcconfig.NewWriter(s.pathProvider, s.fileManager, s.pathChecker, s.pathModifier)
-		xcconfigPath, err := xcconfigWriter.Write(opts.XcconfigContent)
+		var err error
+		xcconfigPath, err = xcconfigWriter.Write(opts.XcconfigContent)
 		if err != nil {
 			return out, fmt.Errorf("failed to write xcconfig file contents: %w", err)
 		}
-		archiveCmd.SetXCConfigPath(xcconfigPath)
 	}
 
 	tmpDir, err := s.pathProvider.CreateTempDir("xcodeArchive")
@@ -888,13 +891,22 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 	}
 	archivePth := filepath.Join(tmpDir, opts.ArtifactName+".xcarchive")
 
-	archiveCmd.SetArchivePath(archivePth)
-	if opts.XcodeAuthOptions != nil {
-		archiveCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	// The platform destination is a default: a -destination in the additional options replaces it.
+	archiveCmd, err := xcodecommand.Archive(xcodecommand.ArchiveParams{
+		ProjectPath:       opts.ProjectPath,
+		Scheme:            opts.Scheme,
+		Configuration:     opts.Configuration,
+		Destination:       "generic/platform=" + string(opts.DestinationPlatform),
+		XCConfigPath:      xcconfigPath,
+		ArchivePath:       archivePth,
+		Clean:             opts.PerformCleanAction,
+		Authentication:    opts.XcodeAuthOptions,
+		AdditionalOptions: opts.AdditionalOptions,
+	})
+	if err != nil {
+		return out, fmt.Errorf("failed to assemble the archive command: %w", err)
 	}
-
-	additionalOptions := generateAdditionalOptions(string(opts.DestinationPlatform), opts.AdditionalOptions)
-	archiveCmd.SetCustomOptions(additionalOptions)
+	logOptionDiagnostics(s.logger, archiveCmd.Diagnostics())
 
 	var swiftPackagesPath string
 	if opts.XcodeMajorVersion >= 11 {
@@ -937,7 +949,7 @@ and use 'Export iOS and tvOS Xcode archive' step to export an App Clip.`, opts.S
 
 type xcodeIPAExportOpts struct {
 	XcodeMajorVersion int
-	XcodeAuthOptions  *xcodebuild.AuthenticationParams
+	XcodeAuthOptions  *xcodecommand.Authentication
 
 	Archive                         xcarchive.IosArchive
 	CustomExportOptionsPlistContent string
@@ -1045,12 +1057,14 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 
 	ipaExportDir := filepath.Join(tmpDir, "exported")
 
-	exportCmd := xcodebuild.NewExportCommand()
-	exportCmd.SetArchivePath(opts.Archive.Path)
-	exportCmd.SetExportDir(ipaExportDir)
-	exportCmd.SetExportOptionsPlist(exportOptionsPath)
-	if opts.XcodeAuthOptions != nil {
-		exportCmd.SetAuthentication(*opts.XcodeAuthOptions)
+	exportCmd, err := xcodecommand.ExportArchive(xcodecommand.ExportArchiveParams{
+		ArchivePath:        opts.Archive.Path,
+		ExportPath:         ipaExportDir,
+		ExportOptionsPlist: exportOptionsPath,
+		Authentication:     opts.XcodeAuthOptions,
+	})
+	if err != nil {
+		return out, fmt.Errorf("failed to assemble the export command: %w", err)
 	}
 
 	s.logger.Println()
@@ -1097,4 +1111,33 @@ is available in the $BITRISE_IDEDISTRIBUTION_LOGS_PATH environment variable`)
 	out.IPAExportDir = ipaExportDir
 
 	return out, nil
+}
+
+// logOptionDiagnostics reports findings about the xcodebuild_options input: the parser's
+// when the inputs are read, a command's when it is assembled. A finding is a note when the
+// command line does what the user meant, and a warning when xcodebuild accepts the option
+// and does something else with it.
+func logOptionDiagnostics(logger log.Logger, diagnostics []xcodecommand.Diagnostic) {
+	for _, d := range diagnostics {
+		if d.Informational {
+			logger.Infof("xcodebuild_options: %s", d)
+		} else {
+			logger.Warnf("xcodebuild_options: %s", d)
+		}
+	}
+}
+
+// resolvePackages runs the package resolution with the standard outputs, as the v1 model did.
+func (s XcodebuildArchiver) resolvePackages(cmd xcodecommand.Command) error {
+	c := cmd.Create(s.cmdFactory, &command.Opts{Stdout: os.Stdout, Stderr: os.Stderr})
+
+	s.logger.TPrintf("Resolving package dependencies...")
+	logOptionDiagnostics(s.logger, cmd.Diagnostics())
+	s.logger.TDonef("$ %s", c.PrintableCommandArgs())
+	if err := c.Run(); err != nil {
+		return fmt.Errorf("failed to resolve package dependencies: %w", err)
+	}
+	s.logger.TPrintf("Resolved package dependencies.")
+
+	return nil
 }

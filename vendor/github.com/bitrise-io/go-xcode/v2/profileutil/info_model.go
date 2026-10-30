@@ -8,7 +8,7 @@ import (
 	"github.com/bitrise-io/go-xcode/certificateutil"
 	"github.com/bitrise-io/go-xcode/exportoptions"
 	"github.com/bitrise-io/go-xcode/v2/plistutil"
-	"github.com/fullsailor/pkcs7"
+	"github.com/smallstep/pkcs7"
 )
 
 // ProfileType ...
