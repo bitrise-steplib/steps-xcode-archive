@@ -39,17 +39,9 @@ func ResolvePackages(params ResolvePackagesParams) (Command, error) {
 	user := params.AdditionalOptions.Filter(applies)
 	cmd := Command{args: merge(opts, user, resolvePackagesPolicy).Args()}
 	if leftOut := params.AdditionalOptions.Filter(func(o Option) bool { return !applies(o) }); len(leftOut) > 0 {
-		cmd.diagnostics = []Diagnostic{report(LeftOut, leftOut[0], "%s left out of package resolution; the Step's main command gets %s.", leftOut.quoted(), pluralOf(len(leftOut), "it", "them"))}
+		cmd.diagnostics = []Diagnostic{report(LeftOut, leftOut[0], "%s left out of package resolution; the Step's main command gets the full xcodebuild_options.", leftOut.quoted())}
 	}
 	return cmd, nil
-}
-
-// pluralOf picks the word for n of something.
-func pluralOf(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 var resolvePackagesPolicy = actionPolicy{

@@ -1066,7 +1066,6 @@ func (s XcodebuildArchiver) xcodeIPAExport(opts xcodeIPAExportOpts) (xcodeIPAExp
 	if err != nil {
 		return out, fmt.Errorf("failed to assemble the export command: %w", err)
 	}
-	logOptionDiagnostics(s.logger, exportCmd.Diagnostics())
 
 	s.logger.Println()
 	s.logger.Infof("Exporting IPA from the archive...")
