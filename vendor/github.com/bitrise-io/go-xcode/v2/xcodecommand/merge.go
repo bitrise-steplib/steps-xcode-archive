@@ -8,6 +8,7 @@ import "slices"
 // (xcodebuild takes the last value) and a switch (a repeat changes nothing). A value option
 // such as -xcconfig stays, and xcodebuild refuses the repeat ("may only be provided once");
 // a key the policy declares appendable keeps every copy, and xcodebuild takes them all.
+// The user's options are marked as the user's on the way, for the lint.
 func merge(step, user Options, policy actionPolicy) Options {
 	merged := slices.Clone(step)
 	for i, o := range merged {
@@ -22,5 +23,9 @@ func merge(step, user Options, policy actionPolicy) Options {
 		// "-xcconfig /tmp/temp.xcconfig" + user "-xcconfig mine.xcconfig" -> both, and xcodebuild fails on it
 		merged[i].dropped = slices.Contains(policy.defaults, o.key()) || o.Kind == Switch || o.Kind == BuildSetting
 	}
-	return append(merged, user...)
+	for _, o := range user {
+		o.user = true // the lint tells the user's copies from the Step's by this mark
+		merged = append(merged, o)
+	}
+	return merged
 }

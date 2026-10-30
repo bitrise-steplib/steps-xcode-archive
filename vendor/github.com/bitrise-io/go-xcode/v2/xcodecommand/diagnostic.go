@@ -25,7 +25,7 @@ const (
 	PreferStepInput                             // a flag a Step input renders; use the input
 	Override                                    // informational: a default or build setting yielded to the user's
 	RedundantOption                             // informational: identical to what the command already sets
-	LeftOut                                     // informational: options a preparatory command leaves out; the Step's main command gets them
+	LeftOut                                     // informational: options a preparatory command leaves out, all named in the message; Option is the first
 )
 
 // Diagnostic is one finding about the additional options, for the step log. It is
@@ -83,7 +83,10 @@ func (opts Options) Diagnostics() []Diagnostic {
 func lint(merged Options, policy actionPolicy) []Diagnostic {
 	var diagnostics []Diagnostic
 	for _, o := range merged {
-		if d, refused := policy.refusal(o); o.user && refused {
+		if !o.user {
+			continue
+		}
+		if d, refused := policy.refusal(o); refused {
 			diagnostics = append(diagnostics, d)
 		}
 	}
@@ -109,7 +112,9 @@ func (p actionPolicy) refusal(o Option) (Diagnostic, bool) {
 // reported so the user reaches for the input.
 type stepInput struct {
 	hint          string
+	kind          Kind     // the form the flag takes; a copy in another form is one xcodebuild refuses
 	commands      []string // the commands whose Steps have the input; empty means all
+	otherwise     string   // the hint for a command whose Step lacks the input; empty means no line
 	satisfied     []string // value flags that, all set by the user too, make the flag work without the input
 	informational bool     // the flag works as given; the input is only the tidier place for it
 }
@@ -125,15 +130,18 @@ const testRepetitionHint = "belongs to the Step's test repetition inputs (test_r
 
 var stepInputFlags = map[string]stepInput{
 	"-allowProvisioningUpdates": {
+		kind:      Switch,
+		commands:  []string{ActionArchive, ActionBuild, ActionBuildForTesting},
+		otherwise: "cannot update provisioning profiles on its own: on CI, xcodebuild has no Apple credentials. Remove it.",
 		hint:      "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead. See https://docs.bitrise.io/en/code-signing/ios-code-signing/managing-ios-code-signing-files---automatic-provisioning.html",
 		satisfied: []string{"-authenticationKeyPath", "-authenticationKeyID", "-authenticationKeyIssuerID"},
 	},
 	// xcode-test and xcode-test-without-building render these from their inputs. Passed in
 	// the options they work the same, so the hint is a note.
-	"-test-iterations":                  {hint: testRepetitionHint, commands: testRunCommands, informational: true},
-	"-retry-tests-on-failure":           {hint: testRepetitionHint, commands: testRunCommands, informational: true},
-	"-run-tests-until-failure":          {hint: testRepetitionHint, commands: testRunCommands, informational: true},
-	"-test-repetition-relaunch-enabled": {hint: testRepetitionHint, commands: testRunCommands, informational: true},
+	"-test-iterations":                  {kind: ValueOption, hint: testRepetitionHint, commands: testRunCommands, informational: true},
+	"-retry-tests-on-failure":           {kind: Switch, hint: testRepetitionHint, commands: testRunCommands, informational: true},
+	"-run-tests-until-failure":          {kind: Switch, hint: testRepetitionHint, commands: testRunCommands, informational: true},
+	"-test-repetition-relaunch-enabled": {kind: ValueOption, hint: testRepetitionHint, commands: testRunCommands, informational: true},
 }
 
 // setsAll says whether opts gives every one of the value flags a value. It is false for
@@ -214,19 +222,27 @@ func (g flagGroup) findings(all Options, policy actionPolicy) []Diagnostic {
 
 	// "-flag=value": xcodebuild reads it as a user default and ignores it. A switch in the
 	// group, the Step's or the user's, says the flag takes no value; otherwise the message
-	// names the value the build uses instead.
+	// names the value the build uses instead: the Step's copy while it is on the command
+	// line, else the user's own, unless the policy rejects it.
 	sw, isSwitch := g.all().last(func(o Option) bool { return o.Kind == Switch })
-	applied, found := g.all().last(func(o Option) bool { return o.Kind == ValueOption && !o.dropped })
+	applied, found := g.step.last(func(o Option) bool { return o.Kind == ValueOption && !o.dropped })
+	if !found {
+		applied, found = g.user.last(func(o Option) bool { _, rejected := policy.rejects(o); return o.Kind == ValueOption && !rejected })
+	}
 	for _, u := range g.user.Filter(func(o Option) bool { return o.Kind == UserDefault }) {
 		switch {
 		case isSwitch:
 			// -allowProvisioningUpdates=YES next to the Step's -allowProvisioningUpdates; -quiet -quiet=YES
-			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, "%q gives a value to %s, which takes none, so xcodebuild reads it as a user default and ignores it. %s. Remove it.", u, sw.Name, alreadySet(sw)))
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, "%q gives a value to %s, which takes none, so xcodebuild reads it as a user default and ignores it.%s Remove it.", u, sw.Name, alreadySet(sw)))
 		case found && applied.user:
 			// -destination generic/platform=tvOS -destination=generic/platform=watchOS
 			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses your %q instead. Change that one to %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
-		case found:
+		case found && slices.Contains(policy.defaults, applied.key()):
+			// -destination=generic/platform=tvOS next to the Step's default: the "-flag value" form replaces it
 			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses the Step's %q instead. Use %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
+		case found:
+			// -xcconfig=mine.xcconfig next to the Step's -xcconfig: a second -xcconfig would be refused
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses the Step's %q instead. Remove it, or change the Step input.", u, applied))
 		case slices.Contains(freeFormValueFlags, u.Name):
 			// -destination=generic/platform=iOS with no -destination anywhere
 			diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"so it has no effect. Use %s %s to apply it, or remove it.", u, u.Name, shellQuoted(u.Value)))
@@ -234,25 +250,34 @@ func (g flagGroup) findings(all Options, policy actionPolicy) []Diagnostic {
 	}
 
 	// A flag a Step input renders, passed here instead: -allowProvisioningUpdates without the
-	// Step's API key flags, or the user's own.
-	if in, ok := stepInputFlags[g.name]; ok && in.appliesTo(policy.name) && len(g.step) == 0 && !setsAll(all, in.satisfied) {
-		for _, u := range g.user {
-			if u.key() == g.name {
-				d := report(PreferStepInput, u, "%q %s", u, in.hint)
-				d.Informational = in.informational
-				diagnostics = append(diagnostics, d)
-			}
+	// Step's API key flags, or the user's own. One line, for the user's copy in the form the
+	// flag takes; "-allowProvisioningUpdates YES" is one xcodebuild refuses. A command whose
+	// Step lacks the input gets the hint's otherwise text, if it has one.
+	if in, ok := stepInputFlags[g.name]; ok && len(g.step) == 0 && !setsAll(all, in.satisfied) {
+		hint := in.hint
+		if !in.appliesTo(policy.name) {
+			hint = in.otherwise
+		}
+		if u, found := g.user.last(func(o Option) bool { return o.Kind == in.kind }); found && hint != "" {
+			d := report(PreferStepInput, u, "%q %s", u, hint)
+			d.Informational = in.informational
+			diagnostics = append(diagnostics, d)
 		}
 	}
 	return diagnostics
 }
 
-// alreadySet says who set the switch sw, for a message about a value given to it.
+// alreadySet says who set the switch sw, for a message about a value given to it; nothing
+// when the merge dropped it, as a copy of the user's took its place.
 func alreadySet(sw Option) string {
-	if sw.user {
-		return fmt.Sprintf("%s is already set", sw)
+	switch {
+	case sw.dropped:
+		return ""
+	case sw.user:
+		return fmt.Sprintf(" %s is already set.", sw)
+	default:
+		return fmt.Sprintf(" The Step already sets %s.", sw)
 	}
-	return fmt.Sprintf("The Step already sets %s", sw)
 }
 
 // all is the group in command line order: the Step's copies, then the user's.

@@ -32,13 +32,17 @@ func ResolvePackages(params ResolvePackagesParams) (Command, error) {
 	opts = append(opts, Option{Kind: Switch, Name: "-resolvePackageDependencies"})
 
 	// clean archive -test-iterations 2 -skipMacroValidation FOO=1 -> -skipMacroValidation FOO=1
-	applies := func(o Option) bool {
-		_, rejected := resolvePackagesPolicy.rejects(o)
-		return o.Kind != Action && o.Kind != Unknown && !rejected
+	var user, leftOut Options
+	for _, o := range params.AdditionalOptions {
+		o.user = true
+		if _, rejected := resolvePackagesPolicy.rejects(o); o.Kind == Action || o.Kind == Unknown || rejected {
+			leftOut = append(leftOut, o)
+		} else {
+			user = append(user, o)
+		}
 	}
-	user := params.AdditionalOptions.Filter(applies)
 	cmd := Command{args: merge(opts, user, resolvePackagesPolicy).Args()}
-	if leftOut := params.AdditionalOptions.Filter(func(o Option) bool { return !applies(o) }); len(leftOut) > 0 {
+	if len(leftOut) > 0 {
 		cmd.diagnostics = []Diagnostic{report(LeftOut, leftOut[0], "%s left out of package resolution; the Step's main command gets the full xcodebuild_options.", leftOut.quoted())}
 	}
 	return cmd, nil
