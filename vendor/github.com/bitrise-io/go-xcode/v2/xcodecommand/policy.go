@@ -42,7 +42,7 @@ var (
 	// built); on -showBuildSettings it switches the output to JSON, which the text-parsing
 	// build settings readers cannot read.
 	modeSwitching = rejection{
-		reason: "It switches xcodebuild into another mode, so the command does not run as the Step expects.",
+		reason: "It switches xcodebuild to another task instead.",
 		flags: []string{
 			"-exportArchive", "-exportNotarizedApp", "-showBuildSettings", "-showBuildSettingsForIndex",
 			"-resolvePackageDependencies", "-list", "-version", "-showsdks", "-showdestinations", "-showTestPlans",
@@ -60,7 +60,7 @@ var (
 	}
 	// Test flags xcodebuild accepts and ignores outside a test action.
 	testOnly = rejection{
-		reason: "It applies to test actions only.",
+		reason: "It applies to test actions only, and xcodebuild ignores it here.",
 		flags: []string{
 			"-only-testing", "-skip-testing", "-only-test-configuration", "-skip-test-configuration",
 			"-test-iterations", "-run-tests-until-failure", "-retry-tests-on-failure", "-test-repetition-relaunch-enabled",
@@ -73,52 +73,11 @@ var (
 	}
 	// On a test run, -enumerate-tests lists the tests and runs none, and the command succeeds.
 	listsTests = rejection{reason: "It makes xcodebuild list the tests instead of running them.", flags: []string{"-enumerate-tests"}}
-	// test refuses -xctestrun next to its -scheme; test-without-building refuses -testPlan
-	// next to its -xctestrun (the xctestrun already carries its test plan).
+	// xcodebuild refuses -xctestrun next to -project, -workspace or -scheme, which test and
+	// build-for-testing always pass. test-without-building runs an xctestrun, which already
+	// names what to test, so it refuses those flags, -testPlan and -testProductsPath ("Cannot
+	// specify both -xctestrun and -testProductsPath"); or a scheme, so it refuses -xctestrun.
 	withoutBuildingOnly = rejection{reason: "It applies to test-without-building only, and xcodebuild refuses it next to -scheme.", flags: []string{"-xctestrun"}}
-	withXCTestRun       = rejection{reason: "The xctestrun already selects the test plan, and xcodebuild refuses it next to -xctestrun.", flags: []string{"-testPlan"}}
-)
-
-var (
-	// The build family: a step's -destination is a fallback the user's replaces, -arch
-	// is repeatable.
-	archivePolicy = actionPolicy{
-		name:       ActionArchive,
-		rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
-		defaults:   []string{"-destination"},
-		appendable: []string{"-arch"},
-	}
-	buildPolicy = actionPolicy{
-		name:       ActionBuild,
-		rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
-		defaults:   []string{"-destination"},
-		appendable: []string{"-arch"},
-	}
-	analyzePolicy = actionPolicy{
-		name:       ActionAnalyze,
-		rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
-		defaults:   []string{"-destination", "-resultBundlePath"},
-		appendable: []string{"-arch"},
-	}
-	// build-for-testing takes the test selection flags, which it bakes into the xctestrun.
-	buildForTestingPolicy = actionPolicy{
-		name:       ActionBuildForTesting,
-		rejections: []rejection{modeSwitching},
-		defaults:   []string{"-destination"},
-		appendable: []string{"-arch"},
-	}
-	exportArchivePolicy = actionPolicy{
-		name:       "export archive",
-		rejections: []rejection{modeSwitching.except("-exportArchive"), testOnlyRefused, testOnly},
-	}
-	resolvePackagesPolicy = actionPolicy{
-		name:       "resolve packages",
-		rejections: []rejection{modeSwitching.except("-resolvePackageDependencies"), testOnlyRefused, testOnly},
-	}
-	testPolicy                = testRunPolicy(ActionTest, listsTests, withoutBuildingOnly)
-	testWithoutBuildingPolicy = testRunPolicy(ActionTestWithoutBuilding, listsTests, withXCTestRun)
-	showBuildSettingsPolicy   = actionPolicy{
-		name:       "show build settings",
-		rejections: []rejection{modeSwitching.except("-showBuildSettings"), testOnlyRefused, testOnly},
-	}
+	withXCTestRun       = rejection{reason: "The xctestrun already names what to test, and xcodebuild refuses it next to -xctestrun.", flags: []string{"-testPlan", "-scheme", "-project", "-workspace", "-testProductsPath"}}
+	withScheme          = rejection{reason: "The Step tests a scheme, and xcodebuild refuses it next to -scheme.", flags: []string{"-xctestrun"}}
 )

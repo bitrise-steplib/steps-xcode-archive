@@ -11,8 +11,7 @@ type ArchiveParams struct {
 	ArchivePath       string
 	Clean             bool // run clean first
 	Authentication    *Authentication
-	AdditionalOptions []string // the step's xcodebuild_options, shell-split
-	Validation        Validation
+	AdditionalOptions Options // the step's xcodebuild_options, from ParseOptions
 }
 
 // Archive renders params into an archive Command.
@@ -29,5 +28,14 @@ func Archive(params ArchiveParams) (Command, error) {
 	opts = appendValue(opts, "-archivePath", params.ArchivePath)
 	opts = appendAuthentication(opts, params.Authentication)
 
-	return assemble(opts, params.AdditionalOptions, archivePolicy, params.Validation)
+	return assemble(opts, params.AdditionalOptions, archivePolicy)
+}
+
+// The step's -destination is a fallback the user's replaces; -arch is repeatable. The
+// other build actions follow the same rule.
+var archivePolicy = actionPolicy{
+	name:       ActionArchive,
+	rejections: []rejection{modeSwitching, testOnlyRefused, testOnly},
+	defaults:   []string{"-destination"},
+	appendable: []string{"-arch"},
 }

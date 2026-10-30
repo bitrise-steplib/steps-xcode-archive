@@ -26,6 +26,7 @@ type testRunOptions struct {
 	relaunchTestsForEachRepetition bool
 	onlyTesting                    []string
 	skipTesting                    []string
+	xcconfigPath                   string // test only; after the repetition flags, as xcode-test renders it
 	collectTestDiagnostics         string
 }
 
@@ -69,6 +70,7 @@ func (r testRunOptions) options() (Options, error) {
 	if r.relaunchTestsForEachRepetition {
 		opts = appendValue(opts, "-test-repetition-relaunch-enabled", "YES")
 	}
+	opts = appendValue(opts, "-xcconfig", r.xcconfigPath)
 
 	for _, id := range r.onlyTesting {
 		opts = append(opts, Option{Kind: ColonOption, Name: "-only-testing", Value: id})

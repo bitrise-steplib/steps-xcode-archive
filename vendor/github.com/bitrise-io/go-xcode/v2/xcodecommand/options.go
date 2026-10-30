@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -39,15 +40,17 @@ const (
 
 // Option is one xcodebuild argument, parsed from user input or derived from params.
 type Option struct {
-	Kind  Kind
-	Name  string
-	Value string
-	issue issue // why an Unknown option was not parsed
+	Kind    Kind
+	Name    string
+	Value   string
+	issue   issue // why an Unknown option was not parsed
+	user    bool  // from xcodebuild_options; the zero value is the Step's own
+	dropped bool  // the merge left it off the command line: the user set it too
 }
 
-// Key identifies the option when merging: the flag, the build setting name or the
+// key identifies the option when merging: the flag, the build setting name or the
 // action. A user default keys as "-name=", so -flag=value never collides with -flag value.
-func (o Option) Key() string {
+func (o Option) key() string {
 	if o.Kind == UserDefault {
 		return o.Name + "="
 	}
@@ -77,13 +80,21 @@ func (o Option) args() []string {
 // Options is an ordered list of xcodebuild arguments.
 type Options []Option
 
-// Args renders the options as xcodebuild arguments.
+// Args renders the options as xcodebuild arguments, without the ones the merge dropped.
 func (opts Options) Args() []string {
 	var args []string
 	for _, o := range opts {
-		args = append(args, o.args()...)
+		if !o.dropped {
+			args = append(args, o.args()...)
+		}
 	}
 	return args
+}
+
+// sets says whether a flag or build setting with the key is among the options. Actions
+// and unparsed arguments never replace a derived flag.
+func (opts Options) sets(key string) bool {
+	return slices.ContainsFunc(opts, func(o Option) bool { return o.Kind != Action && o.Kind != Unknown && o.key() == key })
 }
 
 // Filter returns the options for which keep is true, in order.
@@ -105,9 +116,11 @@ var (
 	// -quiet, -only-testing, -test-repetition-relaunch-enabled, -UseModernBuildSystem;
 	// not "-", "-=x" or "-destination generic/platform=iOS" quoted as one argument.
 	flagNamePattern = regexp.MustCompile(`^-[A-Za-z0-9][A-Za-z0-9_.-]*$`)
-	// "-destination generic/platform=iOS" as one argument: a flag, a space, then a value
+	// "-destination generic/platform=iOS" as one argument: a flag, whitespace, then a value
 	// containing "=". xcodebuild reads the whole thing as a user default and ignores it.
-	flagQuotedWithValue = regexp.MustCompile(`^-[A-Za-z0-9][A-Za-z0-9_.-]*\s+[^=:\s][^=]*=`)
+	// The class is unicode.IsSpace (RE2's \s is ASCII only); xcodebuild treats a tab, a
+	// newline or a no-break space like a space here.
+	flagQuotedWithValue = regexp.MustCompile(`^-[A-Za-z0-9][A-Za-z0-9_.-]*[\s\v\x{85}\p{Z}]+[^=:\s\v\x{85}\p{Z}][^=]*=`)
 )
 
 // freeFormValueFlags always take the next argument: their value may look like a build
@@ -126,21 +139,21 @@ var freeFormValueFlags = []string{
 	"-resultStreamPath", "-localizationPath", "-importPath", "-codesizeProfileOutputDir", "-test-enumeration-output-path",
 }
 
-// SplitAdditionalOptions splits the xcodebuild_options input into arguments with POSIX
-// shell rules, as the steps always have: quotes group a value that contains spaces.
-func SplitAdditionalOptions(input string) ([]string, error) {
+// ParseOptions reads the xcodebuild_options input. It splits the input with POSIX shell
+// rules, as the steps always have (quotes group a value that contains spaces), and reads
+// the arguments as xcodebuild does. Only a quoting error fails: whatever fits no form is
+// kept verbatim as Unknown, so the command line stays as the user wrote it and xcodebuild
+// refuses it with its own message; Options.Diagnostics says why.
+func ParseOptions(input string) (Options, error) {
 	args, err := shellquote.Split(input)
 	if err != nil {
 		return nil, fmt.Errorf("xcodebuild_options %q cannot be split like a shell command line: %w", input, err)
 	}
-	return args, nil
+	return parse(args), nil
 }
 
-// ParseAdditionalOptions turns shell-split xcodebuild arguments into typed Options.
-// Whatever fits no form is kept verbatim as Unknown, so the command line stays as the
-// user wrote it and xcodebuild refuses it with its own message; Options.Diagnostics
-// says why.
-func ParseAdditionalOptions(args []string) Options {
+// parse turns shell-split arguments into typed Options, marked as the user's.
+func parse(args []string) Options {
 	var opts Options
 
 	for i := 0; i < len(args); i++ {
@@ -177,6 +190,9 @@ func ParseAdditionalOptions(args []string) Options {
 		}
 	}
 
+	for i := range opts {
+		opts[i].user = true
+	}
 	return opts
 }
 
@@ -191,12 +207,12 @@ func parseFlag(args []string) (opt Option, consumed int, why issue) {
 	//   -only-testing:Suite/test=1                -> name -only-testing, value Suite/test=1
 	//   -only-testing:Pulley ManagerTests         -> name -only-testing, value Pulley ManagerTests
 	//   -quiet                                    -> name -quiet, no value
-	name, value := flag, ""
-	if sep := strings.IndexAny(flag, "=:"); sep > 0 {
-		name, value = flag[:sep], flag[sep+1:]
+	name, sep, value := flag, byte(0), ""
+	if i := strings.IndexAny(flag, "=:"); i > 0 {
+		name, sep, value = flag[:i], flag[i], flag[i+1:]
 	}
-	if strings.ContainsAny(name, " \t") {
-		// "-sdk macosx" quoted as one argument: xcodebuild refuses it
+	if strings.IndexFunc(name, unicode.IsSpace) >= 0 {
+		// "-sdk macosx" quoted as one argument, with any whitespace: xcodebuild refuses it
 		return Option{}, 0, quotedFlag
 	}
 	if !flagNamePattern.MatchString(name) {
@@ -205,10 +221,10 @@ func parseFlag(args []string) (opt Option, consumed int, why issue) {
 	}
 
 	switch {
-	case len(name) < len(flag) && flag[len(name)] == '=':
+	case sep == '=':
 		// -UseModernBuildSystem=NO (an empty value is fine: -IDEFoo=)
 		return Option{Kind: UserDefault, Name: name, Value: value}, 1, noIssue
-	case len(name) < len(flag):
+	case sep == ':':
 		// -only-testing:AppTests; "-only-testing:" alone names no test
 		if value == "" {
 			return Option{}, 0, colonWithoutValue
@@ -216,8 +232,9 @@ func parseFlag(args []string) (opt Option, consumed int, why issue) {
 		return Option{Kind: ColonOption, Name: name, Value: value}, 1, noIssue
 	case slices.Contains(freeFormValueFlags, flag):
 		// -destination platform=iOS Simulator,name=iPhone 15: the next argument is the value
-		// even though it looks like a build setting
-		if len(args) < 2 {
+		// even though it looks like a build setting; "-destination -quiet" has none, as
+		// xcodebuild says: "option 'Destination' requires an argument"
+		if len(args) < 2 || strings.HasPrefix(args[1], "-") {
 			return Option{}, 0, missingValue
 		}
 		return Option{Kind: ValueOption, Name: flag, Value: args[1]}, 2, noIssue

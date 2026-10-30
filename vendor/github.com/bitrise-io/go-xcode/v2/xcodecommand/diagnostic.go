@@ -1,14 +1,14 @@
 package xcodecommand
 
 // This file turns what the parser and the merge decided into messages for the step log.
-// Nothing here changes the command line: deleting it, the second return of merge and
-// Command.Diagnostics leaves the parser and the merge as they are.
+// Nothing here changes the command line.
 
 import (
 	"fmt"
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -28,9 +28,16 @@ const (
 	RedundantOption                             // informational: identical to what the command already sets
 )
 
+// Informational says whether the kind is a note rather than a problem: the command line
+// does what the user meant. A step logs the rest as warnings, or fails on them.
+func (k DiagnosticKind) Informational() bool {
+	return k == Override || k == RedundantOption
+}
+
 // Diagnostic is one finding about the additional options, for the step log.
 type Diagnostic struct {
 	Kind    DiagnosticKind
+	Option  Option // the user's option the finding is about
 	Message string
 }
 
@@ -38,40 +45,9 @@ func (d Diagnostic) String() string {
 	return d.Message
 }
 
-// Validation says what a constructor does with diagnostics.
-type Validation int
-
-// Validation modes.
-const (
-	// Warn (default) passes every option through and reports; this matches what the
-	// steps did before and keeps working setups that trip a check working.
-	Warn Validation = iota
-	// Fail returns an error for the first non-informational diagnostic.
-	Fail
-)
-
-func (k DiagnosticKind) informational() bool {
-	return k == Override || k == RedundantOption
-}
-
-func firstFailure(diagnostics []Diagnostic) error {
-	for _, d := range diagnostics {
-		if !d.Kind.informational() {
-			return fmt.Errorf("invalid additional option: %s", d.Message)
-		}
-	}
-	return nil
-}
-
-// lint reports everything about a command's additional options that the user should see.
-func lint(user, derived Options, collisions []collision, policy actionPolicy) []Diagnostic {
-	var diagnostics []Diagnostic
-	diagnostics = append(diagnostics, user.Diagnostics()...)
-	diagnostics = append(diagnostics, lintPolicy(user, policy)...)
-	diagnostics = append(diagnostics, lintStepInputs(derived, user, policy.name)...)
-	diagnostics = append(diagnostics, lintShadows(derived, user)...)
-	diagnostics = append(diagnostics, lintCollisions(collisions)...)
-	return diagnostics
+// report is a Diagnostic about o with a formatted message.
+func report(kind DiagnosticKind, o Option, format string, args ...any) Diagnostic {
+	return Diagnostic{Kind: kind, Option: o, Message: fmt.Sprintf(format, args...)}
 }
 
 // -ENABLE_BITCODE, -MARKETING_VERSION: a build setting typed with a dash, which
@@ -79,19 +55,20 @@ func lint(user, derived Options, collisions []collision, policy actionPolicy) []
 var upperCaseFlag = regexp.MustCompile(`^-[A-Z][A-Z0-9_]*$`)
 
 // Diagnostics reports what the parser could not read and what xcodebuild would silently
-// ignore, each with its fix. A step logs these before its first xcodebuild call.
+// ignore, each with its fix. A step logs these when it reads its inputs, before its first
+// xcodebuild call; a Command reports only its own findings.
 func (opts Options) Diagnostics() []Diagnostic {
 	var diagnostics []Diagnostic
 	for _, o := range opts {
 		switch {
 		case o.Kind == Unknown && o.issue == quotedFlagWithValue:
-			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is a flag quoted together with its value. xcodebuild reads it as a user default and ignores it, so today's build runs without it. Remove it to keep that, or use %s to apply it.", o.Name, unquoteFlag(o.Name))})
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, o, "%q is a flag quoted together with its value. xcodebuild reads it as a user default and ignores it, so it has no effect. Use %s to apply it, or remove it.", o.Name, unquoteFlag(o.Name)))
 		case o.Kind == Unknown:
-			diagnostics = append(diagnostics, Diagnostic{Kind: MalformedOption, Message: fmt.Sprintf("%q %s", o.Name, malformedMessage(o))})
+			diagnostics = append(diagnostics, report(MalformedOption, o, "%q %s", o.Name, malformedMessage(o)))
 		case o.Kind == UserDefault && upperCaseFlag.MatchString(o.Name):
 			// -ENABLE_BITCODE=NO: the user meant ENABLE_BITCODE=NO
 			setting := o.Name[1:] + "=" + shellQuoted(o.Value)
-			diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q looks like the build setting %s with a leading dash. xcodebuild reads it as a user default and ignores it, so today's build runs without it. Remove it to keep that, or use %s to apply it.", o, setting, setting)})
+			diagnostics = append(diagnostics, report(SuspiciousUserDefault, o, "%q looks like the build setting %s with a leading dash. xcodebuild reads it as a user default and ignores it, so it has no effect. Use %s to apply it, or remove it.", o, setting, setting))
 		}
 	}
 	return diagnostics
@@ -106,43 +83,64 @@ func malformedMessage(o Option) string {
 	case invalidFlag:
 		return "is not a valid flag. xcodebuild refuses it. Remove it."
 	case colonWithoutValue:
-		return "has no value after the colon. Add the value or remove the flag."
+		return "has no value after the colon. xcodebuild refuses it. Add the value, or remove it."
 	case missingValue:
-		return "has no value. Add one or remove the flag."
+		return "has no value. xcodebuild refuses it. Add one, or remove it."
 	default:
 		return `is not a flag, a NAME=value build setting or a build action. xcodebuild treats it as an unknown build action. Quote a value with spaces, for example CODE_SIGN_IDENTITY="Apple Distribution", or remove it.`
 	}
 }
 
-// lintPolicy reports the options the command refuses; build actions always are.
-func lintPolicy(user Options, policy actionPolicy) []Diagnostic {
+// lint reports what the command found in the user's options: per option, what its policy
+// refuses; per flag, what became of the user's copies next to the Step's. The parser's
+// findings are not repeated; Options.Diagnostics has them.
+func lint(merged Options, policy actionPolicy) []Diagnostic {
 	var diagnostics []Diagnostic
-	for _, o := range user {
-		switch o.Kind {
-		case Action:
-			diagnostics = append(diagnostics, Diagnostic{Kind: ActionInOptions, Message: fmt.Sprintf("%q is a build action. The %s command sets its own actions. Remove it.", o.Name, policy.name)})
-		default:
-			if r, rejected := policy.rejects(o); rejected {
-				diagnostics = append(diagnostics, Diagnostic{Kind: RejectedOption, Message: fmt.Sprintf("%q is not valid for %s. %s Remove it.", o.String(), policy.name, r.reason)})
-			}
+	for _, o := range merged {
+		if d, refused := policy.refusal(o); o.user && refused {
+			diagnostics = append(diagnostics, d)
 		}
 	}
+	for _, g := range merged.byFlag() {
+		diagnostics = append(diagnostics, g.findings(merged, policy)...)
+	}
 	return diagnostics
+}
+
+// refusal reports an option the command refuses: a build action, or a flag its policy
+// rejects.
+func (p actionPolicy) refusal(o Option) (Diagnostic, bool) {
+	if o.Kind == Action {
+		return report(ActionInOptions, o, "%q is a build action. The Step sets the actions itself. Remove it.", o.Name), true
+	}
+	if r, rejected := p.rejects(o); rejected {
+		return report(RejectedOption, o, "%q does not work with %s. %s Remove it.", o, p.name, r.reason), true
+	}
+	return Diagnostic{}, false
 }
 
 // stepInput is a flag a Step input sets: passed in the additional options instead, it is
 // reported so the user reaches for the input.
 type stepInput struct {
-	hint     string
-	commands []string // the commands whose Steps have the input; empty means all
+	hint      string
+	commands  []string // the commands whose Steps have the input; empty means all
+	satisfied []string // value flags that, all set by the user too, make the flag work without the input
+}
+
+// appliesTo says whether the command's Step has the input.
+func (in stepInput) appliesTo(command string) bool {
+	return len(in.commands) == 0 || slices.Contains(in.commands, command)
 }
 
 var testRunCommands = []string{ActionTest, ActionTestWithoutBuilding}
 
-const testRepetitionHint = "is set by the Step's test repetition inputs (test_repetition_mode, maximum_test_repetitions, relaunch_tests_for_each_repetition). Remove it and set those inputs instead."
+const testRepetitionHint = "belongs to the Step's test repetition inputs (test_repetition_mode, maximum_test_repetitions, relaunch_tests_for_each_repetition). Remove it and set those inputs instead."
 
 var stepInputFlags = map[string]stepInput{
-	"-allowProvisioningUpdates": {hint: "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead."},
+	"-allowProvisioningUpdates": {
+		hint:      "cannot update provisioning profiles on its own. xcodebuild needs the App Store Connect API key flags, which the Step adds when its automatic code signing is enabled. Remove it and enable automatic code signing instead.",
+		satisfied: []string{"-authenticationKeyPath", "-authenticationKeyID", "-authenticationKeyIssuerID"},
+	},
 	// xcode-test and xcode-test-without-building render these from their inputs.
 	"-test-iterations":                  {hint: testRepetitionHint, commands: testRunCommands},
 	"-retry-tests-on-failure":           {hint: testRepetitionHint, commands: testRunCommands},
@@ -150,61 +148,154 @@ var stepInputFlags = map[string]stepInput{
 	"-test-repetition-relaunch-enabled": {hint: testRepetitionHint, commands: testRunCommands},
 }
 
-// lintStepInputs reports user options from stepInputFlags that the command did not derive
-// itself. When it did, the merge reports them as redundant or repeated instead.
-func lintStepInputs(derived, user Options, command string) []Diagnostic {
-	var diagnostics []Diagnostic
-	for _, o := range user {
-		input, ok := stepInputFlags[o.Key()]
-		if !ok || (len(input.commands) > 0 && !slices.Contains(input.commands, command)) ||
-			slices.ContainsFunc(derived, func(d Option) bool { return d.Key() == o.Key() }) {
+// setsAll says whether opts gives every one of the value flags a value. It is false for
+// none: a stepInput without satisfied flags always needs its input.
+func setsAll(opts Options, flags []string) bool {
+	if len(flags) == 0 {
+		return false
+	}
+	for _, flag := range flags {
+		if !slices.ContainsFunc(opts, func(o Option) bool { return o.Kind == ValueOption && o.Name == flag && o.Value != "" }) {
+			return false
+		}
+	}
+	return true
+}
+
+// flagGroup is every option on the command line that names one flag or build setting, in
+// every form the user can write it: -quiet, -quiet YES, -quiet:YES and -quiet=YES all
+// belong to "-quiet". step holds the Step's copies, dropped or not, user the user's.
+type flagGroup struct {
+	name       string
+	step, user Options
+}
+
+// byFlag groups the flags and build settings by name, in order of first appearance.
+// Actions and unparsed arguments have no group.
+func (opts Options) byFlag() []flagGroup {
+	var groups []flagGroup
+	at := map[string]int{}
+	for _, o := range opts {
+		if o.Kind == Action || o.Kind == Unknown {
 			continue
 		}
-		diagnostics = append(diagnostics, Diagnostic{Kind: PreferStepInput, Message: fmt.Sprintf("%q %s", o, input.hint)})
+		i, ok := at[o.Name]
+		if !ok {
+			i = len(groups)
+			at[o.Name] = i
+			groups = append(groups, flagGroup{name: o.Name})
+		}
+		if o.user {
+			groups[i].user = append(groups[i].user, o)
+		} else {
+			groups[i].step = append(groups[i].step, o)
+		}
+	}
+	return groups
+}
+
+// ignoredUserDefault opens the message about a "-flag=value" the user meant as "-flag value".
+const ignoredUserDefault = "%q is written with \"=\". xcodebuild reads it as a user default and ignores it, "
+
+// findings says what became of a flag the user set: what the merge did with the Step's
+// copy, then each "-flag=value" the flag shadows, then whether a Step input should set it
+// instead. Every fact is in the group, so no rule needs another pass.
+func (g flagGroup) findings(all Options, policy actionPolicy) []Diagnostic {
+	if len(g.user) == 0 {
+		return nil
+	}
+	var diagnostics []Diagnostic
+
+	// same: the user's copies that key as the Step's; a "-flag=value" keys apart and shadows
+	var step Option
+	var same Options
+	if len(g.step) > 0 {
+		step = g.step[0]
+		same = g.user.Filter(func(o Option) bool { return o.key() == step.key() })
+	}
+	// the switch on the command line, the user's own or the Step's, for a value given to it
+	sw, hasSwitch := g.all().last(func(o Option) bool { return o.Kind == Switch })
+	switch {
+	case hasSwitch && slices.ContainsFunc(g.user, valued):
+		// "-allowProvisioningUpdates YES", "-allowProvisioningUpdates:YES", "-allowProvisioningUpdates=YES"
+		for _, u := range g.user.Filter(valued) {
+			diagnostics = append(diagnostics, valuedSwitch(u, sw))
+		}
+	case len(same) > 0 && step.dropped && same.allEqual(step):
+		diagnostics = append(diagnostics, report(RedundantOption, same[0], "%q is already set by the Step. Remove it.", step))
+	case len(same) > 0 && step.dropped:
+		diagnostics = append(diagnostics, report(Override, same[0], "%q replaces the Step's default %q.", same.join(), step))
+	case len(same) > 0 && !slices.Contains(policy.appendable, g.name):
+		diagnostics = append(diagnostics, report(RepeatedOption, same[0], "%s is managed by the Step. %q conflicts with its %q: xcodebuild accepts the flag only once. Remove it.", g.name, same.join(), step))
+	}
+
+	if !hasSwitch {
+		// "-destination=x": xcodebuild ignores the "=" form; the message names what the build uses instead
+		applied, found := g.all().last(func(o Option) bool { return o.Kind == ValueOption && !o.dropped })
+		for _, u := range g.user.Filter(func(o Option) bool { return o.Kind == UserDefault }) {
+			switch {
+			case found && applied.user:
+				// -destination generic/platform=tvOS -destination=generic/platform=watchOS
+				diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses your %q instead. Change that one to %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
+			case found:
+				diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"and uses the Step's %q instead. Use %s %s to apply it, or remove it.", u, applied, u.Name, shellQuoted(u.Value)))
+			case slices.Contains(freeFormValueFlags, u.Name):
+				// -destination=generic/platform=iOS with no -destination anywhere
+				diagnostics = append(diagnostics, report(SuspiciousUserDefault, u, ignoredUserDefault+"so it has no effect. Use %s %s to apply it, or remove it.", u, u.Name, shellQuoted(u.Value)))
+			}
+		}
+	}
+
+	if in, ok := stepInputFlags[g.name]; ok && in.appliesTo(policy.name) && len(g.step) == 0 && !setsAll(all, in.satisfied) {
+		// -allowProvisioningUpdates without the Step's API key flags, or the user's own
+		for _, u := range g.user {
+			if u.key() == g.name {
+				diagnostics = append(diagnostics, report(PreferStepInput, u, "%q %s", u, in.hint))
+			}
+		}
 	}
 	return diagnostics
 }
 
-// lintShadows reports a user "-flag=value" next to a derived "-flag value". It is not a
-// collision (a user default keys as "-flag="), but xcodebuild ignores the "=" form, so the
-// user's value never applies.
-func lintShadows(derived, user Options) []Diagnostic {
-	var diagnostics []Diagnostic
-	for _, o := range derived {
-		if o.Kind != ValueOption && o.Kind != Switch {
-			continue
-		}
-		for _, u := range user {
-			if u.Kind != UserDefault || u.Name != o.Name {
-				continue
-			}
-			if o.Kind == Switch {
-				// -allowProvisioningUpdates=YES next to the Step's -allowProvisioningUpdates: a
-				// switch takes no value, so "-flag YES" would make YES an unknown build action.
-				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is written with \"=\". xcodebuild reads it as a user default and ignores it, and the Step already sets %q. Remove it.", u, o)})
-			} else {
-				diagnostics = append(diagnostics, Diagnostic{Kind: SuspiciousUserDefault, Message: fmt.Sprintf("%q is written with \"=\". xcodebuild reads it as a user default and ignores it, so today's build uses the Step's %q. Remove it to keep that, or use %s %s to apply it.", u, o, o.Name, shellQuoted(u.Value))})
-			}
-			break
-		}
+// valuedSwitch reports u, a value given to sw, a switch the command line has. How
+// xcodebuild reads the value depends on how it is written.
+func valuedSwitch(u, sw Option) Diagnostic {
+	kind, effect := MalformedOption, fmt.Sprintf("xcodebuild reads %q as a build action and fails", u.Value)
+	switch u.Kind {
+	case UserDefault:
+		// -allowProvisioningUpdates=YES
+		kind, effect = SuspiciousUserDefault, "xcodebuild reads it as a user default and ignores it"
+	case ColonOption:
+		// -allowProvisioningUpdates:YES
+		effect = "xcodebuild refuses it as an invalid option"
 	}
-	return diagnostics
+	set := fmt.Sprintf("The Step already sets %s", sw)
+	if sw.user {
+		set = fmt.Sprintf("%s is already set", sw)
+	}
+	return report(kind, u, "%q gives a value to %s, which takes none, so %s. %s. Remove it.", u, sw, effect, set)
 }
 
-// lintCollisions describes what the merge did with each derived option the user set too.
-func lintCollisions(collisions []collision) []Diagnostic {
-	var diagnostics []Diagnostic
-	for _, c := range collisions {
-		switch c.kind {
-		case redundant:
-			diagnostics = append(diagnostics, Diagnostic{Kind: RedundantOption, Message: fmt.Sprintf("%q is already set by the Step. Remove it.", c.derived)})
-		case overridden:
-			diagnostics = append(diagnostics, Diagnostic{Kind: Override, Message: fmt.Sprintf("%q replaces the Step's default %q.", c.user.join(), c.derived)})
-		case repeated:
-			diagnostics = append(diagnostics, Diagnostic{Kind: RepeatedOption, Message: fmt.Sprintf("%q repeats %q, which the Step sets. xcodebuild refuses a repeated option. Remove it, or change the Step input instead.", c.user.join(), c.derived)})
+func valued(o Option) bool { return o.Kind != Switch }
+
+// all is the group in command line order: the Step's copies, then the user's.
+func (g flagGroup) all() Options {
+	return append(slices.Clone(g.step), g.user...)
+}
+
+// last is the last option for which keep is true.
+func (opts Options) last(keep func(Option) bool) (Option, bool) {
+	for i := len(opts) - 1; i >= 0; i-- {
+		if keep(opts[i]) {
+			return opts[i], true
 		}
 	}
-	return diagnostics
+	return Option{}, false
+}
+
+// allEqual says whether every option renders as o does.
+func (opts Options) allEqual(o Option) bool {
+	return !slices.ContainsFunc(opts, func(u Option) bool { return !slices.Equal(u.args(), o.args()) })
 }
 
 // join renders the options as one command line fragment, for messages.
@@ -213,7 +304,7 @@ func (opts Options) join() string {
 }
 
 // shellQuoted renders a value as it has to be written in xcodebuild_options: the inverse
-// of SplitAdditionalOptions.
+// of the split in ParseOptions.
 func shellQuoted(value string) string {
 	return shellquote.Join(value)
 }
@@ -221,7 +312,11 @@ func shellQuoted(value string) string {
 // unquoteFlag turns "-destination 'generic/platform=iOS'" (one argument) into the form the
 // user meant: the flag, then the value quoted on its own.
 func unquoteFlag(arg string) string {
-	flag, value, _ := strings.Cut(arg, " ")
+	flag, value := arg, ""
+	if i := strings.IndexFunc(arg, unicode.IsSpace); i >= 0 {
+		// "-sdk\tmacosx" splits like "-sdk macosx": the parser takes any whitespace
+		flag, value = arg[:i], arg[i:]
+	}
 	value = strings.Trim(strings.TrimSpace(value), "'\"")
 	return flag + " " + shellQuoted(value)
 }

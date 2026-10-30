@@ -2,7 +2,7 @@ package xcodecommand
 
 const toolName = "xcodebuild"
 
-// Build actions xcodebuild accepts (Xcode 16).
+// Build actions xcodebuild accepts.
 const (
 	ActionBuild               = "build"
 	ActionBuildForTesting     = "build-for-testing"
@@ -13,13 +13,15 @@ const (
 	ActionDocBuild            = "docbuild"
 	ActionInstallSrc          = "installsrc"
 	ActionInstall             = "install"
+	ActionInstallHeaders      = "installhdrs"
+	ActionInstallAPI          = "installapi"
 	ActionClean               = "clean"
 )
 
 var knownActions = []string{
 	ActionBuild, ActionBuildForTesting, ActionAnalyze, ActionArchive,
 	ActionTest, ActionTestWithoutBuilding, ActionDocBuild,
-	ActionInstallSrc, ActionInstall, ActionClean,
+	ActionInstallSrc, ActionInstall, ActionInstallHeaders, ActionInstallAPI, ActionClean,
 }
 
 // Authentication is the App Store Connect API key for -allowProvisioningUpdates.

@@ -23,7 +23,9 @@ func (c Command) Args() []string {
 	return slices.Clone(c.args)
 }
 
-// Diagnostics lists what the constructor found in the additional options.
+// Diagnostics lists what the command found in the additional options: what its policy
+// refuses, and what became of each option next to the command's own. The parser's findings
+// are not here; a step logs Options.Diagnostics with its inputs.
 func (c Command) Diagnostics() []Diagnostic {
 	return slices.Clone(c.diagnostics)
 }
@@ -33,19 +35,11 @@ func (c Command) Create(factory command.Factory, opts *command.Opts) command.Com
 	return factory.Create(toolName, c.Args(), opts)
 }
 
-// assemble parses and merges the additional options over the derived ones, then lints
-// what the two decided.
-func assemble(derived Options, additional []string, policy actionPolicy, validation Validation) (Command, error) {
-	user := ParseAdditionalOptions(additional)
-	merged, collisions := merge(derived, user, policy)
-	diagnostics := lint(user, derived, collisions, policy)
-	if validation == Fail {
-		if err := firstFailure(diagnostics); err != nil {
-			return Command{}, err
-		}
-	}
-
-	return Command{args: merged.Args(), diagnostics: diagnostics}, nil
+// assemble merges the step's additional options over the derived flags and lints the
+// result.
+func assemble(derived, user Options, policy actionPolicy) (Command, error) {
+	merged := merge(derived, user, policy)
+	return Command{args: merged.Args(), diagnostics: lint(merged, policy)}, nil
 }
 
 // projectOptions are the flags every scheme-building action shares.

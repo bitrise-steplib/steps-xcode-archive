@@ -15,7 +15,7 @@ import (
 
 // filterSPMAdditionalOptions narrows the xcodebuild_options input to what -showBuildSettings
 // accepts: the Swift package flags and build setting overrides.
-func filterSPMAdditionalOptions(xcodebuildAdditionalOptions []string) []string {
+func filterSPMAdditionalOptions(opts xcodecommand.Options) xcodecommand.Options {
 	spmFlags := map[string]bool{
 		"-skipPackagePluginValidation":            true,
 		"-skipMacroValidation":                    true,
@@ -25,15 +25,9 @@ func filterSPMAdditionalOptions(xcodebuildAdditionalOptions []string) []string {
 		"-clonedSourcePackagesDirPath":            true,
 	}
 
-	options := xcodecommand.ParseAdditionalOptions(xcodebuildAdditionalOptions)
-	filtered := options.Filter(func(o xcodecommand.Option) bool {
+	return opts.Filter(func(o xcodecommand.Option) bool {
 		return o.Kind == xcodecommand.BuildSetting || spmFlags[o.Name]
-	}).Args()
-	if filtered == nil {
-		return []string{}
-	}
-
-	return filtered
+	})
 }
 
 func determineExportMethod(desiredExportMethod string, archiveExportMethod exportoptions.Method, logger log.Logger) (exportoptions.Method, error) {

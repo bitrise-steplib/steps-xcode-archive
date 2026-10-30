@@ -17,8 +17,7 @@ type TestParams struct {
 	OnlyTesting                    []string // -only-testing:<id>; user entries are added
 	SkipTesting                    []string // -skip-testing:<id>; user entries are added
 	CollectTestDiagnostics         string   // a default: a user -collect-test-diagnostics replaces it
-	AdditionalOptions              []string // the step's xcodebuild_options, shell-split
-	Validation                     Validation
+	AdditionalOptions              Options  // the step's xcodebuild_options, from ParseOptions
 }
 
 // Test renders params into a test Command.
@@ -28,7 +27,6 @@ func Test(params TestParams) (Command, error) {
 	opts = append(opts, actions(params.Clean, ActionTest)...)
 	opts = appendValue(opts, "-destination", params.Destination)
 	opts = appendValue(opts, "-testPlan", params.TestPlan)
-	opts = appendValue(opts, "-xcconfig", params.XCConfigPath)
 	run, err := testRunOptions{
 		resultBundlePath:               params.ResultBundlePath,
 		repetitionMode:                 params.TestRepetitionMode,
@@ -36,6 +34,7 @@ func Test(params TestParams) (Command, error) {
 		relaunchTestsForEachRepetition: params.RelaunchTestsForEachRepetition,
 		onlyTesting:                    params.OnlyTesting,
 		skipTesting:                    params.SkipTesting,
+		xcconfigPath:                   params.XCConfigPath,
 		collectTestDiagnostics:         params.CollectTestDiagnostics,
 	}.options()
 	if err != nil {
@@ -43,5 +42,7 @@ func Test(params TestParams) (Command, error) {
 	}
 	opts = append(opts, run...)
 
-	return assemble(opts, params.AdditionalOptions, testPolicy, params.Validation)
+	return assemble(opts, params.AdditionalOptions, testPolicy)
 }
+
+var testPolicy = testRunPolicy(ActionTest, listsTests, withoutBuildingOnly)
