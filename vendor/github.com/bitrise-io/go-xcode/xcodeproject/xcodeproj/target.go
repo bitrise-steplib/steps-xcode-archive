@@ -18,7 +18,11 @@ const (
 	LegacyTargetType    TargetType = "PBXLegacyTarget"
 )
 
-const appClipProductType = "com.apple.product-type.application.on-demand-install-capable"
+const (
+	appClipProductType            = "com.apple.product-type.application.on-demand-install-capable"
+	extensionKitExtensionFileExt  = ".extensionkitextension"
+	extensionKitExtensionType     = "com.apple.product-type.extensionkit-extension"
+)
 
 // Target ...
 type Target struct {
@@ -49,7 +53,12 @@ func (t Target) IsAppProduct() bool {
 
 // IsAppExtensionProduct ...
 func (t Target) IsAppExtensionProduct() bool {
-	return filepath.Ext(t.ProductReference.Path) == ".appex"
+	switch filepath.Ext(t.ProductReference.Path) {
+	case ".appex", extensionKitExtensionFileExt:
+		return true
+	}
+
+	return t.ProductType == extensionKitExtensionType
 }
 
 // IsExecutableProduct ...
