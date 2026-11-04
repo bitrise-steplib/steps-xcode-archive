@@ -35,9 +35,7 @@ github.com/bitrise-io/go-utils/fileutil
 github.com/bitrise-io/go-utils/httputil
 github.com/bitrise-io/go-utils/log
 github.com/bitrise-io/go-utils/pathutil
-github.com/bitrise-io/go-utils/pretty
 github.com/bitrise-io/go-utils/progress
-github.com/bitrise-io/go-utils/sliceutil
 # github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.40
 ## explicit; go 1.21
 github.com/bitrise-io/go-utils/v2/analytics
@@ -59,13 +57,9 @@ github.com/bitrise-io/go-xcode/certificateutil
 github.com/bitrise-io/go-xcode/exportoptions
 github.com/bitrise-io/go-xcode/models
 github.com/bitrise-io/go-xcode/xcodebuild
-github.com/bitrise-io/go-xcode/xcodeproject/schemeint
 github.com/bitrise-io/go-xcode/xcodeproject/serialized
-github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj
-github.com/bitrise-io/go-xcode/xcodeproject/xcscheme
-github.com/bitrise-io/go-xcode/xcodeproject/xcworkspace
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.88
-## explicit; go 1.22
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.91.0.20261104133152-1176bff054f1
+## explicit; go 1.23
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
 github.com/bitrise-io/go-xcode/v2/autocodesign/codesignasset
@@ -83,14 +77,21 @@ github.com/bitrise-io/go-xcode/v2/devportalservice
 github.com/bitrise-io/go-xcode/v2/errorfinder
 github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator
 github.com/bitrise-io/go-xcode/v2/exportoptionsgenerator/internal/codesigngroup
+github.com/bitrise-io/go-xcode/v2/internal/filewriter
 github.com/bitrise-io/go-xcode/v2/logio
 github.com/bitrise-io/go-xcode/v2/plistutil
 github.com/bitrise-io/go-xcode/v2/profileutil
 github.com/bitrise-io/go-xcode/v2/timeutil
 github.com/bitrise-io/go-xcode/v2/xcarchive
 github.com/bitrise-io/go-xcode/v2/xcconfig
+github.com/bitrise-io/go-xcode/v2/xcodebuild
 github.com/bitrise-io/go-xcode/v2/xcodecache
 github.com/bitrise-io/go-xcode/v2/xcodecommand
+github.com/bitrise-io/go-xcode/v2/xcodeproject
+github.com/bitrise-io/go-xcode/v2/xcodeproject/serialized
+github.com/bitrise-io/go-xcode/v2/xcodeproject/xcodeproj
+github.com/bitrise-io/go-xcode/v2/xcodeproject/xcscheme
+github.com/bitrise-io/go-xcode/v2/xcodeproject/xcworkspace
 github.com/bitrise-io/go-xcode/v2/xcodeversion
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
@@ -101,9 +102,6 @@ github.com/ebitengine/purego
 github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
-# github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
-## explicit
-github.com/fullsailor/pkcs7
 # github.com/globocom/go-buffer/v2 v2.0.0
 ## explicit; go 1.13
 github.com/globocom/go-buffer/v2
@@ -160,6 +158,12 @@ github.com/shirou/gopsutil/v4/internal/common
 github.com/shirou/gopsutil/v4/mem
 github.com/shirou/gopsutil/v4/net
 github.com/shirou/gopsutil/v4/process
+# github.com/smallstep/pkcs7 v0.2.3
+## explicit; go 1.14
+github.com/smallstep/pkcs7
+github.com/smallstep/pkcs7/internal/cryptobyte
+github.com/smallstep/pkcs7/internal/cryptobyte/asn1
+github.com/smallstep/pkcs7/internal/legacy/x509
 # github.com/stretchr/objx v0.5.2
 ## explicit; go 1.20
 github.com/stretchr/objx

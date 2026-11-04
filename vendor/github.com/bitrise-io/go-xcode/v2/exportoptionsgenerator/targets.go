@@ -1,12 +1,12 @@
 package exportoptionsgenerator
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/bitrise-io/go-xcode/v2/plistutil"
-	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcodeproj"
-	"github.com/bitrise-io/go-xcode/xcodeproject/xcscheme"
+	"github.com/bitrise-io/go-xcode/v2/xcodeproject/xcodeproj"
+	"github.com/bitrise-io/go-xcode/v2/xcodeproject/xcscheme"
 )
 
 // ArchiveInfo contains the distribution bundle ID(s)	and entitlements of the main target and its dependencies.
@@ -36,7 +36,7 @@ func ReadArchiveInfoFromXcodeproject(xcodeProj *xcodeproj.XcodeProj, scheme *xcs
 		}
 
 		entitlements, err := xcodeProj.TargetCodeSignEntitlements(target.Name, configuration)
-		if err != nil && !serialized.IsKeyNotFoundError(err) {
+		if err != nil && !errors.Is(err, xcodeproj.ErrCodeSignEntitlementsNotFound) {
 			return ArchiveInfo{}, fmt.Errorf("failed to get target (%s) bundle id: %s", target.Name, err)
 		}
 
@@ -64,7 +64,7 @@ func ArchivableApplicationTarget(xcodeProj *xcodeproj.XcodeProj, scheme *xcschem
 		return nil, fmt.Errorf("archivable entry not found in project: %s for scheme: %s", xcodeProj.Path, scheme.Name)
 	}
 
-	mainTarget, ok := xcodeProj.Proj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
+	mainTarget, ok := xcodeProj.Target(archiveEntry.BuildableReference.BlueprintIdentifier)
 	if !ok {
 		return nil, fmt.Errorf("target not found: %s", archiveEntry.BuildableReference.BlueprintIdentifier)
 	}

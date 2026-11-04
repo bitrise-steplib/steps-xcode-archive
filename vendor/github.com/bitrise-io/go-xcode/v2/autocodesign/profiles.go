@@ -13,7 +13,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/retry"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign/devportalclient/appstoreconnect"
 	"github.com/bitrise-io/go-xcode/v2/profileutil"
-	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
+	"github.com/bitrise-io/go-xcode/v2/xcodeproject/serialized"
 )
 
 func appIDName(bundleID string) string {
@@ -405,22 +405,22 @@ func ParseRawProfileEntitlements(profileContents []byte) (Entitlements, error) {
 
 // FindMissingContainers ...
 func FindMissingContainers(projectEnts, profileEnts Entitlements) ([]string, error) {
-	projContainerIDs, err := serialized.Object(projectEnts).StringSlice(ICloudIdentifiersEntitlementKey)
+	projContainerIDs, err := serialized.Object(projectEnts).OptionalStringSlice(ICloudIdentifiersEntitlementKey)
 	if err != nil {
-		if serialized.IsKeyNotFoundError(err) {
-			return nil, nil // project has no container
-		}
-		return nil, err
+		return nil, fmt.Errorf("project %w", err)
+	}
+	if projContainerIDs == nil {
+		return nil, nil // project has no container
 	}
 
 	// project has containers, so the profile should have at least the same
 
-	profContainerIDs, err := serialized.Object(profileEnts).StringSlice(ICloudIdentifiersEntitlementKey)
+	profContainerIDs, err := serialized.Object(profileEnts).OptionalStringSlice(ICloudIdentifiersEntitlementKey)
 	if err != nil {
-		if serialized.IsKeyNotFoundError(err) {
-			return projContainerIDs, nil
-		}
-		return nil, err
+		return nil, fmt.Errorf("profile %w", err)
+	}
+	if profContainerIDs == nil {
+		return projContainerIDs, nil
 	}
 
 	// project and profile also has containers, check if profile contains the containers the project need
