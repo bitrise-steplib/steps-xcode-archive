@@ -5,13 +5,13 @@ type AnalyzeParams struct {
 	ProjectPath        string // .xcodeproj, .xcworkspace or a Swift package (no flag; run in its directory)
 	Scheme             string
 	Configuration      string
-	Destination        string
+	Destination        string // a default: a -destination in AdditionalOptions replaces it
 	XCConfigPath       string
 	SDK                string
-	ResultBundlePath   string
-	DisableCodeSigning bool     // CODE_SIGNING_ALLOWED=NO
-	Clean              bool     // run clean first
-	AdditionalOptions  []string // the step's xcodebuild_options, shell-split
+	ResultBundlePath   string  // a default: a -resultBundlePath in AdditionalOptions replaces it
+	DisableCodeSigning bool    // CODE_SIGNING_ALLOWED=NO
+	Clean              bool    // run clean first
+	AdditionalOptions  Options // the step's xcodebuild_options, from ParseOptions
 }
 
 // Analyze renders params into an analyze Command.
@@ -25,8 +25,13 @@ func Analyze(params AnalyzeParams) (Command, error) {
 		xcconfigPath:  params.XCConfigPath,
 		sdk:           params.SDK,
 	}.options()...)
-	opts = appendValue(opts, "-resultBundlePath", params.ResultBundlePath)
+	opts = appendDefault(opts, "-resultBundlePath", params.ResultBundlePath)
 	opts = appendCodeSigningAllowed(opts, params.DisableCodeSigning)
 
 	return assemble(opts, params.AdditionalOptions)
+}
+
+var analyzePolicy = actionPolicy{
+	name:       ActionAnalyze,
+	rejections: []rejection{modeSwitching, silentLog, testOnly},
 }

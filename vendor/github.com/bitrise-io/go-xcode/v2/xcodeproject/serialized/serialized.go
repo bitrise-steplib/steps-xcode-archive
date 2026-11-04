@@ -6,7 +6,8 @@
 //
 // A false result means either the key was absent or the stored value was not
 // of the requested type. Callers that need to tell those two cases apart can
-// check Has first.
+// check Has first, or use the Optional accessors, which tolerate an absent key
+// and report a value of the wrong type as a WrongTypeError.
 package serialized
 
 // Object is a decoded plist/pbxproj node: a set of string keys mapped to
@@ -101,4 +102,29 @@ func (o Object) Object(key string) (Object, bool) {
 		return nil, false
 	}
 	return casted, true
+}
+
+// OptionalString returns the string stored at key. An absent key is "" with no
+// error, as a plist omits what is not set; a value that is not a string is a
+// WrongTypeError.
+func (o Object) OptionalString(key string) (string, error) {
+	if value, ok := o.String(key); ok {
+		return value, nil
+	}
+	if raw, present := o.Value(key); present {
+		return "", WrongTypeError{Key: key, Value: raw, Expected: "string"}
+	}
+	return "", nil
+}
+
+// OptionalStringSlice returns the []string stored at key. An absent key is nil
+// with no error; a value that is not an array of strings is a WrongTypeError.
+func (o Object) OptionalStringSlice(key string) ([]string, error) {
+	if value, ok := o.StringSlice(key); ok {
+		return value, nil
+	}
+	if raw, present := o.Value(key); present {
+		return nil, WrongTypeError{Key: key, Value: raw, Expected: "string array"}
+	}
+	return nil, nil
 }

@@ -5,13 +5,13 @@ type ArchiveParams struct {
 	ProjectPath       string // .xcodeproj, .xcworkspace or a Swift package (no flag; run in its directory)
 	Scheme            string
 	Configuration     string
-	Destination       string
+	Destination       string // a default: a -destination in AdditionalOptions replaces it
 	XCConfigPath      string
 	SDK               string
 	ArchivePath       string
 	Clean             bool // run clean first
 	Authentication    *Authentication
-	AdditionalOptions []string // the step's xcodebuild_options, shell-split
+	AdditionalOptions Options // the step's xcodebuild_options, from ParseOptions
 }
 
 // Archive renders params into an archive Command.
@@ -29,4 +29,9 @@ func Archive(params ArchiveParams) (Command, error) {
 	opts = appendAuthentication(opts, params.Authentication)
 
 	return assemble(opts, params.AdditionalOptions)
+}
+
+var archivePolicy = actionPolicy{
+	name:       ActionArchive,
+	rejections: []rejection{modeSwitching, silentLog, testOnly},
 }

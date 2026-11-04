@@ -2,6 +2,7 @@ package xcodeproject
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/bitrise-io/go-xcode/v2/xcodeproject/xcodeproj"
 	"github.com/bitrise-io/go-xcode/v2/xcodeproject/xcscheme"
@@ -22,33 +23,34 @@ func NewFactory(project xcodeproj.Factory, workspace xcworkspace.Factory) Factor
 	}
 }
 
-// Open opens the project or workspace at pth, decided by its extension.
+// Open opens the project or workspace at pth, decided by its extension. A trailing path separator
+// is ignored, as xcodebuild ignores it.
 func (f Factory) Open(pth string) (Container, error) {
-	switch {
-	case xcodeproj.IsXcodeProj(pth):
+	switch cleanPth := filepath.Clean(pth); {
+	case xcodeproj.IsXcodeProj(cleanPth):
 		project, err := f.project.Open(pth)
 		if err != nil {
 			return nil, err
 		}
-		return &container{project: project, projectFactory: f.project}, nil
-	case xcworkspace.IsWorkspace(pth):
+		return &container{schemes: project}, nil
+	case xcworkspace.IsWorkspace(cleanPth):
 		workspace, err := f.workspace.Open(pth)
 		if err != nil {
 			return nil, err
 		}
-		return &container{workspace: workspace, projectFactory: f.project}, nil
+		return &container{schemes: workspace}, nil
 	default:
-		return nil, fmt.Errorf("%s is neither an Xcode project (%s) nor a workspace (%s)", pth, xcodeproj.XcodeProjExtension, xcworkspace.XCWorkspaceExtension)
+		return nil, fmt.Errorf("%s is neither an Xcode project nor a workspace: use the path of the %s or %s bundle", pth, xcodeproj.XcodeProjExtension, xcworkspace.XCWorkspaceExtension)
 	}
 }
 
-// Scheme returns the named scheme of the project or workspace at pth. It is Open followed by
-// Container.Scheme.
-func (f Factory) Scheme(pth, name string) (xcscheme.Scheme, error) {
-	container, err := f.Open(pth)
+// Scheme returns the project or workspace scheme by name, with the path of the bundle holding it.
+// It is Open followed by Container.Scheme.
+func (f Factory) Scheme(pth string, name string) (xcscheme.Scheme, string, error) {
+	c, err := f.Open(pth)
 	if err != nil {
-		return xcscheme.Scheme{}, err
+		return xcscheme.Scheme{}, "", err
 	}
 
-	return container.Scheme(name)
+	return c.Scheme(name)
 }

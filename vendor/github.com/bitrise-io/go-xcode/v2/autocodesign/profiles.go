@@ -405,22 +405,22 @@ func ParseRawProfileEntitlements(profileContents []byte) (Entitlements, error) {
 
 // FindMissingContainers ...
 func FindMissingContainers(projectEnts, profileEnts Entitlements) ([]string, error) {
-	projContainerIDs, ok := serialized.Object(projectEnts).StringSlice(ICloudIdentifiersEntitlementKey)
-	if !ok {
-		if !serialized.Object(projectEnts).Has(ICloudIdentifiersEntitlementKey) {
-			return nil, nil // project has no container
-		}
-		return nil, fmt.Errorf("project entitlement %s is not a string array", ICloudIdentifiersEntitlementKey)
+	projContainerIDs, err := serialized.Object(projectEnts).OptionalStringSlice(ICloudIdentifiersEntitlementKey)
+	if err != nil {
+		return nil, fmt.Errorf("project %w", err)
+	}
+	if projContainerIDs == nil {
+		return nil, nil // project has no container
 	}
 
 	// project has containers, so the profile should have at least the same
 
-	profContainerIDs, ok := serialized.Object(profileEnts).StringSlice(ICloudIdentifiersEntitlementKey)
-	if !ok {
-		if !serialized.Object(profileEnts).Has(ICloudIdentifiersEntitlementKey) {
-			return projContainerIDs, nil
-		}
-		return nil, fmt.Errorf("profile entitlement %s is not a string array", ICloudIdentifiersEntitlementKey)
+	profContainerIDs, err := serialized.Object(profileEnts).OptionalStringSlice(ICloudIdentifiersEntitlementKey)
+	if err != nil {
+		return nil, fmt.Errorf("profile %w", err)
+	}
+	if profContainerIDs == nil {
+		return projContainerIDs, nil
 	}
 
 	// project and profile also has containers, check if profile contains the containers the project need

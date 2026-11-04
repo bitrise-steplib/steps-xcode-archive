@@ -5,13 +5,13 @@ type BuildParams struct {
 	ProjectPath        string // .xcodeproj, .xcworkspace or a Swift package (no flag; run in its directory)
 	Scheme             string
 	Configuration      string
-	Destination        string
+	Destination        string // a default: a -destination in AdditionalOptions replaces it
 	XCConfigPath       string
 	SDK                string
 	DisableCodeSigning bool // CODE_SIGNING_ALLOWED=NO
 	Clean              bool // run clean first
 	Authentication     *Authentication
-	AdditionalOptions  []string // the step's xcodebuild_options, shell-split
+	AdditionalOptions  Options // the step's xcodebuild_options, from ParseOptions
 }
 
 // Build renders params into a build Command.
@@ -36,4 +36,9 @@ func appendCodeSigningAllowed(opts Options, disable bool) Options {
 		return opts
 	}
 	return append(opts, Option{Kind: BuildSetting, Name: "CODE_SIGNING_ALLOWED", Value: "NO"})
+}
+
+var buildPolicy = actionPolicy{
+	name:       ActionBuild,
+	rejections: []rejection{modeSwitching, silentLog, testOnly},
 }

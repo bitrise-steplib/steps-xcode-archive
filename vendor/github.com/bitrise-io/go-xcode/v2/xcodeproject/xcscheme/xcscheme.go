@@ -181,12 +181,9 @@ type Scheme struct {
 	AnalyzeAction AnalyzeAction
 	ArchiveAction ArchiveAction
 
-	Name string `xml:"-"`
-	// Path is the scheme file, empty for a scheme Xcode would autocreate.
-	Path string `xml:"-"`
-	// ContainerPath is the .xcodeproj or .xcworkspace bundle the scheme belongs to.
-	ContainerPath string `xml:"-"`
-	IsShared      bool   `xml:"-"`
+	Name     string `xml:"-"`
+	Path     string `xml:"-"`
+	IsShared bool   `xml:"-"`
 }
 
 // Factory opens scheme files with a fixed set of dependencies.

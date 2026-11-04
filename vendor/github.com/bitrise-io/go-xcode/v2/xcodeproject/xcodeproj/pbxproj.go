@@ -1,8 +1,6 @@
 package xcodeproj
 
 import (
-	"bytes"
-
 	"github.com/bitrise-io/go-plist"
 	"github.com/bitrise-io/go-xcode/v2/xcodeproject/serialized"
 )
@@ -27,14 +25,6 @@ type PBXProj struct {
 	targetAttributes serialized.Object
 	// buildPhaseIDs maps target IDs to the IDs of their build phases.
 	buildPhaseIDs map[string][]string
-}
-
-// Parse builds a project from project.pbxproj content. projectPath is where the project is
-// considered to live: relative build setting paths resolve against it and Save writes to it.
-// content is copied, so the caller may reuse it.
-func (f Factory) Parse(content []byte, projectPath string) (*PBXProj, error) {
-	// Why clone: Save() rebuilds the file from these bytes, so a buffer the caller changes later would corrupt it.
-	return f.newPBXProj(bytes.Clone(content), projectPath)
 }
 
 func (f Factory) newPBXProj(content []byte, projectPath string) (*PBXProj, error) {

@@ -73,8 +73,9 @@ type XcodeProj interface {
 	// caller, for use within a workspace. With no schemes and autocreate off it returns no schemes
 	// and no error.
 	SchemesWithAutocreateOverride(autocreateEnabled bool) ([]xcscheme.Scheme, error)
-	// Scheme returns the scheme with the given name. Names are compared after Unicode normalisation.
-	Scheme(name string) (xcscheme.Scheme, error)
+	// Scheme returns the scheme with the given name and the path of its project. Names are compared
+	// after Unicode normalisation.
+	Scheme(name string) (xcscheme.Scheme, string, error)
 	// RecreateSchemes returns the schemes Xcode would create for the project, one per native,
 	// non-test target. It only builds them in memory; use SaveSharedScheme to write them.
 	RecreateSchemes() []xcscheme.Scheme
@@ -182,7 +183,6 @@ func (f Factory) Open(pth string) (XcodeProj, error) {
 		if err != nil {
 			return nil, err
 		}
-		// The buffer was read here and nobody else holds it, so it needs no copy.
 		project, err := f.newPBXProj(content, absPth)
 		if err != nil {
 			// Returning the nil *PBXProj would make a non-nil XcodeProj.
