@@ -22,20 +22,13 @@ var (
 type XCProj struct {
 	baseProj
 
-	content          []byte
-	editor           *xcproj.Editor
-	developmentTeams map[string]string
-	files            []xcproj.Reference
+	content []byte
+	editor  *xcproj.Editor
+	files   []xcproj.Reference
 }
 
 func (f Factory) newXCProj(content []byte, projectPath string) (*XCProj, error) {
 	return parseXCProj(content, f.newBaseProj(projectPath))
-}
-
-// TargetDevelopmentTeam implements XcodeProj. It reads the target's legacy-team-id.
-func (p *XCProj) TargetDevelopmentTeam(targetID string) (string, bool) {
-	developmentTeam := p.developmentTeams[targetID]
-	return developmentTeam, developmentTeam != ""
 }
 
 // ForceCodeSign implements XcodeProj. It leaves legacy-team-id and legacy-provisioning-style
@@ -129,10 +122,9 @@ func parseXCProj(content []byte, base baseProj) (*XCProj, error) {
 	base.defaultConfigurationName = project.DefaultConfiguration
 
 	return &XCProj{
-		baseProj:         base,
-		content:          content,
-		developmentTeams: xcprojDevelopmentTeams(project.Targets),
-		files:            project.Files,
+		baseProj: base,
+		content:  content,
+		files:    project.Files,
 	}, nil
 }
 
@@ -181,12 +173,4 @@ func xcprojBuildConfigurations(configurations []xcproj.Configuration, settings s
 		})
 	}
 	return buildConfigurations
-}
-
-func xcprojDevelopmentTeams(targets []xcproj.Target) map[string]string {
-	developmentTeams := make(map[string]string, len(targets))
-	for _, target := range targets {
-		developmentTeams[target.ID] = target.LegacyTeamID
-	}
-	return developmentTeams
 }

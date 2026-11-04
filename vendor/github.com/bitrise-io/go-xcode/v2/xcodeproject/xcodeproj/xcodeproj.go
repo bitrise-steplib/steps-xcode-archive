@@ -46,9 +46,6 @@ type XcodeProj interface {
 	// DependentTargetsOfTarget returns the direct and transitive dependencies of target, each once.
 	// Dependencies that cannot be resolved are logged and skipped.
 	DependentTargetsOfTarget(target Target) []Target
-	// TargetDevelopmentTeam returns the development team the project records for the target
-	// outside its build settings.
-	TargetDevelopmentTeam(targetID string) (string, bool)
 
 	// TargetBuildSettings returns the target's effective build settings, looked up by target (not
 	// scheme) with xcodebuild. Destination-style extraArgs have no effect in target mode.

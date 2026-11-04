@@ -30,23 +30,3 @@ type PBXProj struct {
 func (f Factory) newPBXProj(content []byte, projectPath string) (*PBXProj, error) {
 	return parsePBXProj(content, f.newBaseProj(projectPath))
 }
-
-// TargetDevelopmentTeam implements XcodeProj. It reads the target's DevelopmentTeam from
-// TargetAttributes.
-func (p *PBXProj) TargetDevelopmentTeam(targetID string) (string, bool) {
-	if p.targetAttributes == nil {
-		return "", false
-	}
-
-	attributes, ok := p.targetAttributes.Object(targetID)
-	if !ok {
-		return "", false
-	}
-
-	developmentTeam, ok := attributes.String("DevelopmentTeam")
-	if !ok || developmentTeam == "" {
-		return "", false
-	}
-
-	return developmentTeam, true
-}
