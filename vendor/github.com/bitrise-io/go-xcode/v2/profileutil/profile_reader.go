@@ -8,7 +8,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
-	"github.com/fullsailor/pkcs7"
+	"github.com/smallstep/pkcs7"
 )
 
 const (
