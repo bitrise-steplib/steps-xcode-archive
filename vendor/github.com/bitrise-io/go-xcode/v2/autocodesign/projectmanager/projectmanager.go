@@ -11,6 +11,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-xcode/v2/autocodesign"
+	"github.com/bitrise-io/go-xcode/v2/xcodeproject/xcodeproj"
 )
 
 // Project ...
@@ -47,7 +48,7 @@ func (f *Factory) Create(params InitParams) (Project, error) {
 		f.logger.Warnf("buildSettings: Compatibility Mode is enabled")
 	}
 
-	projectHelper, err := NewProjectHelper(params.ProjectOrWorkspacePath, f.logger, params.SchemeName, f.buildAction, params.ConfigurationName, params.AdditionalXcodebuildShowbuildsettingsOptions, isCompatMode)
+	projectHelper, err := newProjectHelper(params.ProjectOrWorkspacePath, f.logger, params.SchemeName, f.buildAction, params.ConfigurationName, params.AdditionalXcodebuildShowbuildsettingsOptions, isCompatMode, f.envRepo)
 	if err != nil {
 		return Project{}, err
 	}
@@ -184,7 +185,13 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 		p.logger.Printf("  provisioning Profile: %s", profile.Attributes().Name)
 		p.logger.Printf("  certificate: %s", codesignAssets.Certificate.CommonName)
 
-		if err := p.projHelper.XcProj.ForceCodeSign(p.projHelper.Configuration, target.Name, teamID, codesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
+		if err := p.projHelper.XcProj.ForceCodeSign(xcodeproj.ForceCodeSignOptions{
+			TargetName:              target.Name,
+			Configuration:           p.projHelper.Configuration,
+			DevelopmentTeam:         teamID,
+			CodesignIdentity:        codesignAssets.Certificate.SHA1Fingerprint,
+			ProvisioningProfileUUID: profile.Attributes().UUID,
+		}); err != nil {
 			return fmt.Errorf("failed to apply code sign settings for target (%s): %w", target.Name, err)
 		}
 
@@ -217,8 +224,14 @@ func (p Project) ForceCodesignAssets(distribution autocodesign.DistributionType,
 			p.logger.Printf("  provisioning Profile: %s", profile.Attributes().Name)
 			p.logger.Printf("  certificate: %s", devCodesignAssets.Certificate.CommonName)
 
-			for _, c := range uiTestTarget.BuildConfigurationList.BuildConfigurations {
-				if err := p.projHelper.XcProj.ForceCodeSign(c.Name, uiTestTarget.Name, teamID, devCodesignAssets.Certificate.SHA1Fingerprint, profile.Attributes().UUID); err != nil {
+			for _, c := range uiTestTarget.BuildConfigurations {
+				if err := p.projHelper.XcProj.ForceCodeSign(xcodeproj.ForceCodeSignOptions{
+					TargetName:              uiTestTarget.Name,
+					Configuration:           c.Name,
+					DevelopmentTeam:         teamID,
+					CodesignIdentity:        devCodesignAssets.Certificate.SHA1Fingerprint,
+					ProvisioningProfileUUID: profile.Attributes().UUID,
+				}); err != nil {
 					return fmt.Errorf("failed to apply code sign settings for target (%s): %w", uiTestTarget.Name, err)
 				}
 			}
