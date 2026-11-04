@@ -280,7 +280,7 @@ workflows:
     - DESTINATION: detect
     - CODE_SIGNING_METHOD: api-key
     - MIN_DAYS_PROFILE_VALID: 0
-    - IPA_EXPORT_METHOD: ad-hoc
+    - IPA_EXPORT_METHOD: development
     - LOG_FORMATTER: xcodebuild
     after_run:
     - _run
