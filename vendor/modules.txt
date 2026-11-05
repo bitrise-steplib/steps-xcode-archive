@@ -58,7 +58,7 @@ github.com/bitrise-io/go-xcode/exportoptions
 github.com/bitrise-io/go-xcode/models
 github.com/bitrise-io/go-xcode/xcodebuild
 github.com/bitrise-io/go-xcode/xcodeproject/serialized
-# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.91.0.20261104155445-616c44e4a926
+# github.com/bitrise-io/go-xcode/v2 v2.0.0-alpha.93
 ## explicit; go 1.23
 github.com/bitrise-io/go-xcode/v2/autocodesign
 github.com/bitrise-io/go-xcode/v2/autocodesign/certdownloader
