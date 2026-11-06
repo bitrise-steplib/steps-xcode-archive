@@ -1,6 +1,7 @@
 package step
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,9 +31,9 @@ import (
 	"github.com/bitrise-io/go-xcode/v2/xcconfig"
 	cache "github.com/bitrise-io/go-xcode/v2/xcodecache"
 	"github.com/bitrise-io/go-xcode/v2/xcodecommand"
+	"github.com/bitrise-io/go-xcode/v2/xcodeproject/serialized"
 	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-io/go-xcode/xcodebuild"
-	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -426,7 +427,7 @@ func (s XcodebuildArchiver) Run(opts RunOpts) (RunResult, error) {
 		s.logger.Infof("Looking for artifact name as field is empty")
 
 		productName, err := opts.ProjectManager.ReadSchemeBuildSettingString("PRODUCT_NAME")
-		if err != nil && !serialized.IsKeyNotFoundError(err) {
+		if err != nil && !errors.Is(err, serialized.ErrKeyNotFound) {
 			return out, fmt.Errorf("failed to read product name build setting: %w", err)
 		}
 		if productName == "" {

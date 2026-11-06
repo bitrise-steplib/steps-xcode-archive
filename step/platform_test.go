@@ -1,10 +1,11 @@
 package step
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/bitrise-io/go-utils/v2/log"
-	"github.com/bitrise-io/go-xcode/xcodeproject/serialized"
+	"github.com/bitrise-io/go-xcode/v2/xcodeproject/serialized"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +31,7 @@ func TestBuildableTargetPlatform(t *testing.T) {
 		{
 			name:        "fails if showBuildSettings does not return SDKROOT",
 			sdk:         "",
-			settingsErr: serialized.NewKeyNotFoundError("SDKROOT", serialized.Object(map[string]any{})),
+			settingsErr: fmt.Errorf("SDKROOT: %w", serialized.ErrKeyNotFound),
 			want:        Platform(""),
 			wantErr:     true,
 		},

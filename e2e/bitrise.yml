@@ -246,6 +246,47 @@ workflows:
     - _check_outputs
     - _check_exported_artifacts
 
+  test_json_project_format:
+    description: Only Xcode 27.2 and newer can read a project in the JSON project.xcproj format.
+    steps:
+    - script:
+        title: Check if the current Xcode supports the JSON project format
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -e
+            version=$(xcodebuild -version | head -n 1 | awk '{print $2}')
+            if printf '27.2\n%s\n' "$version" | sort -V -C; then
+              envman add --key RUN_JSON_PROJECT_FORMAT_TEST --value true
+            else
+              echo "Xcode $version does not support the JSON project format, skipping"
+            fi
+    - bitrise-run:
+        run_if: |-
+          {{ enveq "RUN_JSON_PROJECT_FORMAT_TEST" "true" }}
+        inputs:
+        - workflow_id: utility_test_json_project_format
+        - bitrise_config_path: ./e2e/bitrise.yml
+
+  utility_test_json_project_format:
+    description: |
+      Tests API key based code signing on a project in the JSON project.xcproj format with
+      automatically managed signing and no shared scheme.
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/sample-apps-ios-json-xcproj.git
+    - TEST_APP_BRANCH: bitfall-signing
+    - BITRISE_PROJECT_PATH: sample-apps-ios-json-xcproj.xcodeproj
+    - BITRISE_SCHEME: sample-apps-ios-json-xcproj
+    - DESTINATION: detect
+    - CODE_SIGNING_METHOD: api-key
+    - MIN_DAYS_PROFILE_VALID: 0
+    - IPA_EXPORT_METHOD: development
+    - LOG_FORMATTER: xcodebuild
+    after_run:
+    - _run
+    - _check_outputs
+    - _check_exported_artifacts
+
   test_api_key_signing_manual:
     description: Fruta project requires Xcode 13+. Remove this conditional run if we don't run tests on Xcode 12 anymore
     steps:
