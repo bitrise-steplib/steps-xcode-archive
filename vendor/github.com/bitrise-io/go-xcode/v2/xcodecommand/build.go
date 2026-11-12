@@ -28,7 +28,7 @@ func Build(params BuildParams) (Command, error) {
 	opts = appendAuthentication(opts, params.Authentication)
 	opts = appendCodeSigningAllowed(opts, params.DisableCodeSigning)
 
-	return assemble(opts, params.AdditionalOptions)
+	return assemble(opts, params.AdditionalOptions, buildPolicy)
 }
 
 func appendCodeSigningAllowed(opts Options, disable bool) Options {
