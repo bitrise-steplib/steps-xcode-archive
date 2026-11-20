@@ -57,6 +57,7 @@ type Project struct {
 
 // Reference is a file reference, a group or a folder of the file tree.
 type Reference struct {
+	ID   string
 	Kind string
 
 	// Path is relative to the parent group, unless it starts with / or ~, or with a base such as
@@ -140,6 +141,7 @@ type rawTarget struct {
 // rawReference holds target-membership raw, because a folder lists target names and a file
 // reference lists build files.
 type rawReference struct {
+	ID               string            `json:"id"`
 	Kind             string            `json:"kind"`
 	Path             string            `json:"path"`
 	TargetMembership []json.RawMessage `json:"target-membership"`
@@ -357,7 +359,7 @@ func references(rawReferences []rawReference) ([]Reference, error) {
 }
 
 func (r rawReference) reference() (Reference, error) {
-	reference := Reference{Kind: cmp.Or(r.Kind, ReferenceKindFile), Path: r.Path}
+	reference := Reference{ID: r.ID, Kind: cmp.Or(r.Kind, ReferenceKindFile), Path: r.Path}
 
 	for _, membership := range r.TargetMembership {
 		if reference.Kind == ReferenceKindFolder {

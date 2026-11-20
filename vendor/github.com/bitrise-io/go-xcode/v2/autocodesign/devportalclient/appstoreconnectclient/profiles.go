@@ -130,23 +130,34 @@ func NewProfileClient(client *appstoreconnect.Client) *ProfileClient {
 
 // FindProfile ...
 func (c *ProfileClient) FindProfile(name string, profileType appstoreconnect.ProfileType) (autocodesign.Profile, error) {
+	// The name filter matches profiles whose name contains the given name,
+	// e.g. "Bitrise iOS development - (com.example.app)" also matches
+	// "Wildcard Bitrise iOS development - (com.example.app)".
 	opt := &appstoreconnect.ListProfilesOptions{
 		PagingOptions: appstoreconnect.PagingOptions{
-			Limit: 1,
+			Limit: 200,
 		},
 		FilterProfileType: profileType,
 		FilterName:        name,
 	}
 
-	r, err := c.client.Provisioning.ListProfiles(opt)
-	if err != nil {
-		return nil, err
-	}
-	if len(r.Data) == 0 {
-		return nil, nil
-	}
+	for {
+		r, err := c.client.Provisioning.ListProfiles(opt)
+		if err != nil {
+			return nil, err
+		}
 
-	return NewAPIProfile(c.client, &r.Data[0]), nil
+		for i := range r.Data {
+			if r.Data[i].Attributes.Name == name {
+				return NewAPIProfile(c.client, &r.Data[i]), nil
+			}
+		}
+
+		if r.Links.Next == "" {
+			return nil, nil
+		}
+		opt.Next = r.Links.Next
+	}
 }
 
 // DeleteProfile ...

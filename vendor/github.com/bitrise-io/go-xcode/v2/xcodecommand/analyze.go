@@ -28,7 +28,7 @@ func Analyze(params AnalyzeParams) (Command, error) {
 	opts = appendDefault(opts, "-resultBundlePath", params.ResultBundlePath)
 	opts = appendCodeSigningAllowed(opts, params.DisableCodeSigning)
 
-	return assemble(opts, params.AdditionalOptions)
+	return assemble(opts, params.AdditionalOptions, analyzePolicy)
 }
 
 var analyzePolicy = actionPolicy{

@@ -72,4 +72,6 @@ var (
 			"-enumerate-tests", "-test-enumeration-style", "-test-enumeration-format", "-test-enumeration-output-path",
 		},
 	}
+	// On a test run, -enumerate-tests lists the tests and runs none, and the command succeeds.
+	listsTests = rejection{reason: "It makes xcodebuild list the tests instead of running them.", flags: []string{"-enumerate-tests"}}
 )
