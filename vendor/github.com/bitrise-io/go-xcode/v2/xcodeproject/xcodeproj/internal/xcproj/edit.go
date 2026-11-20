@@ -9,6 +9,8 @@ import (
 	"github.com/tailscale/hujson"
 )
 
+const indentStep = "  "
+
 // Editor changes a project.xcproj in place, so every byte it does not change stays as Xcode
 // wrote it.
 type Editor struct {
@@ -33,9 +35,6 @@ func NewEditor(content []byte, configurations []string) (*Editor, error) {
 //
 // A key that applies to every configuration is split into one key per configuration first,
 // which is how Xcode records a setting that differs between configurations.
-//
-// The target must have at least one build setting, as a new key copies the layout of an
-// existing one.
 func (e *Editor) SetTargetBuildSetting(targetName, configuration, key, value string) error {
 	if !slices.Contains(e.configurations, configuration) {
 		return fmt.Errorf("project has no configuration %s", configuration)
@@ -46,12 +45,18 @@ func (e *Editor) SetTargetBuildSetting(targetName, configuration, key, value str
 		return fmt.Errorf("invalid build setting key: %s", key)
 	}
 
-	settings, err := e.targetBuildSettings(targetName)
+	target, err := e.target(targetName)
 	if err != nil {
 		return err
 	}
 
 	configuredKey := configurationKey(parsed, configuration)
+	settings, ok := valueOf[*hujson.Object](memberValue(target, "build-settings"))
+	if !ok || len(settings.Members) == 0 {
+		addFirstBuildSetting(target, configuredKey, value)
+		return nil
+	}
+
 	if existing := memberValue(settings, configuredKey); existing != nil {
 		existing.Value = hujson.String(value)
 		return nil
@@ -71,7 +76,7 @@ func (e *Editor) Content() []byte {
 	return e.root.Pack()
 }
 
-func (e *Editor) targetBuildSettings(targetName string) (*hujson.Object, error) {
+func (e *Editor) target(targetName string) (*hujson.Object, error) {
 	targets, ok := valueOf[*hujson.Array](e.root.Find("/targets"))
 	if !ok {
 		return nil, fmt.Errorf("project has no targets")
@@ -86,12 +91,7 @@ func (e *Editor) targetBuildSettings(targetName string) (*hujson.Object, error) 
 		if !ok || name.String() != targetName {
 			continue
 		}
-
-		settings, ok := valueOf[*hujson.Object](memberValue(target, "build-settings"))
-		if !ok || len(settings.Members) == 0 {
-			return nil, fmt.Errorf("target %s has no build settings: adding the first build setting to project.xcproj is not supported", targetName)
-		}
-		return settings, nil
+		return target, nil
 	}
 
 	return nil, fmt.Errorf("project has no target %s", targetName)
@@ -132,6 +132,58 @@ func memberName(member hujson.ObjectMember) string {
 func configurationKey(key buildSettingKey, configuration string) string {
 	key.conditions = append([]string{configConditionPrefix + configuration}, key.conditions...)
 	return key.String()
+}
+
+// Xcode writes build-settings last among the common target members, so before an external
+// build system target's build-tool members.
+func addFirstBuildSetting(target *hujson.Object, key, value string) {
+	layout := target.Members[len(target.Members)-1]
+	indent := lineBreakAndIndent(layout.Name.BeforeExtra)
+	settings := &hujson.Object{
+		Members: []hujson.ObjectMember{{
+			Name: hujson.Value{
+				BeforeExtra: append(bytes.Clone(indent), indentStep...),
+				Value:       hujson.String(key),
+				AfterExtra:  bytes.Clone(layout.Name.AfterExtra),
+			},
+			Value: hujson.Value{
+				BeforeExtra: bytes.Clone(layout.Value.BeforeExtra),
+				Value:       hujson.String(value),
+				AfterExtra:  hujson.Extra{},
+			},
+		}},
+		AfterExtra: indent,
+	}
+
+	if existing := memberValue(target, "build-settings"); existing != nil {
+		// A comment inside an empty object is kept in the object's closing whitespace.
+		if empty, ok := existing.Value.(*hujson.Object); ok {
+			name := &settings.Members[0].Name
+			name.BeforeExtra = append(bytes.Clone(bytes.TrimRightFunc(empty.AfterExtra, unicode.IsSpace)), name.BeforeExtra...)
+		}
+		existing.Value = settings
+		return
+	}
+
+	added := hujson.ObjectMember{
+		Name: hujson.Value{
+			BeforeExtra: bytes.Clone(indent),
+			Value:       hujson.String("build-settings"),
+			AfterExtra:  bytes.Clone(layout.Name.AfterExtra),
+		},
+		Value: hujson.Value{
+			BeforeExtra: bytes.Clone(layout.Value.BeforeExtra),
+			Value:       settings,
+		},
+	}
+
+	index := memberIndex(target, "build-tool-path")
+	if index < 0 {
+		index = len(target.Members)
+		moveTrailingComma(&target.Members[index-1].Value, &added.Value)
+	}
+
+	target.Members = slices.Insert(target.Members, index, added)
 }
 
 // splitSharedKey replaces the shared key with one key per configuration. Every other

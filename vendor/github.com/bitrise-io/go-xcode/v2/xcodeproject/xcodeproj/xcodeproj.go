@@ -293,7 +293,7 @@ func (p *baseProj) DefaultConfigurationName() string {
 func (p *baseProj) DependentTargetsOfTarget(target Target) []Target {
 	// visited guards against dependency cycles in malformed project files.
 	visited := map[string]bool{target.ID: true}
-	return deduplicateTargets(p.dependentTargetsOfTarget(target, visited))
+	return p.dependentTargetsOfTarget(target, visited)
 }
 
 func (p *baseProj) dependentTargetsOfTarget(target Target, visited map[string]bool) []Target {
@@ -316,19 +316,4 @@ func (p *baseProj) dependentTargetsOfTarget(target Target, visited map[string]bo
 	}
 
 	return dependents
-}
-
-func deduplicateTargets(targets []Target) []Target {
-	seen := map[string]bool{}
-	unique := make([]Target, 0, len(targets))
-
-	for _, target := range targets {
-		if seen[target.ID] {
-			continue
-		}
-		seen[target.ID] = true
-		unique = append(unique, target)
-	}
-
-	return unique
 }

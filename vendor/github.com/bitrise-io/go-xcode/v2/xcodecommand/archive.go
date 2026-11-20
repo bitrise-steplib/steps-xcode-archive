@@ -28,7 +28,7 @@ func Archive(params ArchiveParams) (Command, error) {
 	opts = appendValue(opts, "-archivePath", params.ArchivePath)
 	opts = appendAuthentication(opts, params.Authentication)
 
-	return assemble(opts, params.AdditionalOptions)
+	return assemble(opts, params.AdditionalOptions, archivePolicy)
 }
 
 var archivePolicy = actionPolicy{
